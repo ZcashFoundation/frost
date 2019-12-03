@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use crate::{Error, PublicKey, Signature};
+use crate::{Error, Randomizer, PublicKey, Signature};
 
 /// A refinement type indicating that the inner `[u8; 32]` represents an
 /// encoding of a RedJubJub secret key.
@@ -47,9 +47,14 @@ impl<'a> From<&'a SecretKey> for PublicKey {
     }
 }
 
-// Similar to signature::Signer but without boxed errors.
 impl SecretKey {
+    /// Randomize this public key with the given `randomizer`.
+    pub fn randomize(&self, randomizer: Randomizer) -> PublicKey {
+        unimplemented!();
+    }
+
     /// Sign the given `msg` with this `SecretKey`.
+    // Similar to signature::Signer but without boxed errors.
     pub fn sign(&self, msg: &[u8]) -> Signature {
         unimplemented!();
     }

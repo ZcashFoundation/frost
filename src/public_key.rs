@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use crate::{Error, Signature};
+use crate::{Error, Randomizer, Signature};
 
 /// A refinement type indicating that the inner `[u8; 32]` represents an
 /// encoding of a RedJubJub public key.
@@ -40,9 +40,14 @@ impl TryFrom<PublicKeyBytes> for PublicKey {
     }
 }
 
-// This is similar to impl signature::Verifier but without boxed errors
 impl PublicKey {
+    /// Randomize this public key with the given `randomizer`.
+    pub fn randomize(&self, randomizer: Randomizer) -> PublicKey {
+        unimplemented!();
+    }
+
     /// Verify a supposed `signature` over `msg` made by this public key.
+    // This is similar to impl signature::Verifier but without boxed errors
     pub fn verify(&self, msg: &[u8], signature: &Signature) -> Result<(), Error> {
         unimplemented!();
     }
