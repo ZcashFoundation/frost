@@ -10,6 +10,9 @@ mod secret_key;
 mod signature;
 
 pub use error::Error;
+pub use public_key::{PublicKey, PublicKeyBytes};
+pub use secret_key::{SecretKey, SecretKeyBytes};
+pub use signature::Signature;
 
 #[cfg(test)]
 mod tests {
