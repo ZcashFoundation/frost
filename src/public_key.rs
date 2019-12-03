@@ -2,12 +2,16 @@ use std::{convert::TryFrom, marker::PhantomData};
 
 use crate::{Binding, Error, Randomizer, SigType, Signature, SpendAuth};
 
-/// A refinement type indicating that the inner `[u8; 32]` represents an
-/// encoding of a RedJubJub public key.
+/// A refinement type for `[u8; 32]` indicating that the bytes represent
+/// an encoding of a RedJubJub public key.
+///
+/// This is useful for representing a compressed public key; the
+/// [`PublicKey`] type in this library holds other decompressed state
+/// used in signature verification.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct PublicKeyBytes<T: SigType> {
-    bytes: [u8; 32],
-    _marker: PhantomData<T>,
+    pub(crate) bytes: [u8; 32],
+    pub(crate) _marker: PhantomData<T>,
 }
 
 impl<T: SigType> From<[u8; 32]> for PublicKeyBytes<T> {
@@ -26,20 +30,16 @@ impl<T: SigType> From<PublicKeyBytes<T>> for [u8; 32] {
 }
 
 /// A RedJubJub public key.
-// XXX PartialEq, Eq?
 #[derive(Copy, Clone, Debug)]
 pub struct PublicKey<T: SigType> {
     // XXX-jubjub: this should just be Point
     pub(crate) point: jubjub::ExtendedPoint,
-    // XXX should this just store a PublicKeyBytes?
-    pub(crate) bytes: [u8; 32],
-    pub(crate) _marker: PhantomData<T>,
+    pub(crate) bytes: PublicKeyBytes<T>,
 }
 
 impl<T: SigType> From<PublicKey<T>> for PublicKeyBytes<T> {
     fn from(pk: PublicKey<T>) -> PublicKeyBytes<T> {
-        let PublicKey { bytes, _marker, .. } = pk;
-        PublicKeyBytes { bytes, _marker }
+        pk.bytes
     }
 }
 
@@ -53,8 +53,7 @@ impl<T: SigType> TryFrom<PublicKeyBytes<T>> for PublicKey<T> {
         if maybe_point.is_some().into() {
             Ok(PublicKey {
                 point: maybe_point.unwrap().into(),
-                bytes: bytes.bytes,
-                _marker: PhantomData,
+                bytes,
             })
         } else {
             Err(Error::MalformedPublicKey)

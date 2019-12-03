@@ -18,7 +18,7 @@ type Scalar = jubjub::Fr;
 
 pub use error::Error;
 pub use public_key::{PublicKey, PublicKeyBytes};
-pub use secret_key::{SecretKey, SecretKeyBytes};
+pub use secret_key::SecretKey;
 pub use signature::Signature;
 
 /// Abstracts over different RedJubJub parameter choices.

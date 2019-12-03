@@ -1,59 +1,31 @@
 use std::{convert::TryFrom, marker::PhantomData};
 
-use crate::{Binding, Error, PublicKey, Randomizer, Scalar, SigType, Signature, SpendAuth};
+use crate::{
+    Binding, Error, PublicKey, PublicKeyBytes, Randomizer, Scalar, SigType, Signature, SpendAuth,
+};
 
 use rand_core::{CryptoRng, RngCore};
 
-/// A refinement type indicating that the inner `[u8; 32]` represents an
-/// encoding of a RedJubJub secret key.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct SecretKeyBytes<T: SigType> {
-    bytes: [u8; 32],
-    _marker: PhantomData<T>,
-}
-
-impl<T: SigType> From<[u8; 32]> for SecretKeyBytes<T> {
-    fn from(bytes: [u8; 32]) -> SecretKeyBytes<T> {
-        SecretKeyBytes {
-            bytes,
-            _marker: PhantomData,
-        }
-    }
-}
-
-impl<T: SigType> From<SecretKeyBytes<T>> for [u8; 32] {
-    fn from(refined: SecretKeyBytes<T>) -> [u8; 32] {
-        refined.bytes
-    }
-}
-
 /// A RedJubJub secret key.
-// XXX PartialEq, Eq?
 #[derive(Copy, Clone, Debug)]
 pub struct SecretKey<T: SigType> {
     sk: Scalar,
     _marker: PhantomData<T>,
 }
 
-impl<T: SigType> From<SecretKey<T>> for SecretKeyBytes<T> {
-    fn from(sk: SecretKey<T>) -> SecretKeyBytes<T> {
-        SecretKeyBytes {
-            bytes: sk.sk.to_bytes(),
-            _marker: PhantomData,
-        }
+impl<T: SigType> From<SecretKey<T>> for [u8; 32] {
+    fn from(sk: SecretKey<T>) -> [u8; 32] {
+        sk.sk.to_bytes()
     }
 }
 
-// XXX could this be a From impl?
-// not unless there's an infallible conversion from bytes to scalars,
-// which is not  currently present in jubjub
-impl<T: SigType> TryFrom<SecretKeyBytes<T>> for SecretKey<T> {
+impl<T: SigType> TryFrom<[u8; 32]> for SecretKey<T> {
     type Error = Error;
 
-    fn try_from(bytes: SecretKeyBytes<T>) -> Result<Self, Self::Error> {
+    fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
         // XXX-jubjub: it does not make sense for this to be a CtOption...
         // XXX-jubjub: this takes a borrow but point deser doesn't
-        let maybe_sk = Scalar::from_bytes(&bytes.bytes);
+        let maybe_sk = Scalar::from_bytes(&bytes);
         if maybe_sk.is_some().into() {
             Ok(SecretKey {
                 sk: maybe_sk.unwrap(),
@@ -65,6 +37,7 @@ impl<T: SigType> TryFrom<SecretKeyBytes<T>> for SecretKey<T> {
     }
 }
 
+/*
 impl<R, T> From<R> for SecretKey<T>
 where
     R: RngCore + CryptoRng,
@@ -79,6 +52,7 @@ where
         }
     }
 }
+*/
 
 impl<'a> From<&'a SecretKey<SpendAuth>> for PublicKey<SpendAuth> {
     fn from(sk: &'a SecretKey<SpendAuth>) -> PublicKey<SpendAuth> {
@@ -107,12 +81,11 @@ fn pk_from_sk_inner<T: SigType>(
     basepoint: jubjub::ExtendedPoint,
 ) -> PublicKey<T> {
     let point = &basepoint * &sk.sk;
-    let bytes = jubjub::AffinePoint::from(&point).to_bytes();
-    PublicKey {
-        point,
-        bytes,
+    let bytes = PublicKeyBytes {
+        bytes: jubjub::AffinePoint::from(&point).to_bytes(),
         _marker: PhantomData,
-    }
+    };
+    PublicKey { bytes, point }
 }
 
 impl<T: SigType> SecretKey<T> {
