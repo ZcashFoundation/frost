@@ -1,6 +1,6 @@
 use std::{convert::TryFrom, marker::PhantomData};
 
-use crate::{Error, PublicKey, SigType, Binding, SpendAuth, Randomizer, Signature};
+use crate::{Binding, Error, PublicKey, Randomizer, Scalar, SigType, Signature, SpendAuth};
 
 /// A refinement type indicating that the inner `[u8; 32]` represents an
 /// encoding of a RedJubJub secret key.
@@ -12,7 +12,10 @@ pub struct SecretKeyBytes<T: SigType> {
 
 impl<T: SigType> From<[u8; 32]> for SecretKeyBytes<T> {
     fn from(bytes: [u8; 32]) -> SecretKeyBytes<T> {
-        SecretKeyBytes{ bytes, _marker: PhantomData }
+        SecretKeyBytes {
+            bytes,
+            _marker: PhantomData,
+        }
     }
 }
 
@@ -26,28 +29,72 @@ impl<T: SigType> From<SecretKeyBytes<T>> for [u8; 32] {
 // XXX PartialEq, Eq?
 #[derive(Copy, Clone, Debug)]
 pub struct SecretKey<T: SigType> {
-    // fields
+    sk: Scalar,
     _marker: PhantomData<T>,
 }
 
 impl<T: SigType> From<SecretKey<T>> for SecretKeyBytes<T> {
-    fn from(pk: SecretKey<T>) -> SecretKeyBytes<T> {
-        unimplemented!();
+    fn from(sk: SecretKey<T>) -> SecretKeyBytes<T> {
+        SecretKeyBytes {
+            bytes: sk.sk.to_bytes(),
+            _marker: PhantomData,
+        }
     }
 }
 
 // XXX could this be a From impl?
+// not unless there's an infallible conversion from bytes to scalars,
+// which is not  currently present in jubjub
 impl<T: SigType> TryFrom<SecretKeyBytes<T>> for SecretKey<T> {
     type Error = Error;
 
     fn try_from(bytes: SecretKeyBytes<T>) -> Result<Self, Self::Error> {
-        unimplemented!();
+        // XXX-jubjub: it does not make sense for this to be a CtOption...
+        // XXX-jubjub: this takes a borrow but point deser doesn't
+        let maybe_sk = Scalar::from_bytes(&bytes.bytes);
+        if maybe_sk.is_some().into() {
+            Ok(SecretKey {
+                sk: maybe_sk.unwrap(),
+                _marker: PhantomData,
+            })
+        } else {
+            Err(Error::MalformedSecretKey)
+        }
     }
 }
 
-impl<'a, T: SigType> From<&'a SecretKey<T>> for PublicKey<T> {
-    fn from(sk: &'a SecretKey<T>) -> PublicKey<T> {
-        unimplemented!();
+impl<'a> From<&'a SecretKey<SpendAuth>> for PublicKey<SpendAuth> {
+    fn from(sk: &'a SecretKey<SpendAuth>) -> PublicKey<SpendAuth> {
+        // XXX-jubjub: this is pretty baroque
+        // XXX-jubjub: provide basepoint tables for generators
+        let basepoint: jubjub::ExtendedPoint =
+            jubjub::AffinePoint::from_bytes(crate::constants::SPENDAUTHSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into();
+        pk_from_sk_inner(sk, basepoint)
+    }
+}
+
+impl<'a> From<&'a SecretKey<Binding>> for PublicKey<Binding> {
+    fn from(sk: &'a SecretKey<Binding>) -> PublicKey<Binding> {
+        let basepoint: jubjub::ExtendedPoint =
+            jubjub::AffinePoint::from_bytes(crate::constants::BINDINGSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into();
+        pk_from_sk_inner(sk, basepoint)
+    }
+}
+
+fn pk_from_sk_inner<T: SigType>(
+    sk: &SecretKey<T>,
+    basepoint: jubjub::ExtendedPoint,
+) -> PublicKey<T> {
+    let point = &basepoint * &sk.sk;
+    let bytes = jubjub::AffinePoint::from(&point).to_bytes();
+    PublicKey {
+        point,
+        bytes,
+        _marker: PhantomData,
     }
 }
 
