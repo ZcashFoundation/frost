@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use crate::Error;
+use crate::{Error, PublicKey, Signature};
 
 /// A refinement type indicating that the inner `[u8; 32]` represents an
 /// encoding of a RedJubJub secret key.
@@ -32,10 +32,25 @@ impl From<SecretKey> for SecretKeyBytes {
     }
 }
 
+// XXX could this be a From impl?
 impl TryFrom<SecretKeyBytes> for SecretKey {
     type Error = Error;
 
     fn try_from(bytes: SecretKeyBytes) -> Result<Self, Self::Error> {
+        unimplemented!();
+    }
+}
+
+impl<'a> From<&'a SecretKey> for PublicKey {
+    fn from(sk: &'a SecretKey) -> PublicKey {
+        unimplemented!();
+    }
+}
+
+// Similar to signature::Signer but without boxed errors.
+impl SecretKey {
+    /// Sign the given `msg` with this `SecretKey`.
+    pub fn sign(&self, msg: &[u8]) -> Signature {
         unimplemented!();
     }
 }
