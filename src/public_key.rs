@@ -29,13 +29,17 @@ impl<T: SigType> From<PublicKeyBytes<T>> for [u8; 32] {
 // XXX PartialEq, Eq?
 #[derive(Copy, Clone, Debug)]
 pub struct PublicKey<T: SigType> {
-    // fields
+    // XXX-jubjub: this should just be Point
+    point: jubjub::ExtendedPoint,
+    // XXX should this just store a PublicKeyBytes?
+    bytes: [u8; 32],
     _marker: PhantomData<T>,
 }
 
 impl<T: SigType> From<PublicKey<T>> for PublicKeyBytes<T> {
     fn from(pk: PublicKey<T>) -> PublicKeyBytes<T> {
-        unimplemented!();
+        let PublicKey { bytes, _marker, .. } = pk;
+        PublicKeyBytes { bytes, _marker }
     }
 }
 
@@ -43,7 +47,18 @@ impl<T: SigType> TryFrom<PublicKeyBytes<T>> for PublicKey<T> {
     type Error = Error;
 
     fn try_from(bytes: PublicKeyBytes<T>) -> Result<Self, Self::Error> {
-        unimplemented!();
+        // XXX-jubjub: this should not use CtOption
+        // XXX-jubjub: this takes ownership of bytes, while Fr doesn't.
+        let maybe_point = jubjub::AffinePoint::from_bytes(bytes.bytes);
+        if maybe_point.is_some().into() {
+            Ok(PublicKey {
+                point: maybe_point.unwrap().into(),
+                bytes: bytes.bytes,
+                _marker: PhantomData,
+            })
+        } else {
+            Err(Error::MalformedPublicKey)
+        }
     }
 }
 
