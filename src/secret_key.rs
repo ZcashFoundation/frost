@@ -1,61 +1,77 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, marker::PhantomData};
 
-use crate::{Error, Randomizer, PublicKey, Signature};
+use crate::{Error, PublicKey, SigType, Binding, SpendAuth, Randomizer, Signature};
 
 /// A refinement type indicating that the inner `[u8; 32]` represents an
 /// encoding of a RedJubJub secret key.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct SecretKeyBytes(pub [u8; 32]);
+pub struct SecretKeyBytes<T: SigType> {
+    bytes: [u8; 32],
+    _marker: PhantomData<T>,
+}
 
-impl From<[u8; 32]> for SecretKeyBytes {
-    fn from(raw: [u8; 32]) -> SecretKeyBytes {
-        SecretKeyBytes(raw)
+impl<T: SigType> From<[u8; 32]> for SecretKeyBytes<T> {
+    fn from(bytes: [u8; 32]) -> SecretKeyBytes<T> {
+        SecretKeyBytes{ bytes, _marker: PhantomData }
     }
 }
 
-impl From<SecretKeyBytes> for [u8; 32] {
-    fn from(refined: SecretKeyBytes) -> [u8; 32] {
-        refined.0
+impl<T: SigType> From<SecretKeyBytes<T>> for [u8; 32] {
+    fn from(refined: SecretKeyBytes<T>) -> [u8; 32] {
+        refined.bytes
     }
 }
 
 /// A RedJubJub secret key.
 // XXX PartialEq, Eq?
 #[derive(Copy, Clone, Debug)]
-pub struct SecretKey {
+pub struct SecretKey<T: SigType> {
     // fields
+    _marker: PhantomData<T>,
 }
 
-impl From<SecretKey> for SecretKeyBytes {
-    fn from(pk: SecretKey) -> SecretKeyBytes {
+impl<T: SigType> From<SecretKey<T>> for SecretKeyBytes<T> {
+    fn from(pk: SecretKey<T>) -> SecretKeyBytes<T> {
         unimplemented!();
     }
 }
 
 // XXX could this be a From impl?
-impl TryFrom<SecretKeyBytes> for SecretKey {
+impl<T: SigType> TryFrom<SecretKeyBytes<T>> for SecretKey<T> {
     type Error = Error;
 
-    fn try_from(bytes: SecretKeyBytes) -> Result<Self, Self::Error> {
+    fn try_from(bytes: SecretKeyBytes<T>) -> Result<Self, Self::Error> {
         unimplemented!();
     }
 }
 
-impl<'a> From<&'a SecretKey> for PublicKey {
-    fn from(sk: &'a SecretKey) -> PublicKey {
+impl<'a, T: SigType> From<&'a SecretKey<T>> for PublicKey<T> {
+    fn from(sk: &'a SecretKey<T>) -> PublicKey<T> {
         unimplemented!();
     }
 }
 
-impl SecretKey {
+impl<T: SigType> SecretKey<T> {
     /// Randomize this public key with the given `randomizer`.
-    pub fn randomize(&self, randomizer: Randomizer) -> PublicKey {
+    pub fn randomize(&self, randomizer: Randomizer) -> PublicKey<T> {
         unimplemented!();
     }
+}
 
-    /// Sign the given `msg` with this `SecretKey`.
+impl SecretKey<Binding> {
+    /// Create a Zcash `BindingSig` on `msg` using this `SecretKey`.
     // Similar to signature::Signer but without boxed errors.
-    pub fn sign(&self, msg: &[u8]) -> Signature {
+    pub fn sign(&self, msg: &[u8]) -> Signature<Binding> {
+        // could use sign_inner
+        unimplemented!();
+    }
+}
+
+impl SecretKey<SpendAuth> {
+    /// Create a Zcash `SpendAuthSig` on `msg` using this `SecretKey`.
+    // Similar to signature::Signer but without boxed errors.
+    pub fn sign(&self, msg: &[u8]) -> Signature<SpendAuth> {
+        // could use sign_inner
         unimplemented!();
     }
 }
