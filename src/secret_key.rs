@@ -65,15 +65,36 @@ impl<T: SigType> TryFrom<SecretKeyBytes<T>> for SecretKey<T> {
 
 impl<'a> From<&'a SecretKey<SpendAuth>> for PublicKey<SpendAuth> {
     fn from(sk: &'a SecretKey<SpendAuth>) -> PublicKey<SpendAuth> {
-        // XXX refactor jubjub API
-        //let basepoint: jubjub::ExtendedPoint = jubjub::AffinePoint::from_bytes(&crate::constants::SPENDAUTHSIG_BASEPOINT_BYTES).unwrap().into();
-        unimplemented!();
+        // XXX-jubjub: this is pretty baroque
+        // XXX-jubjub: provide basepoint tables for generators
+        let basepoint: jubjub::ExtendedPoint =
+            jubjub::AffinePoint::from_bytes(crate::constants::SPENDAUTHSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into();
+        pk_from_sk_inner(sk, basepoint)
     }
 }
 
 impl<'a> From<&'a SecretKey<Binding>> for PublicKey<Binding> {
     fn from(sk: &'a SecretKey<Binding>) -> PublicKey<Binding> {
-        unimplemented!();
+        let basepoint: jubjub::ExtendedPoint =
+            jubjub::AffinePoint::from_bytes(crate::constants::BINDINGSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into();
+        pk_from_sk_inner(sk, basepoint)
+    }
+}
+
+fn pk_from_sk_inner<T: SigType>(
+    sk: &SecretKey<T>,
+    basepoint: jubjub::ExtendedPoint,
+) -> PublicKey<T> {
+    let point = &basepoint * &sk.sk;
+    let bytes = jubjub::AffinePoint::from(&point).to_bytes();
+    PublicKey {
+        point,
+        bytes,
+        _marker: PhantomData,
     }
 }
 

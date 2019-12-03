@@ -30,10 +30,10 @@ impl<T: SigType> From<PublicKeyBytes<T>> for [u8; 32] {
 #[derive(Copy, Clone, Debug)]
 pub struct PublicKey<T: SigType> {
     // XXX-jubjub: this should just be Point
-    point: jubjub::ExtendedPoint,
+    pub(crate) point: jubjub::ExtendedPoint,
     // XXX should this just store a PublicKeyBytes?
-    bytes: [u8; 32],
-    _marker: PhantomData<T>,
+    pub(crate) bytes: [u8; 32],
+    pub(crate) _marker: PhantomData<T>,
 }
 
 impl<T: SigType> From<PublicKey<T>> for PublicKeyBytes<T> {
