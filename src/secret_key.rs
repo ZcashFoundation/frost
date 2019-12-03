@@ -2,6 +2,8 @@ use std::{convert::TryFrom, marker::PhantomData};
 
 use crate::{Binding, Error, PublicKey, Randomizer, Scalar, SigType, Signature, SpendAuth};
 
+use rand_core::{CryptoRng, RngCore};
+
 /// A refinement type indicating that the inner `[u8; 32]` represents an
 /// encoding of a RedJubJub secret key.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -59,6 +61,21 @@ impl<T: SigType> TryFrom<SecretKeyBytes<T>> for SecretKey<T> {
             })
         } else {
             Err(Error::MalformedSecretKey)
+        }
+    }
+}
+
+impl<R, T> From<R> for SecretKey<T>
+where
+    R: RngCore + CryptoRng,
+    T: SigType,
+{
+    fn from(mut rng: R) -> SecretKey<T> {
+        let mut bytes = [0; 64];
+        rng.fill_bytes(&mut bytes);
+        SecretKey {
+            sk: Scalar::from_bytes_wide(&bytes),
+            _marker: PhantomData,
         }
     }
 }
