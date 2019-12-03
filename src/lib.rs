@@ -4,6 +4,7 @@
 
 //! Docs require the `nightly` feature until RFC 1990 lands.
 
+mod constants;
 mod error;
 mod public_key;
 mod secret_key;
@@ -43,12 +44,4 @@ mod private {
     pub trait Sealed {}
     impl Sealed for Binding {}
     impl Sealed for SpendAuth {}
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
 }
