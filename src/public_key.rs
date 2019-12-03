@@ -1,6 +1,6 @@
 use std::{convert::TryFrom, marker::PhantomData};
 
-use crate::{Error, SigType, SpendAuth, Binding, Randomizer, Signature};
+use crate::{Binding, Error, Randomizer, SigType, Signature, SpendAuth};
 
 /// A refinement type indicating that the inner `[u8; 32]` represents an
 /// encoding of a RedJubJub public key.
@@ -12,7 +12,10 @@ pub struct PublicKeyBytes<T: SigType> {
 
 impl<T: SigType> From<[u8; 32]> for PublicKeyBytes<T> {
     fn from(bytes: [u8; 32]) -> PublicKeyBytes<T> {
-        PublicKeyBytes { bytes, _marker: PhantomData }
+        PublicKeyBytes {
+            bytes,
+            _marker: PhantomData,
+        }
     }
 }
 

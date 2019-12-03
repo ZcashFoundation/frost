@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, convert, fmt};
+use std::{convert, fmt, marker::PhantomData};
 
 use crate::SigType;
 
@@ -11,7 +11,8 @@ pub struct Signature<T: SigType> {
 impl<T: SigType> From<[u8; 64]> for Signature<T> {
     fn from(bytes: [u8; 64]) -> Signature<T> {
         Signature {
-            bytes, _marker: PhantomData,
+            bytes,
+            _marker: PhantomData,
         }
     }
 }
@@ -39,7 +40,8 @@ impl<T: SigType> Clone for Signature<T> {
         let mut bytes = [0; 64];
         bytes[..].copy_from_slice(&self.bytes[..]);
         Signature {
-            bytes, _marker: PhantomData,
+            bytes,
+            _marker: PhantomData,
         }
     }
 }
