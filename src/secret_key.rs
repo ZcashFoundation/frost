@@ -49,22 +49,36 @@ impl<T: SigType> SecretKey<T> {
     pub fn randomize(&self, randomizer: Randomizer) -> PublicKey<T> {
         unimplemented!();
     }
-}
 
-impl SecretKey<Binding> {
-    /// Create a Zcash `BindingSig` on `msg` using this `SecretKey`.
+    /// Create a signature of type `T` on `msg` using this `SecretKey`.
     // Similar to signature::Signer but without boxed errors.
-    pub fn sign(&self, msg: &[u8]) -> Signature<Binding> {
-        // could use sign_inner
-        unimplemented!();
-    }
-}
+    pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<T> {
+        use crate::HStar;
 
-impl SecretKey<SpendAuth> {
-    /// Create a Zcash `SpendAuthSig` on `msg` using this `SecretKey`.
-    // Similar to signature::Signer but without boxed errors.
-    pub fn sign(&self, msg: &[u8]) -> Signature<SpendAuth> {
-        // could use sign_inner
-        unimplemented!();
+        // Choose a byte sequence uniformly at random of length
+        // (\ell_H + 128)/8 bytes.  For RedJubjub this is (512 + 128)/8 = 80.
+        let random_bytes = {
+            let mut bytes = [0; 80];
+            rng.fill_bytes(&mut bytes);
+            bytes
+        };
+
+        let nonce = HStar::default()
+            .update(&random_bytes[..])
+            .update(&self.pk.bytes.bytes[..]) // XXX ugly
+            .update(msg)
+            .finalize();
+
+        let r_bytes = jubjub::AffinePoint::from(&T::basepoint() * &nonce).to_bytes();
+
+        let c = HStar::default()
+            .update(&r_bytes[..])
+            .update(&self.pk.bytes.bytes[..]) // XXX ugly
+            .update(msg)
+            .finalize();
+
+        let s_bytes = (&nonce + &(&c * &self.sk)).to_bytes();
+
+        Signature::from_parts(r_bytes, s_bytes)
     }
 }

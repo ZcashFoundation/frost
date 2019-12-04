@@ -23,6 +23,18 @@ impl<T: SigType> From<Signature<T>> for [u8; 64] {
     }
 }
 
+impl<T: SigType> Signature<T> {
+    pub(crate) fn from_parts(r_bytes: [u8; 32], s_bytes: [u8; 32]) -> Self {
+        let mut bytes = [0; 64];
+        bytes[0..32].copy_from_slice(&r_bytes[..]);
+        bytes[32..64].copy_from_slice(&s_bytes[..]);
+        Self {
+            bytes,
+            _marker: PhantomData,
+        }
+    }
+}
+
 // These impls all only exist because of array length restrictions.
 
 // XXX print the type variable

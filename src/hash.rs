@@ -18,9 +18,10 @@ impl Default for HStar {
 }
 
 impl HStar {
-    /// Add `data` to the hash.
-    pub fn update(&mut self, data: &[u8]) {
+    /// Add `data` to the hash, and return `Self` for chaining.
+    pub fn update(mut self, data: &[u8]) -> Self {
         self.state.update(data);
+        self
     }
 
     /// Consume `self` to compute the hash output.
