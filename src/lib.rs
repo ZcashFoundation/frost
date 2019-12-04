@@ -42,9 +42,23 @@ impl SigType for Binding {}
 pub struct SpendAuth {}
 impl SigType for SpendAuth {}
 
-mod private {
+pub(crate) mod private {
     use super::*;
-    pub trait Sealed {}
-    impl Sealed for Binding {}
-    impl Sealed for SpendAuth {}
+    pub trait Sealed {
+        fn basepoint() -> jubjub::ExtendedPoint;
+    }
+    impl Sealed for Binding {
+        fn basepoint() -> jubjub::ExtendedPoint {
+            jubjub::AffinePoint::from_bytes(constants::BINDINGSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into()
+        }
+    }
+    impl Sealed for SpendAuth {
+        fn basepoint() -> jubjub::ExtendedPoint {
+            jubjub::AffinePoint::from_bytes(constants::SPENDAUTHSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into()
+        }
+    }
 }

@@ -1,6 +1,6 @@
 use std::{convert::TryFrom, marker::PhantomData};
 
-use crate::{Binding, Error, Randomizer, SigType, Signature, SpendAuth};
+use crate::{Binding, Error, Randomizer, Scalar, SigType, Signature, SpendAuth};
 
 /// A refinement type for `[u8; 32]` indicating that the bytes represent
 /// an encoding of a RedJubJub public key.
@@ -62,6 +62,15 @@ impl<T: SigType> TryFrom<PublicKeyBytes<T>> for PublicKey<T> {
 }
 
 impl<T: SigType> PublicKey<T> {
+    pub(crate) fn from_secret(s: &Scalar) -> PublicKey<T> {
+        let point = &T::basepoint() * s;
+        let bytes = PublicKeyBytes {
+            bytes: jubjub::AffinePoint::from(&point).to_bytes(),
+            _marker: PhantomData,
+        };
+        PublicKey { bytes, point }
+    }
+
     /// Randomize this public key with the given `randomizer`.
     pub fn randomize(&self, randomizer: Randomizer) -> PublicKey<T> {
         unimplemented!();

@@ -10,7 +10,7 @@ use rand_core::{CryptoRng, RngCore};
 #[derive(Copy, Clone, Debug)]
 pub struct SecretKey<T: SigType> {
     sk: Scalar,
-    _marker: PhantomData<T>,
+    pk: PublicKey<T>,
 }
 
 impl<T: SigType> From<SecretKey<T>> for [u8; 32] {
@@ -19,21 +19,17 @@ impl<T: SigType> From<SecretKey<T>> for [u8; 32] {
     }
 }
 
-impl<T: SigType> TryFrom<[u8; 32]> for SecretKey<T> {
-    type Error = Error;
-
-    fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
-        // XXX-jubjub: it does not make sense for this to be a CtOption...
-        // XXX-jubjub: this takes a borrow but point deser doesn't
-        let maybe_sk = Scalar::from_bytes(&bytes);
-        if maybe_sk.is_some().into() {
-            Ok(SecretKey {
-                sk: maybe_sk.unwrap(),
-                _marker: PhantomData,
-            })
-        } else {
-            Err(Error::MalformedSecretKey)
-        }
+impl<T: SigType> From<[u8; 32]> for SecretKey<T> {
+    fn from(bytes: [u8; 32]) -> Self {
+        let sk = {
+            // XXX-jubjub: would be nice to unconditionally deser
+            // This incantation ensures deserialization is infallible.
+            let mut wide = [0; 64];
+            wide[0..32].copy_from_slice(&bytes);
+            Scalar::from_bytes_wide(&wide)
+        };
+        let pk = PublicKey::from_secret(&sk);
+        SecretKey { sk, pk }
     }
 }
 
@@ -53,40 +49,6 @@ where
     }
 }
 */
-
-impl<'a> From<&'a SecretKey<SpendAuth>> for PublicKey<SpendAuth> {
-    fn from(sk: &'a SecretKey<SpendAuth>) -> PublicKey<SpendAuth> {
-        // XXX-jubjub: this is pretty baroque
-        // XXX-jubjub: provide basepoint tables for generators
-        let basepoint: jubjub::ExtendedPoint =
-            jubjub::AffinePoint::from_bytes(crate::constants::SPENDAUTHSIG_BASEPOINT_BYTES)
-                .unwrap()
-                .into();
-        pk_from_sk_inner(sk, basepoint)
-    }
-}
-
-impl<'a> From<&'a SecretKey<Binding>> for PublicKey<Binding> {
-    fn from(sk: &'a SecretKey<Binding>) -> PublicKey<Binding> {
-        let basepoint: jubjub::ExtendedPoint =
-            jubjub::AffinePoint::from_bytes(crate::constants::BINDINGSIG_BASEPOINT_BYTES)
-                .unwrap()
-                .into();
-        pk_from_sk_inner(sk, basepoint)
-    }
-}
-
-fn pk_from_sk_inner<T: SigType>(
-    sk: &SecretKey<T>,
-    basepoint: jubjub::ExtendedPoint,
-) -> PublicKey<T> {
-    let point = &basepoint * &sk.sk;
-    let bytes = PublicKeyBytes {
-        bytes: jubjub::AffinePoint::from(&point).to_bytes(),
-        _marker: PhantomData,
-    };
-    PublicKey { bytes, point }
-}
 
 impl<T: SigType> SecretKey<T> {
     /// Randomize this public key with the given `randomizer`.
