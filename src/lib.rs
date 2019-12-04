@@ -6,6 +6,7 @@
 
 mod constants;
 mod error;
+mod hash;
 mod public_key;
 mod secret_key;
 mod signature;
@@ -14,7 +15,10 @@ mod signature;
 pub type Randomizer = jubjub::Fr;
 
 /// A better name than Fr.
+// XXX-jubjub: upstream this name
 type Scalar = jubjub::Fr;
+
+use hash::HStar;
 
 pub use error::Error;
 pub use public_key::{PublicKey, PublicKeyBytes};
