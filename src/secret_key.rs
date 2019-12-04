@@ -13,6 +13,12 @@ pub struct SecretKey<T: SigType> {
     pk: PublicKey<T>,
 }
 
+impl<'a, T: SigType> From<&'a SecretKey<T>> for PublicKey<T> {
+    fn from(sk: &'a SecretKey<T>) -> PublicKey<T> {
+        sk.pk.clone()
+    }
+}
+
 impl<T: SigType> From<SecretKey<T>> for [u8; 32] {
     fn from(sk: SecretKey<T>) -> [u8; 32] {
         sk.sk.to_bytes()
@@ -79,7 +85,7 @@ impl<T: SigType> SecretKey<T> {
 
         let s_bytes = (&nonce + &(&c * &self.sk)).to_bytes();
 
-        Signature{
+        Signature {
             r_bytes,
             s_bytes,
             _marker: PhantomData,

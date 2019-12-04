@@ -75,22 +75,50 @@ impl<T: SigType> PublicKey<T> {
     pub fn randomize(&self, randomizer: Randomizer) -> PublicKey<T> {
         unimplemented!();
     }
-}
 
-impl PublicKey<Binding> {
-    /// Verify a Zcash `BindingSig` over `msg` made by this public key.
+    /// Verify a purported `signature` over `msg` made by this public key.
     // This is similar to impl signature::Verifier but without boxed errors
     pub fn verify(&self, msg: &[u8], signature: &Signature<Binding>) -> Result<(), Error> {
-        // this lets us specialize the basepoint parameter, could call a verify_inner
-        unimplemented!();
-    }
-}
+        use crate::HStar;
 
-impl PublicKey<SpendAuth> {
-    /// Verify a Zcash `SpendAuthSig` over `msg` made by this public key.
-    // This is similar to impl signature::Verifier but without boxed errors
-    pub fn verify(&self, msg: &[u8], signature: &Signature<SpendAuth>) -> Result<(), Error> {
-        // this lets us specialize the basepoint parameter, could call a verify_inner
-        unimplemented!();
+        let r = {
+            // XXX-jubjub: should not use CtOption here
+            // XXX-jubjub: inconsistent ownership in from_bytes
+            let maybe_point = jubjub::AffinePoint::from_bytes(signature.r_bytes);
+            if maybe_point.is_some().into() {
+                jubjub::ExtendedPoint::from(maybe_point.unwrap())
+            } else {
+                return Err(Error::InvalidSignature);
+            }
+        };
+
+        let s = {
+            // XXX-jubjub: should not use CtOption here
+            let maybe_scalar = Scalar::from_bytes(&signature.s_bytes);
+            if maybe_scalar.is_some().into() {
+                maybe_scalar.unwrap()
+            } else {
+                return Err(Error::InvalidSignature);
+            }
+        };
+
+        let c = HStar::default()
+            .update(&signature.r_bytes[..])
+            .update(&self.bytes.bytes[..]) // XXX ugly
+            .update(msg)
+            .finalize();
+
+        // XXX rewrite as normal double scalar mul
+        // Verify check is h * ( - s * B + R  + c * A) == 0
+        //                 h * ( s * B - c * A - R) == 0
+        let sB = &T::basepoint() * &s;
+        let cA = &self.point * &c;
+        let check = sB - cA - r;
+
+        if check.is_small_order().into() {
+            Ok(())
+        } else {
+            Err(Error::InvalidSignature)
+        }
     }
 }

@@ -32,4 +32,3 @@ impl<T: SigType> From<Signature<T>> for [u8; 64] {
         bytes
     }
 }
-
