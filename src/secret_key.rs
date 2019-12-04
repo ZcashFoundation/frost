@@ -79,6 +79,10 @@ impl<T: SigType> SecretKey<T> {
 
         let s_bytes = (&nonce + &(&c * &self.sk)).to_bytes();
 
-        Signature::from_parts(r_bytes, s_bytes)
+        Signature{
+            r_bytes,
+            s_bytes,
+            _marker: PhantomData,
+        }
     }
 }
