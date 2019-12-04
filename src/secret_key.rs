@@ -33,24 +33,18 @@ impl<T: SigType> From<[u8; 32]> for SecretKey<T> {
     }
 }
 
-/*
-impl<R, T> From<R> for SecretKey<T>
-where
-    R: RngCore + CryptoRng,
-    T: SigType,
-{
-    fn from(mut rng: R) -> SecretKey<T> {
-        let mut bytes = [0; 64];
-        rng.fill_bytes(&mut bytes);
-        SecretKey {
-            sk: Scalar::from_bytes_wide(&bytes),
-            _marker: PhantomData,
-        }
-    }
-}
-*/
-
 impl<T: SigType> SecretKey<T> {
+    /// Generate a new secret key.
+    pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> SecretKey<T> {
+        let sk = {
+            let mut bytes = [0; 64];
+            rng.fill_bytes(&mut bytes);
+            Scalar::from_bytes_wide(&bytes)
+        };
+        let pk = PublicKey::from_secret(&sk);
+        SecretKey { sk, pk }
+    }
+
     /// Randomize this public key with the given `randomizer`.
     pub fn randomize(&self, randomizer: Randomizer) -> PublicKey<T> {
         unimplemented!();
