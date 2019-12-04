@@ -1,8 +1,6 @@
-use std::{convert::TryFrom, marker::PhantomData};
+use std::marker::PhantomData;
 
-use crate::{
-    Binding, Error, PublicKey, PublicKeyBytes, Randomizer, Scalar, SigType, Signature, SpendAuth,
-};
+use crate::{PublicKey, Randomizer, Scalar, SigType, Signature};
 
 use rand_core::{CryptoRng, RngCore};
 
@@ -52,7 +50,7 @@ impl<T: SigType> SecretKey<T> {
     }
 
     /// Randomize this public key with the given `randomizer`.
-    pub fn randomize(&self, randomizer: Randomizer) -> PublicKey<T> {
+    pub fn randomize(&self, _randomizer: Randomizer) -> PublicKey<T> {
         unimplemented!();
     }
 

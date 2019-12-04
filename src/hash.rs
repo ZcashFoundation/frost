@@ -25,7 +25,7 @@ impl HStar {
     }
 
     /// Consume `self` to compute the hash output.
-    pub fn finalize(mut self) -> Scalar {
+    pub fn finalize(self) -> Scalar {
         Scalar::from_bytes_wide(self.state.finalize().as_array())
     }
 }

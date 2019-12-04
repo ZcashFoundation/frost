@@ -1,4 +1,4 @@
-use std::{convert, fmt, marker::PhantomData};
+use std::marker::PhantomData;
 
 use crate::SigType;
 
