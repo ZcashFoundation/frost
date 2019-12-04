@@ -6,6 +6,7 @@
 
 mod constants;
 mod error;
+mod hash;
 mod public_key;
 mod secret_key;
 mod signature;
@@ -14,11 +15,14 @@ mod signature;
 pub type Randomizer = jubjub::Fr;
 
 /// A better name than Fr.
+// XXX-jubjub: upstream this name
 type Scalar = jubjub::Fr;
+
+use hash::HStar;
 
 pub use error::Error;
 pub use public_key::{PublicKey, PublicKeyBytes};
-pub use secret_key::{SecretKey, SecretKeyBytes};
+pub use secret_key::SecretKey;
 pub use signature::Signature;
 
 /// Abstracts over different RedJubJub parameter choices.
@@ -35,16 +39,47 @@ pub use signature::Signature;
 pub trait SigType: private::Sealed {}
 
 /// A type variable corresponding to Zcash's `BindingSig`.
+#[derive(Copy, Clone, Debug)]
 pub struct Binding {}
 impl SigType for Binding {}
 
 /// A type variable corresponding to Zcash's `SpendAuthSig`.
+#[derive(Copy, Clone, Debug)]
 pub struct SpendAuth {}
 impl SigType for SpendAuth {}
 
-mod private {
+pub(crate) mod private {
     use super::*;
-    pub trait Sealed {}
-    impl Sealed for Binding {}
-    impl Sealed for SpendAuth {}
+    pub trait Sealed: Copy + Clone + std::fmt::Debug {
+        fn basepoint() -> jubjub::ExtendedPoint;
+    }
+    impl Sealed for Binding {
+        fn basepoint() -> jubjub::ExtendedPoint {
+            jubjub::AffinePoint::from_bytes(constants::BINDINGSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into()
+        }
+    }
+    impl Sealed for SpendAuth {
+        fn basepoint() -> jubjub::ExtendedPoint {
+            jubjub::AffinePoint::from_bytes(constants::SPENDAUTHSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sign_and_verify() {
+        let sk = SecretKey::<Binding>::new(rand::thread_rng());
+        let msg = b"test";
+        let sig = sk.sign(rand::thread_rng(), msg);
+        let pk = PublicKey::from(&sk);
+
+        assert_eq!(pk.verify(msg, &sig), Ok(()));
+    }
 }

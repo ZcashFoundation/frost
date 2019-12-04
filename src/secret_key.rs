@@ -1,124 +1,94 @@
 use std::{convert::TryFrom, marker::PhantomData};
 
-use crate::{Binding, Error, PublicKey, Randomizer, Scalar, SigType, Signature, SpendAuth};
+use crate::{
+    Binding, Error, PublicKey, PublicKeyBytes, Randomizer, Scalar, SigType, Signature, SpendAuth,
+};
 
-/// A refinement type indicating that the inner `[u8; 32]` represents an
-/// encoding of a RedJubJub secret key.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct SecretKeyBytes<T: SigType> {
-    bytes: [u8; 32],
-    _marker: PhantomData<T>,
-}
-
-impl<T: SigType> From<[u8; 32]> for SecretKeyBytes<T> {
-    fn from(bytes: [u8; 32]) -> SecretKeyBytes<T> {
-        SecretKeyBytes {
-            bytes,
-            _marker: PhantomData,
-        }
-    }
-}
-
-impl<T: SigType> From<SecretKeyBytes<T>> for [u8; 32] {
-    fn from(refined: SecretKeyBytes<T>) -> [u8; 32] {
-        refined.bytes
-    }
-}
+use rand_core::{CryptoRng, RngCore};
 
 /// A RedJubJub secret key.
-// XXX PartialEq, Eq?
 #[derive(Copy, Clone, Debug)]
 pub struct SecretKey<T: SigType> {
     sk: Scalar,
-    _marker: PhantomData<T>,
+    pk: PublicKey<T>,
 }
 
-impl<T: SigType> From<SecretKey<T>> for SecretKeyBytes<T> {
-    fn from(sk: SecretKey<T>) -> SecretKeyBytes<T> {
-        SecretKeyBytes {
-            bytes: sk.sk.to_bytes(),
-            _marker: PhantomData,
-        }
+impl<'a, T: SigType> From<&'a SecretKey<T>> for PublicKey<T> {
+    fn from(sk: &'a SecretKey<T>) -> PublicKey<T> {
+        sk.pk.clone()
     }
 }
 
-// XXX could this be a From impl?
-// not unless there's an infallible conversion from bytes to scalars,
-// which is not  currently present in jubjub
-impl<T: SigType> TryFrom<SecretKeyBytes<T>> for SecretKey<T> {
-    type Error = Error;
-
-    fn try_from(bytes: SecretKeyBytes<T>) -> Result<Self, Self::Error> {
-        // XXX-jubjub: it does not make sense for this to be a CtOption...
-        // XXX-jubjub: this takes a borrow but point deser doesn't
-        let maybe_sk = Scalar::from_bytes(&bytes.bytes);
-        if maybe_sk.is_some().into() {
-            Ok(SecretKey {
-                sk: maybe_sk.unwrap(),
-                _marker: PhantomData,
-            })
-        } else {
-            Err(Error::MalformedSecretKey)
-        }
+impl<T: SigType> From<SecretKey<T>> for [u8; 32] {
+    fn from(sk: SecretKey<T>) -> [u8; 32] {
+        sk.sk.to_bytes()
     }
 }
 
-impl<'a> From<&'a SecretKey<SpendAuth>> for PublicKey<SpendAuth> {
-    fn from(sk: &'a SecretKey<SpendAuth>) -> PublicKey<SpendAuth> {
-        // XXX-jubjub: this is pretty baroque
-        // XXX-jubjub: provide basepoint tables for generators
-        let basepoint: jubjub::ExtendedPoint =
-            jubjub::AffinePoint::from_bytes(crate::constants::SPENDAUTHSIG_BASEPOINT_BYTES)
-                .unwrap()
-                .into();
-        pk_from_sk_inner(sk, basepoint)
-    }
-}
-
-impl<'a> From<&'a SecretKey<Binding>> for PublicKey<Binding> {
-    fn from(sk: &'a SecretKey<Binding>) -> PublicKey<Binding> {
-        let basepoint: jubjub::ExtendedPoint =
-            jubjub::AffinePoint::from_bytes(crate::constants::BINDINGSIG_BASEPOINT_BYTES)
-                .unwrap()
-                .into();
-        pk_from_sk_inner(sk, basepoint)
-    }
-}
-
-fn pk_from_sk_inner<T: SigType>(
-    sk: &SecretKey<T>,
-    basepoint: jubjub::ExtendedPoint,
-) -> PublicKey<T> {
-    let point = &basepoint * &sk.sk;
-    let bytes = jubjub::AffinePoint::from(&point).to_bytes();
-    PublicKey {
-        point,
-        bytes,
-        _marker: PhantomData,
+impl<T: SigType> From<[u8; 32]> for SecretKey<T> {
+    fn from(bytes: [u8; 32]) -> Self {
+        let sk = {
+            // XXX-jubjub: would be nice to unconditionally deser
+            // This incantation ensures deserialization is infallible.
+            let mut wide = [0; 64];
+            wide[0..32].copy_from_slice(&bytes);
+            Scalar::from_bytes_wide(&wide)
+        };
+        let pk = PublicKey::from_secret(&sk);
+        SecretKey { sk, pk }
     }
 }
 
 impl<T: SigType> SecretKey<T> {
+    /// Generate a new secret key.
+    pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> SecretKey<T> {
+        let sk = {
+            let mut bytes = [0; 64];
+            rng.fill_bytes(&mut bytes);
+            Scalar::from_bytes_wide(&bytes)
+        };
+        let pk = PublicKey::from_secret(&sk);
+        SecretKey { sk, pk }
+    }
+
     /// Randomize this public key with the given `randomizer`.
     pub fn randomize(&self, randomizer: Randomizer) -> PublicKey<T> {
         unimplemented!();
     }
-}
 
-impl SecretKey<Binding> {
-    /// Create a Zcash `BindingSig` on `msg` using this `SecretKey`.
+    /// Create a signature of type `T` on `msg` using this `SecretKey`.
     // Similar to signature::Signer but without boxed errors.
-    pub fn sign(&self, msg: &[u8]) -> Signature<Binding> {
-        // could use sign_inner
-        unimplemented!();
-    }
-}
+    pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<T> {
+        use crate::HStar;
 
-impl SecretKey<SpendAuth> {
-    /// Create a Zcash `SpendAuthSig` on `msg` using this `SecretKey`.
-    // Similar to signature::Signer but without boxed errors.
-    pub fn sign(&self, msg: &[u8]) -> Signature<SpendAuth> {
-        // could use sign_inner
-        unimplemented!();
+        // Choose a byte sequence uniformly at random of length
+        // (\ell_H + 128)/8 bytes.  For RedJubjub this is (512 + 128)/8 = 80.
+        let random_bytes = {
+            let mut bytes = [0; 80];
+            rng.fill_bytes(&mut bytes);
+            bytes
+        };
+
+        let nonce = HStar::default()
+            .update(&random_bytes[..])
+            .update(&self.pk.bytes.bytes[..]) // XXX ugly
+            .update(msg)
+            .finalize();
+
+        let r_bytes = jubjub::AffinePoint::from(&T::basepoint() * &nonce).to_bytes();
+
+        let c = HStar::default()
+            .update(&r_bytes[..])
+            .update(&self.pk.bytes.bytes[..]) // XXX ugly
+            .update(msg)
+            .finalize();
+
+        let s_bytes = (&nonce + &(&c * &self.sk)).to_bytes();
+
+        Signature {
+            r_bytes,
+            s_bytes,
+            _marker: PhantomData,
+        }
     }
 }

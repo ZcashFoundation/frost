@@ -1,13 +1,17 @@
 use std::{convert::TryFrom, marker::PhantomData};
 
-use crate::{Binding, Error, Randomizer, SigType, Signature, SpendAuth};
+use crate::{Binding, Error, Randomizer, Scalar, SigType, Signature, SpendAuth};
 
-/// A refinement type indicating that the inner `[u8; 32]` represents an
-/// encoding of a RedJubJub public key.
+/// A refinement type for `[u8; 32]` indicating that the bytes represent
+/// an encoding of a RedJubJub public key.
+///
+/// This is useful for representing a compressed public key; the
+/// [`PublicKey`] type in this library holds other decompressed state
+/// used in signature verification.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct PublicKeyBytes<T: SigType> {
-    bytes: [u8; 32],
-    _marker: PhantomData<T>,
+    pub(crate) bytes: [u8; 32],
+    pub(crate) _marker: PhantomData<T>,
 }
 
 impl<T: SigType> From<[u8; 32]> for PublicKeyBytes<T> {
@@ -26,20 +30,16 @@ impl<T: SigType> From<PublicKeyBytes<T>> for [u8; 32] {
 }
 
 /// A RedJubJub public key.
-// XXX PartialEq, Eq?
 #[derive(Copy, Clone, Debug)]
 pub struct PublicKey<T: SigType> {
     // XXX-jubjub: this should just be Point
     pub(crate) point: jubjub::ExtendedPoint,
-    // XXX should this just store a PublicKeyBytes?
-    pub(crate) bytes: [u8; 32],
-    pub(crate) _marker: PhantomData<T>,
+    pub(crate) bytes: PublicKeyBytes<T>,
 }
 
 impl<T: SigType> From<PublicKey<T>> for PublicKeyBytes<T> {
     fn from(pk: PublicKey<T>) -> PublicKeyBytes<T> {
-        let PublicKey { bytes, _marker, .. } = pk;
-        PublicKeyBytes { bytes, _marker }
+        pk.bytes
     }
 }
 
@@ -53,8 +53,7 @@ impl<T: SigType> TryFrom<PublicKeyBytes<T>> for PublicKey<T> {
         if maybe_point.is_some().into() {
             Ok(PublicKey {
                 point: maybe_point.unwrap().into(),
-                bytes: bytes.bytes,
-                _marker: PhantomData,
+                bytes,
             })
         } else {
             Err(Error::MalformedPublicKey)
@@ -63,26 +62,63 @@ impl<T: SigType> TryFrom<PublicKeyBytes<T>> for PublicKey<T> {
 }
 
 impl<T: SigType> PublicKey<T> {
+    pub(crate) fn from_secret(s: &Scalar) -> PublicKey<T> {
+        let point = &T::basepoint() * s;
+        let bytes = PublicKeyBytes {
+            bytes: jubjub::AffinePoint::from(&point).to_bytes(),
+            _marker: PhantomData,
+        };
+        PublicKey { bytes, point }
+    }
+
     /// Randomize this public key with the given `randomizer`.
     pub fn randomize(&self, randomizer: Randomizer) -> PublicKey<T> {
         unimplemented!();
     }
-}
 
-impl PublicKey<Binding> {
-    /// Verify a Zcash `BindingSig` over `msg` made by this public key.
+    /// Verify a purported `signature` over `msg` made by this public key.
     // This is similar to impl signature::Verifier but without boxed errors
     pub fn verify(&self, msg: &[u8], signature: &Signature<Binding>) -> Result<(), Error> {
-        // this lets us specialize the basepoint parameter, could call a verify_inner
-        unimplemented!();
-    }
-}
+        use crate::HStar;
 
-impl PublicKey<SpendAuth> {
-    /// Verify a Zcash `SpendAuthSig` over `msg` made by this public key.
-    // This is similar to impl signature::Verifier but without boxed errors
-    pub fn verify(&self, msg: &[u8], signature: &Signature<SpendAuth>) -> Result<(), Error> {
-        // this lets us specialize the basepoint parameter, could call a verify_inner
-        unimplemented!();
+        let r = {
+            // XXX-jubjub: should not use CtOption here
+            // XXX-jubjub: inconsistent ownership in from_bytes
+            let maybe_point = jubjub::AffinePoint::from_bytes(signature.r_bytes);
+            if maybe_point.is_some().into() {
+                jubjub::ExtendedPoint::from(maybe_point.unwrap())
+            } else {
+                return Err(Error::InvalidSignature);
+            }
+        };
+
+        let s = {
+            // XXX-jubjub: should not use CtOption here
+            let maybe_scalar = Scalar::from_bytes(&signature.s_bytes);
+            if maybe_scalar.is_some().into() {
+                maybe_scalar.unwrap()
+            } else {
+                return Err(Error::InvalidSignature);
+            }
+        };
+
+        let c = HStar::default()
+            .update(&signature.r_bytes[..])
+            .update(&self.bytes.bytes[..]) // XXX ugly
+            .update(msg)
+            .finalize();
+
+        // XXX rewrite as normal double scalar mul
+        // Verify check is h * ( - s * B + R  + c * A) == 0
+        //                 h * ( s * B - c * A - R) == 0
+        let sB = &T::basepoint() * &s;
+        let cA = &self.point * &c;
+        let check = sB - cA - r;
+
+        if check.is_small_order().into() {
+            Ok(())
+        } else {
+            Err(Error::InvalidSignature)
+        }
     }
 }

@@ -3,53 +3,32 @@ use std::{convert, fmt, marker::PhantomData};
 use crate::SigType;
 
 /// A RedJubJub signature.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Signature<T: SigType> {
-    bytes: [u8; 64],
-    _marker: PhantomData<T>,
+    pub(crate) r_bytes: [u8; 32],
+    pub(crate) s_bytes: [u8; 32],
+    pub(crate) _marker: PhantomData<T>,
 }
 
 impl<T: SigType> From<[u8; 64]> for Signature<T> {
     fn from(bytes: [u8; 64]) -> Signature<T> {
+        let mut r_bytes = [0; 32];
+        r_bytes.copy_from_slice(&bytes[0..32]);
+        let mut s_bytes = [0; 32];
+        s_bytes.copy_from_slice(&bytes[32..64]);
         Signature {
-            bytes,
+            r_bytes,
+            s_bytes,
             _marker: PhantomData,
         }
     }
 }
 
 impl<T: SigType> From<Signature<T>> for [u8; 64] {
-    fn from(s: Signature<T>) -> [u8; 64] {
-        s.bytes
-    }
-}
-
-// These impls all only exist because of array length restrictions.
-
-// XXX print the type variable
-impl<T: SigType> fmt::Debug for Signature<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        //f.debug_tuple("Signature").field(&self.0[..]).finish()
-        f.debug_tuple("Signature").finish()
-    }
-}
-
-impl<T: SigType> Copy for Signature<T> {}
-
-impl<T: SigType> Clone for Signature<T> {
-    fn clone(&self) -> Self {
+    fn from(sig: Signature<T>) -> [u8; 64] {
         let mut bytes = [0; 64];
-        bytes[..].copy_from_slice(&self.bytes[..]);
-        Signature {
-            bytes,
-            _marker: PhantomData,
-        }
+        bytes[0..32].copy_from_slice(&sig.r_bytes[..]);
+        bytes[32..64].copy_from_slice(&sig.s_bytes[..]);
+        bytes
     }
 }
-
-impl<T: SigType> PartialEq for Signature<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.bytes[..] == other.bytes[..]
-    }
-}
-
-impl<T: SigType> Eq for Signature<T> {}
