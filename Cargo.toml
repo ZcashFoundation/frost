@@ -11,7 +11,8 @@ blake2b_simd = "0.5"
 jubjub = "0.3"
 
 [dev-dependencies]
-rand = "0.7"
+rand_chacha = "0.2"
+proptest = "0.9"
 
 [features]
 nightly = []

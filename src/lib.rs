@@ -68,18 +68,3 @@ pub(crate) mod private {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sign_and_verify() {
-        let sk = SecretKey::<Binding>::new(rand::thread_rng());
-        let msg = b"test";
-        let sig = sk.sign(rand::thread_rng(), msg);
-        let pk = PublicKey::from(&sk);
-
-        assert_eq!(pk.verify(msg, &sig), Ok(()));
-    }
-}
