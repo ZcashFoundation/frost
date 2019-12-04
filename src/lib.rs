@@ -39,16 +39,18 @@ pub use signature::Signature;
 pub trait SigType: private::Sealed {}
 
 /// A type variable corresponding to Zcash's `BindingSig`.
+#[derive(Copy, Clone, Debug)]
 pub struct Binding {}
 impl SigType for Binding {}
 
 /// A type variable corresponding to Zcash's `SpendAuthSig`.
+#[derive(Copy, Clone, Debug)]
 pub struct SpendAuth {}
 impl SigType for SpendAuth {}
 
 pub(crate) mod private {
     use super::*;
-    pub trait Sealed {
+    pub trait Sealed: Copy + Clone + std::fmt::Debug {
         fn basepoint() -> jubjub::ExtendedPoint;
     }
     impl Sealed for Binding {
@@ -64,5 +66,20 @@ pub(crate) mod private {
                 .unwrap()
                 .into()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sign_and_verify() {
+        let sk = SecretKey::<Binding>::new(rand::thread_rng());
+        let msg = b"test";
+        let sig = sk.sign(rand::thread_rng(), msg);
+        let pk = PublicKey::from(&sk);
+
+        assert_eq!(pk.verify(msg, &sig), Ok(()));
     }
 }

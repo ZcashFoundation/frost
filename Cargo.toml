@@ -10,5 +10,8 @@ thiserror = "1.0"
 blake2b_simd = "0.5"
 jubjub = { git = "https://github.com/zkcrypto/jubjub", rev = "e83f7d2bd136498a27f9d943fea635d8682bf2c6" }
 
+[dev-dependencies]
+rand = "0.7"
+
 [features]
 nightly = []
