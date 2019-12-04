@@ -3,9 +3,7 @@ use std::convert::TryFrom;
 use proptest::prelude::*;
 use rand_core::{CryptoRng, RngCore};
 
-use redjubjub_zebra as rjj;
-
-use rjj::{PublicKey, PublicKeyBytes, SecretKey, SigType, Signature};
+use redjubjub_zebra::*;
 
 /// A signature test-case, containing signature data and expected validity.
 #[derive(Clone, Debug)]
@@ -102,7 +100,6 @@ proptest! {
         tweaks in prop::collection::vec(tweak_strategy(), (0,5)),
         rng_seed in any::<u64>(),
     ) {
-        use rjj::{Binding, SpendAuth, };
         use rand_core::SeedableRng;
 
         // Use a deterministic RNG so that test failures can be reproduced.
