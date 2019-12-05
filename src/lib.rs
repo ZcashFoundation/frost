@@ -25,7 +25,8 @@ pub use public_key::{PublicKey, PublicKeyBytes};
 pub use secret_key::SecretKey;
 pub use signature::Signature;
 
-/// Abstracts over different RedJubJub parameter choices.
+/// Abstracts over different RedJubJub parameter choices, [`Binding`]
+/// and [`SpendAuth`].
 ///
 /// As described [at the end of §5.4.6][concretereddsa] of the Zcash
 /// protocol specification, the generator used in RedJubjub is left as
@@ -40,12 +41,12 @@ pub trait SigType: private::Sealed {}
 
 /// A type variable corresponding to Zcash's `BindingSig`.
 #[derive(Copy, Clone, Debug)]
-pub struct Binding {}
+pub enum Binding {}
 impl SigType for Binding {}
 
 /// A type variable corresponding to Zcash's `SpendAuthSig`.
 #[derive(Copy, Clone, Debug)]
-pub struct SpendAuth {}
+pub enum SpendAuth {}
 impl SigType for SpendAuth {}
 
 pub(crate) mod private {
