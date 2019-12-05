@@ -29,7 +29,11 @@ impl<T: SigType> From<PublicKeyBytes<T>> for [u8; 32] {
     }
 }
 
-/// A RedJubJub public key.
+/// A valid RedJubJub public key.
+///
+/// This type holds decompressed state used in signature verification; if the
+/// public key may not be used immediately, it is probably better to use
+/// [`PublicKeyBytes`], which is a refinement type for `[u8; 32]`.
 #[derive(Copy, Clone, Debug)]
 pub struct PublicKey<T: SigType> {
     // XXX-jubjub: this should just be Point
@@ -40,6 +44,12 @@ pub struct PublicKey<T: SigType> {
 impl<T: SigType> From<PublicKey<T>> for PublicKeyBytes<T> {
     fn from(pk: PublicKey<T>) -> PublicKeyBytes<T> {
         pk.bytes
+    }
+}
+
+impl<T: SigType> From<PublicKey<T>> for [u8; 32] {
+    fn from(pk: PublicKey<T>) -> [u8; 32] {
+        pk.bytes.bytes
     }
 }
 
@@ -58,6 +68,15 @@ impl<T: SigType> TryFrom<PublicKeyBytes<T>> for PublicKey<T> {
         } else {
             Err(Error::MalformedPublicKey)
         }
+    }
+}
+
+impl<T: SigType> TryFrom<[u8; 32]> for PublicKey<T> {
+    type Error = Error;
+
+    fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
+        use std::convert::TryInto;
+        PublicKeyBytes::from(bytes).try_into()
     }
 }
 
