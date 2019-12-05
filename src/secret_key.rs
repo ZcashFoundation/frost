@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{PublicKey, Randomizer, Scalar, SigType, Signature};
+use crate::{PublicKey, Randomizer, Scalar, SigType, Signature, SpendAuth};
 
 use rand_core::{CryptoRng, RngCore};
 
@@ -37,6 +37,15 @@ impl<T: SigType> From<[u8; 32]> for SecretKey<T> {
     }
 }
 
+impl SecretKey<SpendAuth> {
+    /// Randomize this public key with the given `randomizer`.
+    pub fn randomize(&self, randomizer: &Randomizer) -> SecretKey<SpendAuth> {
+        let sk = &self.sk + randomizer;
+        let pk = PublicKey::from_secret(&sk);
+        SecretKey { sk, pk }
+    }
+}
+
 impl<T: SigType> SecretKey<T> {
     /// Generate a new secret key.
     pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> SecretKey<T> {
@@ -47,11 +56,6 @@ impl<T: SigType> SecretKey<T> {
         };
         let pk = PublicKey::from_secret(&sk);
         SecretKey { sk, pk }
-    }
-
-    /// Randomize this public key with the given `randomizer`.
-    pub fn randomize(&self, _randomizer: Randomizer) -> PublicKey<T> {
-        unimplemented!();
     }
 
     /// Create a signature of type `T` on `msg` using this `SecretKey`.

@@ -96,18 +96,20 @@ fn tweak_strategy() -> impl Strategy<Value = Tweak> {
     ]
 }
 
+use rand_chacha::ChaChaRng;
+use rand_core::SeedableRng;
+
 proptest! {
+
     #[test]
     fn tweak_signature(
         tweaks in prop::collection::vec(tweak_strategy(), (0,5)),
         rng_seed in any::<u64>(),
     ) {
-        use rand_core::SeedableRng;
-
         // Use a deterministic RNG so that test failures can be reproduced.
         // Seeding with 64 bits of entropy is INSECURE and this code should
         // not be copied outside of this test!
-        let mut rng = rand_chacha::ChaChaRng::seed_from_u64(rng_seed);
+        let mut rng = ChaChaRng::seed_from_u64(rng_seed);
 
         // Create a test case for each signature type.
         let msg = b"test message for proptests";
@@ -122,5 +124,31 @@ proptest! {
 
         assert!(binding.check());
         assert!(spendauth.check());
+    }
+
+    #[test]
+    fn randomization_commutes_with_pubkey_homomorphism(rng_seed in any::<u64>()) {
+        // Use a deterministic RNG so that test failures can be reproduced.
+        // Seeding with 64 bits of entropy is INSECURE and this code should
+        // not be copied outside of this test!
+        let mut rng = ChaChaRng::seed_from_u64(rng_seed);
+
+        let r = {
+            // XXX-jubjub: better API for this
+            let mut bytes = [0; 64];
+            rng.fill_bytes(&mut bytes[..]);
+            Randomizer::from_bytes_wide(&bytes)
+        };
+
+        let sk = SecretKey::<SpendAuth>::new(&mut rng);
+        let pk = PublicKey::from(&sk);
+
+        let sk_r = sk.randomize(&r);
+        let pk_r = pk.randomize(&r);
+
+        let pk_r_via_sk_rand: [u8; 32] = PublicKeyBytes::from(PublicKey::from(&sk_r)).into();
+        let pk_r_via_pk_rand: [u8; 32] = PublicKeyBytes::from(pk_r).into();
+
+        assert_eq!(pk_r_via_pk_rand, pk_r_via_sk_rand);
     }
 }

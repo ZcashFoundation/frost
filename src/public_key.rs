@@ -1,6 +1,6 @@
 use std::{convert::TryFrom, marker::PhantomData};
 
-use crate::{Error, Randomizer, Scalar, SigType, Signature};
+use crate::{Error, Randomizer, Scalar, SigType, Signature, SpendAuth};
 
 /// A refinement type for `[u8; 32]` indicating that the bytes represent
 /// an encoding of a RedJubJub public key.
@@ -61,6 +61,21 @@ impl<T: SigType> TryFrom<PublicKeyBytes<T>> for PublicKey<T> {
     }
 }
 
+impl PublicKey<SpendAuth> {
+    /// Randomize this public key with the given `randomizer`.
+    ///
+    /// Randomization is only supported for `SpendAuth` keys.
+    pub fn randomize(&self, randomizer: &Randomizer) -> PublicKey<SpendAuth> {
+        use crate::private::Sealed;
+        let point = &self.point + &(&SpendAuth::basepoint() * randomizer);
+        let bytes = PublicKeyBytes {
+            bytes: jubjub::AffinePoint::from(&point).to_bytes(),
+            _marker: PhantomData,
+        };
+        PublicKey { bytes, point }
+    }
+}
+
 impl<T: SigType> PublicKey<T> {
     pub(crate) fn from_secret(s: &Scalar) -> PublicKey<T> {
         let point = &T::basepoint() * s;
@@ -69,11 +84,6 @@ impl<T: SigType> PublicKey<T> {
             _marker: PhantomData,
         };
         PublicKey { bytes, point }
-    }
-
-    /// Randomize this public key with the given `randomizer`.
-    pub fn randomize(&self, _randomizer: Randomizer) -> PublicKey<T> {
-        unimplemented!();
     }
 
     /// Verify a purported `signature` over `msg` made by this public key.
