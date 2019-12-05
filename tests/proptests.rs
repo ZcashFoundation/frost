@@ -14,6 +14,27 @@ struct SignatureCase<T: SigType> {
     is_valid: bool,
 }
 
+/// A modification to a test-case.
+#[derive(Copy, Clone, Debug)]
+enum Tweak {
+    /// No-op, used to check that unchanged cases verify.
+    None,
+    /// Change the message the signature is defined for, invalidating the signature.
+    ChangeMessage,
+    /// Change the public key the signature is defined for, invalidating the signature.
+    ChangePubkey,
+    /* XXX implement this -- needs to regenerate a custom signature because the
+       nonce commitment is fed into the hash, so it has to have torsion at signing
+       time.
+    /// Change the case to have a torsion component in the signature's `r` value.
+    AddTorsion,
+    */
+    /* XXX implement this -- needs custom handling of field arithmetic.
+    /// Change the signature's `s` scalar to be unreduced (mod L), invalidating the signature.
+    UnreducedScalar,
+    */
+}
+
 impl<T: SigType> SignatureCase<T> {
     fn new<R: RngCore + CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
         let sk = SecretKey::new(&mut rng);
@@ -46,42 +67,22 @@ impl<T: SigType> SignatureCase<T> {
                 .and_then(|pk| pk.verify(&self.msg, &sig))
                 .is_ok()
     }
-}
 
-#[derive(Copy, Clone, Debug)]
-enum Tweak {
-    None,
-    ChangeMessage,
-}
-
-impl Tweak {
-    fn apply<T: SigType>(&self, case: SignatureCase<T>) -> SignatureCase<T> {
-        use Tweak::*;
-        let SignatureCase {
-            mut msg,
-            sig,
-            pk_bytes,
-            is_valid,
-        } = case;
-        match (self, is_valid) {
-            (None, is_valid) => {
-                // This is a no-op, so return the original case.
-                SignatureCase {
-                    msg,
-                    sig,
-                    pk_bytes,
-                    is_valid,
-                }
-            }
-            (ChangeMessage, _) => {
+    fn apply_tweak(&mut self, tweak: &Tweak) {
+        match tweak {
+            Tweak::None => {}
+            Tweak::ChangeMessage => {
                 // Changing the message makes the signature invalid.
-                msg.push(90);
-                SignatureCase {
-                    msg,
-                    sig,
-                    pk_bytes,
-                    is_valid: false,
-                }
+                self.msg.push(90);
+                self.is_valid = false;
+            }
+            Tweak::ChangePubkey => {
+                // Changing the public key makes the signature invalid.
+                let mut bytes: [u8; 32] = self.pk_bytes.clone().into();
+                bytes[2] ^= 0x23;
+                bytes[2] |= 0x99;
+                self.pk_bytes = bytes.into();
+                self.is_valid = false;
             }
         }
     }
@@ -91,6 +92,7 @@ fn tweak_strategy() -> impl Strategy<Value = Tweak> {
     prop_oneof![
         10 => Just(Tweak::None),
         1 => Just(Tweak::ChangeMessage),
+        1 => Just(Tweak::ChangePubkey),
     ]
 }
 
@@ -113,9 +115,9 @@ proptest! {
         let mut spendauth = SignatureCase::<SpendAuth>::new(&mut rng, msg.to_vec());
 
         // Apply tweaks to each case.
-        for tweak in &tweaks {
-            binding = tweak.apply(binding);
-            spendauth = tweak.apply(spendauth);
+        for t in &tweaks {
+            binding.apply_tweak(t);
+            spendauth.apply_tweak(t);
         }
 
         assert!(binding.check());
