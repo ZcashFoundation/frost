@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use proptest::prelude::*;
 
-use redjubjub_zebra::*;
+use redjubjub::*;
 
 proptest! {
     #[test]
