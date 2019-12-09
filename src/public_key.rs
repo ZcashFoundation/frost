@@ -36,6 +36,10 @@ impl<T: SigType> From<PublicKeyBytes<T>> for [u8; 32] {
 /// public key may not be used immediately, it is probably better to use
 /// [`PublicKeyBytes`], which is a refinement type for `[u8; 32]`.
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "PublicKeyBytes<T>"))]
+#[cfg_attr(feature = "serde", serde(into = "PublicKeyBytes<T>"))]
+#[cfg_attr(feature = "serde", serde(bound = "T: SigType"))]
 pub struct PublicKey<T: SigType> {
     // XXX-jubjub: this should just be Point
     pub(crate) point: jubjub::ExtendedPoint,
