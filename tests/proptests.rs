@@ -79,8 +79,10 @@ impl<T: SigType> SignatureCase<T> {
             Tweak::ChangePubkey => {
                 // Changing the public key makes the signature invalid.
                 let mut bytes: [u8; 32] = self.pk_bytes.clone().into();
+                let j = (bytes[2] & 31) as usize;
                 bytes[2] ^= 0x23;
                 bytes[2] |= 0x99;
+                bytes[j] ^= bytes[2];
                 self.pk_bytes = bytes.into();
                 self.is_valid = false;
             }
