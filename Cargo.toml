@@ -7,7 +7,7 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/redjubjub"
 categories = ["cryptography", "zcash"]
-keywords = ["cryptography", "crypto", "jubjub", "redjubjub", "zcash", "zebra"]
+keywords = ["cryptography", "crypto", "jubjub", "redjubjub", "zcash"]
 description = "A mostly-standalone implementation of the RedJubjub signature scheme."
 
 [package.metadata.docs.rs]
