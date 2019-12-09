@@ -1,8 +1,17 @@
 [package]
 name = "redjubjub-zebra"
+edition = "2018"
 version = "0.1.0"
 authors = ["Henry de Valence <hdevalence@hdevalence.ca>"]
-edition = "2018"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ZcashFoundation/redjubjub-zebra"
+categories = ["cryptography", "zcash"]
+keywords = ["cryptography", "crypto", "jubjub", "redjubjub", "zcash", "zebra"]
+description = ["A mostly-standalone implementation of the RedJubjub signature scheme"]
+
+[package.metadata.docs.rs]
+features = ["nightly"]
 
 [dependencies]
 rand_core = "0.5"
