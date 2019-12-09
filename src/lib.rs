@@ -40,18 +40,18 @@ pub use signature::Signature;
 pub trait SigType: private::Sealed {}
 
 /// A type variable corresponding to Zcash's `BindingSig`.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Binding {}
 impl SigType for Binding {}
 
 /// A type variable corresponding to Zcash's `SpendAuthSig`.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum SpendAuth {}
 impl SigType for SpendAuth {}
 
 pub(crate) mod private {
     use super::*;
-    pub trait Sealed: Copy + Clone + std::fmt::Debug {
+    pub trait Sealed: Copy + Clone + Eq + PartialEq + std::fmt::Debug {
         fn basepoint() -> jubjub::ExtendedPoint;
     }
     impl Sealed for Binding {

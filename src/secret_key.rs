@@ -6,6 +6,10 @@ use rand_core::{CryptoRng, RngCore};
 
 /// A RedJubJub secret key.
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(from = "SerdeHelper"))]
+#[cfg_attr(feature = "serde", serde(into = "SerdeHelper"))]
+#[cfg_attr(feature = "serde", serde(bound = "T: SigType"))]
 pub struct SecretKey<T: SigType> {
     sk: Scalar,
     pk: PublicKey<T>,
@@ -34,6 +38,21 @@ impl<T: SigType> From<[u8; 32]> for SecretKey<T> {
         };
         let pk = PublicKey::from_secret(&sk);
         SecretKey { sk, pk }
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+struct SerdeHelper([u8; 32]);
+
+impl<T: SigType> From<SerdeHelper> for SecretKey<T> {
+    fn from(helper: SerdeHelper) -> Self {
+        helper.0.into()
+    }
+}
+
+impl<T: SigType> From<SecretKey<T>> for SerdeHelper {
+    fn from(sk: SecretKey<T>) -> Self {
+        Self(sk.into())
     }
 }
 
