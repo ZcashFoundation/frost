@@ -18,7 +18,7 @@ signature:
 ```
 # use std::convert::TryFrom;
 use rand::thread_rng;
-use redjubjub_zebra::*;
+use redjubjub::*;
 
 let msg = b"Hello!";
 

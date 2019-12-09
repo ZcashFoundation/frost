@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 #[macro_use]
 extern crate lazy_static;
 
-use redjubjub_zebra::*;
+use redjubjub::*;
 
 #[test]
 fn verify_librustzcash_spendauth() {
