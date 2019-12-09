@@ -9,6 +9,7 @@ use crate::{Error, Randomizer, Scalar, SigType, Signature, SpendAuth};
 /// [`PublicKey`] type in this library holds other decompressed state
 /// used in signature verification.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PublicKeyBytes<T: SigType> {
     pub(crate) bytes: [u8; 32],
     pub(crate) _marker: PhantomData<T>,
