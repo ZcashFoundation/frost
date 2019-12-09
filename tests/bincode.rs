@@ -6,6 +6,32 @@ use redjubjub_zebra::*;
 
 proptest! {
     #[test]
+    fn secretkey_serialization(
+        bytes in prop::array::uniform32(any::<u8>()),
+    ) {
+        let sk_from = SecretKey::<SpendAuth>::from(bytes);
+        let sk_bincode: SecretKey::<SpendAuth>
+            = bincode::deserialize(&bytes[..]).unwrap();
+
+        // Check 1: both decoding methods should have the same public key
+        let pk_bytes_from = PublicKeyBytes::from(PublicKey::from(&sk_from));
+        let pk_bytes_bincode = PublicKeyBytes::from(PublicKey::from(&sk_bincode));
+        assert_eq!(pk_bytes_from, pk_bytes_bincode);
+
+        // The below tests fail because we do not require canonically-encoded secret keys.
+        /*
+
+        // Check 2: bincode encoding should match original bytes.
+        let bytes_bincode = bincode::serialize(&sk_from).unwrap();
+        assert_eq!(&bytes[..], &bytes_bincode[..]);
+
+        // Check 3: From encoding should match original bytes.
+        let bytes_from: [u8; 32] = sk_bincode.into();
+        assert_eq!(&bytes[..], &bytes_from[..]);
+        */
+    }
+
+    #[test]
     fn publickeybytes_serialization(
         bytes in prop::array::uniform32(any::<u8>()),
     ) {
