@@ -9,26 +9,30 @@ proptest! {
     fn secretkey_serialization(
         bytes in prop::array::uniform32(any::<u8>()),
     ) {
-        let sk_from = SecretKey::<SpendAuth>::from(bytes);
-        let sk_bincode: SecretKey::<SpendAuth>
-            = bincode::deserialize(&bytes[..]).unwrap();
+        let sk_result_from = SecretKey::<SpendAuth>::try_from(bytes);
+        let sk_result_bincode: Result<SecretKey::<SpendAuth>, _>
+            = bincode::deserialize(&bytes[..]);
 
-        // Check 1: both decoding methods should have the same public key
-        let pk_bytes_from = PublicKeyBytes::from(PublicKey::from(&sk_from));
-        let pk_bytes_bincode = PublicKeyBytes::from(PublicKey::from(&sk_bincode));
-        assert_eq!(pk_bytes_from, pk_bytes_bincode);
+        // Check 1: both decoding methods should agree
+        match (sk_result_from, sk_result_bincode) {
+            // Both agree on success
+            (Ok(sk_from), Ok(sk_bincode)) => {
+                let pk_bytes_from = PublicKeyBytes::from(PublicKey::from(&sk_from));
+                let pk_bytes_bincode = PublicKeyBytes::from(PublicKey::from(&sk_bincode));
+                assert_eq!(pk_bytes_from, pk_bytes_bincode);
 
-        // The below tests fail because we do not require canonically-encoded secret keys.
-        /*
+                // Check 2: bincode encoding should match original bytes.
+                let bytes_bincode = bincode::serialize(&sk_from).unwrap();
+                assert_eq!(&bytes[..], &bytes_bincode[..]);
 
-        // Check 2: bincode encoding should match original bytes.
-        let bytes_bincode = bincode::serialize(&sk_from).unwrap();
-        assert_eq!(&bytes[..], &bytes_bincode[..]);
-
-        // Check 3: From encoding should match original bytes.
-        let bytes_from: [u8; 32] = sk_bincode.into();
-        assert_eq!(&bytes[..], &bytes_from[..]);
-        */
+                // Check 3: From encoding should match original bytes.
+                let bytes_from: [u8; 32] = sk_bincode.into();
+                assert_eq!(&bytes[..], &bytes_from[..]);
+            }
+            // Both agree on failure
+            (Err(_), Err(_)) => {},
+            _ => panic!("bincode and try_from do not agree"),
+        }
     }
 
     #[test]

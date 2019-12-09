@@ -1,13 +1,16 @@
-use std::marker::PhantomData;
+use std::{
+    convert::{TryFrom, TryInto},
+    marker::PhantomData,
+};
 
-use crate::{PublicKey, Randomizer, Scalar, SigType, Signature, SpendAuth};
+use crate::{Error, PublicKey, Randomizer, Scalar, SigType, Signature, SpendAuth};
 
 use rand_core::{CryptoRng, RngCore};
 
 /// A RedJubJub secret key.
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(from = "SerdeHelper"))]
+#[cfg_attr(feature = "serde", serde(try_from = "SerdeHelper"))]
 #[cfg_attr(feature = "serde", serde(into = "SerdeHelper"))]
 #[cfg_attr(feature = "serde", serde(bound = "T: SigType"))]
 pub struct SecretKey<T: SigType> {
@@ -27,26 +30,30 @@ impl<T: SigType> From<SecretKey<T>> for [u8; 32] {
     }
 }
 
-impl<T: SigType> From<[u8; 32]> for SecretKey<T> {
-    fn from(bytes: [u8; 32]) -> Self {
-        let sk = {
-            // XXX-jubjub: would be nice to unconditionally deser
-            // This incantation ensures deserialization is infallible.
-            let mut wide = [0; 64];
-            wide[0..32].copy_from_slice(&bytes);
-            Scalar::from_bytes_wide(&wide)
-        };
-        let pk = PublicKey::from_secret(&sk);
-        SecretKey { sk, pk }
+impl<T: SigType> TryFrom<[u8; 32]> for SecretKey<T> {
+    type Error = Error;
+
+    fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
+        // XXX-jubjub: this should not use CtOption
+        let maybe_sk = Scalar::from_bytes(&bytes);
+        if maybe_sk.is_some().into() {
+            let sk = maybe_sk.unwrap();
+            let pk = PublicKey::from_secret(&sk);
+            Ok(SecretKey { sk, pk })
+        } else {
+            Err(Error::MalformedSecretKey)
+        }
     }
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct SerdeHelper([u8; 32]);
 
-impl<T: SigType> From<SerdeHelper> for SecretKey<T> {
-    fn from(helper: SerdeHelper) -> Self {
-        helper.0.into()
+impl<T: SigType> TryFrom<SerdeHelper> for SecretKey<T> {
+    type Error = Error;
+
+    fn try_from(helper: SerdeHelper) -> Result<Self, Self::Error> {
+        helper.0.try_into()
     }
 }
 
