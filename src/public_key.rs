@@ -35,6 +35,14 @@ impl<T: SigType> From<PublicKeyBytes<T>> for [u8; 32] {
 /// This type holds decompressed state used in signature verification; if the
 /// public key may not be used immediately, it is probably better to use
 /// [`PublicKeyBytes`], which is a refinement type for `[u8; 32]`.
+///
+/// ## Consensus properties
+///
+/// The `TryFrom<PublicKeyBytes>` conversion performs the following Zcash
+/// consensus rule checks:
+///
+/// 1. The check that the bytes are a canonical encoding of a public key;
+/// 2. The check that the public key is not a point of small order.
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "PublicKeyBytes<T>"))]
@@ -64,12 +72,16 @@ impl<T: SigType> TryFrom<PublicKeyBytes<T>> for PublicKey<T> {
     fn try_from(bytes: PublicKeyBytes<T>) -> Result<Self, Self::Error> {
         // XXX-jubjub: this should not use CtOption
         // XXX-jubjub: this takes ownership of bytes, while Fr doesn't.
+        // This checks that the encoding is canonical...
         let maybe_point = jubjub::AffinePoint::from_bytes(bytes.bytes);
         if maybe_point.is_some().into() {
-            Ok(PublicKey {
-                point: maybe_point.unwrap().into(),
-                bytes,
-            })
+            let point: jubjub::ExtendedPoint = maybe_point.unwrap().into();
+            // This checks that the public key is not of small order.
+            if <bool>::from(point.is_small_order()) == false {
+                Ok(PublicKey { point, bytes })
+            } else {
+                Err(Error::MalformedPublicKey)
+            }
         } else {
             Err(Error::MalformedPublicKey)
         }
