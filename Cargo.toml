@@ -1,7 +1,11 @@
 [package]
 name = "redjubjub"
 edition = "2018"
-version = "0.1.0"
+# When releasing to crates.io:
+# - Update html_root_url
+# - Update CHANGELOG.md
+# - Create git tag.
+version = "0.1.1"
 authors = ["Henry de Valence <hdevalence@hdevalence.ca>"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
