@@ -8,9 +8,9 @@
 mod constants;
 mod error;
 mod hash;
-mod public_key;
-mod secret_key;
 mod signature;
+mod signing_key;
+mod verification_key;
 
 /// An element of the JubJub scalar field used for randomization of public and secret keys.
 pub type Randomizer = jubjub::Fr;
@@ -22,9 +22,9 @@ type Scalar = jubjub::Fr;
 use hash::HStar;
 
 pub use error::Error;
-pub use public_key::{PublicKey, PublicKeyBytes};
-pub use secret_key::SecretKey;
 pub use signature::Signature;
+pub use signing_key::SigningKey;
+pub use verification_key::{VerificationKey, VerificationKeyBytes};
 
 /// Abstracts over different RedJubJub parameter choices, [`Binding`]
 /// and [`SpendAuth`].

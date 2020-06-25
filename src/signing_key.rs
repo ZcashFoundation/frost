@@ -3,34 +3,34 @@ use std::{
     marker::PhantomData,
 };
 
-use crate::{Error, PublicKey, Randomizer, Scalar, SigType, Signature, SpendAuth};
+use crate::{Error, Randomizer, Scalar, SigType, Signature, SpendAuth, VerificationKey};
 
 use rand_core::{CryptoRng, RngCore};
 
-/// A RedJubJub secret key.
+/// A RedJubJub signing key.
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "SerdeHelper"))]
 #[cfg_attr(feature = "serde", serde(into = "SerdeHelper"))]
 #[cfg_attr(feature = "serde", serde(bound = "T: SigType"))]
-pub struct SecretKey<T: SigType> {
+pub struct SigningKey<T: SigType> {
     sk: Scalar,
-    pk: PublicKey<T>,
+    pk: VerificationKey<T>,
 }
 
-impl<'a, T: SigType> From<&'a SecretKey<T>> for PublicKey<T> {
-    fn from(sk: &'a SecretKey<T>) -> PublicKey<T> {
+impl<'a, T: SigType> From<&'a SigningKey<T>> for VerificationKey<T> {
+    fn from(sk: &'a SigningKey<T>) -> VerificationKey<T> {
         sk.pk.clone()
     }
 }
 
-impl<T: SigType> From<SecretKey<T>> for [u8; 32] {
-    fn from(sk: SecretKey<T>) -> [u8; 32] {
+impl<T: SigType> From<SigningKey<T>> for [u8; 32] {
+    fn from(sk: SigningKey<T>) -> [u8; 32] {
         sk.sk.to_bytes()
     }
 }
 
-impl<T: SigType> TryFrom<[u8; 32]> for SecretKey<T> {
+impl<T: SigType> TryFrom<[u8; 32]> for SigningKey<T> {
     type Error = Error;
 
     fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
@@ -38,10 +38,10 @@ impl<T: SigType> TryFrom<[u8; 32]> for SecretKey<T> {
         let maybe_sk = Scalar::from_bytes(&bytes);
         if maybe_sk.is_some().into() {
             let sk = maybe_sk.unwrap();
-            let pk = PublicKey::from_secret(&sk);
-            Ok(SecretKey { sk, pk })
+            let pk = VerificationKey::from(&sk);
+            Ok(SigningKey { sk, pk })
         } else {
-            Err(Error::MalformedSecretKey)
+            Err(Error::MalformedSigningKey)
         }
     }
 }
@@ -49,7 +49,7 @@ impl<T: SigType> TryFrom<[u8; 32]> for SecretKey<T> {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct SerdeHelper([u8; 32]);
 
-impl<T: SigType> TryFrom<SerdeHelper> for SecretKey<T> {
+impl<T: SigType> TryFrom<SerdeHelper> for SigningKey<T> {
     type Error = Error;
 
     fn try_from(helper: SerdeHelper) -> Result<Self, Self::Error> {
@@ -57,34 +57,34 @@ impl<T: SigType> TryFrom<SerdeHelper> for SecretKey<T> {
     }
 }
 
-impl<T: SigType> From<SecretKey<T>> for SerdeHelper {
-    fn from(sk: SecretKey<T>) -> Self {
+impl<T: SigType> From<SigningKey<T>> for SerdeHelper {
+    fn from(sk: SigningKey<T>) -> Self {
         Self(sk.into())
     }
 }
 
-impl SecretKey<SpendAuth> {
+impl SigningKey<SpendAuth> {
     /// Randomize this public key with the given `randomizer`.
-    pub fn randomize(&self, randomizer: &Randomizer) -> SecretKey<SpendAuth> {
+    pub fn randomize(&self, randomizer: &Randomizer) -> SigningKey<SpendAuth> {
         let sk = &self.sk + randomizer;
-        let pk = PublicKey::from_secret(&sk);
-        SecretKey { sk, pk }
+        let pk = VerificationKey::from(&sk);
+        SigningKey { sk, pk }
     }
 }
 
-impl<T: SigType> SecretKey<T> {
-    /// Generate a new secret key.
-    pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> SecretKey<T> {
+impl<T: SigType> SigningKey<T> {
+    /// Generate a new signing key.
+    pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> SigningKey<T> {
         let sk = {
             let mut bytes = [0; 64];
             rng.fill_bytes(&mut bytes);
             Scalar::from_bytes_wide(&bytes)
         };
-        let pk = PublicKey::from_secret(&sk);
-        SecretKey { sk, pk }
+        let pk = VerificationKey::from(&sk);
+        SigningKey { sk, pk }
     }
 
-    /// Create a signature of type `T` on `msg` using this `SecretKey`.
+    /// Create a signature of type `T` on `msg` using this `SigningKey`.
     // Similar to signature::Signer but without boxed errors.
     pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<T> {
         use crate::HStar;

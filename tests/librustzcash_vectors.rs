@@ -8,7 +8,7 @@ use redjubjub::*;
 #[test]
 fn verify_librustzcash_spendauth() {
     for (msg, sig, pk_bytes) in LIBRUSTZCASH_SPENDAUTH_SIGS.iter() {
-        assert!(PublicKey::try_from(*pk_bytes)
+        assert!(VerificationKey::try_from(*pk_bytes)
             .and_then(|pk| pk.verify(&msg, &sig))
             .is_ok());
     }
@@ -17,14 +17,18 @@ fn verify_librustzcash_spendauth() {
 #[test]
 fn verify_librustzcash_binding() {
     for (msg, sig, pk_bytes) in LIBRUSTZCASH_BINDING_SIGS.iter() {
-        assert!(PublicKey::try_from(*pk_bytes)
+        assert!(VerificationKey::try_from(*pk_bytes)
             .and_then(|pk| pk.verify(&msg, &sig))
             .is_ok());
     }
 }
 
 lazy_static! {
-    static ref LIBRUSTZCASH_SPENDAUTH_SIGS: [(Vec<u8>, Signature<SpendAuth>, PublicKeyBytes<SpendAuth>); 32] = [
+    static ref LIBRUSTZCASH_SPENDAUTH_SIGS: [(
+        Vec<u8>,
+        Signature<SpendAuth>,
+        VerificationKeyBytes<SpendAuth>
+    ); 32] = [
         (
             [
                 16, 28, 190, 75, 156, 66, 96, 79, 4, 199, 3, 195, 150, 247, 136, 198, 203, 45, 109,
@@ -634,7 +638,7 @@ lazy_static! {
             .into(),
         ),
     ];
-    static ref LIBRUSTZCASH_BINDING_SIGS: [(Vec<u8>, Signature<Binding>, PublicKeyBytes<Binding>); 32] = [
+    static ref LIBRUSTZCASH_BINDING_SIGS: [(Vec<u8>, Signature<Binding>, VerificationKeyBytes<Binding>); 32] = [
         (
             [
                 16, 28, 190, 75, 156, 66, 96, 79, 4, 199, 3, 195, 150, 247, 136, 198, 203, 45, 109,

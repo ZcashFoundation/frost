@@ -10,7 +10,7 @@ use redjubjub::*;
 struct SignatureCase<T: SigType> {
     msg: Vec<u8>,
     sig: Signature<T>,
-    pk_bytes: PublicKeyBytes<T>,
+    pk_bytes: VerificationKeyBytes<T>,
     is_valid: bool,
 }
 
@@ -37,9 +37,9 @@ enum Tweak {
 
 impl<T: SigType> SignatureCase<T> {
     fn new<R: RngCore + CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
-        let sk = SecretKey::new(&mut rng);
+        let sk = SigningKey::new(&mut rng);
         let sig = sk.sign(&mut rng, &msg);
-        let pk_bytes = PublicKey::from(&sk).into();
+        let pk_bytes = VerificationKey::from(&sk).into();
         Self {
             msg,
             sig,
@@ -58,12 +58,12 @@ impl<T: SigType> SignatureCase<T> {
         };
         let pk_bytes = {
             let bytes: [u8; 32] = self.pk_bytes.into();
-            PublicKeyBytes::<T>::from(bytes)
+            VerificationKeyBytes::<T>::from(bytes)
         };
 
         // Check that signature validation has the expected result.
         self.is_valid
-            == PublicKey::try_from(pk_bytes)
+            == VerificationKey::try_from(pk_bytes)
                 .and_then(|pk| pk.verify(&self.msg, &sig))
                 .is_ok()
     }
@@ -142,14 +142,14 @@ proptest! {
             Randomizer::from_bytes_wide(&bytes)
         };
 
-        let sk = SecretKey::<SpendAuth>::new(&mut rng);
-        let pk = PublicKey::from(&sk);
+        let sk = SigningKey::<SpendAuth>::new(&mut rng);
+        let pk = VerificationKey::from(&sk);
 
         let sk_r = sk.randomize(&r);
         let pk_r = pk.randomize(&r);
 
-        let pk_r_via_sk_rand: [u8; 32] = PublicKeyBytes::from(PublicKey::from(&sk_r)).into();
-        let pk_r_via_pk_rand: [u8; 32] = PublicKeyBytes::from(pk_r).into();
+        let pk_r_via_sk_rand: [u8; 32] = VerificationKeyBytes::from(VerificationKey::from(&sk_r)).into();
+        let pk_r_via_pk_rand: [u8; 32] = VerificationKeyBytes::from(pk_r).into();
 
         assert_eq!(pk_r_via_pk_rand, pk_r_via_sk_rand);
     }

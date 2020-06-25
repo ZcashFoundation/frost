@@ -9,16 +9,16 @@ proptest! {
     fn secretkey_serialization(
         bytes in prop::array::uniform32(any::<u8>()),
     ) {
-        let sk_result_from = SecretKey::<SpendAuth>::try_from(bytes);
-        let sk_result_bincode: Result<SecretKey::<SpendAuth>, _>
+        let sk_result_from = SigningKey::<SpendAuth>::try_from(bytes);
+        let sk_result_bincode: Result<SigningKey::<SpendAuth>, _>
             = bincode::deserialize(&bytes[..]);
 
         // Check 1: both decoding methods should agree
         match (sk_result_from, sk_result_bincode) {
             // Both agree on success
             (Ok(sk_from), Ok(sk_bincode)) => {
-                let pk_bytes_from = PublicKeyBytes::from(PublicKey::from(&sk_from));
-                let pk_bytes_bincode = PublicKeyBytes::from(PublicKey::from(&sk_bincode));
+                let pk_bytes_from = VerificationKeyBytes::from(VerificationKey::from(&sk_from));
+                let pk_bytes_bincode = VerificationKeyBytes::from(VerificationKey::from(&sk_bincode));
                 assert_eq!(pk_bytes_from, pk_bytes_bincode);
 
                 // Check 2: bincode encoding should match original bytes.
@@ -39,8 +39,8 @@ proptest! {
     fn publickeybytes_serialization(
         bytes in prop::array::uniform32(any::<u8>()),
     ) {
-        let pk_bytes_from = PublicKeyBytes::<SpendAuth>::from(bytes);
-        let pk_bytes_bincode: PublicKeyBytes::<SpendAuth>
+        let pk_bytes_from = VerificationKeyBytes::<SpendAuth>::from(bytes);
+        let pk_bytes_bincode: VerificationKeyBytes::<SpendAuth>
             = bincode::deserialize(&bytes[..]).unwrap();
 
         // Check 1: both decoding methods should have the same result.
@@ -59,8 +59,8 @@ proptest! {
     fn publickey_serialization(
         bytes in prop::array::uniform32(any::<u8>()),
     ) {
-        let pk_result_try_from = PublicKey::<SpendAuth>::try_from(bytes);
-        let pk_result_bincode: Result<PublicKey::<SpendAuth>, _>
+        let pk_result_try_from = VerificationKey::<SpendAuth>::try_from(bytes);
+        let pk_result_bincode: Result<VerificationKey::<SpendAuth>, _>
             = bincode::deserialize(&bytes[..]);
 
         // Check 1: both decoding methods should have the same result
