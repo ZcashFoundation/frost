@@ -1,6 +1,5 @@
-use blake2b_simd::{Params, State};
-
 use crate::Scalar;
+use blake2b_simd::{Params, State};
 
 /// Provides H^star, the hash-to-scalar function used by RedJubjub.
 pub struct HStar {
@@ -19,13 +18,13 @@ impl Default for HStar {
 
 impl HStar {
     /// Add `data` to the hash, and return `Self` for chaining.
-    pub fn update(mut self, data: &[u8]) -> Self {
-        self.state.update(data);
+    pub fn update(&mut self, data: impl AsRef<[u8]>) -> &mut Self {
+        self.state.update(data.as_ref());
         self
     }
 
     /// Consume `self` to compute the hash output.
-    pub fn finalize(self) -> Scalar {
+    pub fn finalize(&self) -> Scalar {
         Scalar::from_bytes_wide(self.state.finalize().as_array())
     }
 }

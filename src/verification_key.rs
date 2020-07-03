@@ -1,4 +1,8 @@
-use std::{convert::TryFrom, marker::PhantomData};
+use std::{
+    convert::TryFrom,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+};
 
 use crate::{Error, Randomizer, Scalar, SigType, Signature, SpendAuth};
 
@@ -27,6 +31,13 @@ impl<T: SigType> From<[u8; 32]> for VerificationKeyBytes<T> {
 impl<T: SigType> From<VerificationKeyBytes<T>> for [u8; 32] {
     fn from(refined: VerificationKeyBytes<T>) -> [u8; 32] {
         refined.bytes
+    }
+}
+
+impl<T: SigType> Hash for VerificationKeyBytes<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.bytes.hash(state);
+        self._marker.hash(state);
     }
 }
 
