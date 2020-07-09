@@ -2,6 +2,10 @@
 
 Entries are listed in reverse chronological order.
 
+## 0.2.1
+
+* Update `Cargo.toml` metadata.
+
 ## 0.2.0
 
 * Change terminology to "signing key" and "verification key" from "secret key"
