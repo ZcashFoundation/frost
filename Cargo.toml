@@ -10,7 +10,7 @@ authors = ["Henry de Valence <hdevalence@hdevalence.ca>", "Deirdre Connolly <dur
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/redjubjub"
-categories = ["cryptography", "crypto"]
+categories = ["cryptography"]
 keywords = ["cryptography", "crypto", "jubjub", "redjubjub", "zcash"]
 description = "A standalone implementation of the RedJubjub signature scheme."
 
