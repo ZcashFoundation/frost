@@ -2,6 +2,11 @@
 
 Entries are listed in reverse chronological order.
 
+## 0.2.2
+
+* Make `batch::Item: Clone + Debug` and add `batch::Item::verify_single`
+  for fallback verification when batch verification fails.
+
 ## 0.2.1
 
 * Update `Cargo.toml` metadata.
