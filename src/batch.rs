@@ -24,6 +24,7 @@ fn gen_128_bits<R: RngCore + CryptoRng>(mut rng: R) -> [u64; 4] {
     bytes
 }
 
+#[derive(Clone, Debug)]
 enum Inner {
     SpendAuth {
         vk_bytes: VerificationKeyBytes<SpendAuth>,
@@ -42,6 +43,7 @@ enum Inner {
 /// This struct exists to allow batch processing to be decoupled from the
 /// lifetime of the message. This is useful when using the batch verification API
 /// in an async context.
+#[derive(Clone, Debug)]
 pub struct Item {
     inner: Inner,
 }
@@ -86,6 +88,27 @@ impl<'msg, M: AsRef<[u8]>> From<(VerificationKeyBytes<Binding>, Signature<Bindin
             .finalize();
         Self {
             inner: Inner::Binding { vk_bytes, sig, c },
+        }
+    }
+}
+
+impl Item {
+    /// Perform non-batched verification of this `Item`.
+    ///
+    /// This is useful (in combination with `Item::clone`) for implementing fallback
+    /// logic when batch verification fails. In contrast to
+    /// [`VerificationKey::verify`](crate::VerificationKey::verify), which requires
+    /// borrowing the message data, the `Item` type is unlinked from the lifetime of
+    /// the message.
+    #[allow(non_snake_case)]
+    pub fn verify_single(self) -> Result<(), Error> {
+        match self.inner {
+            Inner::Binding { vk_bytes, sig, c } => VerificationKey::<Binding>::try_from(vk_bytes)
+                .and_then(|vk| vk.verify_prehashed(&sig, c)),
+            Inner::SpendAuth { vk_bytes, sig, c } => {
+                VerificationKey::<SpendAuth>::try_from(vk_bytes)
+                    .and_then(|vk| vk.verify_prehashed(&sig, c))
+            }
         }
     }
 }

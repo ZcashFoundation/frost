@@ -136,9 +136,22 @@ impl<T: SigType> VerificationKey<T> {
     /// Verify a purported `signature` over `msg` made by this verification key.
     // This is similar to impl signature::Verifier but without boxed errors
     pub fn verify(&self, msg: &[u8], signature: &Signature<T>) -> Result<(), Error> {
-        #![allow(non_snake_case)]
         use crate::HStar;
+        let c = HStar::default()
+            .update(&signature.r_bytes[..])
+            .update(&self.bytes.bytes[..]) // XXX ugly
+            .update(msg)
+            .finalize();
+        self.verify_prehashed(signature, c)
+    }
 
+    /// Verify a purported `signature` with a prehashed challenge.
+    #[allow(non_snake_case)]
+    pub(crate) fn verify_prehashed(
+        &self,
+        signature: &Signature<T>,
+        c: Scalar,
+    ) -> Result<(), Error> {
         let r = {
             // XXX-jubjub: should not use CtOption here
             // XXX-jubjub: inconsistent ownership in from_bytes
@@ -159,12 +172,6 @@ impl<T: SigType> VerificationKey<T> {
                 return Err(Error::InvalidSignature);
             }
         };
-
-        let c = HStar::default()
-            .update(&signature.r_bytes[..])
-            .update(&self.bytes.bytes[..]) // XXX ugly
-            .update(msg)
-            .finalize();
 
         // XXX rewrite as normal double scalar mul
         // Verify check is h * ( - s * B + R  + c * A) == 0
