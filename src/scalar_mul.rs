@@ -1,3 +1,15 @@
+// -*- mode: rust; -*-
+//
+// This file is part of redjubjub.
+// Copyright (c) 2019-2021 Zcash Foundation
+// Copyright (c) 2017-2021 isis agora lovecruft, Henry de Valence
+// See LICENSE for licensing information.
+//
+// Authors:
+// - isis agora lovecruft <isis@patternsinthevoid.net>
+// - Henry de Valence <hdevalence@hdevalence.ca>
+// - Deirdre Connolly <deirdre@zfnd.org>
+
 use std::{borrow::Borrow, fmt::Debug};
 
 use jubjub::*;

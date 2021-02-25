@@ -1,3 +1,12 @@
+// -*- mode: rust; -*-
+//
+// This file is part of redjubjub.
+// Copyright (c) 2019-2021 Zcash Foundation
+// See LICENSE for licensing information.
+//
+// Authors:
+// - Henry de Valence <hdevalence@hdevalence.ca>
+
 use std::marker::PhantomData;
 
 use crate::SigType;

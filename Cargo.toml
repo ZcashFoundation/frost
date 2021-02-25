@@ -6,7 +6,7 @@ edition = "2018"
 # - Update CHANGELOG.md
 # - Create git tag.
 version = "0.2.2"
-authors = ["Henry de Valence <hdevalence@hdevalence.ca>", "Deirdre Connolly <durumcrustulum@gmail.com>"]
+authors = ["Henry de Valence <hdevalence@hdevalence.ca>", "Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/redjubjub"
@@ -25,6 +25,7 @@ jubjub = "0.3"
 rand_core = "0.5"
 serde = { version = "1", optional = true, features = ["derive"] }
 thiserror = "1.0"
+zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 
 [dev-dependencies]
 bincode = "1"
