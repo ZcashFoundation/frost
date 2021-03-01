@@ -14,8 +14,6 @@ use std::{borrow::Borrow, fmt::Debug};
 
 use jubjub::*;
 
-use crate::Scalar;
-
 pub trait NonAdjacentForm {
     fn non_adjacent_form(&self, w: usize) -> [i8; 256];
 }

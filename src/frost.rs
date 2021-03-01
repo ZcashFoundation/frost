@@ -25,11 +25,12 @@
 
 use std::{collections::HashMap, convert::TryFrom, marker::PhantomData};
 
+use jubjub::Scalar;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::DefaultIsZeroes;
 
 use crate::private::Sealed;
-use crate::{HStar, Scalar, Signature, SpendAuth, VerificationKey};
+use crate::{HStar, Signature, SpendAuth, VerificationKey};
 
 /// A secret scalar value representing a single signer's secret key.
 #[derive(Clone, Copy, Default)]
@@ -648,7 +649,7 @@ pub fn aggregate(
 }
 
 #[cfg(test)]
-    mod tests {
+mod tests {
     use super::*;
     use rand::thread_rng;
 

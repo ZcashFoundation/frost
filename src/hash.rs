@@ -8,8 +8,8 @@
 // - Deirdre Connolly <deirdre@zfnd.org>
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
-use crate::Scalar;
 use blake2b_simd::{Params, State};
+use jubjub::Scalar;
 
 /// Provides H^star, the hash-to-scalar function used by RedJubjub.
 pub struct HStar {

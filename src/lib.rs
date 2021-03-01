@@ -26,11 +26,7 @@ mod signing_key;
 mod verification_key;
 
 /// An element of the JubJub scalar field used for randomization of public and secret keys.
-pub type Randomizer = jubjub::Fr;
-
-/// A better name than Fr.
-// XXX-jubjub: upstream this name
-type Scalar = jubjub::Fr;
+pub type Randomizer = jubjub::Scalar;
 
 use hash::HStar;
 

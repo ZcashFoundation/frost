@@ -13,8 +13,9 @@ use std::{
     marker::PhantomData,
 };
 
-use crate::{Error, Randomizer, Scalar, SigType, Signature, SpendAuth, VerificationKey};
+use crate::{Error, Randomizer, SigType, Signature, SpendAuth, VerificationKey};
 
+use jubjub::Scalar;
 use rand_core::{CryptoRng, RngCore};
 
 /// A RedJubJub signing key.

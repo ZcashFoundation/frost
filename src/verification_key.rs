@@ -14,7 +14,9 @@ use std::{
     marker::PhantomData,
 };
 
-use crate::{Error, Randomizer, Scalar, SigType, Signature, SpendAuth};
+use jubjub::Scalar;
+
+use crate::{Error, Randomizer, SigType, Signature, SpendAuth};
 
 /// A refinement type for `[u8; 32]` indicating that the bytes represent
 /// an encoding of a RedJubJub verification key.
