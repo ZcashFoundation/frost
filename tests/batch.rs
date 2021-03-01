@@ -21,7 +21,7 @@ fn binding_batch_verify() {
     let rng = thread_rng();
     let mut batch = batch::Verifier::new();
     for _ in 0..32 {
-        let sk = SigningKey::<SpendAuth>::new(rng);
+        let sk = SigningKey::<Binding>::new(rng);
         let vk = VerificationKey::from(&sk);
         let msg = b"BatchVerifyTest";
         let sig = sk.sign(rng, &msg[..]);
