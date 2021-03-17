@@ -594,7 +594,11 @@ pub fn sign(
 /// the signing participants before publishing the final signature. The
 /// coordinator can be one of the participants or a semi-trusted third party
 /// (who is trusted to not perform denial of service attacks, but does not learn
-/// any secret information).
+/// any secret information). Note that because the coordinator is trusted to
+/// report misbehaving parties in order to avoid publishing an invalid
+/// signature, if the coordinator themselves is a signer and misbehaves, they
+/// can avoid that step. However, at worst, this results in a denial of
+/// service attack due to publishing an invalid signature.
 pub fn aggregate(
     signing_package: &SigningPackage,
     signing_shares: &[SignatureShare],
