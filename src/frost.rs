@@ -329,13 +329,21 @@ impl SigningNonces {
     where
         R: CryptoRng + RngCore,
     {
-        let mut bytes = [0; 64];
-        rng.fill_bytes(&mut bytes);
-        let hiding = Scalar::from_bytes_wide(&bytes);
+        fn random_nonzero_bytes<R>(rng: &mut R) -> [u8; 64]
+        where
+            R: CryptoRng + RngCore,
+        {
+            let mut bytes = [0; 64];
+            loop {
+                rng.fill_bytes(&mut bytes);
+                if bytes != [0; 64] {
+                    return bytes;
+                }
+            }
+        }
 
-        let mut bytes = [0; 64];
-        rng.fill_bytes(&mut bytes);
-        let binding = Scalar::from_bytes_wide(&bytes);
+        let hiding = Scalar::from_bytes_wide(&random_nonzero_bytes(rng));
+        let binding = Scalar::from_bytes_wide(&random_nonzero_bytes(rng));
 
         Self { hiding, binding }
     }
@@ -469,9 +477,14 @@ fn gen_group_commitment(
     signing_package: &SigningPackage,
     bindings: &HashMap<u32, Scalar>,
 ) -> Result<GroupCommitment, &'static str> {
-    let mut accumulator = jubjub::ExtendedPoint::identity();
+    let identity = jubjub::ExtendedPoint::identity();
+    let mut accumulator = identity;
 
     for commitment in signing_package.signing_commitments.iter() {
+        if identity == commitment.binding && identity == commitment.hiding {
+            return Err("Commitment equals the identity.");
+        }
+
         let rho_i = bindings
             .get(&commitment.index)
             .ok_or("No matching commitment index")?;
