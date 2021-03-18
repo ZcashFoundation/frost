@@ -342,6 +342,8 @@ impl SigningNonces {
             }
         }
 
+        // The values of 'hiding' and 'biding' must be non-zero so that commitments are not the
+        // identity.
         let hiding = Scalar::from_bytes_wide(&random_nonzero_bytes(rng));
         let binding = Scalar::from_bytes_wide(&random_nonzero_bytes(rng));
 
@@ -481,9 +483,11 @@ fn gen_group_commitment(
     let mut accumulator = identity;
 
     for commitment in signing_package.signing_commitments.iter() {
-        if identity == commitment.binding && identity == commitment.hiding {
-            return Err("Commitment equals the identity.");
-        }
+        // The following check prevents a party from accidentally revealing their share.
+        // Note that the '&&' operator would be sufficient.
+            if identity == commitment.binding || identity == commitment.hiding {
+                return Err("Commitment equals the identity.");
+            }
 
         let rho_i = bindings
             .get(&commitment.index)
