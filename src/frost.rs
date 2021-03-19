@@ -61,7 +61,7 @@ impl From<jubjub::ExtendedPoint> for Public {
 /// reconstruct the secret; in this case we use Shamir's secret sharing.
 #[derive(Clone)]
 pub struct Share {
-    receiver_index: u32,
+    receiver_index: u8,
     value: Secret,
     commitment: ShareCommitment,
 }
@@ -100,7 +100,7 @@ pub struct GroupCommitment(jubjub::ExtendedPoint);
 /// .into(), which under the hood also performs validation.
 pub struct SharePackage {
     /// Denotes the participant index each share is owned by.
-    pub index: u32,
+    pub index: u8,
     /// This participant's share.
     pub(crate) share: Share,
     /// This participant's public key.
@@ -139,7 +139,7 @@ impl TryFrom<SharePackage> for KeyPackage {
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
 pub struct KeyPackage {
-    index: u32,
+    index: u8,
     secret_share: Secret,
     public: Public,
     group_public: VerificationKey<SpendAuth>,
@@ -154,7 +154,7 @@ pub struct PublicKeyPackage {
     /// correct view of participant's public keys to perform verification before
     /// publishing a signature. signer_pubkeys represents all signers for a
     /// signing operation.
-    pub(crate) signer_pubkeys: HashMap<u32, Public>,
+    pub(crate) signer_pubkeys: HashMap<u8, Public>,
     /// group_public represents the joint public key for the entire group.
     pub group_public: VerificationKey<SpendAuth>,
 }
@@ -167,8 +167,8 @@ pub struct PublicKeyPackage {
 /// key. The output from this function is a set of shares along with one single
 /// commitment that participants use to verify the integrity of the share.
 pub fn keygen_with_dealer<R: RngCore + CryptoRng>(
-    num_signers: u32,
-    threshold: u32,
+    num_signers: u8,
+    threshold: u8,
     mut rng: R,
 ) -> Result<(Vec<SharePackage>, PublicKeyPackage), &'static str> {
     let mut bytes = [0; 64];
@@ -178,7 +178,7 @@ pub fn keygen_with_dealer<R: RngCore + CryptoRng>(
     let group_public = VerificationKey::from(&secret.0);
     let shares = generate_shares(&secret, num_signers, threshold, rng)?;
     let mut sharepackages: Vec<SharePackage> = Vec::with_capacity(num_signers as usize);
-    let mut signer_pubkeys: HashMap<u32, Public> = HashMap::with_capacity(num_signers as usize);
+    let mut signer_pubkeys: HashMap<u8, Public> = HashMap::with_capacity(num_signers as usize);
 
     for share in shares {
         let signer_public = Public(SpendAuth::basepoint() * share.value.0);
@@ -241,8 +241,8 @@ fn verify_share(share: &Share) -> Result<(), &'static str> {
 /// - The commitment to the secret polynomial f is [g^a, g^b, g^c]
 fn generate_shares<R: RngCore + CryptoRng>(
     secret: &Secret,
-    numshares: u32,
-    threshold: u32,
+    numshares: u8,
+    threshold: u8,
     mut rng: R,
 ) -> Result<Vec<Share>, &'static str> {
     if threshold < 1 {
@@ -358,14 +358,14 @@ impl SigningNonces {
 /// SigningCommitment can be used for exactly *one* signature.
 #[derive(Copy, Clone)]
 pub struct SigningCommitments {
-    index: u32,
+    index: u8,
     hiding: jubjub::ExtendedPoint,
     binding: jubjub::ExtendedPoint,
 }
 
-impl From<(u32, &SigningNonces)> for SigningCommitments {
+impl From<(u8, &SigningNonces)> for SigningCommitments {
     /// For SpendAuth signatures only, not Binding signatures, in RedJubjub/Zcash.
-    fn from((index, nonces): (u32, &SigningNonces)) -> Self {
+    fn from((index, nonces): (u8, &SigningNonces)) -> Self {
         Self {
             index,
             hiding: SpendAuth::basepoint() * nonces.hiding,
@@ -389,7 +389,7 @@ pub struct SigningPackage {
 #[derive(Clone, Copy, Default)]
 pub struct SignatureShare {
     /// Represents the participant index.
-    pub(crate) index: u32,
+    pub(crate) index: u8,
     /// This participant's signature over the message.
     pub(crate) signature: Scalar,
 }
@@ -427,8 +427,8 @@ impl SignatureShare {
 /// nonce/commitment pair at a time.  Nonces should be stored in secret storage
 /// for later use, whereas the commitments are published.
 pub fn preprocess<R>(
-    num_nonces: u32,
-    participant_index: u32,
+    num_nonces: u8,
+    participant_index: u8,
     rng: &mut R,
 ) -> (Vec<SigningNonces>, Vec<SigningCommitments>)
 where
@@ -448,7 +448,7 @@ where
 
 /// Generates the binding factor that ensures each signature share is strongly
 /// bound to a signing set, specific set of commitments, and a specific message.
-fn gen_rho_i(index: u32, signing_package: &SigningPackage) -> Scalar {
+fn gen_rho_i(index: u8, signing_package: &SigningPackage) -> Scalar {
     // Hash signature message with HStar before deriving the binding factor.
     //
     // To avoid a collision with other inputs to the hash that generates the
@@ -478,7 +478,7 @@ fn gen_rho_i(index: u32, signing_package: &SigningPackage) -> Scalar {
 /// Schnorr signature.
 fn gen_group_commitment(
     signing_package: &SigningPackage,
-    bindings: &HashMap<u32, Scalar>,
+    bindings: &HashMap<u8, Scalar>,
 ) -> Result<GroupCommitment, &'static str> {
     let identity = jubjub::ExtendedPoint::identity();
     let mut accumulator = identity;
@@ -516,7 +516,7 @@ fn gen_challenge(
 
 /// Generates the langrange coefficient for the i'th participant.
 fn gen_lagrange_coeff(
-    signer_index: u32,
+    signer_index: u8,
     signing_package: &SigningPackage,
 ) -> Result<Scalar, &'static str> {
     let mut num = Scalar::one();
@@ -552,7 +552,7 @@ pub fn sign(
     participant_nonces: SigningNonces,
     share_package: &SharePackage,
 ) -> Result<SignatureShare, &'static str> {
-    let mut bindings: HashMap<u32, Scalar> =
+    let mut bindings: HashMap<u8, Scalar> =
         HashMap::with_capacity(signing_package.signing_commitments.len());
 
     for comm in signing_package.signing_commitments.iter() {
@@ -605,7 +605,7 @@ pub fn aggregate(
     signing_shares: &[SignatureShare],
     pubkeys: &PublicKeyPackage,
 ) -> Result<Signature<SpendAuth>, &'static str> {
-    let mut bindings: HashMap<u32, Scalar> =
+    let mut bindings: HashMap<u8, Scalar> =
         HashMap::with_capacity(signing_package.signing_commitments.len());
 
     for comm in signing_package.signing_commitments.iter() {
@@ -647,7 +647,7 @@ pub fn aggregate(
 }
 
 #[cfg(test)]
-mod tests {
+    mod tests {
     use super::*;
     use rand::thread_rng;
 
