@@ -47,7 +47,7 @@ impl From<Scalar> for Secret {
 }
 
 /// A public group element that represents a single signer's public key.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Public(jubjub::ExtendedPoint);
 
 impl From<jubjub::ExtendedPoint> for Public {
