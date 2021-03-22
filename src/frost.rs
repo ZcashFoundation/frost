@@ -99,7 +99,8 @@ pub struct GroupCommitment(jubjub::ExtendedPoint);
 /// To derive a FROST keypair, the receiver of the [`SharePackage`] *must* call
 /// .into(), which under the hood also performs validation.
 pub struct SharePackage {
-    /// Denotes the participant index each share is owned by.
+    /// Denotes the participant index each share is owned by. We implicitly
+    /// restrict the number of participants to 255.
     pub index: u8,
     /// This participant's share.
     pub(crate) share: Share,
