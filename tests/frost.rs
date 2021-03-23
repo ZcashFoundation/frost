@@ -39,9 +39,9 @@ fn check_sign_with_dealer() {
             .iter()
             .find(|share| participant_index == share.index)
             .unwrap();
-        let nonce_to_use = &nonce[0];
+        let nonce_to_use = nonce[0];
         // Each participant generates their signature share.
-        let signature_share = frost::sign(&signing_package, &nonce_to_use, share_package).unwrap();
+        let signature_share = frost::sign(&signing_package, nonce_to_use, share_package).unwrap();
         signature_shares.push(signature_share);
     }
 

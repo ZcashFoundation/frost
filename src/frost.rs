@@ -22,31 +22,22 @@
 //! Internally, keygen_with_dealer generates keys using Verifiable Secret
 //! Sharing,  where shares are generated using Shamir Secret Sharing.
 
+use std::{collections::HashMap, convert::TryFrom, marker::PhantomData};
+
 use rand_core::{CryptoRng, RngCore};
-use std::convert::TryFrom;
-
-use std::{collections::HashMap, marker::PhantomData};
-
-use zeroize::Zeroize;
+use zeroize::DefaultIsZeroes;
 
 use crate::private::Sealed;
 use crate::{HStar, Scalar, Signature, SpendAuth, VerificationKey};
 
 /// A secret scalar value representing a single signer's secret key.
-#[derive(Clone, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct Secret(Scalar);
 
-impl Zeroize for Secret {
-    fn zeroize(&mut self) {
-        self.0 = Scalar::zero();
-    }
-}
-
-impl Drop for Secret {
-    fn drop(&mut self) {
-        self.zeroize();
-    }
-}
+// Zeroizes `Secret` to be the `Default` value on drop (when it goes out of
+// scope).  Luckily the derived `Default` includes the `Default` impl of
+// jubjub::Fr/Scalar, which is four 0u64's under the hood.
+impl DefaultIsZeroes for Secret {}
 
 impl From<Scalar> for Secret {
     fn from(source: Scalar) -> Secret {
@@ -318,16 +309,16 @@ fn generate_shares<R: RngCore + CryptoRng>(
 /// Note that [`SigningNonces`] must be used *only once* for a signing
 /// operation; re-using nonces will result in leakage of a signer's long-lived
 /// signing key.
-#[derive(Clone)]
+#[derive(Clone, Copy, Default)]
 pub struct SigningNonces {
     hiding: Scalar,
     binding: Scalar,
 }
 
-// TODO finish drop
-impl Drop for SigningNonces {
-    fn drop(&mut self) {}
-}
+// Zeroizes `SigningNonces` to be the `Default` value on drop (when it goes out
+// of scope).  Luckily the derived `Default` includes the `Default` impl of the
+// `jubjub::Fr/Scalar`'s, which is four 0u64's under the hood.
+impl DefaultIsZeroes for SigningNonces {}
 
 impl SigningNonces {
     /// Generates a new signing nonce.
@@ -384,12 +375,20 @@ pub struct SigningPackage {
 
 /// A participant's signature share, which the coordinator will use to aggregate
 /// with all other signer's shares into the joint signature.
+#[derive(Clone, Copy, Default)]
 pub struct SignatureShare {
     /// Represents the participant index.
     pub(crate) index: u32,
     /// This participant's signature over the message.
     pub(crate) signature: Scalar,
 }
+
+// Zeroizes `SignatureShare` to be the `Default` value on drop (when it goes out
+// of scope).  Luckily the derived `Default` includes the `Default` impl of
+// jubjub::Fr/Scalar, which is four 0u64's under the hood, and u32, which is
+// 0u32.
+impl DefaultIsZeroes for SignatureShare {}
+
 impl SignatureShare {
     /// Tests if a signature share issued by a participant is valid before
     /// aggregating it into a final joint signature to publish.
@@ -439,11 +438,19 @@ where
 /// Generates the binding factor that ensures each signature share is strongly
 /// bound to a signing set, specific set of commitments, and a specific message.
 fn gen_rho_i(index: u32, signing_package: &SigningPackage) -> Scalar {
+    // Hash signature message with HStar before deriving the binding factor.
+    //
+    // To avoid a collision with other inputs to the hash that generates the
+    // binding factor, we should hash our input message first. Our 'standard'
+    // hash is HStar, which uses a domain separator already, and is the same one
+    // that generates the binding factor.
+    let message_hash = HStar::default().update(signing_package.message).finalize();
+
     let mut hasher = HStar::default();
     hasher
         .update("FROST_rho".as_bytes())
         .update(index.to_be_bytes())
-        .update(signing_package.message);
+        .update(message_hash.to_bytes());
 
     for item in signing_package.signing_commitments.iter() {
         hasher.update(item.index.to_be_bytes());
@@ -524,7 +531,7 @@ fn gen_lagrange_coeff(
 /// the commitment that was assigned by the coordinator in the SigningPackage.
 pub fn sign(
     signing_package: &SigningPackage,
-    participant_nonces: &SigningNonces, // TODO this should probably consume the nonce
+    participant_nonces: SigningNonces,
     share_package: &SharePackage,
 ) -> Result<SignatureShare, &'static str> {
     let mut bindings: HashMap<u32, Scalar> =
