@@ -12,9 +12,10 @@
 //! An implementation of FROST (Flexible Round-Optimized Schnorr Threshold)
 //! signatures.
 //!
-//! > **WARNING**: This implementation is unstable and subject to
-//! > revision. It is not covered by the crate's semver guarantees and should not
-//! > be deployed without consultation from the FROST authors!
+//! This implementation has been [independently
+//! audited](https://github.com/ZcashFoundation/redjubjub/blob/main/zcash-frost-audit-report-20210323.pdf)
+//! as of commit 76ba4ef / March 2021.  If you are interested in deploying
+//! FROST, please do not hesitate to consult the FROST authors.
 //!
 //! This implementation currently only supports key generation using a central
 //! dealer. In the future, we will add support for key generation via a DKG,
@@ -485,9 +486,9 @@ fn gen_group_commitment(
     for commitment in signing_package.signing_commitments.iter() {
         // The following check prevents a party from accidentally revealing their share.
         // Note that the '&&' operator would be sufficient.
-            if identity == commitment.binding || identity == commitment.hiding {
-                return Err("Commitment equals the identity.");
-            }
+        if identity == commitment.binding || identity == commitment.hiding {
+            return Err("Commitment equals the identity.");
+        }
 
         let rho_i = bindings
             .get(&commitment.index)
