@@ -136,16 +136,33 @@ FROST inherit types from `jubjub` such as `Scalar`, `ExtendedPoint`, `AffinePoin
 
 ## Validation
 
-Validation is implemented to each new data type as needed. This will ensure the creation of valid messages before they are sent. For example, in the header sender and receiver can't be the same:
+Validation is implemented to each new data type as needed. This will ensure the creation of valid messages before they are sent. We create a trait for this as follows:
 
 ```rust
-impl Header {
-    pub fn validate(&self) {
+pub trait Validate {
+    fn validate(&self) -> &Self;
+}
+```
+
+And we implement where needed. For example, in the header sender and receiver can't be the same:
+
+```rust
+impl Validate for Header {
+    fn validate(&self) -> &Self {
         if self.sender.0 == self.receiver.0 {
             panic!("sender and receiver are the same");
         }
+        self
     }
 }
+```
+
+Then to create a valid `Header` we call:
+
+```rust
+let header = Validate::validate(&Header {
+    ..
+}).clone();
 ```
 
 ## Testing plan
