@@ -136,7 +136,7 @@ FROST inherit types from `jubjub` such as `Scalar`, `ExtendedPoint`, `AffinePoin
 
 ## Validation
 
-Validation is implemented to each new data type as needed. This will ensure the creation of valid messages before they are sent. We create a trait for this as follows:
+Validation is implemented to each new data type as needed. This will ensure the creation of valid messages before they are sent and right after they are received. We create a trait for this as follows:
 
 ```rust
 pub trait Validate {
@@ -163,6 +163,12 @@ Then to create a valid `Header` we call:
 let header = Validate::validate(&Header {
     ..
 }).clone();
+```
+
+The receiver side will validate the header as:
+
+```rust
+msg.header.validate();
 ```
 
 ## Testing plan
