@@ -92,7 +92,7 @@ struct MsgDealerBroadcast {
     // The secret key as a frost::Scalar.
     secret_key: frost::Scalar,
     // Set of commitments as jubjub::ExtendedPoint using frost::Commitment wrapper.
-    commitment: Vec<frost::Commitment>,
+    commitments: Vec<frost::Commitment>,
 }
 
 // Each signer participant send to the aggregator the 2 points
@@ -170,6 +170,57 @@ The receiver side will validate the header as:
 ```rust
 msg.header.validate();
 ```
+
+## Serialized Size
+
+### Header
+
+The `Header` part of the message is 4 bytes total:
+
+Bytes | Field name | Data type
+------|------------|-----------
+1     | msg_type   | u8
+1     | version    | u8
+1     | sender     | u8
+1     | receiver   | u8
+
+## Primitive types
+
+`Payload`s use data types that we need to specify first. We have 3 primitive types inside the payload messages:
+
+`Scalar`
+
+`Scalar` is a better name for `jubjub::Fr` and this is a `[u64; 4]` as documented in https://github.com/zkcrypto/jubjub/blob/main/src/fr.rs#L16
+
+`Commitment`
+
+`Commitment` is a wrapper of `jubjub::ExtendedPoint` and this is a structure with 5 `jubjub::Fq`s as defined in https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L128-L134
+
+Each `Fq` needed to form a `jubjub::ExtendedPoint` are `Scalar`s of `bls12_381` crate. Scalar here is `[u64; 4]` as documented in https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L16
+
+`ExtendedPoint`
+
+`ExtendedPoint` was detailed above, it is 5 `[u64; 4]`. The total size of an `ExtendedPoint` is 1280 bytes.
+
+## Payload
+
+Payload part of the message is variable in size and depends on message type.
+
+`MsgDealerBroadcast`:
+
+Bytes | Field name | Data type
+------|------------|-----------
+256   | secret_key | Scalar
+1280*n| commitments| [Commitment; n]
+
+`MsgCommitments`:
+
+`MsgSigningPackage`:
+
+`SignatureShare`:
+
+`MsgFinalSignature`:
+
 
 ## Testing plan
 
