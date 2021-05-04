@@ -188,17 +188,17 @@ Bytes | Field name | Data type
 
 `Payload`s use data types that we need to specify first. We have 3 primitive types inside the payload messages:
 
-`Scalar`
+**`Scalar`**
 
 `Scalar` is a better name for `jubjub::Fr` and this is a `[u64; 4]` as documented in https://github.com/zkcrypto/jubjub/blob/main/src/fr.rs#L16
 
-`Commitment`
+**`Commitment`**
 
 `Commitment` is a wrapper of `jubjub::ExtendedPoint` and this is a structure with 5 `jubjub::Fq`s as defined in https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L128-L134
 
 Each `Fq` needed to form a `jubjub::ExtendedPoint` are `Scalar`s of `bls12_381` crate. Scalar here is `[u64; 4]` as documented in https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L16
 
-`ExtendedPoint`
+**`ExtendedPoint`**
 
 `ExtendedPoint` was detailed above, it is 5 `[u64; 4]`. The total size of an `ExtendedPoint` is 1280 bytes.
 
@@ -206,20 +206,38 @@ Each `Fq` needed to form a `jubjub::ExtendedPoint` are `Scalar`s of `bls12_381` 
 
 Payload part of the message is variable in size and depends on message type.
 
-`MsgDealerBroadcast`:
+**`MsgDealerBroadcast`**
 
 Bytes | Field name | Data type
 ------|------------|-----------
 256   | secret_key | Scalar
 1280*n| commitments| [Commitment; n]
 
-`MsgCommitments`:
+**`MsgCommitments`**
 
-`MsgSigningPackage`:
+Bytes | Field name | Data type
+------|------------|-----------
+1280  | hiding     | ExtendedPoint
+1280  | binding    | ExtendedPoint
 
-`SignatureShare`:
+**`MsgSigningPackage`**
 
-`MsgFinalSignature`:
+Bytes      | Field name     | Data type
+-----------|----------------|-----------
+1+(1280*n) | signing_package| u8 [Commitment; n]
+
+
+**`SignatureShare`**
+
+Bytes | Field name | Data type
+------|------------|-----------
+256   | signature  | Scalar
+
+**`MsgFinalSignature`**
+
+Bytes | Field name | Data type
+------|------------|-----------
+64    | signature  | [u8; 32] [u8; 32]
 
 
 ## Testing plan
