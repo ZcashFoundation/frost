@@ -63,18 +63,17 @@ Here we explore in detail the header types and all the message payloads.
 Fields of the header define new types. Proposed implementation for them is as follows:
 
 ```rust
+#[repr(u8)]
+#[non_exhaustive]
 enum MsgType {
-    DealerBroadcast = 1,
-    Commitments = 2,
-    SigningPackage = 3,
-    SignatureShare = 4,
-    FinalSignature = 5,
+    DealerBroadcast,
+    Commitments,
+    SigningPackage,
+    SignatureShare,
+    FinalSignature,
 }
 
-enum MsgVersion {
-    FirstVersion = 1,
-    ..
-}
+struct MsgVersion(u8);
 
 struct Participant(u8);
 ```
