@@ -86,16 +86,13 @@ Each payload defines a new message:
 // Dealer must send this message with initial data to each participant involved.
 // With this, the participant should be able to build a `SharePackage` and use
 //  the `sign()` function.
+// `group_public` is random data at this stage and `public_key` can be calculated
+// from `secret_key`.
 struct MsgDealerBroadcast {
     // The secret key as a frost::Scalar.
     secret_key: frost::Scalar,
     // Set of commitments as jubjub::ExtendedPoint using frost::Commitment wrapper.
     commitment: Vec<frost::Commitment>,
-    // The public key as jubjub::ExtendedPoint using frost::Public wrapper.
-    public_key: frost::Public,
-    // The public signing key that represents the entire group.
-    // This is a jubjub::ExtendedPoint and verification bytes.
-    group_public: VerificationKey<SpendAuth>,
 }
 
 // Each signer participant send to the aggregator the 2 points
