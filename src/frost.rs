@@ -345,7 +345,7 @@ impl SigningNonces {
             }
         }
 
-        // The values of 'hiding' and 'biding' must be non-zero so that commitments are not the
+        // The values of 'hiding' and 'binding' must be non-zero so that commitments are not the
         // identity.
         let hiding = Scalar::from_bytes_wide(&random_nonzero_bytes(rng));
         let binding = Scalar::from_bytes_wide(&random_nonzero_bytes(rng));
