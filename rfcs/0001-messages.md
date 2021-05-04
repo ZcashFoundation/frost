@@ -98,10 +98,13 @@ struct MsgDealerBroadcast {
     group_public: VerificationKey<SpendAuth>,
 }
 
-// The signer participants sends the commitments to the
-// aggregator.
+// Each signer participant send to the aggregator the 2 points
+//  needed for commitment building.
 struct MsgCommitments {
-    commitment: frost::SigningCommitments,
+    // The hiding Point.
+    hiding: jubjub::ExtendedPoint,
+    // The binding Point.
+    binding: jubjub::ExtendedPoint,
 }
 
 // The aggergator decide what message to be signed, 
