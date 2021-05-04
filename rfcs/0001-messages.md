@@ -107,16 +107,19 @@ struct MsgCommitments {
     binding: jubjub::ExtendedPoint,
 }
 
-// The aggergator decide what message to be signed, 
-// prepare it and broadcast to signers.
+// The aggergator decide what message is going to be signed and
+// send it to each participant with all the commitments collected.
 struct MsgSigningPackage {
+    // Consist of a [u8] and vector of commitments.
+    // Commitments are a signer id and a hiding and binding point.
     signing_package: frost::SigningPackage,
 }
 
 // Each signer send the signatures to the agregator who is going to collect them 
-// and generate a final spend signature 
+// and generate a final spend signature.
 struct MsgSignatureShare {
-    signature_share: frost::SignatureShare,
+    // The signature to be shared as a Scalar
+    signature: frost::Scalar,
 }
 
 // The final signature is broadcasted by the aggegator 
