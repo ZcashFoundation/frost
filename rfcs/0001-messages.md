@@ -1,6 +1,6 @@
 # FROST messages
 
-Proposes a message layout to exchange information between participants of a FROST setup.
+Proposes a message layout to exchange information between participants of a FROST setup using the [jubjub](https://github.com/zkcrypto/jubjub) curve.
 
 ## Motivation
 
@@ -86,7 +86,7 @@ Each payload defines a new message:
 // Dealer must send this message with initial data to each participant involved.
 // With this, the participant should be able to build a `SharePackage` and use
 //  the `sign()` function.
-// `group_public` is random data at this stage and `public_key` can be calculated
+// `public_key` can be calculated from the `secret_key`.
 // from `secret_key`.
 struct MsgDealerBroadcast {
     // The secret key as a frost::Scalar.
@@ -94,7 +94,7 @@ struct MsgDealerBroadcast {
     // Set of commitments as jubjub::ExtendedPoint using frost::Commitment wrapper.
     commitments: Vec<frost::Commitment>,
     // The generated public key for the group.
-    group_public: VerificationKey<SpendAuth>,
+    group_public: frost::VerificationKey<SpendAuth>,
 }
 
 // Each signer participant send to the aggregator the 2 points
@@ -124,13 +124,13 @@ struct MsgSignatureShare {
 // The final signature is broadcasted by the aggegator 
 // to any participant.
 struct MsgFinalSignature {
-    final_signature: Signature<SpendAuth>,
+    final_signature: frost::Signature<frost::SpendAuth>,
 }
 ```
 
 ## Validation
 
-Validation is implemented to each new data type as needed. This will ensure the creation of valid messages before they are sent and right after they are received. We create a trait for this as follows:
+Validation is implemented to each new data type as needed. This will ensure the creation of valid messages before they are send and right after they are received. We create a trait for this as follows:
 
 ```rust
 pub trait Validate {
@@ -138,7 +138,7 @@ pub trait Validate {
 }
 ```
 
-And we implement where needed. For example, in the header sender and receiver can't be the same:
+And we implement where needed. For example, in the header, sender and receiver can't be the same:
 
 ```rust
 impl Validate for Header {
