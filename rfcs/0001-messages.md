@@ -93,6 +93,8 @@ struct MsgDealerBroadcast {
     secret_key: frost::Scalar,
     // Set of commitments as jubjub::ExtendedPoint using frost::Commitment wrapper.
     commitments: Vec<frost::Commitment>,
+    // The generated public key for the group.
+    group_public: VerificationKey<SpendAuth>,
 }
 
 // Each signer participant send to the aggregator the 2 points
@@ -125,14 +127,6 @@ struct MsgFinalSignature {
     final_signature: Signature<SpendAuth>,
 }
 ```
-## Serialization/Deserialization
-
-Each message struct needs to serialize to bytes representation before it is sent through the wire and must deserialize to the same struct (round trip) on the receiver side. We use `serde` and macro derivations (`Serialize` and `Deserialize`) to automatically implement where possible.
-
-This will require deriving serde in several types defined in `frost.rs`. 
-Manual implementation of serialization/deserialization will be located at a new mod `src/frost/serialize.rs`.
-
-FROST inherit types from `jubjub` such as `Scalar`, `ExtendedPoint`, `AffinePoint`, etc. We need to decide how serialization of these types that are defined in external crates will be done (maybe with wrappers?).
 
 ## Validation
 
@@ -171,7 +165,12 @@ The receiver side will validate the header as:
 msg.header.validate();
 ```
 
-## Serialized Size
+## Serialization/Deserialization
+
+Each message struct needs to serialize to bytes representation before it is sent through the wire and must deserialize to the same struct (round trip) on the receiver side. We use `serde` and macro derivations (`Serialize` and `Deserialize`) to automatically implement where possible.
+
+This will require deriving serde in several types defined in `frost.rs`. 
+Manual implementation of serialization/deserialization will be located at a new mod `src/frost/serialize.rs`.
 
 ### Header
 
@@ -184,60 +183,72 @@ Bytes | Field name | Data type
 1     | sender     | u8
 1     | receiver   | u8
 
-## Primitive types
+### Primitive types
 
 `Payload`s use data types that we need to specify first. We have 3 primitive types inside the payload messages:
 
-**`Scalar`**
+#### `Scalar`
 
 `Scalar` is a better name for `jubjub::Fr` and this is a `[u64; 4]` as documented in https://github.com/zkcrypto/jubjub/blob/main/src/fr.rs#L16
 
-**`Commitment`**
+#### `Commitment`
 
 `Commitment` is a wrapper of `jubjub::ExtendedPoint` and this is a structure with 5 `jubjub::Fq`s as defined in https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L128-L134
 
 Each `Fq` needed to form a `jubjub::ExtendedPoint` are `Scalar`s of `bls12_381` crate. Scalar here is `[u64; 4]` as documented in https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L16
 
-**`ExtendedPoint`**
+#### `ExtendedPoint`
 
 `ExtendedPoint` was detailed above, it is 5 `[u64; 4]`. The total size of an `ExtendedPoint` is 1280 bytes.
 
-## Payload
+### FROST types
+
+`Payload`s also use some types that are defined in the `redjubjub` crate. Here we describe them from a serialization point of view.
+
+#### `VerificationKey<SpendAuth>`
+
+Defined in `verification_key.rs` it consist of 1 `ExtendedPoint` and 1 `VerificationKeyBytes` which is also defined in the same file and consist of 1 `[u8; 32]`.
+
+#### `Signature<SpendAuth>`
+
+Defined in `signature.rs` consist of 2 `[u8; 32]` arrays.
+
+### Payload
 
 Payload part of the message is variable in size and depends on message type.
 
-**`MsgDealerBroadcast`**
+#### `MsgDealerBroadcast`
 
-Bytes | Field name | Data type
-------|------------|-----------
-256   | secret_key | Scalar
-1280*n| commitments| [Commitment; n]
+Bytes  | Field name  | Data type
+-------|-------------|-----------
+256    | secret_key  | Scalar
+1280*n | commitments | [Commitment; n]
+1280+32| group_public| VerificationKey<SpendAuth>
 
-**`MsgCommitments`**
+#### `MsgCommitments`
 
 Bytes | Field name | Data type
 ------|------------|-----------
 1280  | hiding     | ExtendedPoint
 1280  | binding    | ExtendedPoint
 
-**`MsgSigningPackage`**
+#### `MsgSigningPackage`
 
 Bytes      | Field name     | Data type
 -----------|----------------|-----------
 1+(1280*n) | signing_package| u8 [Commitment; n]
 
-
-**`SignatureShare`**
+#### `SignatureShare`
 
 Bytes | Field name | Data type
 ------|------------|-----------
 256   | signature  | Scalar
 
-**`MsgFinalSignature`**
+#### `MsgFinalSignature`
 
 Bytes | Field name | Data type
 ------|------------|-----------
-64    | signature  | [u8; 32] [u8; 32]
+64    | signature  | Signature<SpendAuth>
 
 
 ## Testing plan
