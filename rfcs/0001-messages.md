@@ -125,7 +125,8 @@ struct MsgSignatureShare {
 // The final signature is broadcasted by the aggegator 
 // to any participant.
 struct MsgFinalSignature {
-    final_signature: frost::Signature<frost::SpendAuth>,
+    // The r_bytes and s_bytes needed to build the frost::Signature
+    final_signature: ([u8; 32], [u8; 32]),
 }
 ```
 
@@ -205,14 +206,6 @@ Conversion from one type to the other is trivial:
 https://docs.rs/jubjub/0.6.0/jubjub/struct.AffinePoint.html#impl-From%3CExtendedPoint%3E
 https://docs.rs/jubjub/0.6.0/jubjub/struct.ExtendedPoint.html#impl-From%3CAffinePoint%3E
 
-### FROST types
-
-`Payload`s also use some types that are defined in the `redjubjub` crate. Here we describe them from a serialization point of view.
-
-#### `Signature<SpendAuth>`
-
-Defined in `signature.rs` consist of 2 `[u8; 32]` arrays.
-
 ### Payload
 
 Payload part of the message is variable in size and depends on message type.
@@ -249,7 +242,7 @@ Bytes | Field name | Data type
 
 Bytes | Field name | Data type
 ------|------------|-----------
-64    | signature  | Signature<SpendAuth>
+64    | signature  | ([u8; 32], [u8; 32])
 
 
 ## Testing plan
