@@ -12,7 +12,7 @@ Assuming all participants have a FROST library available we need to define messa
 ## Definitions
 
 - `dealer`
-- `aggergator`
+- `aggregator`
 - `signer`
 - `nonce`
 - `commitment`
@@ -109,10 +109,14 @@ struct MsgCommitments {
 // The aggergator decide what message is going to be signed and
 // send it to each participant with all the commitments collected.
 struct MsgSigningPackage {
-    // The message to be signed as bytes
-    message: &'static [u8],
+    // The number of participants.
+    participants: u8,
     // The collected unpacked commitments for each signer
     commitments: Vec<(u8, jubjub::AffinePoint, jubjub::AffinePoint),
+    // The lenght of the message
+    message_length: u64,
+    // The message to be signed as bytes
+    message: &'static [u8],
 }
 
 // Each signer send the signatures to the agregator who is going to collect them 
@@ -245,10 +249,12 @@ Bytes | Field name | Data type
 
 #### `MsgSigningPackage`
 
-Bytes      | Field name     | Data type
------------|----------------|-----------
-?          | message        | [u8]
-1+256+256  | commitments    | (u8, AffinePoint, AffinePoint)
+Bytes                  | Field name     | Data type
+-----------------------|----------------|-----------
+1                      | participants   | u8
+(1+256+256)*partipants | commitments    | Vec<(u8, AffinePoint, AffinePoint)>
+8                      | message_length | u64
+message_length         | message        | [u8]
 
 #### `SignatureShare`
 
