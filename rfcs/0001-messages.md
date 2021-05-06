@@ -109,9 +109,10 @@ struct MsgCommitments {
 // The aggergator decide what message is going to be signed and
 // send it to each participant with all the commitments collected.
 struct MsgSigningPackage {
-    // Consist of a [u8] and vector of commitments.
-    // Commitments are a signer id and a hiding and binding point.
-    signing_package: frost::SigningPackage,
+    // The message to be signed as bytes
+    message: &'static [u8],
+    // The collected unpacked commitments for each signer
+    commitments: Vec<(u8, jubjub::ExtendedPoint, jubjub::ExtendedPoint),
 }
 
 // Each signer send the signatures to the agregator who is going to collect them 
