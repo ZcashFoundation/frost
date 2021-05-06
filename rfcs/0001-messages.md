@@ -93,8 +93,8 @@ struct MsgDealerBroadcast {
     secret_key: frost::Scalar,
     // Commitments for the signer as jubjub::AffinePoint.
     commitment: jubjub::AffinePoint,
-    // The generated public key for the group.
-    group_public: frost::VerificationKey<SpendAuth>,
+    // The point and verification bytes needed to generate the group public key
+    group_public: (jubjub::AffinePoint, [u8; 32]),
 }
 
 // Each signer participant send to the aggregator the 2 points
@@ -209,10 +209,6 @@ https://docs.rs/jubjub/0.6.0/jubjub/struct.ExtendedPoint.html#impl-From%3CAffine
 
 `Payload`s also use some types that are defined in the `redjubjub` crate. Here we describe them from a serialization point of view.
 
-#### `VerificationKey<SpendAuth>`
-
-Defined in `verification_key.rs` it consist of 1 `ExtendedPoint` and 1 `VerificationKeyBytes` which is also defined in the same file and consist of 1 `[u8; 32]`.
-
 #### `Signature<SpendAuth>`
 
 Defined in `signature.rs` consist of 2 `[u8; 32]` arrays.
@@ -227,7 +223,7 @@ Bytes  | Field name  | Data type
 -------|-------------|-----------
 256    | secret_key  | Scalar
 512    | commitments | AffinePoint
-1280+32| group_public| VerificationKey<SpendAuth>
+256+32 | group_public| (AffinePoint, [u8; 32])
 
 #### `MsgCommitments`
 
