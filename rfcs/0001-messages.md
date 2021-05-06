@@ -136,7 +136,7 @@ Validation is implemented to each new data type as needed. This will ensure the 
 
 ```rust
 pub trait Validate {
-    fn validate(&self) -> &Self;
+    fn validate(&self) -> Result<&Self, MsgErr>;
 }
 ```
 
@@ -144,27 +144,41 @@ And we implement where needed. For example, in the header, sender and receiver c
 
 ```rust
 impl Validate for Header {
-    fn validate(&self) -> &Self {
+    fn validate(&self) -> Result<&Self, MsgErr> {
         if self.sender.0 == self.receiver.0 {
-            panic!("sender and receiver are the same");
+            return Err(MsgErr::SameSenderAndReceiver);
         }
-        self
+        Ok(self)
     }
 }
 ```
 
-Then to create a valid `Header` we call:
+This will require to have validation error messages as:
+
+```rust
+use thiserror::Error;
+
+#[derive(Clone, Error, Debug)]
+pub enum MsgErr {
+    #[error("sender and receiver are the same")]
+    SameSenderAndReceiver,
+}
+```
+
+Then to create a valid `Header` in the sender side we call:
 
 ```rust
 let header = Validate::validate(&Header {
     ..
-}).clone();
+}).expect("a valid header");
 ```
 
-The receiver side will validate the header as:
+The receiver side will validate the header using the same method. Instead of panicking the error can be ignored to don't crash and keep waiting for other (potentially valid) messages.
 
 ```rust
-msg.header.validate();
+if let Ok(header) = msg.header.validate() {
+    ..
+}
 ```
 
 ## Serialization/Deserialization
