@@ -188,6 +188,10 @@ Each message struct needs to serialize to bytes representation before it is sent
 This will require deriving serde in several types defined in `frost.rs`. 
 Manual implementation of serialization/deserialization will be located at a new mod `src/frost/serialize.rs`.
 
+### Byte order
+
+Each byte chunk specified below is in little-endian order unless is specified otherwise.
+
 ### Header
 
 The `Header` part of the message is 4 bytes total:
