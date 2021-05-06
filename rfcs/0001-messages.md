@@ -189,7 +189,7 @@ Bytes | Field name | Data type
 
 #### `Scalar`
 
-`Scalar` is a better name for `jubjub::Fr` and this is a `[u64; 4]` as documented in https://github.com/zkcrypto/jubjub/blob/main/src/fr.rs#L16
+`Scalar` is a an alias for `jubjub::Fr` and this is a `[u64; 4]` as documented in https://github.com/zkcrypto/jubjub/blob/main/src/fr.rs#L16
 
 #### `Commitment`
 
