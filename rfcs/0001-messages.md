@@ -91,8 +91,8 @@ Each payload defines a new message:
 struct MsgDealerBroadcast {
     // The secret key as a frost::Scalar.
     secret_key: frost::Scalar,
-    // Commitments for the signer as jubjub::ExtendedPoint.
-    commitment: jubjub::ExtendedPoint,
+    // Commitments for the signer as jubjub::AffinePoint.
+    commitment: jubjub::AffinePoint,
     // The generated public key for the group.
     group_public: frost::VerificationKey<SpendAuth>,
 }
@@ -101,9 +101,9 @@ struct MsgDealerBroadcast {
 //  needed for commitment building.
 struct MsgCommitments {
     // The hiding Point.
-    hiding: jubjub::ExtendedPoint,
+    hiding: jubjub::AffinePoint,
     // The binding Point.
-    binding: jubjub::ExtendedPoint,
+    binding: jubjub::AffinePoint,
 }
 
 // The aggergator decide what message is going to be signed and
@@ -112,7 +112,7 @@ struct MsgSigningPackage {
     // The message to be signed as bytes
     message: &'static [u8],
     // The collected unpacked commitments for each signer
-    commitments: Vec<(u8, jubjub::ExtendedPoint, jubjub::ExtendedPoint),
+    commitments: Vec<(u8, jubjub::AffinePoint, jubjub::AffinePoint),
 }
 
 // Each signer send the signatures to the agregator who is going to collect them 
@@ -186,21 +186,24 @@ Bytes | Field name | Data type
 
 ### Primitive types
 
-`Payload`s use data types that we need to specify first. We have 3 primitive types inside the payload messages:
+`Payload`s use data types that we need to specify first. We have 2 primitive types inside the payload messages:
 
 #### `Scalar`
 
 `Scalar` is a an alias for `jubjub::Fr` and this is a `[u64; 4]` as documented in https://github.com/zkcrypto/jubjub/blob/main/src/fr.rs#L16
 
-#### `Commitment`
+#### `AffinePoint`
 
-`Commitment` is a wrapper of `jubjub::ExtendedPoint` and this is a structure with 5 `jubjub::Fq`s as defined in https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L128-L134
+Much of the math in FROST is done using `jubjub::ExtendedPoint`. This is a structure with 5 `jubjub::Fq`s as defined in https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L128-L134
 
 Each `Fq` needed to form a `jubjub::ExtendedPoint` are `Scalar`s of `bls12_381` crate. Scalar here is `[u64; 4]` as documented in https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L16
 
-#### `ExtendedPoint`
+For message exchange `jubjub::AffinePoint`s are a better choice as they are shorter in bytes, they are formed of 2 `jubjub::Fq` instead of 5: https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L70-L73
 
-`ExtendedPoint` was detailed above, it is 5 `[u64; 4]`. The total size of an `ExtendedPoint` is 1280 bytes.
+Conversion from one type to the other is trivial:
+
+https://docs.rs/jubjub/0.6.0/jubjub/struct.AffinePoint.html#impl-From%3CExtendedPoint%3E
+https://docs.rs/jubjub/0.6.0/jubjub/struct.ExtendedPoint.html#impl-From%3CAffinePoint%3E
 
 ### FROST types
 
@@ -223,21 +226,22 @@ Payload part of the message is variable in size and depends on message type.
 Bytes  | Field name  | Data type
 -------|-------------|-----------
 256    | secret_key  | Scalar
-1280*n | commitments | [Commitment; n]
+512    | commitments | AffinePoint
 1280+32| group_public| VerificationKey<SpendAuth>
 
 #### `MsgCommitments`
 
 Bytes | Field name | Data type
 ------|------------|-----------
-1280  | hiding     | ExtendedPoint
-1280  | binding    | ExtendedPoint
+512   | hiding     | AffinePoint
+512   | binding    | AffinePoint
 
 #### `MsgSigningPackage`
 
 Bytes      | Field name     | Data type
 -----------|----------------|-----------
-1+(1280*n) | signing_package| u8 [Commitment; n]
+?          | message        | [u8]
+1+256+256  | commitments    | (u8, AffinePoint, AffinePoint)
 
 #### `SignatureShare`
 
