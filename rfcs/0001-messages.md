@@ -112,7 +112,7 @@ struct MsgSigningPackage {
     // The number of participants.
     participants: u8,
     // The collected unpacked commitments for each signer
-    commitments: Vec<(u8, jubjub::AffinePoint, jubjub::AffinePoint),
+    commitments: Vec<(u8, jubjub::AffinePoint, jubjub::AffinePoint)>,
     // The lenght of the message
     message_length: u64,
     // The message to be signed as bytes
