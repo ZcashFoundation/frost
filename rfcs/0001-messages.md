@@ -91,8 +91,8 @@ Each payload defines a new message:
 struct MsgDealerBroadcast {
     // The secret key as a frost::Scalar.
     secret_key: frost::Scalar,
-    // Set of commitments as jubjub::ExtendedPoint using frost::Commitment wrapper.
-    commitments: Vec<frost::Commitment>,
+    // Commitments for the signer as jubjub::ExtendedPoint.
+    commitment: jubjub::ExtendedPoint,
     // The generated public key for the group.
     group_public: frost::VerificationKey<SpendAuth>,
 }
