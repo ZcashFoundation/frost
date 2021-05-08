@@ -91,15 +91,28 @@ Each payload defines a new message:
 struct MsgDealerBroadcast {
     // The secret key as a frost::Scalar.
     secret_key: frost::Scalar,
-    // Commitments for the signer as jubjub::AffinePoint.
+    // Commitment for the signer as a single jubjub::AffinePoint.
     commitment: jubjub::AffinePoint,
-    // The point and verification bytes needed to generate the group public key
-    group_public: (jubjub::AffinePoint, [u8; 32]),
+    // The public signing key that represents the entire group.
+    group_public: GroupPublic,
+}
+
+// The point and verification bytes needed to generate the group public key
+struct GroupPublic {
+    // The point
+    point: jubjub::AffinePoint,
+    // The verification bytes
+    bytes: [u8; 32],
 }
 
 // Each signer participant send to the aggregator the 2 points
 //  needed for commitment building.
 struct MsgCommitments {
+    commitment: Commitment,
+}
+
+// A commitment specified by two AffinePoints.
+struct Commitment {
     // The hiding Point.
     hiding: jubjub::AffinePoint,
     // The binding Point.
@@ -111,12 +124,21 @@ struct MsgCommitments {
 struct MsgSigningPackage {
     // The number of participants.
     participants: u8,
-    // The collected unpacked commitments for each signer
-    commitments: Vec<(u8, jubjub::AffinePoint, jubjub::AffinePoint)>,
+    // The collected commitments for each signer
+    commitments: Vec<CollectedCommitments>,
     // The lenght of the message
     message_length: u64,
     // The message to be signed as bytes
     message: &'static [u8],
+}
+
+// The aggergator collected commitments for each signer in the
+//  scheme.
+struct CollectedCommitment {
+    // Signer commitment
+    signer_id: u8,
+    // Commitment for this signer
+    commitment: Commitment,
 }
 
 // Each signer send the signatures to the agregator who is going to collect them 
@@ -129,8 +151,16 @@ struct MsgSignatureShare {
 // The final signature is broadcasted by the aggegator 
 // to any participant.
 struct MsgFinalSignature {
-    // The r_bytes and s_bytes needed to build the frost::Signature
-    final_signature: ([u8; 32], [u8; 32]),
+    // Bytes needed to build the frost::Signature
+    final_signature: FinalSignature,
+}
+
+// Final RedJubJub signature the aggergator has created.
+struct FinalSignature {
+    //
+    r_bytes: [u8; 32],
+    //
+    s_bytes: [u8; 32],
 }
 ```
 
@@ -238,21 +268,20 @@ Bytes  | Field name  | Data type
 -------|-------------|-----------
 256    | secret_key  | Scalar
 512    | commitments | AffinePoint
-256+32 | group_public| (AffinePoint, [u8; 32])
+512+32 | group_public| GroupPublic
 
 #### `MsgCommitments`
 
-Bytes | Field name | Data type
-------|------------|-----------
-512   | hiding     | AffinePoint
-512   | binding    | AffinePoint
+Bytes   | Field name | Data type
+--------|------------|-----------
+512+512 | commitment | Commitment
 
 #### `MsgSigningPackage`
 
 Bytes                  | Field name     | Data type
 -----------------------|----------------|-----------
 1                      | participants   | u8
-(1+256+256)*partipants | commitments    | Vec<(u8, AffinePoint, AffinePoint)>
+(1+1024)*partipants    | commitments    | Vec<CollectedCommitments>
 8                      | message_length | u64
 message_length         | message        | [u8]
 
@@ -264,9 +293,9 @@ Bytes | Field name | Data type
 
 #### `MsgFinalSignature`
 
-Bytes | Field name | Data type
-------|------------|-----------
-64    | signature  | ([u8; 32], [u8; 32])
+Bytes | Field name       | Data type
+------|------------------|-----------
+64    | final_signature  | FinalSignature
 
 
 ## Testing plan
