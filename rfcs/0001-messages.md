@@ -297,6 +297,10 @@ Bytes | Field name       | Data type
 ------|------------------|-----------
 64    | final_signature  | FinalSignature
 
+## Other considerations
+
+- After the dealer sends the initial `MsgDealerBroadcast` to all the participants, the aggregator must wait for signers to send the second message `MsgCommitments`. There is no timeout for this but only after the aggregator received all the commitments the process can continue. These restrictions and event waiting are not detailed in this RFC.
+- This implementation considers not only communications between computer devices in the internet but allows the process to be done by other channels, the lack of timers can result in participants waiting forever for a message. It is the participants business to deal with this and it will not be detailed in this RFC.
 
 ## Testing plan
 
