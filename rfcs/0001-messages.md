@@ -87,7 +87,6 @@ Each payload defines a new message:
 // With this, the participant should be able to build a `SharePackage` and use
 //  the `sign()` function.
 // `public_key` can be calculated from the `secret_key`.
-// from `secret_key`.
 struct MsgDealerBroadcast {
     // The secret key as a frost::Scalar.
     secret_key: frost::Scalar,
@@ -119,43 +118,43 @@ struct Commitment {
     binding: jubjub::AffinePoint,
 }
 
-// The aggergator decide what message is going to be signed and
+// The aggregator decide what message is going to be signed and
 // send it to each participant with all the commitments collected.
 struct MsgSigningPackage {
     // The number of participants.
     participants: u8,
     // The collected commitments for each signer
-    commitments: Vec<CollectedCommitments>,
-    // The lenght of the message
+    commitments: Vec<CollectedCommitment>,
+    // The length of the message
     message_length: u64,
     // The message to be signed as bytes
     message: &'static [u8],
 }
 
-// The aggergator collected commitments for each signer in the
+// The aggregator collected commitments for each signer in the
 //  scheme.
 struct CollectedCommitment {
-    // Signer commitment
-    signer_id: u8,
+    // The signer's participant identifier
+    signer_id: Participant,
     // Commitment for this signer
     commitment: Commitment,
 }
 
-// Each signer send the signatures to the agregator who is going to collect them 
-// and generate a final spend signature.
+// Each signer sends their signatures to the aggregator who is going to collect them
+//  and generate a final spend signature.
 struct MsgSignatureShare {
     // The signature to be shared as a Scalar
     signature: frost::Scalar,
 }
 
-// The final signature is broadcasted by the aggegator 
-// to any participant.
+// The final signature is broadcasted by the aggregator
+//  to any participant.
 struct MsgFinalSignature {
     // Bytes needed to build the frost::Signature
     final_signature: FinalSignature,
 }
 
-// Final RedJubJub signature the aggergator has created.
+// Final RedJubJub signature the aggregator has created.
 struct FinalSignature {
     //
     r_bytes: [u8; 32],
