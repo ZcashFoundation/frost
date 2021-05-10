@@ -118,8 +118,8 @@ struct Commitment {
     binding: jubjub::AffinePoint,
 }
 
-// The aggregator decide what message is going to be signed and
-// send it to each participant with all the commitments collected.
+// The aggregator decides what message is going to be signed and
+// sends it to each participant with all the commitments collected.
 struct MsgSigningPackage {
     // The number of participants.
     participants: u8,
@@ -242,20 +242,18 @@ Bytes | Field name | Data type
 
 #### `Scalar`
 
-`Scalar` is a an alias for `jubjub::Fr` and this is a `[u64; 4]` as documented in https://github.com/zkcrypto/jubjub/blob/main/src/fr.rs#L16
+`Scalar` is a an alias for `jubjub::Fr`. We use `Scalar::to_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L252
 
 #### `AffinePoint`
 
-Much of the math in FROST is done using `jubjub::ExtendedPoint`. This is a structure with 5 `jubjub::Fq`s as defined in https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L128-L134
-
-Each `Fq` needed to form a `jubjub::ExtendedPoint` are `Scalar`s of `bls12_381` crate. Scalar here is `[u64; 4]` as documented in https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L16
-
-For message exchange `jubjub::AffinePoint`s are a better choice as they are shorter in bytes, they are formed of 2 `jubjub::Fq` instead of 5: https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L70-L73
+Much of the math in FROST is done using `jubjub::ExtendedPoint`. But for message exchange `jubjub::AffinePoint`s are a better choice, as their byte representation is smaller.
 
 Conversion from one type to the other is trivial:
 
 https://docs.rs/jubjub/0.6.0/jubjub/struct.AffinePoint.html#impl-From%3CExtendedPoint%3E
 https://docs.rs/jubjub/0.6.0/jubjub/struct.ExtendedPoint.html#impl-From%3CAffinePoint%3E
+
+We use `AffinePoint::to_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L443
 
 ### Payload
 
@@ -265,22 +263,22 @@ Payload part of the message is variable in size and depends on message type.
 
 Bytes  | Field name  | Data type
 -------|-------------|-----------
-256    | secret_key  | Scalar
-512    | commitments | AffinePoint
-512+32 | group_public| GroupPublic
+32     | secret_key  | Scalar
+32     | commitments | AffinePoint
+32+32  | group_public| GroupPublic
 
 #### `MsgCommitments`
 
 Bytes   | Field name | Data type
 --------|------------|-----------
-512+512 | commitment | Commitment
+32+32   | commitment | Commitment
 
 #### `MsgSigningPackage`
 
 Bytes                  | Field name     | Data type
 -----------------------|----------------|-----------
 1                      | participants   | u8
-(1+1024)*partipants    | commitments    | Vec<CollectedCommitments>
+(1+32+32)*partipants   | commitments    | Vec<CollectedCommitment>
 8                      | message_length | u64
 message_length         | message        | [u8]
 
@@ -288,13 +286,13 @@ message_length         | message        | [u8]
 
 Bytes | Field name | Data type
 ------|------------|-----------
-256   | signature  | Scalar
+32    | signature  | Scalar
 
 #### `MsgFinalSignature`
 
 Bytes | Field name       | Data type
 ------|------------------|-----------
-64    | final_signature  | FinalSignature
+32+32 | final_signature  | FinalSignature
 
 ## Not included
 
