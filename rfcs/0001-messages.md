@@ -267,7 +267,7 @@ Bytes   | Field name | Data type
 Bytes                  | Field name     | Data type
 -----------------------|----------------|-----------
 1                      | participants   | u8
-(1+32+32)*partipants   | commitments    | HashMap<Participant, Commitment>
+(1+32+32)*participants | commitments    | HashMap<Participant, Commitment>
 8                      | message_length | u64
 message_length         | message        | Vec<u8>
 
