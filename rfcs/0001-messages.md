@@ -122,8 +122,6 @@ struct Commitment {
 /// The aggregator decides what message is going to be signed and
 /// sends it to each participant with all the commitments collected.
 struct MsgSigningPackage {
-    /// The number of participants.
-    participants: u8,
     /// The collected commitments for each signer as a hashmap of
     ///  unique participant identifiers
     commitments: HashMap<Participant, Commitment>,
