@@ -83,82 +83,83 @@ struct Participant(u8);
 Each payload defines a new message:
 
 ```rust
-// Dealer must send this message with initial data to each participant involved.
-// With this, the participant should be able to build a `SharePackage` and use
-//  the `sign()` function.
-// `public_key` can be calculated from the `secret_key`.
+/// Dealer must send this message with initial data to each participant involved.
+/// With this, the participant should be able to build a `SharePackage` and use
+///  the `sign()` function.
+/// `public_key` can be calculated from the `secret_key`.
 struct MsgDealerBroadcast {
-    // The secret key as a frost::Scalar.
+    /// The secret key as a frost::Scalar.
     secret_key: frost::Scalar,
-    // Commitment for the signer as a single jubjub::AffinePoint.
+    /// Commitment for the signer as a single jubjub::AffinePoint.
     commitment: jubjub::AffinePoint,
-    // The public signing key that represents the entire group.
+    /// The public signing key that represents the entire group.
     group_public: GroupPublic,
 }
 
-// The point and verification bytes needed to generate the group public key
+/// The point and verification bytes needed to generate the group public key
 struct GroupPublic {
-    // The point
+    /// The point
     point: jubjub::AffinePoint,
-    // The verification bytes
+    /// The verification bytes
     bytes: [u8; 32],
 }
 
-// Each signer participant send to the aggregator the 2 points
-//  needed for commitment building.
+/// Each signer participant send to the aggregator the 2 points
+///  needed for commitment building.
 struct MsgCommitments {
+    /// The commitment the signer is sending.
     commitment: Commitment,
 }
 
-// A commitment specified by two AffinePoints.
+/// A commitment specified by two AffinePoints.
 struct Commitment {
-    // The hiding Point.
+    /// The hiding Point.
     hiding: jubjub::AffinePoint,
-    // The binding Point.
+    /// The binding Point.
     binding: jubjub::AffinePoint,
 }
 
-// The aggregator decides what message is going to be signed and
-// sends it to each participant with all the commitments collected.
+/// The aggregator decides what message is going to be signed and
+/// sends it to each participant with all the commitments collected.
 struct MsgSigningPackage {
-    // The number of participants.
+    /// The number of participants.
     participants: u8,
-    // The collected commitments for each signer
+    /// The collected commitments for each signer
     commitments: Vec<CollectedCommitment>,
-    // The length of the message
+    /// The length of the message
     message_length: u64,
-    // The message to be signed as bytes
+    /// The message to be signed as bytes
     message: &'static [u8],
 }
 
-// The aggregator collected commitments for each signer in the
-//  scheme.
+/// The aggregator collected commitments for each signer in the
+///  scheme.
 struct CollectedCommitment {
-    // The signer's participant identifier
+    /// The signer's participant identifier
     signer_id: Participant,
-    // Commitment for this signer
+    /// Commitment for this signer
     commitment: Commitment,
 }
 
-// Each signer sends their signatures to the aggregator who is going to collect them
-//  and generate a final spend signature.
+/// Each signer sends their signatures to the aggregator who is going to collect them
+///  and generate a final spend signature.
 struct MsgSignatureShare {
-    // The signature to be shared as a Scalar
+    /// The signature to be shared as a Scalar
     signature: frost::Scalar,
 }
 
-// The final signature is broadcasted by the aggregator
-//  to any participant.
+/// The final signature is broadcasted by the aggregator
+///  to any participant.
 struct MsgFinalSignature {
-    // Bytes needed to build the frost::Signature
+    /// Bytes needed to build the frost::Signature
     final_signature: FinalSignature,
 }
 
-// Final RedJubJub signature the aggregator has created.
+/// Final RedJubJub signature the aggregator has created.
 struct FinalSignature {
-    //
+    ///
     r_bytes: [u8; 32],
-    //
+    ///
     s_bytes: [u8; 32],
 }
 ```
