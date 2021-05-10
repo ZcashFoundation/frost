@@ -301,6 +301,7 @@ The following are a few things this RFC is not considering:
 - After the dealer sends the initial `MsgDealerBroadcast` to all the participants, the aggregator must wait for signers to send the second message `MsgCommitments`. There is no timeout for this but only after the aggregator received all the commitments the process can continue. These restrictions and event waiting are not detailed in this RFC.
 - This implementation considers not only communications between computer devices in the internet but allows the process to be done by other channels, the lack of timers can result in participants waiting forever for a message. It is the participants business to deal with this and other similars.
 - The RFC does not describe a Service but just message structure and serialization.
+- Messages larger than 4 GB are not supported on 32-bit platforms.
 
 ## Testing plan
 
