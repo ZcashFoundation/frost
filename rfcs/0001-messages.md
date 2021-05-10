@@ -124,19 +124,11 @@ struct Commitment {
 struct MsgSigningPackage {
     /// The number of participants.
     participants: u8,
-    /// The collected commitments for each signer
-    commitments: Vec<CollectedCommitment>,
+    /// The collected commitments for each signer as a hashmap of
+    ///  unique participant identifiers
+    commitments: HashMap<Participant, Commitment>,
     /// The message to be signed as a vector of bytes
     message: Vec<u8>,
-}
-
-/// The aggregator collected commitments for each signer in the
-///  scheme.
-struct CollectedCommitment {
-    /// The signer's participant identifier
-    signer_id: Participant,
-    /// Commitment for this signer
-    commitment: Commitment,
 }
 
 /// Each signer sends their signatures to the aggregator who is going to collect them
@@ -277,7 +269,7 @@ Bytes   | Field name | Data type
 Bytes                  | Field name     | Data type
 -----------------------|----------------|-----------
 1                      | participants   | u8
-(1+32+32)*partipants   | commitments    | Vec<CollectedCommitment>
+(1+32+32)*partipants   | commitments    | HashMap<Participant, Commitment>
 8                      | message_length | u64
 message_length         | message        | Vec<u8>
 
