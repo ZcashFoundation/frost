@@ -126,10 +126,8 @@ struct MsgSigningPackage {
     participants: u8,
     /// The collected commitments for each signer
     commitments: Vec<CollectedCommitment>,
-    /// The length of the message
-    message_length: u64,
-    /// The message to be signed as bytes
-    message: &'static [u8],
+    /// The message to be signed as a vector of bytes
+    message: Vec<u8>,
 }
 
 /// The aggregator collected commitments for each signer in the
@@ -281,7 +279,7 @@ Bytes                  | Field name     | Data type
 1                      | participants   | u8
 (1+32+32)*partipants   | commitments    | Vec<CollectedCommitment>
 8                      | message_length | u64
-message_length         | message        | [u8]
+message_length         | message        | Vec<u8>
 
 #### `SignatureShare`
 
