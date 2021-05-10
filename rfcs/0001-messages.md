@@ -35,8 +35,8 @@ struct Message {
 struct Header {
     msg_type: MsgType,
     version: MsgVersion,
-    sender: Participant,
-    receiver: Participant, 
+    sender: ParticipantID,
+    receiver: ParticipantID,
 }
 ```
 
@@ -75,7 +75,7 @@ enum MsgType {
 
 struct MsgVersion(u8);
 
-struct Participant(u8);
+struct ParticipantID(u8);
 ```
 
 ### Payloads
@@ -124,7 +124,7 @@ struct Commitment {
 struct MsgSigningPackage {
     /// The collected commitments for each signer as a hashmap of
     ///  unique participant identifiers
-    commitments: HashMap<Participant, Commitment>,
+    commitments: HashMap<ParticipantID, Commitment>,
     /// The message to be signed as a vector of bytes
     message: Vec<u8>,
 }
@@ -267,7 +267,7 @@ Bytes   | Field name | Data type
 Bytes                  | Field name     | Data type
 -----------------------|----------------|-----------
 1                      | participants   | u8
-(1+32+32)*participants | commitments    | HashMap<Participant, Commitment>
+(1+32+32)*participants | commitments    | HashMap<ParticipantID, Commitment>
 8                      | message_length | u64
 message_length         | message        | Vec<u8>
 
