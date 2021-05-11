@@ -246,11 +246,12 @@ Payload part of the message is variable in size and depends on message type.
 
 #### `MsgDealerBroadcast`
 
-Bytes  | Field name  | Data type
--------|-------------|-----------
-32     | secret_key  | Scalar
-32     | commitments | AffinePoint
-32+32  | group_public| GroupPublic
+Bytes           | Field name       | Data type
+----------------|------------------|-----------
+32              | secret_share     | Scalar
+1               | participants     | u8
+32*participants | share_commitment | Vec<AffinePoint>
+32              | group_public     | AffinePoint
 
 #### `MsgCommitments`
 
@@ -260,12 +261,12 @@ Bytes   | Field name | Data type
 
 #### `MsgSigningPackage`
 
-Bytes                  | Field name     | Data type
------------------------|----------------|-----------
-1                      | participants   | u8
-(1+32+32)*participants | commitments    | HashMap<ParticipantID, Commitment>
-8                      | message_length | u64
-message_length         | message        | Vec<u8>
+Bytes                  | Field name         | Data type
+-----------------------|--------------------|-----------
+1                      | participants       | u8
+(1+32+32)*participants | signing_commitments| HashMap<ParticipantID, SigningCommitments>
+8                      | message_length     | u64
+message_length         | message            | Vec<u8>
 
 #### `SignatureShare`
 
@@ -277,7 +278,8 @@ Bytes | Field name | Data type
 
 Bytes | Field name       | Data type
 ------|------------------|-----------
-32+32 | final_signature  | FinalSignature
+32    | group_commitment | group_commitment
+32    | schnorr_signature| Scalar
 
 ## Not included
 
