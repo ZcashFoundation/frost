@@ -238,6 +238,8 @@ https://docs.rs/jubjub/0.6.0/jubjub/struct.ExtendedPoint.html#impl-From%3CAffine
 
 We use `AffinePoint::to_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L443
 
+Similarly, `VerificationKey`s can be serialized using `into::<[u8;32]>`. See https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L86
+
 ### Payload
 
 Payload part of the message is variable in size and depends on message type.
