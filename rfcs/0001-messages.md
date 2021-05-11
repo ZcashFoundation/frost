@@ -197,6 +197,15 @@ if let Ok(header) = msg.header.validate() {
 }
 ```
 
+### Rules
+
+- Each jubjub type must be validated during deserialization.
+- `share_commitments`: For each round, the maximum number of participants is set by the length of `share_commitments`.
+- `signing_commitments`:
+    - Signing packages that contain duplicate or missing `ParticipantID`s are invalid
+    - The length of `signing_commitments` must be less than or equal to the length of the `share_commitments` for this round.
+- `message`: signed messages have a protocol-specific length limit. For Zcash, that limit is the maximum network protocol message length: `2^21` bytes (2 MB).
+
 ## Serialization/Deserialization
 
 Each message struct needs to serialize to bytes representation before it is sent through the wire and must deserialize to the same struct (round trip) on the receiver side. We use `serde` and macro derivations (`Serialize` and `Deserialize`) to automatically implement where possible.
