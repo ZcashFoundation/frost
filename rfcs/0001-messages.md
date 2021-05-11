@@ -267,7 +267,7 @@ Bytes           | Field name       | Data type
 ----------------|------------------|-----------
 32              | secret_share     | Scalar
 1               | participants     | u8
-32*participants | share_commitment | Vec<AffinePoint>
+32*participants | share_commitment | Vec\<AffinePoint\>
 32              | group_public     | AffinePoint
 
 #### `MsgCommitments`
@@ -283,7 +283,7 @@ Bytes                  | Field name         | Data type
 1                      | participants       | u8
 (1+32+32)*participants | signing_commitments| HashMap<ParticipantID, SigningCommitments>
 8                      | message_length     | u64
-message_length         | message            | Vec<u8>
+message_length         | message            | Vec\<u8\>
 
 #### `SignatureShare`
 
