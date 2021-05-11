@@ -85,70 +85,64 @@ Each payload defines a new message:
 ```rust
 /// Dealer must send this message with initial data to each participant involved.
 /// With this, the participant should be able to build a `SharePackage` and use
-///  the `sign()` function.
-/// `public_key` can be calculated from the `secret_key`.
+/// the `sign()` function.
+///
+/// Note: `frost::SharePackage.public` can be calculated from `secret_share`.
 struct MsgDealerBroadcast {
-    /// The secret key as a frost::Scalar.
-    secret_key: frost::Scalar,
+    /// This participant's secret key share: `frost::Share.value`.
+    secret_share: frost::Scalar,
     /// Commitment for the signer as a single jubjub::AffinePoint.
-    commitment: jubjub::AffinePoint,
-    /// The public signing key that represents the entire group.
-    group_public: GroupPublic,
-}
-
-/// The point and verification bytes needed to generate the group public key
-struct GroupPublic {
-    /// The point
-    point: jubjub::AffinePoint,
-    /// The verification bytes
-    bytes: [u8; 32],
+    /// A set of commitments to the coefficients (which themselves are scalars)
+    ///  for a secret polynomial _f_: `frost::SharePackage.share.commitment`
+    share_commitment: Vec<jubjub::AffinePoint>,
+    /// The public signing key that represents the entire group:
+    ///  `frost::SharePackage.group_public`.
+    group_public: jubjub::AffinePoint,
 }
 
 /// Each signer participant send to the aggregator the 2 points
 ///  needed for commitment building.
 struct MsgCommitments {
-    /// The commitment the signer is sending.
-    commitment: Commitment,
+    /// A commitment to a single signature by this signer:
+    ///  `frost::SigningPackage.signing_commitments`
+    signing_commitments: SigningCommitments,
 }
 
-/// A commitment specified by two AffinePoints.
-struct Commitment {
-    /// The hiding Point.
+/// A signing commitment from the first round of the signing protocol.
+struct SigningCommitments {
+    /// The hiding point: `frost::SigningCommitments.hiding`
     hiding: jubjub::AffinePoint,
-    /// The binding Point.
+    /// The binding point: `frost::SigningCommitments.binding`
     binding: jubjub::AffinePoint,
 }
 
 /// The aggregator decides what message is going to be signed and
 /// sends it to each participant with all the commitments collected.
 struct MsgSigningPackage {
-    /// The collected commitments for each signer as a hashmap of
-    ///  unique participant identifiers
-    commitments: HashMap<ParticipantID, Commitment>,
-    /// The message to be signed as a vector of bytes
+    /// The message to be signed: `frost::SigningPackage.message`
     message: Vec<u8>,
+    /// The collected commitments for each signer as a hashmap of
+    /// unique participant identifiers: `frost::SigningPackage.signing_commitments`
+    ///
+    /// Signing packages that contain duplicate or missing `ParticipantID`s are invalid.
+    signing_commitments: HashMap<ParticipantID, SigningCommitments>,
 }
 
 /// Each signer sends their signatures to the aggregator who is going to collect them
 ///  and generate a final spend signature.
 struct MsgSignatureShare {
-    /// The signature to be shared as a Scalar
+     /// This participant's signature over the message:
+     ///  `frost::SignatureShare.signature`
     signature: frost::Scalar,
 }
 
-/// The final signature is broadcasted by the aggregator
-///  to any participant.
+/// The final signature is broadcasted by the aggregator to any participant.
 struct MsgFinalSignature {
-    /// Bytes needed to build the frost::Signature
-    final_signature: FinalSignature,
-}
-
-/// Final RedJubJub signature the aggregator has created.
-struct FinalSignature {
-    ///
-    r_bytes: [u8; 32],
-    ///
-    s_bytes: [u8; 32],
+    /// The aggregated group commitment: `Signature<SpendAuth>.r_bytes` returned by `frost::aggregate`
+    group_commitment: jubjub::AffinePoint,
+    /// A plain Schnorr signature created by summing all the signature shares:
+    /// `Signature<SpendAuth>.s_bytes` returned by `frost::aggregate`
+    schnorr_signature: frost::Scalar,
 }
 ```
 
