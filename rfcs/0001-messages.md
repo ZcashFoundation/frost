@@ -272,9 +272,9 @@ Bytes           | Field name       | Data type
 
 #### `MsgCommitments`
 
-Bytes   | Field name | Data type
---------|------------|-----------
-32+32   | commitment | Commitment
+Bytes   | Field name          | Data type
+--------|---------------------|-----------
+32+32   | signing_commitments | SigningCommitments
 
 #### `MsgSigningPackage`
 
