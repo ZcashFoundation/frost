@@ -11,12 +11,9 @@ Assuming all participants have a FROST library available we need to define messa
 
 ## Definitions
 
-- `dealer`
-- `aggregator`
-- `signer`
-- `nonce`
-- `commitment`
-- 
+- `dealer` - Participant who distributes the initial package to all the other participants. The dealer can also be the aggregator and one of the signers.
+- `aggregator` - Participant in charge of collecting all the signatures from the other participants and generating the final group signature. The aggregator can also be the dealer and one of the signers.
+- `signer` - Participant that will receive the initial package, sign and send the signature to the aggregator to receive the final group signature. A signer can be also the dealer and the aggregator.
 
 ## Guide-level explanation
 
