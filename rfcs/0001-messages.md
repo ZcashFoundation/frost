@@ -199,6 +199,14 @@ if let Ok(header) = msg.header.validate() {
 
 ### Rules
 
+The following rules must be implemented:
+
+#### Header
+
+- `sender` and `receiver` can't be the same.
+
+#### Payloads
+
 - Each jubjub type must be validated during deserialization.
 - `share_commitments`: For each round, the maximum number of participants is set by the length of `share_commitments`.
 - `signing_commitments`:
