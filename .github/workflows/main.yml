@@ -7,7 +7,7 @@ jobs:
     name: test on nightly
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2.3.4
     # Because we use nightly features for building docs,
     # using --all-features will fail without nightly toolchain.
     - uses: actions-rs/toolchain@v1
