@@ -303,7 +303,7 @@ The following are a few things this RFC is not considering:
 - This implementation considers not only communications between computer devices in the internet but allows the process to be done by other channels, the lack of timers can result in participants waiting forever for a message. It is the participants business to deal with this and other similars.
 - The RFC does not describe a Service but just message structure and serialization.
 - Messages larger than 4 GB are not supported on 32-bit platforms.
-- Implementations should validate that message lengths are lower than protocol-specific maximum length, then allocate message memory.
+- Implementations should validate that message lengths are lower than a protocol-specific maximum length, then allocate message memory.
 
 ## Testing plan
 
