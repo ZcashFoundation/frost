@@ -89,7 +89,11 @@ const BASIC_FROST_SERIALIZATION: MsgVersion = MsgVersion(0);
 /// So in serialization, we assign the dealer and aggregator the highest IDs,
 /// and mark those IDs as invalid for signers.
 ///
-/// "When performing Shamir secret sharing, a polynomial `f(x)` is used to generate each party’s share of the secret. The actual secret is `f(0)` and the party with ID `i` will be given a share with value `f(i)`. Since a DKG may be implemented in the future, we recommend that the ID `0` be declared invalid."
+/// "When performing Shamir secret sharing, a polynomial `f(x)` is used to generate
+/// each party’s share of the secret. The actual secret is `f(0)` and the party with
+/// ID `i` will be given a share with value `f(i)`.
+/// Since a DKG may be implemented in the future, we recommend that the ID `0`
+/// be declared invalid."
 /// https://raw.githubusercontent.com/ZcashFoundation/redjubjub/main/zcash-frost-audit-report-20210323.pdf#d
 enum ParticipantId {
     /// A serialized participant ID for a signer.
