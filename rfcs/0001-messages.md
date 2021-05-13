@@ -20,6 +20,7 @@ Assuming all participants have a FROST library available we need to define messa
 We propose a message separated in 2 parts, a header and a payload:
 
 ```rust
+/// The data required to serialize a frost message.
 struct Message {
     header: Header,
     payload: Payload,
@@ -29,8 +30,10 @@ struct Message {
 `Header` will look as follows:
 
 ```rust
+/// The data required to serialize the common header fields for every message.
+///
+/// Note: the `msg_type` is derived from the `payload` enum variant.
 struct Header {
-    msg_type: MsgType,
     version: MsgVersion,
     sender: ParticipantID,
     receiver: ParticipantID,
@@ -40,6 +43,7 @@ struct Header {
 While `Payload` will be defined as:
 
 ```rust
+/// The data required to serialize the payload for a message.
 enum Payload {
     DealerBroadcast(MsgDealerBroadcast),
     Commitments(MsgCommitments),
@@ -60,6 +64,7 @@ Here we explore in detail the header types and all the message payloads.
 Fields of the header define new types. Proposed implementation for them is as follows:
 
 ```rust
+/// The numeric values used to identify each `Payload` variant during serialization.
 #[repr(u8)]
 #[non_exhaustive]
 enum MsgType {
@@ -70,9 +75,11 @@ enum MsgType {
     FinalSignature,
 }
 
+/// The numeric values used to identify the protocol version during serialization.
 struct MsgVersion(u8);
 
-struct ParticipantID(u8);
+/// The numeric values used to identify each participant during serialization.
+struct ParticipantId(u8);
 ```
 
 ### Payloads
@@ -80,13 +87,15 @@ struct ParticipantID(u8);
 Each payload defines a new message:
 
 ```rust
+/// The data required to serialize `frost::SharePackage`.
+///
 /// Dealer must send this message with initial data to each participant involved.
 /// With this, the participant should be able to build a `SharePackage` and use
 /// the `sign()` function.
 ///
 /// Note: `frost::SharePackage.public` can be calculated from `secret_share`.
-struct MsgDealerBroadcast {
-    /// This participant's secret key share: `frost::Share.value`.
+struct messages::SharePackage {
+    /// This participant's secret key share: `frost::SharePackage.share.value`.
     secret_share: frost::Scalar,
     /// Commitment for the signer as a single jubjub::AffinePoint.
     /// A set of commitments to the coefficients (which themselves are scalars)
@@ -97,25 +106,21 @@ struct MsgDealerBroadcast {
     group_public: jubjub::AffinePoint,
 }
 
-/// Each signer participant send to the aggregator the 2 points
-///  needed for commitment building.
-struct MsgCommitments {
-    /// A commitment to a single signature by this signer:
-    ///  `frost::SigningPackage.signing_commitments`
-    signing_commitments: SigningCommitments,
-}
-
+/// The data required to serialize `frost::SigningCommitments`.
+///
 /// A signing commitment from the first round of the signing protocol.
-struct SigningCommitments {
+struct messages::SigningCommitments {
     /// The hiding point: `frost::SigningCommitments.hiding`
     hiding: jubjub::AffinePoint,
     /// The binding point: `frost::SigningCommitments.binding`
     binding: jubjub::AffinePoint,
 }
 
+/// The data required to serialize `frost::SigningPackage`.
+///
 /// The aggregator decides what message is going to be signed and
 /// sends it to each participant with all the commitments collected.
-struct MsgSigningPackage {
+struct messages::SigningPackage {
     /// The message to be signed: `frost::SigningPackage.message`
     message: Vec<u8>,
     /// The collected commitments for each signer as a hashmap of
@@ -125,16 +130,20 @@ struct MsgSigningPackage {
     signing_commitments: HashMap<ParticipantID, SigningCommitments>,
 }
 
+/// The data required to serialize `frost::SignatureShare`.
+///
 /// Each signer sends their signatures to the aggregator who is going to collect them
 ///  and generate a final spend signature.
-struct MsgSignatureShare {
+struct messages::SignatureShare {
      /// This participant's signature over the message:
      ///  `frost::SignatureShare.signature`
     signature: frost::Scalar,
 }
 
+/// The data required to serialize a successful output from `frost::aggregate()`.
+///
 /// The final signature is broadcasted by the aggregator to any participant.
-struct MsgFinalSignature {
+struct messages::AggregateSignature {
     /// The aggregated group commitment: `Signature<SpendAuth>.r_bytes` returned by `frost::aggregate`
     group_commitment: jubjub::AffinePoint,
     /// A plain Schnorr signature created by summing all the signature shares:
@@ -200,14 +209,19 @@ The following rules must be implemented:
 
 #### Header
 
+- `msg_type` must be a known `MsgType` value.
+- `version` must be a supported version.
 - `sender` and `receiver` can't be the same.
+-  `sender` and `receiver` must be less than the maximum number of participants.
 
 #### Payloads
 
 - Each jubjub type must be validated during deserialization.
 - `share_commitments`: For each round, the maximum number of participants is set by the length of `share_commitments`.
 - `signing_commitments`:
-    - Signing packages that contain duplicate or missing `ParticipantID`s are invalid
+    - Signing packages that contain duplicate `ParticipantID`s are invalid
+    - Signing packages that contain missing `ParticipantID`s are invalid
+        - TODO: check if missing participants are allowed
     - The length of `signing_commitments` must be less than or equal to the length of the `share_commitments` for this round.
 - `message`: signed messages have a protocol-specific length limit. For Zcash, that limit is the maximum network protocol message length: `2^21` bytes (2 MB).
 
@@ -239,7 +253,7 @@ Bytes | Field name | Data type
 
 #### `Scalar`
 
-`Scalar` is a an alias for `jubjub::Fr`. We use `Scalar::to_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L252
+`Scalar` is a an alias for `jubjub::Fr`. We use `Scalar::to_bytes` and `Scalar::from_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L252
 
 #### `AffinePoint`
 
@@ -250,9 +264,9 @@ Conversion from one type to the other is trivial:
 https://docs.rs/jubjub/0.6.0/jubjub/struct.AffinePoint.html#impl-From%3CExtendedPoint%3E
 https://docs.rs/jubjub/0.6.0/jubjub/struct.ExtendedPoint.html#impl-From%3CAffinePoint%3E
 
-We use `AffinePoint::to_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L443
+We use `AffinePoint::to_bytes` and `AffinePoint::from_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L443
 
-Similarly, `VerificationKey`s can be serialized using `into::<[u8;32]>`. See https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L86
+Similarly, `VerificationKey`s can be serialized using `<[u8; 32]>::from` and `VerificationKey::from`. See https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L86
 
 ### Payload
 
@@ -307,8 +321,36 @@ The following are a few things this RFC is not considering:
 
 ## Testing plan
 
-- Create a happy path unit test similar to https://github.com/ZcashFoundation/redjubjub/blob/frost-messages/tests/frost.rs#L7 and:
-  - Make messages on each step.
-  - Simulate send/receive.
-  - Test round trip serialization/deserialization on each message.
-- Create property tests for each message.
+### Test Vectors
+
+#### Conversion on Test Vectors
+
+- Test conversion from `frost` to `message` on a test vector
+    1. Implement the Rust `message` struct
+    2. Implement conversion from and to the `frost` type
+    3. Do a round-trip test from `frost` to `message` on a test vector
+- Test conversion from `message` to bytes on a test vector
+    1. Implement conversion from and to the `message` type
+    2. Do a round-trip test from `message` to bytes on a test vector
+
+#### Signing Rounds on Test Vectors
+
+- Test signing using `frost` types on a test vector
+    1. Implement a single round of `frost` signing using a test vector
+- Test signing using `message` types on a test vector
+- Test signing using byte vectors on a test vector
+
+### Property Tests
+
+#### Conversion Property Tests
+
+- Create property tests for each message
+    - Test round-trip conversion from `frost` to `message` types
+    - Test round-trip serialization and deserialization for each `message` type
+
+#### Signing Round Property Tests
+    
+- Create property tests for signing rounds
+    - Test a signing round with `frost` types
+    - Test a signing round with `message` types
+    - Test a signing round with byte vectors
