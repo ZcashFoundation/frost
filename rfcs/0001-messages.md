@@ -45,11 +45,11 @@ While `Payload` will be defined as:
 ```rust
 /// The data required to serialize the payload for a message.
 enum Payload {
-    DealerBroadcast(MsgDealerBroadcast),
-    Commitments(MsgCommitments),
-    SigningPackage(MsgSigningPackage),
-    SignatureShare(MsgSignatureShare),
-    FinalSignature(MsgFinalSignature),
+    SharePackage(messages::SharePackage),
+    SigningCommitments(messages::SigningCommitments),
+    SigningPackage(messages::SigningPackage),
+    SignatureShare(messages::SignatureShare),
+    AggregateSignature(messages::AggregateSignature),
 }
 ```
 
@@ -68,11 +68,11 @@ Fields of the header define new types. Proposed implementation for them is as fo
 #[repr(u8)]
 #[non_exhaustive]
 enum MsgType {
-    DealerBroadcast,
-    Commitments,
+    SharePackage,
+    SigningCommitments,
     SigningPackage,
     SignatureShare,
-    FinalSignature,
+    AggregateSignature,
 }
 
 /// The numeric values used to identify the protocol version during serialization.
@@ -307,7 +307,7 @@ Similarly, `VerificationKey`s can be serialized using `<[u8; 32]>::from` and `Ve
 
 Payload part of the message is variable in size and depends on message type.
 
-#### `MsgDealerBroadcast`
+#### `SharePackage`
 
 Bytes           | Field name       | Data type
 ----------------|------------------|-----------
@@ -316,21 +316,22 @@ Bytes           | Field name       | Data type
 32*participants | share_commitment | Vec\<AffinePoint\>
 32              | group_public     | AffinePoint
 
-#### `MsgCommitments`
+#### `SigningCommitments`
 
 Bytes   | Field name          | Data type
 --------|---------------------|-----------
 32   | hiding | AffinePoint
 32   | binding | AffinePoint
 
-#### `MsgSigningPackage`
+#### `SigningPackage`
 
 Bytes                  | Field name         | Data type
 -----------------------|--------------------|-----------
-1                      | participants       | u8
-(1+32+32)*participants | signing_commitments| HashMap<ParticipantID, SigningCommitments>
 8                      | message_length     | u64
 message_length         | message            | Vec\<u8\>
+1                      | participants       | u8
+(1+32+32)*participants | signing_commitments| HashMap<ParticipantID, SigningCommitments>
+
 
 #### `SignatureShare`
 
@@ -338,7 +339,7 @@ Bytes | Field name | Data type
 ------|------------|-----------
 32    | signature  | Scalar
 
-#### `MsgFinalSignature`
+#### `AggregateSignature`
 
 Bytes | Field name       | Data type
 ------|------------------|-----------
@@ -349,7 +350,7 @@ Bytes | Field name       | Data type
 
 The following are a few things this RFC is not considering:
 
-- After the dealer sends the initial `MsgDealerBroadcast` to all the participants, the aggregator must wait for signers to send the second message `MsgCommitments`. There is no timeout for this but only after the aggregator received all the commitments the process can continue. These restrictions and event waiting are not detailed in this RFC.
+- After the dealer sends the initial `SharePackage` to all the participants, the aggregator must wait for signers to send the second message `SigningCommitments`. There is no timeout for this but only after the aggregator received all the commitments the process can continue. These restrictions and event waiting are not detailed in this RFC.
 - This implementation considers not only communications between computer devices in the internet but allows the process to be done by other channels, the lack of timers can result in participants waiting forever for a message. It is the participants business to deal with this and other similars.
 - The RFC does not describe a Service but just message structure and serialization.
 - Messages larger than 4 GB are not supported on 32-bit platforms.
