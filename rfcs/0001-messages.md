@@ -249,19 +249,18 @@ The following rules must be implemented:
 - `msg_type` must be a known `MsgType` value.
 - `version` must be a supported version.
 - `sender` and `receiver` can't be the same.
--  If `sender` and `receiver` are a `ParticipantId::Signer`, they must be less than the number of participants in this round.
 - The `ParticipantId` variants of `sender` and `receiver` must match the message type.
 
 #### Payloads
 
 - Each jubjub type must be validated during deserialization.
-- `share_commitments`: The number of participants in each round is set by the length of `share_commitments`.
-    - The number of participants in each round must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
+- `share_commitments`: length must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
 - `signing_commitments`:
+    - Length must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
     - Signing packages that contain duplicate `ParticipantId`s are invalid
     - Signing packages that contain missing `ParticipantId`s are invalid
-        - TODO: check if missing participants are allowed
-    - The length of `signing_commitments` must be less than or equal to the number of participants in this round.
+        - Note: missing participants are supported by this serialization format.
+          But implementations can require all participants to fully participate in each round.
 - `message`: signed messages have a protocol-specific length limit. For Zcash, that limit is the maximum network protocol message length: `2^21` bytes (2 MB).
 
 ## Serialization/Deserialization
@@ -354,11 +353,21 @@ Bytes | Field name       | Data type
 
 The following are a few things this RFC is not considering:
 
-- After the dealer sends the initial `SharePackage` to all the participants, the aggregator must wait for signers to send the second message `SigningCommitments`. There is no timeout for this but only after the aggregator received all the commitments the process can continue. These restrictions and event waiting are not detailed in this RFC.
-- This implementation considers not only communications between computer devices in the internet but allows the process to be done by other channels, the lack of timers can result in participants waiting forever for a message. It is the participants business to deal with this and other similars.
-- The RFC does not describe a Service but just message structure and serialization.
+- The RFC does not describe implementation-specific issues - it is focused on message structure and serialization.
+- Implementations using this serialization should handle missing messages using timeouts or similar protocol-specific mechanisms.
+    - This is particularly important for `SigningPackage`s, which only need a threshold of participants to continue.
 - Messages larger than 4 GB are not supported on 32-bit platforms.
 - Implementations should validate that message lengths are lower than a protocol-specific maximum length, then allocate message memory.
+
+### State-Based Validation
+
+The following validation rules should be checked by the implementation:
+
+- `share_commitments`: The number of participants in each round is set by the length of `share_commitments`.
+    - If `sender` and `receiver` are a `ParticipantId::Signer`, they must be less than the number of participants in this round.
+    - The length of `signing_commitments` must be less than or equal to the number of participants in this round.
+
+If the implementation knows the number of key shares, it should re-check all the validation rules involving `MAX_SIGNER_PARTICIPANT_ID` using that lower limit.
 
 ## Testing plan
 
