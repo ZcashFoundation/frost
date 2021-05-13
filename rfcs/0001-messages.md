@@ -92,8 +92,7 @@ const BASIC_FROST_SERIALIZATION: MsgVersion = MsgVersion(0);
 /// "When performing Shamir secret sharing, a polynomial `f(x)` is used to generate
 /// each party’s share of the secret. The actual secret is `f(0)` and the party with
 /// ID `i` will be given a share with value `f(i)`.
-/// Since a DKG may be implemented in the future, we recommend that the ID `0`
-/// be declared invalid."
+/// Since a DKG may be implemented in the future, we recommend that the ID `0` be declared invalid."
 /// https://raw.githubusercontent.com/ZcashFoundation/redjubjub/main/zcash-frost-audit-report-20210323.pdf#d
 enum ParticipantId {
     /// A serialized participant ID for a signer.
@@ -135,10 +134,10 @@ struct messages::SharePackage {
     secret_share: frost::Scalar,
     /// Commitment for the signer as a single jubjub::AffinePoint.
     /// A set of commitments to the coefficients (which themselves are scalars)
-    ///  for a secret polynomial _f_: `frost::SharePackage.share.commitment`
+    /// for a secret polynomial _f_: `frost::SharePackage.share.commitment`
     share_commitment: Vec<jubjub::AffinePoint>,
     /// The public signing key that represents the entire group:
-    ///  `frost::SharePackage.group_public`.
+    /// `frost::SharePackage.group_public`.
     group_public: jubjub::AffinePoint,
 }
 
@@ -170,10 +169,9 @@ struct messages::SigningPackage {
 /// The data required to serialize `frost::SignatureShare`.
 ///
 /// Each signer sends their signatures to the aggregator who is going to collect them
-///  and generate a final spend signature.
+/// and generate a final spend signature.
 struct messages::SignatureShare {
-     /// This participant's signature over the message:
-     ///  `frost::SignatureShare.signature`
+     /// This participant's signature over the message: `frost::SignatureShare.signature`
     signature: frost::Scalar,
 }
 
