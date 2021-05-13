@@ -37,8 +37,8 @@ struct Message {
 /// Note: the `msg_type` is derived from the `payload` enum variant.
 struct Header {
     version: MsgVersion,
-    sender: ParticipantID,
-    receiver: ParticipantID,
+    sender: ParticipantId,
+    receiver: ParticipantId,
 }
 ```
 
@@ -164,8 +164,8 @@ struct messages::SigningPackage {
     /// The collected commitments for each signer as a hashmap of
     /// unique participant identifiers: `frost::SigningPackage.signing_commitments`
     ///
-    /// Signing packages that contain duplicate or missing `ParticipantID`s are invalid.
-    signing_commitments: HashMap<ParticipantID, SigningCommitments>,
+    /// Signing packages that contain duplicate or missing `ParticipantId`s are invalid.
+    signing_commitments: HashMap<ParticipantId, SigningCommitments>,
 }
 
 /// The data required to serialize `frost::SignatureShare`.
@@ -258,8 +258,8 @@ The following rules must be implemented:
 - `share_commitments`: The number of participants in each round is set by the length of `share_commitments`.
     - The number of participants in each round must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
 - `signing_commitments`:
-    - Signing packages that contain duplicate `ParticipantID`s are invalid
-    - Signing packages that contain missing `ParticipantID`s are invalid
+    - Signing packages that contain duplicate `ParticipantId`s are invalid
+    - Signing packages that contain missing `ParticipantId`s are invalid
         - TODO: check if missing participants are allowed
     - The length of `signing_commitments` must be less than or equal to the number of participants in this round.
 - `message`: signed messages have a protocol-specific length limit. For Zcash, that limit is the maximum network protocol message length: `2^21` bytes (2 MB).
@@ -334,7 +334,7 @@ Bytes                  | Field name         | Data type
 8                      | message_length     | u64
 message_length         | message            | Vec\<u8\>
 1                      | participants       | u8
-(1+32+32)*participants | signing_commitments| HashMap<ParticipantID, SigningCommitments>
+(1+32+32)*participants | signing_commitments| HashMap<ParticipantId, SigningCommitments>
 
 
 #### `SignatureShare`
