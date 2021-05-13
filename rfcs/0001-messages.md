@@ -285,7 +285,8 @@ Bytes           | Field name       | Data type
 
 Bytes   | Field name          | Data type
 --------|---------------------|-----------
-32+32   | signing_commitments | SigningCommitments
+32   | hiding | AffinePoint
+32   | binding | AffinePoint
 
 #### `MsgSigningPackage`
 
