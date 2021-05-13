@@ -78,6 +78,8 @@ enum MsgType {
 /// The numeric values used to identify the protocol version during serialization.
 struct MsgVersion(u8);
 
+const BASIC_FROST_SERIALIZATION: MsgVersion = MsgVersion(0);
+
 /// The numeric values used to identify each participant during serialization.
 struct ParticipantId(u8);
 ```
