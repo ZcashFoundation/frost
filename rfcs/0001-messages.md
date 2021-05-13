@@ -307,7 +307,7 @@ Bytes | Field name | Data type
 
 Bytes | Field name       | Data type
 ------|------------------|-----------
-32    | group_commitment | group_commitment
+32    | group_commitment | AffinePoint
 32    | schnorr_signature| Scalar
 
 ## Not included
