@@ -86,15 +86,27 @@ const BASIC_FROST_SERIALIZATION: MsgVersion = MsgVersion(0);
 /// But in serialization, we want participants to be indexed from `0..n`,
 /// where `n` is the number of participants.
 /// This helps us look up their shares and commitments in serialized arrays.
-/// So in serialization, we assign the dealer and aggregator to IDs `254` and `255`.
+/// So in serialization, we assign the dealer and aggregator the highest IDs,
+/// and mark those IDs as invalid for signers.
 ///
 /// "When performing Shamir secret sharing, a polynomial `f(x)` is used to generate each party’s share of the secret. The actual secret is `f(0)` and the party with ID `i` will be given a share with value `f(i)`. Since a DKG may be implemented in the future, we recommend that the ID `0` be declared invalid."
 /// https://raw.githubusercontent.com/ZcashFoundation/redjubjub/main/zcash-frost-audit-report-20210323.pdf#d
 enum ParticipantId {
+    /// A serialized participant ID for a signer.
+    ///
+    /// Must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
     Signer(u8),
+    /// The fixed participant ID for the dealer.
     Dealer,
+    /// The fixed participant ID for the aggregator.
     Aggregator,
 }
+
+/// The fixed participant ID for the dealer.
+const DEALER_PARTICIPANT_ID: u8 = u8::MAX - 1;
+
+/// The fixed participant ID for the aggregator.
+const AGGREGATOR_PARTICIPANT_ID: u8 = u8::MAX;
 
 /// The maximum `ParticipantId::Signer` in this serialization format.
 ///
