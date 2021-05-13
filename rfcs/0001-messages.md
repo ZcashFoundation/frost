@@ -11,9 +11,11 @@ Assuming all participants have a FROST library available we need to define messa
 
 ## Definitions
 
-- `dealer` - Participant who distributes the initial package to all the other participants. The dealer can also be the aggregator and one of the signers.
-- `aggregator` - Participant in charge of collecting all the signatures from the other participants and generating the final group signature. The aggregator can also be the dealer and one of the signers.
-- `signer` - Participant that will receive the initial package, sign and send the signature to the aggregator to receive the final group signature. A signer can be also the dealer and the aggregator.
+- `dealer` - Participant who distributes the initial package to all the other participants.
+- `aggregator` - Participant in charge of collecting all the signatures from the other participants and generating the final group signature.
+- `signer` - Participant that will receive the initial package, sign and send the signature to the aggregator to receive the final group signature.
+
+Note: In this RFC we consider the above 3 participants to be different. `dealer` and `aggergator` have specific hard coded `ParticipantId`s so for example a `dealer` can't be a `signer`. This is not a protocol limitation but a specific rule introduced in this document.
 
 ## Guide-level explanation
 
