@@ -81,7 +81,25 @@ struct MsgVersion(u8);
 const BASIC_FROST_SERIALIZATION: MsgVersion = MsgVersion(0);
 
 /// The numeric values used to identify each participant during serialization.
-struct ParticipantId(u8);
+///
+/// In the `frost` module, participant ID `0` should be invalid.
+/// But in serialization, we want participants to be indexed from `0..n`,
+/// where `n` is the number of participants.
+/// This helps us look up their shares and commitments in serialized arrays.
+/// So in serialization, we assign the dealer and aggregator to IDs `254` and `255`.
+///
+/// "When performing Shamir secret sharing, a polynomial `f(x)` is used to generate each party’s share of the secret. The actual secret is `f(0)` and the party with ID `i` will be given a share with value `f(i)`. Since a DKG may be implemented in the future, we recommend that the ID `0` be declared invalid."
+/// https://raw.githubusercontent.com/ZcashFoundation/redjubjub/main/zcash-frost-audit-report-20210323.pdf#d
+enum ParticipantId {
+    Signer(u8),
+    Dealer,
+    Aggregator,
+}
+
+/// The maximum `ParticipantId::Signer` in this serialization format.
+///
+/// We reserve two participant IDs for the dealer and aggregator.
+const MAX_SIGNER_PARTICIPANT_ID: u8 = u8::MAX - 2;
 ```
 
 ### Payloads
@@ -91,8 +109,8 @@ Each payload defines a new message:
 ```rust
 /// The data required to serialize `frost::SharePackage`.
 ///
-/// Dealer must send this message with initial data to each participant involved.
-/// With this, the participant should be able to build a `SharePackage` and use
+/// The dealer sends this message to each signer for this round.
+/// With this, the signer should be able to build a `SharePackage` and use
 /// the `sign()` function.
 ///
 /// Note: `frost::SharePackage.public` can be calculated from `secret_share`.
@@ -110,6 +128,7 @@ struct messages::SharePackage {
 
 /// The data required to serialize `frost::SigningCommitments`.
 ///
+/// Each signer must send this message to the aggregator.
 /// A signing commitment from the first round of the signing protocol.
 struct messages::SigningCommitments {
     /// The hiding point: `frost::SigningCommitments.hiding`
@@ -121,7 +140,7 @@ struct messages::SigningCommitments {
 /// The data required to serialize `frost::SigningPackage`.
 ///
 /// The aggregator decides what message is going to be signed and
-/// sends it to each participant with all the commitments collected.
+/// sends it to each signer with all the commitments collected.
 struct messages::SigningPackage {
     /// The message to be signed: `frost::SigningPackage.message`
     message: Vec<u8>,
@@ -144,7 +163,7 @@ struct messages::SignatureShare {
 
 /// The data required to serialize a successful output from `frost::aggregate()`.
 ///
-/// The final signature is broadcasted by the aggregator to any participant.
+/// The final signature is broadcasted by the aggregator to all signers.
 struct messages::AggregateSignature {
     /// The aggregated group commitment: `Signature<SpendAuth>.r_bytes` returned by `frost::aggregate`
     group_commitment: jubjub::AffinePoint,
@@ -214,17 +233,19 @@ The following rules must be implemented:
 - `msg_type` must be a known `MsgType` value.
 - `version` must be a supported version.
 - `sender` and `receiver` can't be the same.
--  `sender` and `receiver` must be less than the maximum number of participants.
+-  If `sender` and `receiver` are a `ParticipantId::Signer`, they must be less than the number of participants in this round.
+- The `ParticipantId` variants of `sender` and `receiver` must match the message type.
 
 #### Payloads
 
 - Each jubjub type must be validated during deserialization.
-- `share_commitments`: For each round, the maximum number of participants is set by the length of `share_commitments`.
+- `share_commitments`: The number of participants in each round is set by the length of `share_commitments`.
+    - The number of participants in each round must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
 - `signing_commitments`:
     - Signing packages that contain duplicate `ParticipantID`s are invalid
     - Signing packages that contain missing `ParticipantID`s are invalid
         - TODO: check if missing participants are allowed
-    - The length of `signing_commitments` must be less than or equal to the length of the `share_commitments` for this round.
+    - The length of `signing_commitments` must be less than or equal to the number of participants in this round.
 - `message`: signed messages have a protocol-specific length limit. For Zcash, that limit is the maximum network protocol message length: `2^21` bytes (2 MB).
 
 ## Serialization/Deserialization
