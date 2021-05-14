@@ -19,7 +19,7 @@ features = ["nightly"]
 
 [dependencies]
 blake2b_simd = "0.5"
-byteorder = "1.3"
+byteorder = "1.4"
 digest = "0.9"
 jubjub = "0.6"
 rand_core = "0.6"
