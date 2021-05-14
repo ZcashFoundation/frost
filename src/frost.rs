@@ -140,6 +140,7 @@ impl TryFrom<SharePackage> for KeyPackage {
 /// When using a central dealer, [`SharePackage`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
+#[allow(dead_code)]
 pub struct KeyPackage {
     index: u8,
     secret_share: Secret,
