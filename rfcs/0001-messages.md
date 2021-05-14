@@ -253,13 +253,13 @@ The following rules must be implemented:
 #### Payloads
 
 - Each jubjub type must be validated during deserialization.
-- `share_commitments`: length must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
+- `share_commitments`:
+  - Length must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
+  - Lenght must be at least `MIN_SIGNERS` (`2` signers).
 - `signing_commitments`:
     - Length must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
-    - Signing packages that contain duplicate `ParticipantId`s are invalid
-    - Signing packages that contain missing `ParticipantId`s are invalid
-        - Note: missing participants are supported by this serialization format.
-          But implementations can require all participants to fully participate in each round.
+    - Signing packages that contain duplicate `ParticipantId`s are invalid. This is implicit in the use of `HashMap`.
+    - Length must be at least `MIN_THRESHOLD` (`2` required signers).
 - `message`: signed messages have a protocol-specific length limit. For Zcash, that limit is the maximum network protocol message length: `2^21` bytes (2 MB).
 
 ## Serialization/Deserialization
@@ -365,6 +365,9 @@ The following validation rules should be checked by the implementation:
 - `share_commitments`: The number of participants in each round is set by the length of `share_commitments`.
     - If `sender` and `receiver` are a `ParticipantId::Signer`, they must be less than the number of participants in this round.
     - The length of `signing_commitments` must be less than or equal to the number of participants in this round.
+- `signing_commitments`: Signing packages that contain missing `ParticipantId`s are invalid
+    - Note: missing participants are supported by this serialization format.
+    But implementations can require all participants to fully participate in each round.
 
 If the implementation knows the number of key shares, it should re-check all the validation rules involving `MAX_SIGNER_PARTICIPANT_ID` using that lower limit.
 
