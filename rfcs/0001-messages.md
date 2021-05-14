@@ -246,7 +246,6 @@ The following rules must be implemented:
 
 #### Header
 
-- `msg_type` must be a known `MsgType` value.
 - `version` must be a supported version.
 - `sender` and `receiver` can't be the same.
 - The `ParticipantId` variants of `sender` and `receiver` must match the message type.
