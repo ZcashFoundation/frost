@@ -140,7 +140,7 @@ struct messages::SharePackage {
     share_commitment: Vec<jubjub::AffinePoint>,
     /// The public signing key that represents the entire group:
     /// `frost::SharePackage.group_public`.
-    group_public: jubjub::AffinePoint,
+    group_public: VerificationKey<SpendAuth>,
 }
 
 /// The data required to serialize `frost::SigningCommitments`.
@@ -273,6 +273,8 @@ Manual implementation of serialization/deserialization will be located at a new 
 
 Each byte chunk specified below is in little-endian order unless is specified otherwise.
 
+Multi-byte integers **must not** be used for serialization, because they have different byte orders on different platforms.
+
 ### Header
 
 The `Header` part of the message is 4 bytes total:
@@ -286,7 +288,7 @@ Bytes | Field name | Data type
 
 ### Primitive types
 
-`Payload`s use data types that we need to specify first. We have 2 primitive types inside the payload messages:
+`Payload`s use data types that we need to specify first. We have 3 primitive types inside the payload messages:
 
 #### `Scalar`
 
@@ -303,9 +305,9 @@ https://docs.rs/jubjub/0.6.0/jubjub/struct.ExtendedPoint.html#impl-From%3CAffine
 
 We use `AffinePoint::to_bytes` and `AffinePoint::from_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/jubjub/blob/main/src/lib.rs#L443
 
-Similarly, `VerificationKey`s can be serialized using `<[u8; 32]>::from` and `VerificationKey::from`. See https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L86
+#### VerificationKey
 
-Multi-byte integers **must not** be used for serialization, because they have different byte orders on different platforms.
+`VerificationKey<SpendAuth>`s can be serialized and deserialized using `<[u8; 32]>::from` and `VerificationKey::from`. See https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L80-L90 and https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L114-L121.
 
 ### Payload
 
@@ -318,7 +320,7 @@ Bytes           | Field name       | Data type
 32              | secret_share     | Scalar
 1               | participants     | u8
 32*participants | share_commitment | Vec\<AffinePoint\>
-32              | group_public     | AffinePoint
+32              | group_public     | VerificationKey<SpendAuth>
 
 #### `SigningCommitments`
 
