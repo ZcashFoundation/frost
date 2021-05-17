@@ -305,6 +305,8 @@ We use `AffinePoint::to_bytes` and `AffinePoint::from_bytes` to get a 32-byte li
 
 Similarly, `VerificationKey`s can be serialized using `<[u8; 32]>::from` and `VerificationKey::from`. See https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L86
 
+Multi-byte integers **must not** be used for serialization, because they have different byte orders on different platforms.
+
 ### Payload
 
 Payload part of the message is variable in size and depends on message type.
