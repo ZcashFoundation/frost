@@ -16,7 +16,7 @@ verification checks related to the verification key encoding.
 Creating a `BindingSig`, serializing and deserializing it, and
 verifying the signature:
 
-```
+```rust
 # use std::convert::TryFrom;
 use rand::thread_rng;
 use redjubjub::*;
