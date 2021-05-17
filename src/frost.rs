@@ -516,7 +516,7 @@ fn gen_challenge(
         .finalize()
 }
 
-/// Generates the langrange coefficient for the i'th participant.
+/// Generates the lagrange coefficient for the i'th participant.
 fn gen_lagrange_coeff(
     signer_index: u8,
     signing_package: &SigningPackage,
