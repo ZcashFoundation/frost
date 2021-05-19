@@ -132,15 +132,15 @@ Each payload defines a new message:
 ///
 /// Note: `frost::SharePackage.public` can be calculated from `secret_share`.
 struct messages::SharePackage {
+    /// The public signing key that represents the entire group:
+    /// `frost::SharePackage.group_public`.
+    group_public: VerificationKey<SpendAuth>,
     /// This participant's secret key share: `frost::SharePackage.share.value`.
     secret_share: frost::Scalar,
     /// Commitment for the signer as a single jubjub::AffinePoint.
     /// A set of commitments to the coefficients (which themselves are scalars)
     /// for a secret polynomial _f_: `frost::SharePackage.share.commitment`
     share_commitment: Vec<jubjub::AffinePoint>,
-    /// The public signing key that represents the entire group:
-    /// `frost::SharePackage.group_public`.
-    group_public: VerificationKey<SpendAuth>,
 }
 
 /// The data required to serialize `frost::SigningCommitments`.
@@ -159,13 +159,15 @@ struct messages::SigningCommitments {
 /// The aggregator decides what message is going to be signed and
 /// sends it to each signer with all the commitments collected.
 struct messages::SigningPackage {
-    /// The message to be signed: `frost::SigningPackage.message`
-    message: Vec<u8>,
     /// The collected commitments for each signer as a hashmap of
     /// unique participant identifiers: `frost::SigningPackage.signing_commitments`
     ///
     /// Signing packages that contain duplicate or missing `ParticipantId`s are invalid.
     signing_commitments: HashMap<ParticipantId, SigningCommitments>,
+    /// The message to be signed: `frost::SigningPackage.message`.
+    ///
+    /// Each signer should perform protocol-specific verification on the message.
+    message: Vec<u8>,
 }
 
 /// The data required to serialize `frost::SignatureShare`.
@@ -317,10 +319,10 @@ Payload part of the message is variable in size and depends on message type.
 
 Bytes           | Field name       | Data type
 ----------------|------------------|-----------
+32              | group_public     | VerificationKey<SpendAuth>
 32              | secret_share     | Scalar
 1               | participants     | u8
 32*participants | share_commitment | Vec\<AffinePoint\>
-32              | group_public     | VerificationKey<SpendAuth>
 
 #### `SigningCommitments`
 
@@ -333,10 +335,10 @@ Bytes   | Field name          | Data type
 
 Bytes                  | Field name         | Data type
 -----------------------|--------------------|-----------
-8                      | message_length     | u64
-message_length         | message            | Vec\<u8\>
 1                      | participants       | u8
 (1+32+32)*participants | signing_commitments| HashMap<ParticipantId, SigningCommitments>
+8                      | message_length     | u64
+message_length         | message            | Vec\<u8\>
 
 
 #### `SignatureShare`
