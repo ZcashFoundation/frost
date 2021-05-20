@@ -5,9 +5,9 @@ Proposes a message layout to exchange information between participants of a FROS
 ## Motivation
 
 Currently FROST library is complete for 2 round signatures with a dealer/aggregator setup.
-This proposal is only considering that specific features, additions and upgrades will need to be made when DKG is implemented.
+This proposal acknowledges that specific features, additions and upgrades will need to be made when DKG is implemented.
 
-Assuming all participants have a FROST library available we need to define message structures in a way that data can be exchanged between participants. The proposal is a collection of data types so each side can do all the actions needed for a real life situation.
+Assuming all participants have a FROST library available, we need to define message structures in a way that data can be exchanged between participants. The proposal is a collection of data types so each side can do all the actions needed for a real life situation.
 
 ## Definitions
 
@@ -15,7 +15,7 @@ Assuming all participants have a FROST library available we need to define messa
 - `aggregator` - Participant in charge of collecting all the signatures from the other participants and generating the final group signature.
 - `signer` - Participant that will receive the initial package, sign and send the signature to the aggregator to receive the final group signature.
 
-Note: In this RFC we consider the above 3 participants to be different. `dealer` and `aggergator` have specific hard coded `ParticipantId`s so for example a `dealer` can't be a `signer`. This is not a protocol limitation but a specific rule introduced in this document.
+Note: In this RFC we consider the above 3 participants to be different. `dealer` and `aggregator` have specific hard coded `ParticipantId`s, so for example a `dealer` can't be a `signer`. This is not a protocol limitation but a specific rule introduced in this document.
 
 ## Guide-level explanation
 
