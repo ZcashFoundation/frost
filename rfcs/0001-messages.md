@@ -100,7 +100,7 @@ enum ParticipantId {
     /// A serialized participant ID for a signer.
     ///
     /// Must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
-    Signer(u8),
+    Signer(u64),
     /// The fixed participant ID for the dealer.
     Dealer,
     /// The fixed participant ID for the aggregator.
@@ -108,15 +108,15 @@ enum ParticipantId {
 }
 
 /// The fixed participant ID for the dealer.
-const DEALER_PARTICIPANT_ID: u8 = u8::MAX - 1;
+const DEALER_PARTICIPANT_ID: u64 = u64::MAX - 1;
 
 /// The fixed participant ID for the aggregator.
-const AGGREGATOR_PARTICIPANT_ID: u8 = u8::MAX;
+const AGGREGATOR_PARTICIPANT_ID: u64 = u64::MAX;
 
 /// The maximum `ParticipantId::Signer` in this serialization format.
 ///
 /// We reserve two participant IDs for the dealer and aggregator.
-const MAX_SIGNER_PARTICIPANT_ID: u8 = u8::MAX - 2;
+const MAX_SIGNER_PARTICIPANT_ID: u64 = u64::MAX - 2;
 ```
 
 ### Payloads
@@ -285,8 +285,8 @@ Bytes | Field name | Data type
 ------|------------|-----------
 1     | msg_type   | u8
 1     | version    | u8
-1     | sender     | u8
-1     | receiver   | u8
+1     | sender     | u64
+1     | receiver   | u64
 
 ### Primitive types
 
