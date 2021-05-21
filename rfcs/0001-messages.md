@@ -137,9 +137,9 @@ struct messages::SharePackage {
     group_public: VerificationKey<SpendAuth>,
     /// This participant's secret key share: `frost::SharePackage.share.value`.
     secret_share: frost::Secret,
-    /// Commitment for the signer as a single jubjub::AffinePoint.
-    /// A set of commitments to the coefficients (which themselves are scalars)
-    /// for a secret polynomial _f_: `frost::SharePackage.share.commitment`
+    /// The commitments to the coefficients for our secret polynomial _f_,
+    /// used to generate participants' key shares. Participants use these to perform
+    /// verifiable secret sharing.
     share_commitment: Vec<frost::Commitment>,
 }
 
