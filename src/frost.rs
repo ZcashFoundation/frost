@@ -73,7 +73,7 @@ pub struct Share {
 /// This is a (public) commitment to one coefficient of a secret polynomial used
 /// for performing verifiable secret sharing for a Shamir secret share.
 #[derive(Clone)]
-struct Commitment(jubjub::ExtendedPoint);
+struct Commitment(jubjub::AffinePoint);
 
 /// Contains the commitments to the coefficients for our secret polynomial _f_,
 /// used to generate participants' key shares.
@@ -276,12 +276,14 @@ fn generate_shares<R: RngCore + CryptoRng>(
 
     // Verifiable secret sharing, to make sure that participants can ensure their secret is consistent
     // with every other participant's.
-    commitment
-        .0
-        .push(Commitment(SpendAuth::basepoint() * secret.0));
+    commitment.0.push(Commitment(jubjub::AffinePoint::from(
+        SpendAuth::basepoint() * secret.0,
+    )));
 
     for c in &coefficients {
-        commitment.0.push(Commitment(SpendAuth::basepoint() * c));
+        commitment.0.push(Commitment(jubjub::AffinePoint::from(
+            SpendAuth::basepoint() * c,
+        )));
     }
 
     // Evaluate the polynomial with `secret` as the constant term
