@@ -136,11 +136,11 @@ struct messages::SharePackage {
     /// `frost::SharePackage.group_public`.
     group_public: VerificationKey<SpendAuth>,
     /// This participant's secret key share: `frost::SharePackage.share.value`.
-    secret_share: frost::Scalar,
+    secret_share: frost::Secret,
     /// Commitment for the signer as a single jubjub::AffinePoint.
     /// A set of commitments to the coefficients (which themselves are scalars)
     /// for a secret polynomial _f_: `frost::SharePackage.share.commitment`
-    share_commitment: Vec<jubjub::AffinePoint>,
+    share_commitment: Vec<frost::Commitment>,
 }
 
 /// The data required to serialize `frost::SigningCommitments`.
@@ -149,9 +149,9 @@ struct messages::SharePackage {
 /// A signing commitment from the first round of the signing protocol.
 struct messages::SigningCommitments {
     /// The hiding point: `frost::SigningCommitments.hiding`
-    hiding: jubjub::AffinePoint,
+    hiding: frost::Commitment,
     /// The binding point: `frost::SigningCommitments.binding`
-    binding: jubjub::AffinePoint,
+    binding: frost::Commitment,
 }
 
 /// The data required to serialize `frost::SigningPackage`.
@@ -184,7 +184,7 @@ struct messages::SignatureShare {
 /// The final signature is broadcasted by the aggregator to all signers.
 struct messages::AggregateSignature {
     /// The aggregated group commitment: `Signature<SpendAuth>.r_bytes` returned by `frost::aggregate`
-    group_commitment: jubjub::AffinePoint,
+    group_commitment: frost::GroupCommitment,
     /// A plain Schnorr signature created by summing all the signature shares:
     /// `Signature<SpendAuth>.s_bytes` returned by `frost::aggregate`
     schnorr_signature: frost::Scalar,
@@ -288,13 +288,21 @@ Bytes | Field name | Data type
 1     | sender     | u64
 1     | receiver   | u64
 
+### Frost types
+
+The FROST types we will be using in the messages can be represented always as a primitive type. For serialization/deserialization purposes:
+
+- `Commitment` = `AffinePoint`
+- `Secret` = `Scalar`
+- `GroupCommitment` = `AffinePoint`
+
 ### Primitive types
 
 `Payload`s use data types that we need to specify first. We have 3 primitive types inside the payload messages:
 
 #### `Scalar`
 
-`Scalar` is a an alias for `jubjub::Fr`. We use `Scalar::to_bytes` and `Scalar::from_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L252
+`jubjub::Scalar` is a an alias for `jubjub::Fr`. We use `Scalar::to_bytes` and `Scalar::from_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L252
 
 #### `AffinePoint`
 
@@ -309,7 +317,7 @@ We use `AffinePoint::to_bytes` and `AffinePoint::from_bytes` to get a 32-byte li
 
 #### VerificationKey
 
-`VerificationKey<SpendAuth>`s can be serialized and deserialized using `<[u8; 32]>::from` and `VerificationKey::from`. See https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L80-L90 and https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L114-L121.
+`redjubjub::VerificationKey<SpendAuth>`s can be serialized and deserialized using `<[u8; 32]>::from` and `VerificationKey::from`. See https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L80-L90 and https://github.com/ZcashFoundation/redjubjub/blob/main/src/verification_key.rs#L114-L121.
 
 ### Payload
 
@@ -320,16 +328,16 @@ Payload part of the message is variable in size and depends on message type.
 Bytes           | Field name       | Data type
 ----------------|------------------|-----------
 32              | group_public     | VerificationKey<SpendAuth>
-32              | secret_share     | Scalar
+32              | secret_share     | Share
 1               | participants     | u8
-32*participants | share_commitment | Vec\<AffinePoint\>
+32*participants | share_commitment | Vec\<Commitment\>
 
 #### `SigningCommitments`
 
 Bytes   | Field name          | Data type
 --------|---------------------|-----------
-32   | hiding | AffinePoint
-32   | binding | AffinePoint
+32   | hiding | Commitment
+32   | binding | Commitment
 
 #### `SigningPackage`
 
@@ -351,7 +359,7 @@ Bytes | Field name | Data type
 
 Bytes | Field name       | Data type
 ------|------------------|-----------
-32    | group_commitment | AffinePoint
+32    | group_commitment | GroupCommitment
 32    | schnorr_signature| Scalar
 
 ## Not included
