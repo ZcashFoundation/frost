@@ -176,7 +176,7 @@ struct messages::SigningPackage {
 /// and generate a final spend signature.
 struct messages::SignatureShare {
      /// This participant's signature over the message: `frost::SignatureShare.signature`
-    signature: frost::Scalar,
+    signature: frost::FrostSignature,
 }
 
 /// The data required to serialize a successful output from `frost::aggregate()`.
@@ -187,7 +187,7 @@ struct messages::AggregateSignature {
     group_commitment: frost::GroupCommitment,
     /// A plain Schnorr signature created by summing all the signature shares:
     /// `Signature<SpendAuth>.s_bytes` returned by `frost::aggregate`
-    schnorr_signature: frost::Scalar,
+    schnorr_signature: frost::FrostSignature,
 }
 ```
 
@@ -295,6 +295,7 @@ The FROST types we will be using in the messages can be represented always as a 
 - `Commitment` = `AffinePoint`
 - `Secret` = `Scalar`
 - `GroupCommitment` = `AffinePoint`
+- `FrostSignature` = `Scalar`
 
 ### Primitive types
 
@@ -302,7 +303,7 @@ The FROST types we will be using in the messages can be represented always as a 
 
 #### `Scalar`
 
-`jubjub::Scalar` is a an alias for `jubjub::Fr`. We use `Scalar::to_bytes` and `Scalar::from_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L252
+`jubjub::Scalar` is a an alias for `jubjub::Fr`. We use `Scalar::to_bytes` and `Scalar::from_bytes` to get a 32-byte little-endian canonical representation. See https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L260 and https://github.com/zkcrypto/bls12_381/blob/main/src/scalar.rs#L232
 
 #### `AffinePoint`
 
@@ -353,14 +354,14 @@ message_length         | message            | Vec\<u8\>
 
 Bytes | Field name | Data type
 ------|------------|-----------
-32    | signature  | Scalar
+32    | signature  | FrostSignature
 
 #### `AggregateSignature`
 
 Bytes | Field name       | Data type
 ------|------------------|-----------
 32    | group_commitment | GroupCommitment
-32    | schnorr_signature| Scalar
+32    | schnorr_signature| FrostSignature
 
 ## Not included
 
