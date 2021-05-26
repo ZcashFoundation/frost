@@ -176,7 +176,7 @@ struct messages::SigningPackage {
 /// and generate a final spend signature.
 struct messages::SignatureShare {
      /// This participant's signature over the message: `frost::SignatureShare.signature`
-    signature: frost::FrostSignature,
+    signature: frost::SignatureResponse,
 }
 
 /// The data required to serialize a successful output from `frost::aggregate()`.
@@ -187,7 +187,7 @@ struct messages::AggregateSignature {
     group_commitment: frost::GroupCommitment,
     /// A plain Schnorr signature created by summing all the signature shares:
     /// `Signature<SpendAuth>.s_bytes` returned by `frost::aggregate`
-    schnorr_signature: frost::FrostSignature,
+    schnorr_signature: frost::SignatureResponse,
 }
 ```
 
@@ -295,7 +295,7 @@ The FROST types we will be using in the messages can be represented always as a 
 - `Commitment` = `AffinePoint`
 - `Secret` = `Scalar`
 - `GroupCommitment` = `AffinePoint`
-- `FrostSignature` = `Scalar`
+- `SignatureResponse` = `Scalar`
 
 ### Primitive types
 
@@ -354,14 +354,14 @@ message_length         | message            | Vec\<u8\>
 
 Bytes | Field name | Data type
 ------|------------|-----------
-32    | signature  | FrostSignature
+32    | signature  | SignatureResponse
 
 #### `AggregateSignature`
 
 Bytes | Field name       | Data type
 ------|------------------|-----------
 32    | group_commitment | GroupCommitment
-32    | schnorr_signature| FrostSignature
+32    | schnorr_signature| SignatureResponse
 
 ## Not included
 
