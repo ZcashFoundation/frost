@@ -10,7 +10,7 @@ fn check_sign_with_dealer() {
     let threshold = 3;
     let (shares, pubkeys) = frost::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
 
-    let mut nonces: HashMap<u8, Vec<frost::SigningNonces>> =
+    let mut nonces: HashMap<u64, Vec<frost::SigningNonces>> =
         HashMap::with_capacity(threshold as usize);
     let mut commitments: Vec<frost::SigningCommitments> = Vec::with_capacity(threshold as usize);
 
@@ -18,8 +18,8 @@ fn check_sign_with_dealer() {
     for participant_index in 1..(threshold + 1) {
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _threshold_.
-        let (nonce, commitment) = frost::preprocess(1, participant_index, &mut rng);
-        nonces.insert(participant_index, nonce);
+        let (nonce, commitment) = frost::preprocess(1, participant_index as u64, &mut rng);
+        nonces.insert(participant_index as u64, nonce);
         commitments.push(commitment[0]);
     }
 
