@@ -11,6 +11,7 @@ struct SignatureCase<T: SigType> {
     msg: Vec<u8>,
     sig: Signature<T>,
     pk_bytes: VerificationKeyBytes<T>,
+    invalid_pk_bytes: VerificationKeyBytes<T>,
     is_valid: bool,
 }
 
@@ -40,10 +41,12 @@ impl<T: SigType> SignatureCase<T> {
         let sk = SigningKey::new(&mut rng);
         let sig = sk.sign(&mut rng, &msg);
         let pk_bytes = VerificationKey::from(&sk).into();
+        let invalid_pk_bytes = VerificationKey::from(&SigningKey::new(&mut rng)).into();
         Self {
             msg,
             sig,
             pk_bytes,
+            invalid_pk_bytes,
             is_valid: true,
         }
     }
@@ -61,11 +64,12 @@ impl<T: SigType> SignatureCase<T> {
             VerificationKeyBytes::<T>::from(bytes)
         };
 
+        // Check that the verification key is a valid RedJubjub verification key.
+        let pub_key = VerificationKey::try_from(pk_bytes)
+            .expect("The test verification key to be well-formed.");
+
         // Check that signature validation has the expected result.
-        self.is_valid
-            == VerificationKey::try_from(pk_bytes)
-                .and_then(|pk| pk.verify(&self.msg, &sig))
-                .is_ok()
+        self.is_valid == pub_key.verify(&self.msg, &sig).is_ok()
     }
 
     fn apply_tweak(&mut self, tweak: &Tweak) {
@@ -78,12 +82,7 @@ impl<T: SigType> SignatureCase<T> {
             }
             Tweak::ChangePubkey => {
                 // Changing the public key makes the signature invalid.
-                let mut bytes: [u8; 32] = self.pk_bytes.clone().into();
-                let j = (bytes[2] & 31) as usize;
-                bytes[2] ^= 0x23;
-                bytes[2] |= 0x99;
-                bytes[j] ^= bytes[2];
-                self.pk_bytes = bytes.into();
+                self.pk_bytes = self.invalid_pk_bytes;
                 self.is_valid = false;
             }
         }
@@ -103,15 +102,15 @@ use rand_core::SeedableRng;
 
 proptest! {
 
-    #[test]
+     #[test]
     fn tweak_signature(
         tweaks in prop::collection::vec(tweak_strategy(), (0,5)),
-        rng_seed in any::<u64>(),
+        rng_seed in prop::array::uniform32(any::<u8>()),
     ) {
         // Use a deterministic RNG so that test failures can be reproduced.
         // Seeding with 64 bits of entropy is INSECURE and this code should
         // not be copied outside of this test!
-        let mut rng = ChaChaRng::seed_from_u64(rng_seed);
+        let mut rng = ChaChaRng::from_seed(rng_seed);
 
         // Create a test case for each signature type.
         let msg = b"test message for proptests";
@@ -129,11 +128,9 @@ proptest! {
     }
 
     #[test]
-    fn randomization_commutes_with_pubkey_homomorphism(rng_seed in any::<u64>()) {
+    fn randomization_commutes_with_pubkey_homomorphism(rng_seed in prop::array::uniform32(any::<u8>())) {
         // Use a deterministic RNG so that test failures can be reproduced.
-        // Seeding with 64 bits of entropy is INSECURE and this code should
-        // not be copied outside of this test!
-        let mut rng = ChaChaRng::seed_from_u64(rng_seed);
+        let mut rng = ChaChaRng::from_seed(rng_seed);
 
         let r = {
             // XXX-jubjub: better API for this
