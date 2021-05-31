@@ -89,7 +89,8 @@ const BASIC_FROST_SERIALIZATION: MsgVersion = MsgVersion(0);
 /// where `n` is the number of participants.
 /// This helps us look up their shares and commitments in serialized arrays.
 /// So in serialization, we assign the dealer and aggregator the highest IDs,
-/// and mark those IDs as invalid for signers.
+/// and mark those IDs as invalid for signers. Then we serialize the
+/// participants in numeric order of their FROST IDs.
 ///
 /// "When performing Shamir secret sharing, a polynomial `f(x)` is used to generate
 /// each party’s share of the secret. The actual secret is `f(0)` and the party with
@@ -159,11 +160,12 @@ struct messages::SigningCommitments {
 /// The aggregator decides what message is going to be signed and
 /// sends it to each signer with all the commitments collected.
 struct messages::SigningPackage {
-    /// The collected commitments for each signer as a hashmap of
+    /// The collected commitments for each signer as an ordered map of
     /// unique participant identifiers: `frost::SigningPackage.signing_commitments`
     ///
     /// Signing packages that contain duplicate or missing `ParticipantId`s are invalid.
-    signing_commitments: HashMap<ParticipantId, SigningCommitments>,
+    /// `ParticipantId`s must be serialized in ascending numeric order.
+    signing_commitments: BTreeMap<ParticipantId, SigningCommitments>,
     /// The message to be signed: `frost::SigningPackage.message`.
     ///
     /// Each signer should perform protocol-specific verification on the message.
@@ -260,7 +262,8 @@ The following rules must be implemented:
   - Lenght must be at least `MIN_SIGNERS` (`2` signers).
 - `signing_commitments`:
     - Length must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
-    - Signing packages that contain duplicate `ParticipantId`s are invalid. This is implicit in the use of `HashMap`.
+    - Signing packages that contain duplicate `ParticipantId`s are invalid. This is implicit in the use of `BTreeMap`.
+    - Signing packages must serialize in ascending numeric `ParticipantId` order. This is the order of `BTreeMap.iter`.
     - Length must be at least `MIN_THRESHOLD` (`2` required signers).
 - `message`: signed messages have a protocol-specific length limit. For Zcash, that limit is the maximum network protocol message length: `2^21` bytes (2 MB).
 
@@ -279,14 +282,14 @@ Multi-byte integers **must not** be used for serialization, because they have di
 
 ### Header
 
-The `Header` part of the message is 4 bytes total:
+The `Header` part of the message is 18 bytes total:
 
 Bytes | Field name | Data type
 ------|------------|-----------
-1     | msg_type   | u8
 1     | version    | u8
-1     | sender     | u64
-1     | receiver   | u64
+1     | msg_type   | u8
+8     | sender     | u64
+8     | receiver   | u64
 
 ### Frost types
 
@@ -345,7 +348,7 @@ Bytes   | Field name          | Data type
 Bytes                  | Field name         | Data type
 -----------------------|--------------------|-----------
 1                      | participants       | u8
-(1+32+32)*participants | signing_commitments| HashMap<ParticipantId, SigningCommitments>
+(8+32+32)*participants | signing_commitments| BTreeMap<ParticipantId, SigningCommitments>
 8                      | message_length     | u64
 message_length         | message            | Vec\<u8\>
 
