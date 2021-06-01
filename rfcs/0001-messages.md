@@ -261,12 +261,14 @@ The following rules must be implemented:
 - Each jubjub type must be validated during deserialization.
 - `share_commitments`:
   - Length must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
-  - Lenght must be at least `MIN_SIGNERS` (`2` signers).
+  - Length must be at least `MIN_SIGNERS` (`2` signers).
+  - Duplicate `ParticipantId`s are invalid. This is implicit in the use of `BTreeMap` during serialization, but must be checked during deserialization.
+  - Commitments must be serialized in ascending numeric `ParticipantId` order. This is the order of `BTreeMap.iter` during serialization, but must be checked during deserialization.
 - `signing_commitments`:
     - Length must be less than or equal to `MAX_SIGNER_PARTICIPANT_ID`.
-    - Signing packages that contain duplicate `ParticipantId`s are invalid. This is implicit in the use of `BTreeMap`.
-    - Signing packages must serialize in ascending numeric `ParticipantId` order. This is the order of `BTreeMap.iter`.
     - Length must be at least `MIN_THRESHOLD` (`2` required signers).
+    - Signing packages that contain duplicate `ParticipantId`s are invalid. This is implicit in the use of `BTreeMap` during serialization, but must be checked during deserialization.
+    - Signing packages must serialize in ascending numeric `ParticipantId` order. This is the order of `BTreeMap.iter` during serialization, but must be checked during deserialization..
 - `message`: signed messages have a protocol-specific length limit. For Zcash, that limit is the maximum network protocol message length: `2^21` bytes (2 MB).
 
 ## Serialization/Deserialization
@@ -377,6 +379,7 @@ The following are a few things this RFC is not considering:
     - This is particularly important for `SigningPackage`s, which only need a threshold of participants to continue.
 - Messages larger than 4 GB are not supported on 32-bit platforms.
 - Implementations should validate that message lengths are lower than a protocol-specific maximum length, then allocate message memory.
+- Implementations should distinguish between FROST messages from different signature schemes using implementation-specific mechanisms.
 
 ### State-Based Validation
 
