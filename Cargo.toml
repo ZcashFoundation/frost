@@ -21,14 +21,11 @@ features = ["nightly"]
 blake2b_simd = "0.5"
 byteorder = "1.4"
 digest = "0.9"
-jubjub = "0.6"
+jubjub = "0.7"
 rand_core = "0.6"
 serde = { version = "1", optional = true, features = ["derive"] }
 thiserror = "1.0"
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
-
-# Temporary workaround for https://github.com/myrrlyn/funty/issues/3
-funty = "=1.1.0"
 
 [dev-dependencies]
 bincode = "1"
