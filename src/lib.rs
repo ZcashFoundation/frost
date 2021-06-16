@@ -20,8 +20,9 @@ mod constants;
 mod error;
 pub mod frost;
 mod hash;
+mod messages;
 mod scalar_mul;
-mod signature;
+pub(crate) mod signature;
 mod signing_key;
 mod verification_key;
 

@@ -7,6 +7,7 @@
 // Authors:
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
+//! Redjubjub Signatures
 use std::marker::PhantomData;
 
 use crate::SigType;

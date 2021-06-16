@@ -29,7 +29,7 @@ fn check_sign_with_dealer() {
     let mut signature_shares: Vec<frost::SignatureShare> = Vec::with_capacity(threshold as usize);
     let message = "message to sign".as_bytes();
     let signing_package = frost::SigningPackage {
-        message,
+        message: message.to_vec(),
         signing_commitments: commitments,
     };
 

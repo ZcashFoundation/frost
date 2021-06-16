@@ -66,7 +66,7 @@ impl<T: SigType> Hash for VerificationKeyBytes<T> {
 ///
 /// 1. The check that the bytes are a canonical encoding of a verification key;
 /// 2. The check that the verification key is not a point of small order.
-#[derive(Copy, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "VerificationKeyBytes<T>"))]
 #[cfg_attr(feature = "serde", serde(into = "VerificationKeyBytes<T>"))]
