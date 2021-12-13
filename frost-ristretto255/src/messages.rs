@@ -244,12 +244,16 @@ impl From<SigningPackage> for frost::SigningPackage {
         for (participant_id, commitment) in &value.signing_commitments {
             let s = frost::SigningCommitments {
                 index: u64::from(*participant_id),
-                hiding: CompressedRistretto::from_slice(&commitment.hiding.0)
-                    .decompress()
-                    .unwrap(),
-                binding: CompressedRistretto::from_slice(&commitment.binding.0)
-                    .decompress()
-                    .unwrap(),
+                hiding: frost::Commitment(
+                    CompressedRistretto::from_slice(&commitment.hiding.0)
+                        .decompress()
+                        .unwrap(),
+                ),
+                binding: frost::Commitment(
+                    CompressedRistretto::from_slice(&commitment.binding.0)
+                        .decompress()
+                        .unwrap(),
+                ),
             };
             signing_commitments.push(s);
         }

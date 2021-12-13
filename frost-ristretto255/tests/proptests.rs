@@ -3,15 +3,15 @@ use std::convert::TryFrom;
 use proptest::prelude::*;
 use rand_core::{CryptoRng, RngCore};
 
-use redjubjub::*;
+use frost_ristretto255::*;
 
 /// A signature test-case, containing signature data and expected validity.
 #[derive(Clone, Debug)]
-struct SignatureCase<T: SigType> {
+struct SignatureCase {
     msg: Vec<u8>,
-    sig: Signature<T>,
-    pk_bytes: VerificationKeyBytes<T>,
-    invalid_pk_bytes: VerificationKeyBytes<T>,
+    sig: Signature,
+    pk_bytes: VerificationKeyBytes,
+    invalid_pk_bytes: VerificationKeyBytes,
     is_valid: bool,
 }
 
@@ -36,7 +36,7 @@ enum Tweak {
     */
 }
 
-impl<T: SigType> SignatureCase<T> {
+impl SignatureCase {
     fn new<R: RngCore + CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
         let sk = SigningKey::new(&mut rng);
         let sig = sk.sign(&mut rng, &msg);
@@ -57,11 +57,11 @@ impl<T: SigType> SignatureCase<T> {
         // conversion to raw bytes to exercise those code paths.
         let sig = {
             let bytes: [u8; 64] = self.sig.into();
-            Signature::<T>::from(bytes)
+            Signature::from(bytes)
         };
         let pk_bytes = {
             let bytes: [u8; 32] = self.pk_bytes.into();
-            VerificationKeyBytes::<T>::from(bytes)
+            VerificationKeyBytes::from(bytes)
         };
 
         // Check that the verification key is a valid RedJubjub verification key.
@@ -114,8 +114,8 @@ proptest! {
 
         // Create a test case for each signature type.
         let msg = b"test message for proptests";
-        let mut binding = SignatureCase::<Binding>::new(&mut rng, msg.to_vec());
-        let mut spendauth = SignatureCase::<SpendAuth>::new(&mut rng, msg.to_vec());
+        let mut binding = SignatureCase::new(&mut rng, msg.to_vec());
+        let mut spendauth = SignatureCase::new(&mut rng, msg.to_vec());
 
         // Apply tweaks to each case.
         for t in &tweaks {
@@ -127,27 +127,5 @@ proptest! {
         assert!(spendauth.check());
     }
 
-    #[test]
-    fn randomization_commutes_with_pubkey_homomorphism(rng_seed in prop::array::uniform32(any::<u8>())) {
-        // Use a deterministic RNG so that test failures can be reproduced.
-        let mut rng = ChaChaRng::from_seed(rng_seed);
 
-        let r = {
-            // XXX-jubjub: better API for this
-            let mut bytes = [0; 64];
-            rng.fill_bytes(&mut bytes[..]);
-            Randomizer::from_bytes_wide(&bytes)
-        };
-
-        let sk = SigningKey::<SpendAuth>::new(&mut rng);
-        let pk = VerificationKey::from(&sk);
-
-        let sk_r = sk.randomize(&r);
-        let pk_r = pk.randomize(&r);
-
-        let pk_r_via_sk_rand: [u8; 32] = VerificationKeyBytes::from(VerificationKey::from(&sk_r)).into();
-        let pk_r_via_pk_rand: [u8; 32] = VerificationKeyBytes::from(pk_r).into();
-
-        assert_eq!(pk_r_via_pk_rand, pk_r_via_sk_rand);
-    }
 }

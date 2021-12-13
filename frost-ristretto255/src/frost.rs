@@ -77,7 +77,7 @@ pub struct Share {
 ///
 /// This is a (public) commitment to one coefficient of a secret polynomial used
 /// for performing verifiable secret sharing for a Shamir secret share.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub(crate) struct Commitment(pub(crate) RistrettoPoint);
 
 /// Contains the commitments to the coefficients for our secret polynomial _f_,
@@ -368,9 +368,9 @@ pub struct SigningCommitments {
     /// The participant index
     pub(crate) index: u64,
     /// The hiding point.
-    pub(crate) hiding: RistrettoPoint,
+    pub(crate) hiding: Commitment,
     /// The binding point.
-    pub(crate) binding: RistrettoPoint,
+    pub(crate) binding: Commitment,
 }
 
 impl From<(u64, &SigningNonces)> for SigningCommitments {
@@ -379,8 +379,8 @@ impl From<(u64, &SigningNonces)> for SigningCommitments {
     fn from((index, nonces): (u64, &SigningNonces)) -> Self {
         Self {
             index,
-            hiding: RISTRETTO_BASEPOINT_POINT * nonces.hiding,
-            binding: RISTRETTO_BASEPOINT_POINT * nonces.binding,
+            hiding: Commitment(RISTRETTO_BASEPOINT_POINT * nonces.hiding),
+            binding: Commitment(RISTRETTO_BASEPOINT_POINT * nonces.binding),
         }
     }
 }
@@ -490,9 +490,9 @@ fn gen_rho_i(index: u64, signing_package: &SigningPackage) -> Scalar {
 
     for item in signing_package.signing_commitments.iter() {
         hasher.update(item.index.to_be_bytes());
-        let hiding_bytes = RistrettoPoint::from(item.hiding).compress().to_bytes();
+        let hiding_bytes = RistrettoPoint::from(item.hiding.0).compress().to_bytes();
         hasher.update(hiding_bytes);
-        let binding_bytes = RistrettoPoint::from(item.binding).compress().to_bytes();
+        let binding_bytes = RistrettoPoint::from(item.binding.0).compress().to_bytes();
         hasher.update(binding_bytes);
     }
 
@@ -511,14 +511,14 @@ fn gen_group_commitment(
     for commitment in signing_package.signing_commitments.iter() {
         // The following check prevents a party from accidentally revealing their share.
         // Note that the '&&' operator would be sufficient.
-        if identity == commitment.binding || identity == commitment.hiding {
+        if identity == commitment.binding.0 || identity == commitment.hiding.0 {
             return Err("Commitment equals the identity.");
         }
 
         let rho_i = bindings
             .get(&commitment.index)
             .ok_or("No matching commitment index")?;
-        accumulator += commitment.hiding + (commitment.binding * rho_i)
+        accumulator += commitment.hiding.0 + (commitment.binding.0 * rho_i)
     }
 
     Ok(GroupCommitment(RistrettoPoint::from(accumulator)))
@@ -654,8 +654,8 @@ pub fn aggregate(
             .find(|comm| comm.index == signing_share.index)
             .ok_or("No matching signing commitment for signer")?;
 
-        let commitment_i =
-            signer_commitment.hiding + (signer_commitment.binding * bindings[&signing_share.index]);
+        let commitment_i = signer_commitment.hiding.0
+            + (signer_commitment.binding.0 * bindings[&signing_share.index]);
 
         signing_share.check_is_valid(&signer_pubkey, lambda_i, commitment_i, challenge)?;
     }
@@ -703,7 +703,7 @@ mod tests {
             if den == Scalar::zero() {
                 return Err("Duplicate shares provided");
             }
-            lagrange_coeffs.push(num * den.invert().unwrap());
+            lagrange_coeffs.push(num * den.invert());
         }
 
         let mut secret = Scalar::zero();
@@ -723,7 +723,7 @@ mod tests {
 
         let mut bytes = [0; 64];
         rng.fill_bytes(&mut bytes);
-        let secret = Secret(Scalar::from_bytes_wide(&bytes));
+        let secret = Secret(Scalar::from_bytes_mod_order_wide(&bytes));
 
         let _ = RISTRETTO_BASEPOINT_POINT * secret.0;
 

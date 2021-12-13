@@ -1,39 +1,22 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-
-use rand::{thread_rng, Rng};
-use redjubjub::*;
 use std::convert::TryFrom;
 
-enum Item {
-    SpendAuth {
-        vk_bytes: VerificationKeyBytes<SpendAuth>,
-        sig: Signature<SpendAuth>,
-    },
-    Binding {
-        vk_bytes: VerificationKeyBytes<Binding>,
-        sig: Signature<Binding>,
-    },
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use rand::thread_rng;
+
+use frost_ristretto255::*;
+
+struct Item {
+    vk_bytes: VerificationKeyBytes,
+    sig: Signature,
 }
 
 fn sigs_with_distinct_keys() -> impl Iterator<Item = Item> {
     std::iter::repeat_with(|| {
-        let mut rng = thread_rng();
         let msg = b"Bench";
-        match rng.gen::<u8>() % 2 {
-            0 => {
-                let sk = SigningKey::<SpendAuth>::new(thread_rng());
-                let vk_bytes = VerificationKey::from(&sk).into();
-                let sig = sk.sign(thread_rng(), &msg[..]);
-                Item::SpendAuth { vk_bytes, sig }
-            }
-            1 => {
-                let sk = SigningKey::<Binding>::new(thread_rng());
-                let vk_bytes = VerificationKey::from(&sk).into();
-                let sig = sk.sign(thread_rng(), &msg[..]);
-                Item::Binding { vk_bytes, sig }
-            }
-            _ => panic!(),
-        }
+        let sk = SigningKey::new(thread_rng());
+        let vk_bytes = VerificationKey::from(&sk).into();
+        let sig = sk.sign(thread_rng(), &msg[..]);
+        Item { vk_bytes, sig }
     })
 }
 
@@ -52,11 +35,7 @@ fn bench_batch_verify(c: &mut Criterion) {
                     for item in sigs.iter() {
                         let msg = b"Bench";
                         match item {
-                            Item::SpendAuth { vk_bytes, sig } => {
-                                let _ = VerificationKey::try_from(*vk_bytes)
-                                    .and_then(|vk| vk.verify(msg, sig));
-                            }
-                            Item::Binding { vk_bytes, sig } => {
+                            Item { vk_bytes, sig } => {
                                 let _ = VerificationKey::try_from(*vk_bytes)
                                     .and_then(|vk| vk.verify(msg, sig));
                             }
@@ -75,10 +54,7 @@ fn bench_batch_verify(c: &mut Criterion) {
                     for item in sigs.iter() {
                         let msg = b"Bench";
                         match item {
-                            Item::SpendAuth { vk_bytes, sig } => {
-                                batch.queue((*vk_bytes, *sig, msg));
-                            }
-                            Item::Binding { vk_bytes, sig } => {
+                            Item { vk_bytes, sig } => {
                                 batch.queue((*vk_bytes, *sig, msg));
                             }
                         }

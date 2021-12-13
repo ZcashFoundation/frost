@@ -14,7 +14,7 @@ signature:
 ```rust
 # use std::convert::TryFrom;
 use rand::thread_rng;
-use frost-ristretto255::*;
+use frost_ristretto255::*;
 
 let msg = b"Hello!";
 
@@ -27,7 +27,8 @@ let sig_bytes: [u8; 64] = sig.into();
 let pk_bytes: [u8; 32] = VerificationKey::from(&sk).into();
 
 // Deserialize and verify the signature.
-let sig: Signature<Binding> = sig_bytes.into();
+let sig: Signature = sig_bytes.into();
+
 assert!(
     VerificationKey::try_from(pk_bytes)
         .and_then(|pk| pk.verify(msg, &sig))

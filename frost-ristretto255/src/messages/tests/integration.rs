@@ -1,3 +1,8 @@
+use std::convert::TryFrom;
+
+use rand::thread_rng;
+use serde_json;
+
 use crate::{
     frost,
     messages::{
@@ -6,9 +11,6 @@ use crate::{
     },
     verification_key,
 };
-use rand::thread_rng;
-use serde_json;
-use std::convert::TryFrom;
 
 #[test]
 fn validate_version() {
@@ -201,8 +203,8 @@ fn validate_signingcommitments() {
     let header = create_valid_header(setup.aggregator, setup.signer2);
 
     let payload = Payload::SigningCommitments(SigningCommitments {
-        hiding: Commitment(jubjub::AffinePoint::from(commitment[0].hiding).to_bytes()),
-        binding: Commitment(jubjub::AffinePoint::from(commitment[0].binding).to_bytes()),
+        hiding: Commitment::from(commitment[0].hiding),
+        binding: Commitment::from(commitment[0].binding),
     });
 
     let message = Message {
@@ -240,8 +242,8 @@ fn serialize_signingcommitments() {
 
     let header = create_valid_header(setup.aggregator, setup.signer1);
 
-    let hiding = Commitment(jubjub::AffinePoint::from(commitment[0].hiding).to_bytes());
-    let binding = Commitment(jubjub::AffinePoint::from(commitment[0].binding).to_bytes());
+    let hiding = Commitment::from(commitment[0].hiding);
+    let binding = Commitment::from(commitment[0].binding);
 
     let payload = Payload::SigningCommitments(SigningCommitments { hiding, binding });
 
@@ -724,7 +726,7 @@ fn basic_setup() -> Setup {
     }
 }
 
-fn full_setup() -> (Setup, signature::Signature<SpendAuth>) {
+fn full_setup() -> (Setup, signature::Signature) {
     let mut setup = basic_setup();
 
     // aggregator creates the shares and pubkeys for this round
@@ -796,8 +798,8 @@ fn create_signing_commitments(
         .zip(commitments)
         .map(|(participant_id, commitment)| {
             let signing_commitment = SigningCommitments {
-                hiding: Commitment(jubjub::AffinePoint::from(commitment.hiding).to_bytes()),
-                binding: Commitment(jubjub::AffinePoint::from(commitment.binding).to_bytes()),
+                hiding: Commitment::from(commitment.hiding),
+                binding: Commitment::from(commitment.binding),
             };
             (participant_id, signing_commitment)
         })
