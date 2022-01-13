@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
+use curve25519_dalek::ristretto::{CompressedRistretto};
 #[cfg(test)]
 use proptest_derive::Arbitrary;
 use serde::{Deserialize, Serialize};
@@ -39,7 +39,7 @@ pub struct Commitment([u8; 32]);
 
 impl From<frost::Commitment> for Commitment {
     fn from(value: frost::Commitment) -> Commitment {
-        Commitment(RistrettoPoint::from(value.0).compress().to_bytes())
+        Commitment(value.0.compress().to_bytes())
     }
 }
 

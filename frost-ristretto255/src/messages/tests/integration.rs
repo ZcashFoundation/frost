@@ -1,7 +1,6 @@
 use std::convert::TryFrom;
 
 use rand::thread_rng;
-use serde_json;
 
 use crate::{
     frost,
@@ -53,7 +52,7 @@ fn validate_sender_receiver() {
 }
 
 #[test]
-fn validate_sharepackage() {
+fn validate_share_package() {
     let setup = basic_setup();
     let (mut shares, _pubkeys) =
         frost::keygen_with_dealer(setup.num_signers, setup.threshold, setup.rng.clone()).unwrap();
@@ -63,7 +62,7 @@ fn validate_sharepackage() {
     let group_public = VerificationKey::from(
         verification_key::VerificationKey::try_from(shares[0].group_public.bytes).unwrap(),
     );
-    let secret_share = Secret(shares[0].share.value.0.to_bytes());
+    let secret_share = Secret(shares[0].secret_share.value.0.to_bytes());
 
     let participants = vec![setup.signer1, setup.signer2];
     shares.truncate(2);
@@ -71,8 +70,8 @@ fn validate_sharepackage() {
 
     let payload = Payload::SharePackage(SharePackage {
         group_public,
-        secret_share: secret_share,
-        share_commitment: share_commitment,
+        secret_share,
+        share_commitment,
     });
     let validate_payload = Validate::validate(&payload);
     let valid_payload = validate_payload.expect("a valid payload").clone();
@@ -103,7 +102,7 @@ fn validate_sharepackage() {
     // change the payload to have only 1 commitment
     let payload = Payload::SharePackage(SharePackage {
         group_public,
-        secret_share: secret_share,
+        secret_share,
         share_commitment: share_commitment.clone(),
     });
     let validate_payload = Validate::validate(&payload);
@@ -129,7 +128,7 @@ fn validate_sharepackage() {
 }
 
 #[test]
-fn serialize_sharepackage() {
+fn serialize_share_package() {
     let setup = basic_setup();
 
     let (mut shares, _pubkeys) =
@@ -140,7 +139,7 @@ fn serialize_sharepackage() {
     let group_public = VerificationKey::from(
         verification_key::VerificationKey::try_from(shares[0].group_public.bytes).unwrap(),
     );
-    let secret_share = Secret(shares[0].share.value.0.to_bytes());
+    let secret_share = Secret(shares[0].secret_share.value.0.to_bytes());
 
     let participants = vec![setup.signer1];
     shares.truncate(1);
@@ -153,7 +152,7 @@ fn serialize_sharepackage() {
     });
 
     let message = Message {
-        header: header,
+        header,
         payload: payload.clone(),
     };
 
@@ -248,7 +247,7 @@ fn serialize_signingcommitments() {
     let payload = Payload::SigningCommitments(SigningCommitments { hiding, binding });
 
     let message = Message {
-        header: header,
+        header,
         payload: payload.clone(),
     };
 
@@ -343,7 +342,7 @@ fn validate_signingpackage() {
     let header = create_valid_header(setup.aggregator, setup.dealer);
 
     let message = Message {
-        header: header,
+        header,
         payload: payload.clone(),
     };
 
@@ -379,7 +378,7 @@ fn serialize_signingpackage() {
     });
 
     let message = Message {
-        header: header,
+        header,
         payload: payload.clone(),
     };
 
@@ -436,7 +435,7 @@ fn validate_signatureshare() {
     let signing_commitments = create_signing_commitments(commitments, participants);
 
     let signing_package = frost::SigningPackage::from(SigningPackage {
-        signing_commitments: signing_commitments.clone(),
+        signing_commitments: signing_commitments,
         message: "hola".as_bytes().to_vec(),
     });
 
@@ -494,7 +493,7 @@ fn serialize_signatureshare() {
     let signing_commitments = create_signing_commitments(commitments, participants);
 
     let signing_package = frost::SigningPackage::from(SigningPackage {
-        signing_commitments: signing_commitments.clone(),
+        signing_commitments: signing_commitments,
         message: "hola".as_bytes().to_vec(),
     });
 
@@ -508,7 +507,7 @@ fn serialize_signatureshare() {
     let payload = Payload::SignatureShare(SignatureShare { signature });
 
     let message = Message {
-        header: header,
+        header,
         payload: payload.clone(),
     };
 
@@ -656,13 +655,12 @@ fn btreemap() {
 // utility functions
 
 fn create_valid_header(sender: ParticipantId, receiver: ParticipantId) -> Header {
-    Validate::validate(&Header {
+    *Validate::validate(&Header {
         version: constants::BASIC_FROST_SERIALIZATION,
-        sender: sender,
-        receiver: receiver,
+        sender,
+        receiver,
     })
     .expect("always a valid header")
-    .clone()
 }
 
 fn serialize_header(
@@ -750,7 +748,7 @@ fn full_setup() -> (Setup, signature::Signature) {
         Vec::with_capacity(setup.threshold as usize);
     let message = "message to sign".as_bytes().to_vec();
     let signing_package = frost::SigningPackage {
-        message: message.clone(),
+        message: message,
         signing_commitments: commitments,
     };
 
@@ -782,7 +780,7 @@ fn generate_share_commitment(
         .map(|(participant_id, share)| {
             (
                 participant_id,
-                Commitment::from(share.share.commitment.0[0].clone()),
+                Commitment::from(share.secret_share.commitment.0[0]),
             )
         })
         .collect()

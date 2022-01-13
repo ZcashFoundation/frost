@@ -19,9 +19,9 @@ impl Arbitrary for Header {
                 |(_, sender, receiver)| sender != receiver,
             )
             .prop_map(|(version, sender, receiver)| Header {
-                version: version,
-                sender: sender,
-                receiver: receiver,
+                version,
+                sender,
+                receiver,
             })
             .boxed()
     }

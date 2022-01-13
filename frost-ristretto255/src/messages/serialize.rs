@@ -49,11 +49,11 @@ impl<'de> Visitor<'de> for ParticipantIdVisitor {
     {
         // Note: deserialization can't fail, because all values are valid.
         if value == DEALER_PARTICIPANT_ID {
-            return Ok(ParticipantId::Dealer);
+            Ok(ParticipantId::Dealer)
         } else if value == AGGREGATOR_PARTICIPANT_ID {
-            return Ok(ParticipantId::Aggregator);
+            Ok(ParticipantId::Aggregator)
         } else {
-            return Ok(ParticipantId::Signer(value));
+            Ok(ParticipantId::Signer(value))
         }
     }
 }

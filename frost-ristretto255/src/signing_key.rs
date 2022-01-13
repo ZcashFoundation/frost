@@ -28,7 +28,7 @@ pub struct SigningKey {
 
 impl<'a> From<&'a SigningKey> for VerificationKey {
     fn from(sk: &'a SigningKey) -> VerificationKey {
-        sk.pk.clone()
+        sk.pk
     }
 }
 
@@ -45,7 +45,7 @@ impl TryFrom<[u8; 32]> for SigningKey {
         match Scalar::from_canonical_bytes(bytes) {
             Some(sk) => {
                 let pk = VerificationKey::from(&sk);
-                return Ok(SigningKey { sk, pk });
+                Ok(SigningKey { sk, pk })
             }
             None => Err(Error::MalformedSigningKey),
         }
