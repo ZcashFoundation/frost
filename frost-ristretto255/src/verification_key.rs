@@ -119,13 +119,23 @@ impl VerificationKey {
     /// Verify a purported `signature` over `msg` made by this verification key.
     // This is similar to impl signature::Verifier but without boxed errors
     pub fn verify(&self, msg: &[u8], signature: &Signature) -> Result<(), Error> {
-        let mut c = Sha512::new();
+        let msg_hash = Sha512::new().chain(msg).finalize();
 
-        c.update(&signature.r_bytes[..]);
-        c.update(&self.bytes.bytes[..]); // XXX ugly
-        c.update(msg);
+        //  let mut c = Sha512::new();
 
-        self.verify_prehashed(signature, Scalar::from_hash(c))
+        // c.update(&signature.r_bytes[..]);
+        // c.update(&self.bytes.bytes[..]); // XXX ugly
+        // c.update(msg_hash);
+
+        self.verify_prehashed(
+            signature,
+            Scalar::from_hash(
+                Sha512::new()
+                    .chain(&signature.r_bytes[..])
+                    .chain(&self.bytes.bytes[..])
+                    .chain(msg_hash),
+            ),
+        )
     }
 
     /// Verify a purported `signature` with a prehashed challenge.

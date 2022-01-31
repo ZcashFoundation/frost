@@ -33,6 +33,45 @@ use zeroize::DefaultIsZeroes;
 
 use crate::{Signature, VerificationKey};
 
+/// Context string 'FROST-RISTRETTO255-SHA512' from the ciphersuite in the [spec]
+///
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-01.txt
+const CONTEXT_STRING: &'static str = "FROST-RISTRETTO255-SHA512";
+
+/// H1 for FROST(ristretto255, SHA-512)
+///
+/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-ha
+fn H1(m: &[u8]) -> [u8; 64] {
+    let h = Sha512::new()
+        .chain(CONTEXT_STRING.as_bytes())
+        .chain("rho")
+        // TODO: double-check big endian vs little endian representation of integers like this
+        // frost-dalek also uses to_be_bytes
+        .chain(m.len().to_be_bytes())
+        .chain(m);
+
+    let mut output = [0u8; 64];
+    output.copy_from_slice(h.finalize().as_slice());
+    output
+}
+
+/// H2 for FROST(ristretto255, SHA-512)
+///
+/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
+fn H2(m: &[u8]) -> [u8; 64] {
+    let h = Sha512::new()
+        .chain(CONTEXT_STRING.as_bytes())
+        .chain("chal")
+        // TODO: double-check big endian vs little endian representation of integers like this
+        // frost-dalek also uses to_be_bytes
+        .chain(m.len().to_be_bytes())
+        .chain(m);
+
+    let mut output = [0u8; 64];
+    output.copy_from_slice(h.finalize().as_slice());
+    output
+}
+
 /// A secret scalar value representing a single signer's secret key.
 #[derive(Clone, Copy, Default, PartialEq)]
 pub struct Secret(pub(crate) Scalar);
@@ -152,17 +191,17 @@ pub struct KeyPackage {
     group_public: VerificationKey,
 }
 
-/// Public data that contains all the signer's public keys as well as the
+/// Public data that contains all the signers' public keys as well as the
 /// group public key.
 ///
 /// Used for verification purposes before publishing a signature.
 pub struct PublicKeyPackage {
     /// When performing signing, the coordinator must ensure that they have the
-    /// correct view of participant's public keys to perform verification before
-    /// publishing a signature. signer_pubkeys represents all signers for a
+    /// correct view of participants' public keys to perform verification before
+    /// publishing a signature. `signer_pubkeys` represents all signers for a
     /// signing operation.
     pub(crate) signer_pubkeys: HashMap<u64, Public>,
-    /// group_public represents the joint public key for the entire group.
+    /// The joint public key for the entire group.
     pub group_public: VerificationKey,
 }
 
@@ -476,19 +515,22 @@ fn gen_rho_i(index: u64, signing_package: &SigningPackage) -> Scalar {
     // binding factor, we should hash our input message first. Our 'standard'
     // hash is SHA-512, which uses a domain separator already, and is the same one
     // that generates the binding factor.
-    let message_hash = Sha512::new()
+    let msg_hash = Sha512::new()
         .chain(signing_package.message.as_slice())
         .finalize();
 
     // Context string FROST-RISTRETTO255-SHA512 and domain separator rho come from the ciphersuite
-    // in the spec:
+    // in the [spec].
     //
-    // https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-01.txt
+    // Only instatiation of the H1 hash function from the [spec].
+    //
+    // [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
+    // TODO: use H1 here?
     let mut hasher = Sha512::new()
-        .chain("FROST-RISTRETTO255-SHA512".as_bytes())
+        .chain(CONTEXT_STRING.as_bytes())
         .chain("rho")
         .chain(index.to_be_bytes())
-        .chain(message_hash);
+        .chain(msg_hash);
 
     for item in signing_package.signing_commitments.iter() {
         hasher.update(item.index.to_be_bytes());
@@ -527,6 +569,10 @@ fn gen_group_commitment(
 }
 
 /// Generates the challenge as is required for Schnorr signatures.
+///
+/// This is the only invocation of the H2 hash function from the [RFC].
+///
+/// [RFC]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
 fn gen_challenge(
     signing_package: &SigningPackage,
     group_commitment: &GroupCommitment,
@@ -534,12 +580,18 @@ fn gen_challenge(
 ) -> Scalar {
     let group_commitment_bytes = group_commitment.0.compress().to_bytes();
 
+    let msg_hash = Sha512::new()
+        .chain(signing_package.message.as_slice())
+        .finalize();
+
     Scalar::from_hash(
         Sha512::new()
             .chain(group_commitment_bytes)
             .chain(group_public.bytes.bytes)
-            .chain(signing_package.message.as_slice()),
+            .chain(msg_hash),
     )
+
+    // TODO: call H2 here?
 }
 
 /// Generates the lagrange coefficient for the i'th participant.
