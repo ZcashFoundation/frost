@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions-rs/toolchain@v1.0.7
         with:
-          toolchain: nightly
+          toolchain: nightly-2022-01-14
           override: true
           profile: minimal
           components: llvm-tools-preview
