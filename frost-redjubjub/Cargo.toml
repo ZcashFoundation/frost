@@ -18,7 +18,7 @@ description = "A standalone implementation of the RedJubjub signature scheme."
 features = ["nightly"]
 
 [dependencies]
-blake2b_simd = "0.5"
+blake2b_simd = "1.0"
 byteorder = "1.4"
 digest = "0.9"
 jubjub = "0.8"
