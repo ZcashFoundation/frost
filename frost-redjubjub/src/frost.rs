@@ -241,7 +241,7 @@ fn verify_share(share: &Share) -> Result<(), &'static str> {
 /// commitments to those shares.
 ///
 /// More specifically, [`generate_shares`]:
-/// - Randomly samples of coefficents [a, b, c], this represents a secret
+/// - Randomly samples of coefficients [a, b, c], this represents a secret
 /// polynomial f
 /// - For each participant i, their secret share is f(i)
 /// - The commitment to the secret polynomial f is [g^a, g^b, g^c]

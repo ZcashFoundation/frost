@@ -1,9 +1,9 @@
-An implementation of Schnorr sigantures on the Ristretto group for both single and threshold numbers
+An implementation of Schnorr signatures on the Ristretto group for both single and threshold numbers
 of signers (FROST).
 
 In addition to the `Signature`, `SigningKey`, `VerificationKey` types, the library also provides
 `VerificationKeyBytes`, a [refinement] of a `[u8; 32]` indicating that bytes represent an encoding
-of averification key. This allows the `VerificationKey` type to cache verification checks related to
+of a verification key. This allows the `VerificationKey` type to cache verification checks related to
 the verification key encoding.
 
 ## Examples
