@@ -20,7 +20,8 @@ use curve25519_dalek::{
 };
 use sha2::{Digest, Sha512};
 
-use crate::{Error, Signature};
+use crate::{Error, Signature, frost};
+
 
 /// A refinement type for `[u8; 32]` indicating that the bytes represent an
 /// encoding of a verification key for Schnorr signatures over the Ristretto
@@ -119,13 +120,7 @@ impl VerificationKey {
     /// Verify a purported `signature` over `msg` made by this verification key.
     // This is similar to impl signature::Verifier but without boxed errors
     pub fn verify(&self, msg: &[u8], signature: &Signature) -> Result<(), Error> {
-        let msg_hash = Sha512::new().chain(msg).finalize();
-
-        //  let mut c = Sha512::new();
-
-        // c.update(&signature.r_bytes[..]);
-        // c.update(&self.bytes.bytes[..]); // XXX ugly
-        // c.update(msg_hash);
+        let msg_hash = frost::H3(msg);
 
         self.verify_prehashed(
             signature,

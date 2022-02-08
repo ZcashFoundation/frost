@@ -21,6 +21,8 @@
 //! Internally, keygen_with_dealer generates keys using Verifiable Secret
 //! Sharing,  where shares are generated using Shamir Secret Sharing.
 
+#![allow(non_snake_case)]
+
 use std::{collections::HashMap, convert::TryFrom};
 
 use curve25519_dalek::{
@@ -40,8 +42,8 @@ const CONTEXT_STRING: &'static str = "FROST-RISTRETTO255-SHA512";
 
 /// H1 for FROST(ristretto255, SHA-512)
 ///
-/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-ha
-fn H1(m: &[u8]) -> [u8; 64] {
+/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+pub(crate) fn H1(m: &[u8]) -> [u8; 64] {
     let h = Sha512::new()
         .chain(CONTEXT_STRING.as_bytes())
         .chain("rho")
@@ -58,7 +60,7 @@ fn H1(m: &[u8]) -> [u8; 64] {
 /// H2 for FROST(ristretto255, SHA-512)
 ///
 /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-fn H2(m: &[u8]) -> [u8; 64] {
+pub(crate) fn H2(m: &[u8]) -> [u8; 64] {
     let h = Sha512::new()
         .chain(CONTEXT_STRING.as_bytes())
         .chain("chal")
@@ -66,6 +68,19 @@ fn H2(m: &[u8]) -> [u8; 64] {
         // frost-dalek also uses to_be_bytes
         .chain(m.len().to_be_bytes())
         .chain(m);
+
+    let mut output = [0u8; 64];
+    output.copy_from_slice(h.finalize().as_slice());
+    output
+}
+
+/// H3 for FROST(ristretto255, SHA-512)
+///
+/// Yes, this is just an alias for SHA-512.
+///
+/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
+pub(crate) fn H3(m: &[u8]) -> [u8; 64] {
+    let h = Sha512::new().chain(m);
 
     let mut output = [0u8; 64];
     output.copy_from_slice(h.finalize().as_slice());
@@ -434,6 +449,8 @@ pub struct SigningPackage {
     pub message: Vec<u8>,
 }
 
+// TODO(dconnolly): impl From<SigningPackage> for Rho or something
+
 /// A representation of a single signature used in FROST structures and
 /// messages.
 #[derive(Clone, Copy, Default, PartialEq)]
@@ -506,41 +523,46 @@ where
     (signing_nonces, signing_commitments)
 }
 
-/// Generates the binding factor that ensures each signature share is strongly
-/// bound to a signing set, specific set of commitments, and a specific message.
-fn gen_rho_i(index: u64, signing_package: &SigningPackage) -> Scalar {
-    // Hash signature message with SHA-512 before deriving the binding factor.
+/// Encode the list of group signing commitments.
+///
+/// Inputs:
+/// - commitment_list = [(j, D_j, E_j), ...], a list of commitments issued by each signer,
+///   where each element in the list indicates the signer index and their
+///   two commitment Element values. B MUST be sorted in ascending order
+///   by signer index.
+///
+/// Outputs:
+/// - A byte string containing the serialized representation of B.
+///
+/// < https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding>
+fn encode_group_commitments(mut signing_commitments: Vec<SigningCommitments>) -> Vec<u8> {
+    // B MUST be sorted in ascending order by signer index.
     //
-    // To avoid a collision with other inputs to the hash that generates the
-    // binding factor, we should hash our input message first. Our 'standard'
-    // hash is SHA-512, which uses a domain separator already, and is the same one
-    // that generates the binding factor.
-    let msg_hash = Sha512::new()
-        .chain(signing_package.message.as_slice())
-        .finalize();
+    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
+    signing_commitments.sort_by_key(|a| a.index);
 
-    // Context string FROST-RISTRETTO255-SHA512 and domain separator rho come from the ciphersuite
-    // in the [spec].
-    //
-    // Only instatiation of the H1 hash function from the [spec].
-    //
-    // [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-    // TODO: use H1 here?
-    let mut hasher = Sha512::new()
-        .chain(CONTEXT_STRING.as_bytes())
-        .chain("rho")
-        .chain(index.to_be_bytes())
-        .chain(msg_hash);
+    let mut bytes = vec![];
 
-    for item in signing_package.signing_commitments.iter() {
-        hasher.update(item.index.to_be_bytes());
-        let hiding_bytes = item.hiding.0.compress().to_bytes();
-        hasher.update(hiding_bytes);
-        let binding_bytes = item.binding.0.compress().to_bytes();
-        hasher.update(binding_bytes);
+    for item in signing_commitments.iter() {
+        bytes.extend_from_slice(&item.index.to_be_bytes()[..]);
+        bytes.extend_from_slice(&item.hiding.0.compress().to_bytes()[..]);
+        bytes.extend_from_slice(&item.binding.0.compress().to_bytes()[..]);
     }
 
-    Scalar::from_hash(hasher)
+    bytes
+}
+
+/// Generates the binding factor that ensures each signature share is strongly
+/// bound to a signing set, specific set of commitments, and a specific message.
+fn gen_rho(signing_package: &SigningPackage) -> Scalar {
+    let mut preimage = vec![];
+
+    preimage.extend_from_slice(&encode_group_commitments(signing_package.signing_commitments.clone())[..]);
+    preimage.extend_from_slice(&H3(signing_package.message.as_slice()));
+
+    let binding_factor = H1(&preimage[..]);
+
+    Scalar::from_bytes_mod_order_wide(&binding_factor)
 }
 
 /// Generates the group commitment which is published as part of the joint
@@ -549,6 +571,8 @@ fn gen_group_commitment(
     signing_package: &SigningPackage,
     bindings: &HashMap<u64, Scalar>,
 ) -> Result<GroupCommitment, &'static str> {
+    // TODO(dconnolly): tidy up now that rho is the same for all i's
+
     let identity = RistrettoPoint::identity();
     let mut accumulator = identity;
 
@@ -568,6 +592,18 @@ fn gen_group_commitment(
     Ok(GroupCommitment(accumulator))
 }
 
+pub(crate) fn gen_schnorr_challenge(R: RistrettoPoint, PK: RistrettoPoint, msg: &[u8]) -> Scalar {
+    let mut preimage = vec![];
+
+    preimage.extend_from_slice(&R.compress().to_bytes());
+    preimage.extend_from_slice(&PK.bytes.bytes);
+    preimage.extend_from_slice(&H3(msg.as_slice()));
+
+    let challenge_wide = H2(&preimage[..]);
+
+    Scalar::from_bytes_mod_order_wide(&challenge_wide)
+}
+
 /// Generates the challenge as is required for Schnorr signatures.
 ///
 /// This is the only invocation of the H2 hash function from the [RFC].
@@ -578,20 +614,15 @@ fn gen_challenge(
     group_commitment: &GroupCommitment,
     group_public: &VerificationKey,
 ) -> Scalar {
-    let group_commitment_bytes = group_commitment.0.compress().to_bytes();
+    let mut preimage = vec![];
 
-    let msg_hash = Sha512::new()
-        .chain(signing_package.message.as_slice())
-        .finalize();
+    preimage.extend_from_slice(&group_commitment.0.compress().to_bytes());
+    preimage.extend_from_slice(&group_public.bytes.bytes);
+    preimage.extend_from_slice(&H3(signing_package.message.as_slice()));
 
-    Scalar::from_hash(
-        Sha512::new()
-            .chain(group_commitment_bytes)
-            .chain(group_public.bytes.bytes)
-            .chain(msg_hash),
-    )
+    let challenge_wide = H2(&preimage[..]);
 
-    // TODO: call H2 here?
+    Scalar::from_bytes_mod_order_wide(&challenge_wide)
 }
 
 /// Generates the lagrange coefficient for the i'th participant.
@@ -632,12 +663,15 @@ pub fn sign(
     participant_nonces: SigningNonces,
     share_package: &SharePackage,
 ) -> Result<SignatureShare, &'static str> {
+    // TODO(dconnolly): tidy up now that rho is the same for all i's
+
     let mut bindings: HashMap<u64, Scalar> =
         HashMap::with_capacity(signing_package.signing_commitments.len());
 
+    let rho  = gen_rho(signing_package);
+
     for comm in signing_package.signing_commitments.iter() {
-        let rho_i = gen_rho_i(comm.index, signing_package);
-        bindings.insert(comm.index, rho_i);
+        bindings.insert(comm.index, rho);
     }
 
     let lambda_i = gen_lagrange_coeff(share_package.index, signing_package)?;
@@ -685,12 +719,15 @@ pub fn aggregate(
     signing_shares: &[SignatureShare],
     pubkeys: &PublicKeyPackage,
 ) -> Result<Signature, &'static str> {
+    // TODO(dconnolly): tidy up now that rho is the same for all i's
+
     let mut bindings: HashMap<u64, Scalar> =
         HashMap::with_capacity(signing_package.signing_commitments.len());
 
+    let rho = gen_rho(signing_package);
+
     for comm in signing_package.signing_commitments.iter() {
-        let rho_i = gen_rho_i(comm.index, signing_package);
-        bindings.insert(comm.index, rho_i);
+        bindings.insert(comm.index, rho);
     }
 
     let group_commitment = gen_group_commitment(signing_package, &bindings)?;
