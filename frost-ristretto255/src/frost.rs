@@ -30,62 +30,9 @@ use curve25519_dalek::{
     traits::Identity,
 };
 use rand_core::{CryptoRng, RngCore};
-use sha2::{Digest, Sha512};
 use zeroize::DefaultIsZeroes;
 
-use crate::{Signature, VerificationKey};
-
-/// Context string 'FROST-RISTRETTO255-SHA512' from the ciphersuite in the [spec]
-///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-01.txt
-const CONTEXT_STRING: &'static str = "FROST-RISTRETTO255-SHA512";
-
-/// H1 for FROST(ristretto255, SHA-512)
-///
-/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-pub(crate) fn H1(m: &[u8]) -> [u8; 64] {
-    let h = Sha512::new()
-        .chain(CONTEXT_STRING.as_bytes())
-        .chain("rho")
-        // TODO: double-check big endian vs little endian representation of integers like this
-        // frost-dalek also uses to_be_bytes
-        .chain(m.len().to_be_bytes())
-        .chain(m);
-
-    let mut output = [0u8; 64];
-    output.copy_from_slice(h.finalize().as_slice());
-    output
-}
-
-/// H2 for FROST(ristretto255, SHA-512)
-///
-/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-pub(crate) fn H2(m: &[u8]) -> [u8; 64] {
-    let h = Sha512::new()
-        .chain(CONTEXT_STRING.as_bytes())
-        .chain("chal")
-        // TODO: double-check big endian vs little endian representation of integers like this
-        // frost-dalek also uses to_be_bytes
-        .chain(m.len().to_be_bytes())
-        .chain(m);
-
-    let mut output = [0u8; 64];
-    output.copy_from_slice(h.finalize().as_slice());
-    output
-}
-
-/// H3 for FROST(ristretto255, SHA-512)
-///
-/// Yes, this is just an alias for SHA-512.
-///
-/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-pub(crate) fn H3(m: &[u8]) -> [u8; 64] {
-    let h = Sha512::new().chain(m);
-
-    let mut output = [0u8; 64];
-    output.copy_from_slice(h.finalize().as_slice());
-    output
-}
+use crate::{Signature, VerificationKey, H1, H2, H3};
 
 /// A secret scalar value representing a single signer's secret key.
 #[derive(Clone, Copy, Default, PartialEq)]
@@ -160,11 +107,11 @@ pub struct GroupCommitment(pub(crate) RistrettoPoint);
 /// .into(), which under the hood also performs validation.
 pub struct SharePackage {
     /// The public signing key that represents the entire group.
-    pub(crate) group_public: VerificationKey,
+    pub group_public: VerificationKey,
     /// Denotes the participant index each share is owned by.
     pub index: u64,
     /// This participant's public key.
-    pub(crate) public: Public,
+    pub public: Public,
     /// This participant's secret share.
     pub(crate) secret_share: SecretShare,
 }
@@ -554,6 +501,7 @@ fn encode_group_commitments(mut signing_commitments: Vec<SigningCommitments>) ->
 
 /// Generates the binding factor that ensures each signature share is strongly
 /// bound to a signing set, specific set of commitments, and a specific message.
+// TODO(dconnolly): turn this into `impl From<SigningPackage> for Rho` where `struct Rho(Scalar);`
 fn gen_rho(signing_package: &SigningPackage) -> Scalar {
     let mut preimage = vec![];
 
@@ -590,18 +538,6 @@ fn gen_group_commitment(
     }
 
     Ok(GroupCommitment(accumulator))
-}
-
-pub(crate) fn gen_schnorr_challenge(R: RistrettoPoint, PK: RistrettoPoint, msg: &[u8]) -> Scalar {
-    let mut preimage = vec![];
-
-    preimage.extend_from_slice(&R.compress().to_bytes());
-    preimage.extend_from_slice(&PK.bytes.bytes);
-    preimage.extend_from_slice(&H3(msg.as_slice()));
-
-    let challenge_wide = H2(&preimage[..]);
-
-    Scalar::from_bytes_mod_order_wide(&challenge_wide)
 }
 
 /// Generates the challenge as is required for Schnorr signatures.

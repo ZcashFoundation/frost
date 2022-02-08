@@ -8,7 +8,7 @@
 // - Henry de Valence <hdevalence@hdevalence.ca>
 // - Deirdre Connolly <durumcrustulum@gmail.com>
 
-//! Schnorr Signatures on the Ristretto group
+//! Schnorr signatures on the Ristretto group
 
 /// A Schnorr signature on the Ristretto group.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

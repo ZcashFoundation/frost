@@ -25,7 +25,6 @@ use curve25519_dalek::{
     traits::{Identity, VartimeMultiscalarMul},
 };
 use rand_core::{CryptoRng, RngCore};
-use sha2::{Digest, Sha512};
 
 use crate::*;
 
@@ -44,12 +43,9 @@ pub struct Item {
 impl<'msg, M: AsRef<[u8]>> From<(VerificationKeyBytes, Signature, &'msg M)> for Item {
     fn from((vk_bytes, sig, msg): (VerificationKeyBytes, Signature, &'msg M)) -> Self {
         // Compute c now to avoid dependency on the msg lifetime.
-        let c = Scalar::from_hash(
-            Sha512::new()
-                .chain(&sig.r_bytes[..])
-                .chain(&vk_bytes.bytes[..])
-                .chain(msg),
-        );
+
+        let c = crate::generate_challenge(&sig.r_bytes, &vk_bytes.bytes, msg.as_ref());
+
         Self { vk_bytes, sig, c }
     }
 }

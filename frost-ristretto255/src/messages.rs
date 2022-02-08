@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use curve25519_dalek::ristretto::{CompressedRistretto};
+use curve25519_dalek::ristretto::CompressedRistretto;
 #[cfg(test)]
 use proptest_derive::Arbitrary;
 use serde::{Deserialize, Serialize};
