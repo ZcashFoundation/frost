@@ -21,8 +21,6 @@
 //! Internally, keygen_with_dealer generates keys using Verifiable Secret
 //! Sharing,  where shares are generated using Shamir Secret Sharing.
 
-#![allow(non_snake_case)]
-
 use std::{collections::HashMap, convert::TryFrom};
 
 use curve25519_dalek::{
@@ -32,7 +30,7 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use zeroize::DefaultIsZeroes;
 
-use crate::{Signature, VerificationKey, H1, H2, H3};
+use crate::{generate_challenge, Signature, VerificationKey, H1, H3};
 
 /// A secret scalar value representing a single signer's secret key.
 #[derive(Clone, Copy, Default, PartialEq)]
@@ -502,10 +500,12 @@ fn encode_group_commitments(mut signing_commitments: Vec<SigningCommitments>) ->
 /// Generates the binding factor that ensures each signature share is strongly
 /// bound to a signing set, specific set of commitments, and a specific message.
 // TODO(dconnolly): turn this into `impl From<SigningPackage> for Rho` where `struct Rho(Scalar);`
-fn gen_rho(signing_package: &SigningPackage) -> Scalar {
+fn generate_rho(signing_package: &SigningPackage) -> Scalar {
     let mut preimage = vec![];
 
-    preimage.extend_from_slice(&encode_group_commitments(signing_package.signing_commitments.clone())[..]);
+    preimage.extend_from_slice(
+        &encode_group_commitments(signing_package.signing_commitments.clone())[..],
+    );
     preimage.extend_from_slice(&H3(signing_package.message.as_slice()));
 
     let binding_factor = H1(&preimage[..]);
@@ -515,7 +515,7 @@ fn gen_rho(signing_package: &SigningPackage) -> Scalar {
 
 /// Generates the group commitment which is published as part of the joint
 /// Schnorr signature.
-fn gen_group_commitment(
+fn generate_group_commitment(
     signing_package: &SigningPackage,
     bindings: &HashMap<u64, Scalar>,
 ) -> Result<GroupCommitment, &'static str> {
@@ -540,34 +540,14 @@ fn gen_group_commitment(
     Ok(GroupCommitment(accumulator))
 }
 
-/// Generates the challenge as is required for Schnorr signatures.
-///
-/// This is the only invocation of the H2 hash function from the [RFC].
-///
-/// [RFC]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-fn gen_challenge(
-    signing_package: &SigningPackage,
-    group_commitment: &GroupCommitment,
-    group_public: &VerificationKey,
-) -> Scalar {
-    let mut preimage = vec![];
-
-    preimage.extend_from_slice(&group_commitment.0.compress().to_bytes());
-    preimage.extend_from_slice(&group_public.bytes.bytes);
-    preimage.extend_from_slice(&H3(signing_package.message.as_slice()));
-
-    let challenge_wide = H2(&preimage[..]);
-
-    Scalar::from_bytes_mod_order_wide(&challenge_wide)
-}
-
 /// Generates the lagrange coefficient for the i'th participant.
-fn gen_lagrange_coeff(
+fn generate_lagrange_coeff(
     signer_index: u64,
     signing_package: &SigningPackage,
 ) -> Result<Scalar, &'static str> {
     let mut num = Scalar::one();
     let mut den = Scalar::one();
+
     for commitment in signing_package.signing_commitments.iter() {
         if commitment.index == signer_index {
             continue;
@@ -604,20 +584,20 @@ pub fn sign(
     let mut bindings: HashMap<u64, Scalar> =
         HashMap::with_capacity(signing_package.signing_commitments.len());
 
-    let rho  = gen_rho(signing_package);
+    let rho = generate_rho(signing_package);
 
     for comm in signing_package.signing_commitments.iter() {
         bindings.insert(comm.index, rho);
     }
 
-    let lambda_i = gen_lagrange_coeff(share_package.index, signing_package)?;
+    let lambda_i = generate_lagrange_coeff(share_package.index, signing_package)?;
 
-    let group_commitment = gen_group_commitment(signing_package, &bindings)?;
+    let group_commitment = generate_group_commitment(signing_package, &bindings)?;
 
-    let challenge = gen_challenge(
-        signing_package,
-        &group_commitment,
-        &share_package.group_public,
+    let challenge = generate_challenge(
+        &group_commitment.0.compress().to_bytes(),
+        &share_package.group_public.bytes.bytes,
+        signing_package.message.as_slice(),
     );
 
     let participant_rho_i = bindings
@@ -660,19 +640,23 @@ pub fn aggregate(
     let mut bindings: HashMap<u64, Scalar> =
         HashMap::with_capacity(signing_package.signing_commitments.len());
 
-    let rho = gen_rho(signing_package);
+    let rho = generate_rho(signing_package);
 
     for comm in signing_package.signing_commitments.iter() {
         bindings.insert(comm.index, rho);
     }
 
-    let group_commitment = gen_group_commitment(signing_package, &bindings)?;
+    let group_commitment = generate_group_commitment(signing_package, &bindings)?;
 
-    let challenge = gen_challenge(signing_package, &group_commitment, &pubkeys.group_public);
+    let challenge = generate_challenge(
+        &group_commitment.0.compress().to_bytes(),
+        &pubkeys.group_public.bytes.bytes,
+        signing_package.message.as_slice(),
+    );
 
     for signing_share in signing_shares {
         let signer_pubkey = pubkeys.signer_pubkeys[&signing_share.index];
-        let lambda_i = gen_lagrange_coeff(signing_share.index, signing_package)?;
+        let lambda_i = generate_lagrange_coeff(signing_share.index, signing_package)?;
         let signer_commitment = signing_package
             .signing_commitments
             .iter()
