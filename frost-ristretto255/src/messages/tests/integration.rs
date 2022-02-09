@@ -168,7 +168,7 @@ fn serialize_share_package() {
 
     // remove the msg_type from the the payload
     payload_serialized_bytes =
-        (&payload_serialized_bytes[4..payload_serialized_bytes.len()]).to_vec();
+        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // group_public is 32 bytes
     let deserialized_group_public: VerificationKey =
@@ -263,7 +263,7 @@ fn serialize_signingcommitments() {
 
     // remove the msg_type from the the payload
     payload_serialized_bytes =
-        (&payload_serialized_bytes[4..payload_serialized_bytes.len()]).to_vec();
+        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // hiding is 32 bytes
     let deserialized_hiding: Commitment =
@@ -395,7 +395,7 @@ fn serialize_signingpackage() {
 
     // remove the msg_type from the the payload
     payload_serialized_bytes =
-        (&payload_serialized_bytes[4..payload_serialized_bytes.len()]).to_vec();
+        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // check the map len
     let deserialized_map_len: u64 = bincode::deserialize(&payload_serialized_bytes[0..8]).unwrap();
@@ -435,7 +435,7 @@ fn validate_signatureshare() {
     let signing_commitments = create_signing_commitments(commitments, participants);
 
     let signing_package = frost::SigningPackage::from(SigningPackage {
-        signing_commitments: signing_commitments,
+        signing_commitments,
         message: "hola".as_bytes().to_vec(),
     });
 
@@ -493,7 +493,7 @@ fn serialize_signatureshare() {
     let signing_commitments = create_signing_commitments(commitments, participants);
 
     let signing_package = frost::SigningPackage::from(SigningPackage {
-        signing_commitments: signing_commitments,
+        signing_commitments,
         message: "hola".as_bytes().to_vec(),
     });
 
@@ -524,7 +524,7 @@ fn serialize_signatureshare() {
 
     // remove the msg_type from the the payload
     payload_serialized_bytes =
-        (&payload_serialized_bytes[4..payload_serialized_bytes.len()]).to_vec();
+        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // signature is 32 bytes
     let deserialized_signature: SignatureResponse =
@@ -606,7 +606,7 @@ fn serialize_aggregatesignature() {
 
     // remove the msg_type from the the payload
     payload_serialized_bytes =
-        (&payload_serialized_bytes[4..payload_serialized_bytes.len()]).to_vec();
+        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // group_commitment is 32 bytes
     let deserialized_group_commiment: GroupCommitment =
@@ -748,7 +748,7 @@ fn full_setup() -> (Setup, signature::Signature) {
         Vec::with_capacity(setup.threshold as usize);
     let message = "message to sign".as_bytes().to_vec();
     let signing_package = frost::SigningPackage {
-        message: message,
+        message,
         signing_commitments: commitments,
     };
 

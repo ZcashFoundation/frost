@@ -1,3 +1,5 @@
+
+
 use rand::thread_rng;
 use std::collections::HashMap;
 
@@ -34,10 +36,10 @@ fn check_sign_with_dealer() {
     };
 
     // Round 2: each participant generates their signature share
-    for (participant_index, nonce) in nonces {
+    for (participant_index, nonce) in &nonces {
         let share_package = shares
             .iter()
-            .find(|share| participant_index == share.index)
+            .find(|share| *participant_index == share.index)
             .unwrap();
         let nonce_to_use = nonce[0];
         // Each participant generates their signature share.
@@ -56,7 +58,24 @@ fn check_sign_with_dealer() {
     assert!(pubkeys
         .group_public
         .verify(message, &group_signature)
-        .is_ok());
+            .is_ok());
 
-    // TODO: also check that the SharePackage.group_public also verifies the group signature.
+
+    let nonces_2 = nonces.clone();
+
+    // Check that the threshold signature can be verified by the group public
+    // key (aka verification key) from SharePackage.group_public
+    for (participant_index, _) in nonces_2 {
+        let share_package = shares
+            .iter()
+            .find(|share| participant_index == share.index)
+            .unwrap();
+
+        assert!(share_package
+                .group_public
+                .verify(message, &group_signature)
+                .is_ok());
+    }
+
+
 }

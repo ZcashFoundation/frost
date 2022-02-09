@@ -34,11 +34,11 @@ fn bench_batch_verify(c: &mut Criterion) {
                 b.iter(|| {
                     for item in sigs.iter() {
                         let msg = b"Bench";
-                        match item {
-                            Item { vk_bytes, sig } => {
-                                let _ = VerificationKey::try_from(*vk_bytes)
-                                    .and_then(|vk| vk.verify(msg, sig));
-                            }
+
+                        let Item { vk_bytes, sig } = item;
+                        {
+                            let _ = VerificationKey::try_from(*vk_bytes)
+                                .and_then(|vk| vk.verify(msg, sig));
                         }
                     }
                 })
@@ -53,10 +53,10 @@ fn bench_batch_verify(c: &mut Criterion) {
                     let mut batch = batch::Verifier::new();
                     for item in sigs.iter() {
                         let msg = b"Bench";
-                        match item {
-                            Item { vk_bytes, sig } => {
-                                batch.queue((*vk_bytes, *sig, msg));
-                            }
+
+                        let Item { vk_bytes, sig } = item;
+                        {
+                            batch.queue((*vk_bytes, *sig, msg));
                         }
                     }
                     batch.verify(thread_rng())

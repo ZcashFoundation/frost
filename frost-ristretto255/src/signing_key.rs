@@ -102,14 +102,10 @@ impl SigningKey {
         // XXX: does this need `RistrettoPoint::from_uniform_bytes()` ?
         let r_bytes = (RISTRETTO_BASEPOINT_POINT * nonce).compress().to_bytes();
 
-        let c = Scalar::from_hash(
-            Sha512::new()
-                .chain(&r_bytes[..])
-                .chain(&self.pk.bytes.bytes[..]) // XXX ugly
-                .chain(msg),
-        );
+        // Generate Schnorr challenge
+        let c = crate::generate_challenge(&r_bytes, &self.pk.bytes.bytes, msg);
 
-        let s_bytes = (&nonce + &(c * &self.sk)).to_bytes();
+        let s_bytes = (nonce + (c * self.sk)).to_bytes();
 
         Signature { r_bytes, s_bytes }
     }

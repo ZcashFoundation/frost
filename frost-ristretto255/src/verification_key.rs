@@ -8,17 +8,13 @@
 // - Deirdre Connolly <deirdre@zfnd.org>
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
-use std::{
-    convert::{TryFrom, TryInto},
-    hash::{Hash, Hasher},
-};
+use std::convert::{TryFrom, TryInto};
 
 use curve25519_dalek::{
     ristretto::{CompressedRistretto, RistrettoPoint},
     scalar::Scalar,
     traits::Identity,
 };
-use sha2::{Digest, Sha512};
 
 use crate::{Error, Signature};
 
@@ -44,12 +40,6 @@ impl From<[u8; 32]> for VerificationKeyBytes {
 impl From<VerificationKeyBytes> for [u8; 32] {
     fn from(refined: VerificationKeyBytes) -> [u8; 32] {
         refined.bytes
-    }
-}
-
-impl Hash for VerificationKeyBytes {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.bytes.hash(state);
     }
 }
 
@@ -119,19 +109,16 @@ impl VerificationKey {
     /// Verify a purported `signature` over `msg` made by this verification key.
     // This is similar to impl signature::Verifier but without boxed errors
     pub fn verify(&self, msg: &[u8], signature: &Signature) -> Result<(), Error> {
-        let mut c = Sha512::new();
-
-        c.update(&signature.r_bytes[..]);
-        c.update(&self.bytes.bytes[..]); // XXX ugly
-        c.update(msg);
-
-        self.verify_prehashed(signature, Scalar::from_hash(c))
+        self.verify_prehashed(
+            signature,
+            crate::generate_challenge(&signature.r_bytes, &self.bytes.bytes, msg),
+        )
     }
 
     /// Verify a purported `signature` with a prehashed challenge.
     #[allow(non_snake_case)]
     pub(crate) fn verify_prehashed(&self, signature: &Signature, c: Scalar) -> Result<(), Error> {
-        let r = match CompressedRistretto::from_slice(&signature.r_bytes).decompress() {
+        let R = match CompressedRistretto::from_slice(&signature.r_bytes).decompress() {
             Some(point) => point,
             None => return Err(Error::InvalidSignature),
         };
@@ -144,9 +131,11 @@ impl VerificationKey {
         // XXX rewrite as normal double scalar mul
         // Verify check is h * ( - s * B + R  + c * A) == 0
         //                 h * ( s * B - c * A - R) == 0
-        let sB = curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT * &s;
-        let cA = &self.point * &c;
-        let check = sB - cA - r;
+        //
+        // For Ristretto, h = 1.
+        let sB = curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT * s;
+        let cA = self.point * c;
+        let check = sB - cA - R;
 
         if check == RistrettoPoint::identity() {
             Ok(())
