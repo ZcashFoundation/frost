@@ -258,10 +258,7 @@ impl From<SigningPackage> for frost::SigningPackage {
             signing_commitments.push(s);
         }
 
-        frost::SigningPackage {
-            signing_commitments,
-            message: value.message,
-        }
+        frost::SigningPackage::new(signing_commitments, value.message)
     }
 }
 

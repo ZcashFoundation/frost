@@ -1,5 +1,3 @@
-
-
 use rand::thread_rng;
 use std::collections::HashMap;
 
@@ -30,10 +28,7 @@ fn check_sign_with_dealer() {
     // - take one (unused) commitment per signing participant
     let mut signature_shares: Vec<frost::SignatureShare> = Vec::with_capacity(threshold as usize);
     let message = "message to sign".as_bytes();
-    let signing_package = frost::SigningPackage {
-        message: message.to_vec(),
-        signing_commitments: commitments,
-    };
+    let signing_package = frost::SigningPackage::new(commitments, message.to_vec());
 
     // Round 2: each participant generates their signature share
     for (participant_index, nonce) in &nonces {
@@ -43,7 +38,7 @@ fn check_sign_with_dealer() {
             .unwrap();
         let nonce_to_use = nonce[0];
         // Each participant generates their signature share.
-        let signature_share = frost::sign(&signing_package, nonce_to_use, share_package).unwrap();
+        let signature_share = frost::sign(&signing_package, &nonce_to_use, share_package).unwrap();
         signature_shares.push(signature_share);
     }
 
@@ -58,8 +53,7 @@ fn check_sign_with_dealer() {
     assert!(pubkeys
         .group_public
         .verify(message, &group_signature)
-            .is_ok());
-
+        .is_ok());
 
     let nonces_2 = nonces.clone();
 
@@ -72,10 +66,8 @@ fn check_sign_with_dealer() {
             .unwrap();
 
         assert!(share_package
-                .group_public
-                .verify(message, &group_signature)
-                .is_ok());
+            .group_public
+            .verify(message, &group_signature)
+            .is_ok());
     }
-
-
 }

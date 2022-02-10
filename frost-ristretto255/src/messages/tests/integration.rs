@@ -167,8 +167,7 @@ fn serialize_share_package() {
     assert_eq!(deserialized_msg_type, MsgType::SharePackage);
 
     // remove the msg_type from the the payload
-    payload_serialized_bytes =
-        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
+    payload_serialized_bytes = payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // group_public is 32 bytes
     let deserialized_group_public: VerificationKey =
@@ -262,8 +261,7 @@ fn serialize_signingcommitments() {
     assert_eq!(deserialized_msg_type, MsgType::SigningCommitments);
 
     // remove the msg_type from the the payload
-    payload_serialized_bytes =
-        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
+    payload_serialized_bytes = payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // hiding is 32 bytes
     let deserialized_hiding: Commitment =
@@ -394,8 +392,7 @@ fn serialize_signingpackage() {
     assert_eq!(deserialized_msg_type, MsgType::SigningPackage);
 
     // remove the msg_type from the the payload
-    payload_serialized_bytes =
-        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
+    payload_serialized_bytes = payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // check the map len
     let deserialized_map_len: u64 = bincode::deserialize(&payload_serialized_bytes[0..8]).unwrap();
@@ -440,7 +437,7 @@ fn validate_signatureshare() {
     });
 
     // here we get started with the `SignatureShare` message.
-    let signature_share = frost::sign(&signing_package, nonce1[0], &shares[0]).unwrap();
+    let signature_share = frost::sign(&signing_package, &nonce1[0], &shares[0]).unwrap();
 
     // this header is invalid
     let header = create_valid_header(setup.aggregator, setup.signer1);
@@ -498,7 +495,7 @@ fn serialize_signatureshare() {
     });
 
     // here we get started with the `SignatureShare` message.
-    let signature_share = frost::sign(&signing_package, nonce1[0], &shares[0]).unwrap();
+    let signature_share = frost::sign(&signing_package, &nonce1[0], &shares[0]).unwrap();
 
     // valid header
     let header = create_valid_header(setup.signer1, setup.aggregator);
@@ -523,8 +520,7 @@ fn serialize_signatureshare() {
     assert_eq!(deserialized_msg_type, MsgType::SignatureShare);
 
     // remove the msg_type from the the payload
-    payload_serialized_bytes =
-        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
+    payload_serialized_bytes = payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // signature is 32 bytes
     let deserialized_signature: SignatureResponse =
@@ -605,8 +601,7 @@ fn serialize_aggregatesignature() {
     assert_eq!(deserialized_msg_type, MsgType::AggregateSignature);
 
     // remove the msg_type from the the payload
-    payload_serialized_bytes =
-        payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
+    payload_serialized_bytes = payload_serialized_bytes[4..payload_serialized_bytes.len()].to_vec();
 
     // group_commitment is 32 bytes
     let deserialized_group_commiment: GroupCommitment =
@@ -747,10 +742,7 @@ fn full_setup() -> (Setup, signature::Signature) {
     let mut signature_shares: Vec<frost::SignatureShare> =
         Vec::with_capacity(setup.threshold as usize);
     let message = "message to sign".as_bytes().to_vec();
-    let signing_package = frost::SigningPackage {
-        message,
-        signing_commitments: commitments,
-    };
+    let signing_package = frost::SigningPackage::new(commitments, message);
 
     // each participant generates their signature share
     for (participant_index, nonce) in nonces {
@@ -759,7 +751,7 @@ fn full_setup() -> (Setup, signature::Signature) {
             .find(|share| participant_index == share.index)
             .unwrap();
         let nonce_to_use = nonce[0];
-        let signature_share = frost::sign(&signing_package, nonce_to_use, share_package).unwrap();
+        let signature_share = frost::sign(&signing_package, &nonce_to_use, share_package).unwrap();
         signature_shares.push(signature_share);
     }
 
