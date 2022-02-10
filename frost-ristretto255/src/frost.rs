@@ -386,12 +386,39 @@ impl From<(u64, &SigningNonces)> for SigningCommitments {
 pub struct SigningPackage {
     /// The set of commitments participants published in the first round of the
     /// protocol.
-    pub signing_commitments: Vec<SigningCommitments>,
+    signing_commitments: Vec<SigningCommitments>,
     /// Message which each participant will sign.
     ///
     /// Each signer should perform protocol-specific verification on the
     /// message.
-    pub message: Vec<u8>,
+    message: Vec<u8>,
+}
+
+impl SigningPackage {
+    /// Create a new `SigingPackage`
+    ///
+    /// The `signing_commitments` are sorted by participant `index`.
+    pub fn new(
+        mut signing_commitments: Vec<SigningCommitments>,
+        message: Vec<u8>,
+    ) -> SigningPackage {
+        signing_commitments.sort_by_key(|a| a.index);
+
+        SigningPackage {
+            signing_commitments,
+            message,
+        }
+    }
+
+    /// Get the signing commitments, sorted by the participant indices
+    pub fn signing_commitments(&self) -> &Vec<SigningCommitments> {
+        &self.signing_commitments
+    }
+
+    /// Get the message to be signed
+    pub fn message(&self) -> &Vec<u8> {
+        &self.message
+    }
 }
 
 // TODO(dconnolly): impl From<SigningPackage> for Rho or something
@@ -479,16 +506,17 @@ where
 /// Outputs:
 /// - A byte string containing the serialized representation of B.
 ///
-/// < https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding>
-fn encode_group_commitments(mut signing_commitments: Vec<SigningCommitments>) -> Vec<u8> {
+/// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding>
+fn encode_group_commitments(signing_commitments: Vec<SigningCommitments>) -> Vec<u8> {
     // B MUST be sorted in ascending order by signer index.
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
-    signing_commitments.sort_by_key(|a| a.index);
+    let mut sorted_signing_commitments = signing_commitments;
+    sorted_signing_commitments.sort_by_key(|a| a.index);
 
     let mut bytes = vec![];
 
-    for item in signing_commitments.iter() {
+    for item in sorted_signing_commitments {
         bytes.extend_from_slice(&item.index.to_be_bytes()[..]);
         bytes.extend_from_slice(&item.hiding.0.compress().to_bytes()[..]);
         bytes.extend_from_slice(&item.binding.0.compress().to_bytes()[..]);
@@ -524,7 +552,10 @@ fn generate_group_commitment(
     let identity = RistrettoPoint::identity();
     let mut accumulator = identity;
 
-    for commitment in signing_package.signing_commitments.iter() {
+    // Ala the sorting of B, just always sort by index in ascending order
+    //
+    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
+    for commitment in signing_package.signing_commitments() {
         // The following check prevents a party from accidentally revealing their share.
         // Note that the '&&' operator would be sufficient.
         if identity == commitment.binding.0 || identity == commitment.hiding.0 {
@@ -548,7 +579,10 @@ fn generate_lagrange_coeff(
     let mut num = Scalar::one();
     let mut den = Scalar::one();
 
-    for commitment in signing_package.signing_commitments.iter() {
+    // Ala the sorting of B, just always sort by index in ascending order
+    //
+    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
+    for commitment in signing_package.signing_commitments() {
         if commitment.index == signer_index {
             continue;
         }
@@ -576,7 +610,7 @@ fn generate_lagrange_coeff(
 /// the commitment that was assigned by the coordinator in the SigningPackage.
 pub fn sign(
     signing_package: &SigningPackage,
-    participant_nonces: SigningNonces,
+    participant_nonces: &SigningNonces,
     share_package: &SharePackage,
 ) -> Result<SignatureShare, &'static str> {
     // TODO(dconnolly): tidy up now that rho is the same for all i's
@@ -586,7 +620,10 @@ pub fn sign(
 
     let rho = generate_rho(signing_package);
 
-    for comm in signing_package.signing_commitments.iter() {
+    // Ala the sorting of B, just always sort by index in ascending order
+    //
+    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
+    for comm in signing_package.signing_commitments() {
         bindings.insert(comm.index, rho);
     }
 
