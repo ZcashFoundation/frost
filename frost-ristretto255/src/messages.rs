@@ -37,8 +37,14 @@ pub struct Secret([u8; 32]);
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct Commitment([u8; 32]);
 
-impl From<frost::Commitment> for Commitment {
-    fn from(value: frost::Commitment) -> Commitment {
+impl From<frost::CoefficientCommitment> for Commitment {
+    fn from(value: frost::CoefficientCommitment) -> Commitment {
+        Commitment(value.0.compress().to_bytes())
+    }
+}
+
+impl From<frost::NonceCommitment> for Commitment {
+    fn from(value: frost::NonceCommitment) -> Commitment {
         Commitment(value.0.compress().to_bytes())
     }
 }
@@ -244,12 +250,12 @@ impl From<SigningPackage> for frost::SigningPackage {
         for (participant_id, commitment) in &value.signing_commitments {
             let s = frost::SigningCommitments {
                 index: u64::from(*participant_id),
-                hiding: frost::Commitment(
+                hiding: frost::NonceCommitment(
                     CompressedRistretto::from_slice(&commitment.hiding.0)
                         .decompress()
                         .unwrap(),
                 ),
-                binding: frost::Commitment(
+                binding: frost::NonceCommitment(
                     CompressedRistretto::from_slice(&commitment.binding.0)
                         .decompress()
                         .unwrap(),

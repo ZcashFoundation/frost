@@ -1,5 +1,6 @@
+use std::{collections::HashMap, convert::TryFrom};
+
 use rand::thread_rng;
-use std::collections::HashMap;
 
 use frost_ristretto255::frost;
 
@@ -9,6 +10,12 @@ fn check_sign_with_dealer() {
     let numsigners = 5;
     let threshold = 3;
     let (shares, pubkeys) = frost::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
+
+    // Verifies the secret shares from the dealer
+    let key_packages: Vec<frost::KeyPackage> = shares
+        .into_iter()
+        .map(|share| frost::KeyPackage::try_from(share).unwrap())
+        .collect();
 
     let mut nonces: HashMap<u64, Vec<frost::SigningNonces>> =
         HashMap::with_capacity(threshold as usize);
@@ -32,13 +39,13 @@ fn check_sign_with_dealer() {
 
     // Round 2: each participant generates their signature share
     for (participant_index, nonce) in &nonces {
-        let share_package = shares
+        let key_package = key_packages
             .iter()
-            .find(|share| *participant_index == share.index)
+            .find(|key_package| *participant_index == key_package.index)
             .unwrap();
         let nonce_to_use = nonce[0];
         // Each participant generates their signature share.
-        let signature_share = frost::sign(&signing_package, &nonce_to_use, share_package).unwrap();
+        let signature_share = frost::sign(&signing_package, &nonce_to_use, key_package).unwrap();
         signature_shares.push(signature_share);
     }
 
@@ -60,12 +67,9 @@ fn check_sign_with_dealer() {
     // Check that the threshold signature can be verified by the group public
     // key (aka verification key) from SharePackage.group_public
     for (participant_index, _) in nonces_2 {
-        let share_package = shares
-            .iter()
-            .find(|share| participant_index == share.index)
-            .unwrap();
+        let key_package = key_packages.get(participant_index as usize).unwrap();
 
-        assert!(share_package
+        assert!(key_package
             .group_public
             .verify(message, &group_signature)
             .is_ok());
