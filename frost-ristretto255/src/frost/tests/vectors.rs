@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use serde_json::Value;
 
-const ristretto255_sha512_json: &str = r#"
+const RISTRETTO255_SHA512_JSON: &str = r#"
 {
   "config": {
     "NUM_SIGNERS": "3",
@@ -75,5 +75,5 @@ const ristretto255_sha512_json: &str = r#"
 
 lazy_static! {
     pub static ref RISTRETTO255_SHA512: Value =
-        serde_json::from_str(ristretto255_sha512_json).expect("Test vector is valid JSON");
+        serde_json::from_str(RISTRETTO255_SHA512_JSON).expect("Test vector is valid JSON");
 }
