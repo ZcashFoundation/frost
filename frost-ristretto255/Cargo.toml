@@ -1,6 +1,6 @@
 [package]
 name = "frost-ristretto255"
-edition = "2018"
+edition = "2021"
 # When releasing to crates.io:
 # - Update html_root_url
 # - Update CHANGELOG.md

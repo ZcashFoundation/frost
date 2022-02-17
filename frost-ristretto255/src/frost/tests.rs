@@ -64,101 +64,107 @@ fn check_share_generation() {
     assert_eq!(reconstruct_secret(secret_shares).unwrap(), secret.0)
 }
 
-// #[test]
-// fn check_sign_with_test_vectors() {
-//     // let mut rng = thread_rng();
-//     // let numsigners = 5;
-//     // let threshold = 3;
-//     // let (shares, pubkeys) = frost::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
+#[test]
+fn check_sign_with_test_vectors() {
+    // let mut rng = thread_rng();
+    // let numsigners = 5;
+    // let threshold = 3;
+    // let (shares, pubkeys) = frost::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
 
-//     let config = &RISTRETTO255_SHA512["config"];
-//     let inputs = &RISTRETTO255_SHA512["inputs"];
-//     println!("{inputs}");
+    let config = &RISTRETTO255_SHA512["config"];
+    let inputs = &RISTRETTO255_SHA512["inputs"];
+    println!("{inputs}");
 
-//     assert_eq!(hex::encode("test"), inputs["message"].as_str().unwrap());
+    assert_eq!(hex::encode("test"), inputs["message"].as_str().unwrap());
 
-//     let mut share_packages: Vec<SharePackage> =
-//         Vec::with_capacity(config["NUM_SIGNERS"].as_u64().unwrap() as usize);
+    let mut signer_pubkeys: HashMap<u64, Public> =
+        HashMap::with_capacity(config["NUM_SIGNERS"].as_u64().unwrap() as usize);
 
-//     for (i, secret_share) in RISTRETTO255_SHA512["inputs"]["signers"]
-//         .as_object()
-//         .unwrap()
-//     {
-//         // TODO: parse test vector bytes into `SecretShare`, turn that .into() `SharePackage`
+    let mut key_packages: Vec<KeyPackage> =
+        Vec::with_capacity(config["NUM_SIGNERS"].as_u64().unwrap() as usize);
 
-//         println!("{secret_share}");
+    for (i, secret_share) in RISTRETTO255_SHA512["inputs"]["signers"]
+        .as_object()
+        .unwrap()
+    {
+        // TODO: parse test vector bytes into `SecretShare`, turn that .into() `SharePackage`
 
-//         let secret = Secret::try_from(secret_share["value"].into()).unwrap();
-//         let signer_public = secret.into();
+        println!("{secret_share}");
 
-//         share_packages.push(SharePackage {
-//             index: u64::from_str(i).unwrap(),
-//             secret_share: secret_share.clone(),
-//             public: signer_public,
-//             group_public,
-//         });
+        let secret = Secret::try_from(secret_share["value"].into()).unwrap();
+        let signer_public = secret.into();
 
-//         signer_pubkeys.insert(secret_share.index, signer_public);
-//     }
+        key_packages.push(KeyPackage {
+            index: u64::from_str(i).unwrap(),
+            secret_share: secret,
+            public: signer_public,
+            group_public: VerificationKey::try_from(<[u8; 32]>::from(
+                inputs["group_public_key"].as_object(),
+            ))
+            .unwrap(),
+        });
 
-//     // let mut nonces: HashMap<u64, Vec<frost::SigningNonces>> =
-//     //     HashMap::with_capacity(threshold as usize);
-//     // let mut commitments: Vec<frost::SigningCommitments> = Vec::with_capacity(threshold as usize);
+        signer_pubkeys.insert(u64::from_str(i).unwrap(), signer_public);
+    }
 
-//     // // Round 1, generating nonces and signing commitments for each participant.
-//     // for participant_index in 1..(threshold + 1) {
-//     //     // Generate one (1) nonce and one SigningCommitments instance for each
-//     //     // participant, up to _threshold_.
-//     //     let (nonce, commitment) = frost::preprocess(1, participant_index as u64, &mut rng);
-//     //     nonces.insert(participant_index as u64, nonce);
-//     //     commitments.push(commitment[0]);
-//     // }
+    // let mut nonces: HashMap<u64, Vec<frost::SigningNonces>> =
+    //     HashMap::with_capacity(threshold as usize);
+    // let mut commitments: Vec<frost::SigningCommitments> = Vec::with_capacity(threshold as usize);
 
-//     // // This is what the signature aggregator / coordinator needs to do:
-//     // // - decide what message to sign
-//     // // - take one (unused) commitment per signing participant
-//     // let mut signature_shares: Vec<frost::SignatureShare> = Vec::with_capacity(threshold as usize);
-//     // let message = "message to sign".as_bytes();
-//     // let signing_package = frost::SigningPackage::new(commitments, message.to_vec());
+    // // Round 1, generating nonces and signing commitments for each participant.
+    // for participant_index in 1..(threshold + 1) {
+    //     // Generate one (1) nonce and one SigningCommitments instance for each
+    //     // participant, up to _threshold_.
+    //     let (nonce, commitment) = frost::preprocess(1, participant_index as u64, &mut rng);
+    //     nonces.insert(participant_index as u64, nonce);
+    //     commitments.push(commitment[0]);
+    // }
 
-//     // // Round 2: each participant generates their signature share
-//     // for (participant_index, nonce) in &nonces {
-//     //     let share_package = shares
-//     //         .iter()
-//     //         .find(|share| *participant_index == share.index)
-//     //         .unwrap();
-//     //     let nonce_to_use = nonce[0];
-//     //     // Each participant generates their signature share.
-//     //     let signature_share = frost::sign(&signing_package, &nonce_to_use, share_package).unwrap();
-//     //     signature_shares.push(signature_share);
-//     // }
+    // // This is what the signature aggregator / coordinator needs to do:
+    // // - decide what message to sign
+    // // - take one (unused) commitment per signing participant
+    // let mut signature_shares: Vec<frost::SignatureShare> = Vec::with_capacity(threshold as usize);
+    // let message = "message to sign".as_bytes();
+    // let signing_package = frost::SigningPackage::new(commitments, message.to_vec());
 
-//     // // The aggregator collects the signing shares from all participants and
-//     // // generates the final signature.
-//     // let group_signature_res = frost::aggregate(&signing_package, &signature_shares[..], &pubkeys);
-//     // assert!(group_signature_res.is_ok());
-//     // let group_signature = group_signature_res.unwrap();
+    // // Round 2: each participant generates their signature share
+    // for (participant_index, nonce) in &nonces {
+    //     let share_package = shares
+    //         .iter()
+    //         .find(|share| *participant_index == share.index)
+    //         .unwrap();
+    //     let nonce_to_use = nonce[0];
+    //     // Each participant generates their signature share.
+    //     let signature_share = frost::sign(&signing_package, &nonce_to_use, share_package).unwrap();
+    //     signature_shares.push(signature_share);
+    // }
 
-//     // // Check that the threshold signature can be verified by the group public
-//     // // key (aka verification key).
-//     // assert!(pubkeys
-//     //     .group_public
-//     //     .verify(message, &group_signature)
-//     //     .is_ok());
+    // // The aggregator collects the signing shares from all participants and
+    // // generates the final signature.
+    // let group_signature_res = frost::aggregate(&signing_package, &signature_shares[..], &pubkeys);
+    // assert!(group_signature_res.is_ok());
+    // let group_signature = group_signature_res.unwrap();
 
-//     // let nonces_2 = nonces.clone();
+    // // Check that the threshold signature can be verified by the group public
+    // // key (aka verification key).
+    // assert!(pubkeys
+    //     .group_public
+    //     .verify(message, &group_signature)
+    //     .is_ok());
 
-//     // // Check that the threshold signature can be verified by the group public
-//     // // key (aka verification key) from SharePackage.group_public
-//     // for (participant_index, _) in nonces_2 {
-//     //     let share_package = shares
-//     //         .iter()
-//     //         .find(|share| participant_index == share.index)
-//     //         .unwrap();
+    // let nonces_2 = nonces.clone();
 
-//     //     assert!(share_package
-//     //         .group_public
-//     //         .verify(message, &group_signature)
-//     //         .is_ok());
-//     // }
-// }
+    // // Check that the threshold signature can be verified by the group public
+    // // key (aka verification key) from SharePackage.group_public
+    // for (participant_index, _) in nonces_2 {
+    //     let share_package = shares
+    //         .iter()
+    //         .find(|share| participant_index == share.index)
+    //         .unwrap();
+
+    //     assert!(share_package
+    //         .group_public
+    //         .verify(message, &group_signature)
+    //         .is_ok());
+    // }
+}
