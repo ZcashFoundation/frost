@@ -36,3 +36,16 @@ impl From<Signature> for [u8; 64] {
         bytes
     }
 }
+
+impl hex::FromHex for Signature {
+    type Error = &'static str;
+
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+        let mut bytes = [0u8; 64];
+
+        match hex::decode_to_slice(hex, &mut bytes[..]) {
+            Ok(()) => Ok(Self::from(bytes)),
+            Err(_) => Err("invalid hex"),
+        }
+    }
+}

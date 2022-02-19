@@ -5,7 +5,7 @@ use hex;
 use lazy_static::lazy_static;
 use serde_json::Value;
 
-use crate::frost::*;
+use crate::{frost::*, Signature};
 
 lazy_static! {
     pub static ref RISTRETTO255_SHA512: Value =
@@ -13,15 +13,19 @@ lazy_static! {
             .expect("Test vector is valid JSON");
 }
 
-pub fn parse_test_vectors() {
-    let config = &RISTRETTO255_SHA512["config"];
+#[allow(clippy::type_complexity)]
+pub(crate) fn parse_test_vectors() -> (
+    Vec<KeyPackage>,
+    Vec<u8>,
+    Vec<SigningCommitments>,
+    Vec<u8>,
+    Rho,
+    HashMap<u64, SignatureShare>,
+    Signature,
+) {
     let inputs = &RISTRETTO255_SHA512["inputs"];
 
-    println!("{inputs}");
-
-    assert_eq!(hex::encode("test"), inputs["message"].as_str().unwrap());
-
-    let mut signer_pubkeys: HashMap<u64, Public> = HashMap::new();
+    let message_bytes = hex::decode(inputs["message"].as_str().unwrap()).unwrap();
 
     let mut key_packages: Vec<KeyPackage> = Vec::new();
 
@@ -43,43 +47,68 @@ pub fn parse_test_vectors() {
         };
 
         key_packages.push(key_package);
-
-        signer_pubkeys.insert(u64::from_str(i).unwrap(), signer_public);
     }
 
-    // let mut nonces: HashMap<u64, Vec<frost::SigningNonces>> =
-    //     HashMap::with_capacity(threshold as usize);
-    // let mut commitments: Vec<frost::SigningCommitments> = Vec::with_capacity(threshold as usize);
+    // Round one outputs
 
-    // // Round 1, generating nonces and signing commitments for each participant.
-    // for participant_index in 1..(threshold + 1) {
-    //     // Generate one (1) nonce and one SigningCommitments instance for each
-    //     // participant, up to _threshold_.
-    //     let (nonce, commitment) = frost::preprocess(1, participant_index as u64, &mut rng);
-    //     nonces.insert(participant_index as u64, nonce);
-    //     commitments.push(commitment[0]);
-    // }
+    let round_one_outputs = &RISTRETTO255_SHA512["round_one_outputs"];
 
-    // // This is what the signature aggregator / coordinator needs to do:
-    // // - decide what message to sign
-    // // - take one (unused) commitment per signing participant
-    // let mut signature_shares: Vec<frost::SignatureShare> = Vec::with_capacity(threshold as usize);
-    // let message = "message to sign".as_bytes();
-    // let signing_package = frost::SigningPackage::new(commitments, message.to_vec());
+    let group_binding_factor_input = Vec::<u8>::from_hex(
+        round_one_outputs["group_binding_factor_input"]
+            .as_str()
+            .unwrap(),
+    )
+    .unwrap();
 
-    // // Round 2: each participant generates their signature share
-    // for (participant_index, nonce) in &nonces {
-    //     let share_package = shares
-    //         .iter()
-    //         .find(|share| *participant_index == share.index)
-    //         .unwrap();
-    //     let nonce_to_use = nonce[0];
-    //     // Each participant generates their signature share.
-    //     let signature_share = frost::sign(&signing_package, &nonce_to_use, share_package).unwrap();
-    //     signature_shares.push(signature_share);
-    // }
+    let group_binding_factor =
+        Rho::from_hex(round_one_outputs["group_binding_factor"].as_str().unwrap()).unwrap();
 
-    // // The aggregator collects the signing shares from all participants and
-    // // generates the final signature.
-    // let group_signature_res = frost::aggregate(&signing_package, &signature_shares[..], &pubkeys);
+    let mut signer_commitments: Vec<SigningCommitments> = Vec::new();
+
+    for (i, signer) in round_one_outputs["signers"].as_object().unwrap().iter() {
+        let index = u64::from_str(i).unwrap();
+
+        let signing_commitments = SigningCommitments {
+            index,
+            hiding: NonceCommitment::from_hex(signer["hiding_nonce_commitment"].as_str().unwrap())
+                .unwrap(),
+            binding: NonceCommitment::from_hex(
+                signer["binding_nonce_commitment"].as_str().unwrap(),
+            )
+            .unwrap(),
+        };
+
+        signer_commitments.push(signing_commitments);
+    }
+
+    // Round two outputs
+
+    let round_two_outputs = &RISTRETTO255_SHA512["round_two_outputs"];
+
+    let mut signature_shares: HashMap<u64, SignatureShare> = HashMap::new();
+
+    for (i, signer) in round_two_outputs["signers"].as_object().unwrap().iter() {
+        let signature_share = SignatureShare {
+            index: u64::from_str(i).unwrap(),
+            signature: SignatureResponse::from_hex(signer["sig_share"].as_str().unwrap()).unwrap(),
+        };
+
+        signature_shares.insert(u64::from_str(i).unwrap(), signature_share);
+    }
+
+    // Final output
+
+    let final_output = &RISTRETTO255_SHA512["final_output"];
+
+    let signature = Signature::from_hex(final_output["sig"].as_str().unwrap()).unwrap();
+
+    (
+        key_packages,
+        message_bytes,
+        signer_commitments,
+        group_binding_factor_input,
+        group_binding_factor,
+        signature_shares,
+        signature,
+    )
 }
