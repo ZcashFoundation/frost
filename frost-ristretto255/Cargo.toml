@@ -19,12 +19,12 @@ features = ["nightly"]
 
 [dependencies]
 byteorder = "1.4"
-curve25519-dalek = "4.0.0-pre.1"
+curve25519-dalek = { version = "4.0.0-pre.1", features = ["serde"] }
 digest = "0.9"
-hex = "0.4.3"
+hex = { version = "0.4.3", features = ["serde"] }
 rand_core = "0.6"
 serde = { version = "1", optional = true, features = ["derive"] }
-sha2 = "0.9.0"
+sha2 = "0.10.2"
 thiserror = "1.0"
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 

@@ -10,7 +10,7 @@
 
 use std::convert::{TryFrom, TryInto};
 
-use curve25519_dalek::{constants::RISTRETTO_BASEPOINT_POINT, scalar::Scalar};
+use curve25519_dalek::{constants::RISTRETTO_BASEPOINT_POINT, digest::Update, scalar::Scalar};
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
