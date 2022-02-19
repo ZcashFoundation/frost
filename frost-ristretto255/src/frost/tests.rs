@@ -6,7 +6,7 @@ use crate::frost::{self, *};
 
 mod vectors;
 
-use vectors::RISTRETTO255_SHA512;
+use vectors::*;
 
 fn reconstruct_secret(secret_shares: Vec<SecretShare>) -> Result<Scalar, &'static str> {
     let numshares = secret_shares.len();
@@ -71,41 +71,43 @@ fn check_sign_with_test_vectors() {
     // let threshold = 3;
     // let (shares, pubkeys) = frost::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
 
-    let config = &RISTRETTO255_SHA512["config"];
-    let inputs = &RISTRETTO255_SHA512["inputs"];
-    println!("{inputs}");
+    parse_test_vectors();
 
-    assert_eq!(hex::encode("test"), inputs["message"].as_str().unwrap());
+    // let config = &RISTRETTO255_SHA512["config"];
+    // let inputs = &RISTRETTO255_SHA512["inputs"];
+    // println!("{inputs}");
 
-    let mut signer_pubkeys: HashMap<u64, Public> =
-        HashMap::with_capacity(config["NUM_SIGNERS"].as_u64().unwrap() as usize);
+    // assert_eq!(hex::encode("test"), inputs["message"].as_str().unwrap());
 
-    let mut key_packages: Vec<KeyPackage> =
-        Vec::with_capacity(config["NUM_SIGNERS"].as_u64().unwrap() as usize);
+    // let mut signer_pubkeys: HashMap<u64, Public> =
+    //     HashMap::with_capacity(config["NUM_SIGNERS"].as_u64().unwrap() as usize);
 
-    for (i, secret_share) in RISTRETTO255_SHA512["inputs"]["signers"]
-        .as_object()
-        .unwrap()
-    {
-        // TODO: parse test vector bytes into `SecretShare`, turn that .into() `SharePackage`
+    // let mut key_packages: Vec<KeyPackage> =
+    //     Vec::with_capacity(config["NUM_SIGNERS"].as_u64().unwrap() as usize);
 
-        println!("{secret_share}");
+    // for (i, secret_share) in RISTRETTO255_SHA512["inputs"]["signers"]
+    // // .as_object()
+    // // .unwrap()
+    // {
+    //     // TODO: parse test vector bytes into `SecretShare`, turn that .into() `SharePackage`
 
-        let secret = Secret::try_from(secret_share["value"].into()).unwrap();
-        let signer_public = secret.into();
+    //     println!("{:?}", secret_share);
 
-        key_packages.push(KeyPackage {
-            index: u64::from_str(i).unwrap(),
-            secret_share: secret,
-            public: signer_public,
-            group_public: VerificationKey::try_from(<[u8; 32]>::from(
-                inputs["group_public_key"].as_object(),
-            ))
-            .unwrap(),
-        });
+    //     let secret: Secret = serde_json::from_str(secret_share.as_str().unwrap()).unwrap(); // Secret::try_from(secret_share["value"]).unwrap();
+    //     let signer_public = secret.into();
 
-        signer_pubkeys.insert(u64::from_str(i).unwrap(), signer_public);
-    }
+    //     // key_packages.push(KeyPackage {
+    //     //     index: u64::from_str(i).unwrap(),
+    //     //     secret_share: secret,
+    //     //     public: signer_public,
+    //     //     group_public: VerificationKey::try_from(<[u8; 32]>::from(
+    //     //         inputs["group_public_key"].as_object(),
+    //     //     ))
+    //     //     .unwrap(),
+    //     // });
+
+    //     signer_pubkeys.insert(u64::from_str(i).unwrap(), signer_public);
+    // }
 
     // let mut nonces: HashMap<u64, Vec<frost::SigningNonces>> =
     //     HashMap::with_capacity(threshold as usize);

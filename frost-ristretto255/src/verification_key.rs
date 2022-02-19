@@ -15,6 +15,7 @@ use curve25519_dalek::{
     scalar::Scalar,
     traits::Identity,
 };
+use hex::FromHex;
 
 use crate::{Error, Signature};
 
@@ -74,6 +75,19 @@ impl From<VerificationKey> for VerificationKeyBytes {
 impl From<VerificationKey> for [u8; 32] {
     fn from(pk: VerificationKey) -> [u8; 32] {
         pk.bytes.bytes
+    }
+}
+
+impl FromHex for VerificationKey {
+    type Error = Error;
+
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+        let mut bytes = [0u8; 32];
+
+        match hex::decode_to_slice(hex, &mut bytes[..]) {
+            Ok(()) => Self::try_from(bytes),
+            Err(_) => Err(Error::MalformedVerificationKey),
+        }
     }
 }
 
