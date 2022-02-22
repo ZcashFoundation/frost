@@ -816,8 +816,7 @@ pub fn aggregate(
 
         let commitment_i = signer_commitment.hiding.0 + (signer_commitment.binding.0 * rho.0);
 
-        // println!("{:?}", signing_share);
-        // signing_share.check_is_valid(&signer_pubkey, lambda_i, commitment_i, challenge)?;
+        signing_share.check_is_valid(&signer_pubkey, lambda_i, commitment_i, challenge)?;
     }
 
     // The aggregation of the signature shares by summing them up, resulting in
@@ -826,9 +825,6 @@ pub fn aggregate(
     for signature_share in signing_shares {
         z += signature_share.signature.0;
     }
-
-    println!("group_commitment R: {:?}", group_commitment.0);
-    println!("z: {:?}", z);
 
     Ok(Signature {
         r_bytes: group_commitment.0.compress().to_bytes(),
