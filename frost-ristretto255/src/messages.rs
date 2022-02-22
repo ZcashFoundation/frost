@@ -165,7 +165,7 @@ pub enum ParticipantId {
     /// A serialized participant ID for a signer.
     ///
     /// Must be less than or equal to [`constants::MAX_SIGNER_PARTICIPANT_ID`].
-    Signer(u64),
+    Signer(u16),
     /// The fixed participant ID for the dealer as defined in
     /// [`constants::DEALER_PARTICIPANT_ID`].
     Dealer,
@@ -174,8 +174,8 @@ pub enum ParticipantId {
     Aggregator,
 }
 
-impl From<ParticipantId> for u64 {
-    fn from(value: ParticipantId) -> u64 {
+impl From<ParticipantId> for u16 {
+    fn from(value: ParticipantId) -> u16 {
         match value {
             // An id of `0` is invalid in frost.
             ParticipantId::Signer(id) => id + 1,
@@ -249,7 +249,7 @@ impl From<SigningPackage> for frost::SigningPackage {
         let mut signing_commitments = Vec::new();
         for (participant_id, commitment) in &value.signing_commitments {
             let s = frost::SigningCommitments {
-                index: u64::from(*participant_id),
+                index: u16::from(*participant_id),
                 hiding: frost::NonceCommitment(
                     CompressedRistretto::from_slice(&commitment.hiding.0)
                         .decompress()

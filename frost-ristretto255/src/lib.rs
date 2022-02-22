@@ -73,7 +73,10 @@ pub(crate) fn H2(m: &[u8]) -> [u8; 64] {
 ///
 /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
 pub(crate) fn H3(m: &[u8]) -> [u8; 64] {
-    let h = Sha512::new().chain(m);
+    let h = Sha512::new()
+        .chain(CONTEXT_STRING.as_bytes())
+        .chain("digest")
+        .chain(m);
 
     let mut output = [0u8; 64];
     output.copy_from_slice(h.finalize().as_slice());

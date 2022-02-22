@@ -62,28 +62,74 @@ fn check_share_generation() {
     assert_eq!(reconstruct_secret(secret_shares).unwrap(), secret.0)
 }
 
-#[test]
-fn check_sign_with_test_vectors() {
-    let (
-        key_packages,
-        message,
-        signer_commitments,
-        group_binding_factor_input,
-        group_binding_factor,
-        signature_shares,
-        signature,
-    ) = parse_test_vectors();
+// #[test]
+// fn check_sign_with_test_vectors() {
+//     let (
+//         group_public,
+//         key_packages,
+//         message,
+//         message_bytes,
+//         signer_commitments,
+//         group_binding_factor_input,
+//         _group_binding_factor,
+//         signature_shares,
+//         signature,
+//     ) = parse_test_vectors();
 
-    // Key generation
-    for key_package in key_packages {
-        assert_eq!(key_package.public, key_package.secret_share.into());
-    }
+//     // Key generation
+//     for key_package in key_packages.values() {
+//         assert_eq!(key_package.public, key_package.secret_share.into());
+//     }
 
-    // Round one
-    // for (i, signing_commitments) in signer_commitments {
-    //     // compute nonce commitments from nonces
-    // }
+//     // Round 1
+//     // for (i, signing_commitments) in signer_commitments {
+//     //     // compute nonce commitments from nonces
+//     // }
 
-    // Round two
-    let signing_package = frost::SigningPackage::new(signer_commitments, message);
-}
+//     // Round 2
+//     let signing_package = frost::SigningPackage::new(signer_commitments, message_bytes);
+
+//     assert_eq!(signing_package.rho_preimage(), group_binding_factor_input);
+
+//     // Each participant generates their signature share
+//     // TODO: needs the nonces from the test vectors
+//     // for (participant_index, nonce) in &nonces {
+//     //     let key_package = key_packages
+//     //         .iter()
+//     //         .find(|key_package| *participant_index == key_package.index)
+//     //         .unwrap();
+//     //     let nonce_to_use = nonce[0];
+//     //     // Each participant generates their signature share.
+//     //     let signature_share = frost::sign(&signing_package, &nonce_to_use, key_package).unwrap();
+//     //     signature_shares.push(signature_share);
+//     // }
+
+//     let signer_pubkeys = key_packages
+//         .into_iter()
+//         .map(|(i, key_package)| (i, key_package.public))
+//         .collect();
+
+//     let pubkey_package = PublicKeyPackage {
+//         signer_pubkeys,
+//         group_public,
+//     };
+
+//     // The aggregator collects the signing shares from all participants and generates the final
+//     // signature.
+//     let group_signature_result = frost::aggregate(
+//         &signing_package,
+//         &signature_shares
+//             .values()
+//             .cloned()
+//             .collect::<Vec<SignatureShare>>(),
+//         &pubkey_package,
+//     );
+
+//     // println!("{:?}", group_signature_result);
+
+//     assert!(group_signature_result.is_ok());
+
+//     let group_signature = group_signature_result.unwrap();
+
+//     assert_eq!(group_signature, signature);
+// }

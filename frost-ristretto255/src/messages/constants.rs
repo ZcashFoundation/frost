@@ -6,15 +6,15 @@ use super::MsgVersion;
 pub const BASIC_FROST_SERIALIZATION: MsgVersion = MsgVersion(0);
 
 /// The fixed participant ID for the dealer.
-pub const DEALER_PARTICIPANT_ID: u64 = u64::MAX - 1;
+pub const DEALER_PARTICIPANT_ID: u16 = u16::MAX - 1;
 
 /// The fixed participant ID for the aggregator.
-pub const AGGREGATOR_PARTICIPANT_ID: u64 = u64::MAX;
+pub const AGGREGATOR_PARTICIPANT_ID: u16 = u16::MAX;
 
 /// The maximum `ParticipantId::Signer` in this serialization format.
 ///
 /// We reserve two participant IDs for the dealer and aggregator.
-pub const MAX_SIGNER_PARTICIPANT_ID: u64 = u64::MAX - 2;
+pub const MAX_SIGNER_PARTICIPANT_ID: u16 = u16::MAX - 2;
 
 /// The maximum number of signers
 ///

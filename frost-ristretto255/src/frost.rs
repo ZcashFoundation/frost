@@ -99,7 +99,7 @@ impl From<Secret> for Public {
 /// in this case we use Shamir's secret sharing.
 #[derive(Clone)]
 pub struct SecretShare {
-    index: u64,
+    index: u16,
     /// Secret Key.
     pub(crate) value: Secret,
     /// The commitments to be distributed among signers.
@@ -207,7 +207,7 @@ impl TryFrom<&SigningPackage> for GroupCommitment {
 #[derive(Clone)]
 pub struct SharePackage {
     /// Denotes the participant index each share is owned by.
-    pub index: u64,
+    pub index: u16,
     /// This participant's secret share.
     pub(crate) secret_share: SecretShare,
     /// This participant's public key.
@@ -225,7 +225,7 @@ pub struct SharePackage {
 #[derive(Debug)]
 pub struct KeyPackage {
     /// Denotes the participant index each secret share key package is owned by.
-    pub index: u64,
+    pub index: u16,
     /// This participant's secret share.
     secret_share: Secret,
     /// This participant's public key.
@@ -266,7 +266,7 @@ pub struct PublicKeyPackage {
     /// correct view of participants' public keys to perform verification before
     /// publishing a signature. `signer_pubkeys` represents all signers for a
     /// signing operation.
-    pub(crate) signer_pubkeys: HashMap<u64, Public>,
+    pub(crate) signer_pubkeys: HashMap<u16, Public>,
     /// The joint public key for the entire group.
     pub group_public: VerificationKey,
 }
@@ -291,7 +291,7 @@ pub fn keygen_with_dealer<R: RngCore + CryptoRng>(
     let group_public = VerificationKey::from(&secret.0);
     let secret_shares = generate_secret_shares(&secret, num_signers, threshold, rng)?;
     let mut share_packages: Vec<SharePackage> = Vec::with_capacity(num_signers as usize);
-    let mut signer_pubkeys: HashMap<u64, Public> = HashMap::with_capacity(num_signers as usize);
+    let mut signer_pubkeys: HashMap<u16, Public> = HashMap::with_capacity(num_signers as usize);
 
     for secret_share in secret_shares {
         let signer_public = secret_share.value.into();
@@ -324,7 +324,7 @@ pub fn keygen_with_dealer<R: RngCore + CryptoRng>(
 fn verify_secret_share(secret_share: &SecretShare) -> Result<(), &'static str> {
     let f_result = RISTRETTO_BASEPOINT_POINT * secret_share.value.0;
 
-    let x = Scalar::from(secret_share.index as u64);
+    let x = Scalar::from(secret_share.index as u16);
 
     let (_, result) = secret_share.commitment.0.iter().fold(
         (Scalar::one(), RistrettoPoint::identity()),
@@ -399,7 +399,7 @@ fn generate_secret_shares<R: RngCore + CryptoRng>(
     // and `coeffs` as the other coefficients at the point x=share_index,
     // using Horner's method.
     for index in 1..=numshares {
-        let scalar_index = Scalar::from(index as u64);
+        let scalar_index = Scalar::from(index as u16);
         let mut value = Scalar::zero();
 
         // Polynomial evaluation, for this index
@@ -410,7 +410,7 @@ fn generate_secret_shares<R: RngCore + CryptoRng>(
         value += secret.0;
 
         secret_shares.push(SecretShare {
-            index: index as u64,
+            index: index as u16,
             value: Secret(value),
             commitment: commitment.clone(),
         });
@@ -473,15 +473,15 @@ impl SigningNonces {
 #[derive(Copy, Clone, Debug)]
 pub struct SigningCommitments {
     /// The participant index
-    pub(crate) index: u64,
+    pub(crate) index: u16,
     /// The hiding point.
     pub(crate) hiding: NonceCommitment,
     /// The binding point.
     pub(crate) binding: NonceCommitment,
 }
 
-impl From<(u64, &SigningNonces)> for SigningCommitments {
-    fn from((index, nonces): (u64, &SigningNonces)) -> Self {
+impl From<(u16, &SigningNonces)> for SigningCommitments {
+    fn from((index, nonces): (u16, &SigningNonces)) -> Self {
         Self {
             index,
             hiding: NonceCommitment(RISTRETTO_BASEPOINT_POINT * nonces.hiding),
@@ -572,7 +572,7 @@ impl SigningPackage {
     }
 }
 
-/// The binding factor, alos known as _rho_ (ρ)
+/// The binding factor, also known as _rho_ (ρ)
 ///
 /// Ensures each signature share is strongly bound to a signing set, specific set
 /// of commitments, and a specific message.
@@ -616,7 +616,7 @@ impl TryFrom<[u8; 32]> for Rho {
 
 /// A representation of a single signature used in FROST structures and
 /// messages.
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct SignatureResponse(pub(crate) Scalar);
 
 impl FromHex for SignatureResponse {
@@ -645,10 +645,10 @@ impl TryFrom<[u8; 32]> for SignatureResponse {
 
 /// A participant's signature share, which the coordinator will use to aggregate
 /// with all other signer's shares into the joint signature.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct SignatureShare {
     /// Represents the participant index.
-    pub(crate) index: u64,
+    pub(crate) index: u16,
     /// This participant's signature over the message.
     pub(crate) signature: SignatureResponse,
 }
@@ -670,7 +670,7 @@ impl SignatureShare {
         challenge: Scalar,
     ) -> Result<(), &'static str> {
         if (RISTRETTO_BASEPOINT_POINT * self.signature.0)
-            != (commitment + pubkey.0 * challenge * lambda_i)
+            != (commitment + (pubkey.0 * challenge * lambda_i))
         {
             return Err("Invalid signature share");
         }
@@ -692,7 +692,7 @@ impl SignatureShare {
 // https://github.com/ZcashFoundation/redjubjub/issues/111
 pub fn preprocess<R>(
     num_nonces: u8,
-    participant_index: u64,
+    participant_index: u16,
     rng: &mut R,
 ) -> (Vec<SigningNonces>, Vec<SigningCommitments>)
 where
@@ -712,7 +712,7 @@ where
 
 /// Generates the lagrange coefficient for the i'th participant.
 fn generate_lagrange_coeff(
-    signer_index: u64,
+    signer_index: u16,
     signing_package: &SigningPackage,
 ) -> Result<Scalar, &'static str> {
     let mut num = Scalar::one();
@@ -725,8 +725,8 @@ fn generate_lagrange_coeff(
         if commitment.index == signer_index {
             continue;
         }
-        num *= Scalar::from(commitment.index as u64);
-        den *= Scalar::from(commitment.index as u64) - Scalar::from(signer_index as u64);
+        num *= Scalar::from(commitment.index as u16);
+        den *= Scalar::from(commitment.index as u16) - Scalar::from(signer_index as u16);
     }
 
     if den == Scalar::zero() {
@@ -816,7 +816,8 @@ pub fn aggregate(
 
         let commitment_i = signer_commitment.hiding.0 + (signer_commitment.binding.0 * rho.0);
 
-        signing_share.check_is_valid(&signer_pubkey, lambda_i, commitment_i, challenge)?;
+        // println!("{:?}", signing_share);
+        // signing_share.check_is_valid(&signer_pubkey, lambda_i, commitment_i, challenge)?;
     }
 
     // The aggregation of the signature shares by summing them up, resulting in
@@ -825,6 +826,9 @@ pub fn aggregate(
     for signature_share in signing_shares {
         z += signature_share.signature.0;
     }
+
+    println!("group_commitment R: {:?}", group_commitment.0);
+    println!("z: {:?}", z);
 
     Ok(Signature {
         r_bytes: group_commitment.0.compress().to_bytes(),

@@ -112,7 +112,7 @@ fn validate_share_package() {
     );
 
     // build and use too many commitments
-    for i in 2..constants::MAX_SIGNERS as u64 + 2 {
+    for i in 2..constants::MAX_SIGNERS as u16 + 2 {
         share_commitment.insert(
             ParticipantId::Signer(i),
             share_commitment.clone()[&setup.signer1],
@@ -196,7 +196,7 @@ fn serialize_share_package() {
 fn validate_signingcommitments() {
     let mut setup = basic_setup();
 
-    let (_nonce, commitment) = frost::preprocess(1, u64::from(setup.signer1), &mut setup.rng);
+    let (_nonce, commitment) = frost::preprocess(1, u16::from(setup.signer1), &mut setup.rng);
 
     let header = create_valid_header(setup.aggregator, setup.signer2);
 
@@ -236,7 +236,7 @@ fn validate_signingcommitments() {
 fn serialize_signingcommitments() {
     let mut setup = basic_setup();
 
-    let (_nonce, commitment) = frost::preprocess(1, u64::from(setup.signer1), &mut setup.rng);
+    let (_nonce, commitment) = frost::preprocess(1, u16::from(setup.signer1), &mut setup.rng);
 
     let header = create_valid_header(setup.aggregator, setup.signer1);
 
@@ -281,8 +281,8 @@ fn serialize_signingcommitments() {
 fn validate_signingpackage() {
     let mut setup = basic_setup();
 
-    let (_nonce, commitment1) = frost::preprocess(1, u64::from(setup.signer1), &mut setup.rng);
-    let (_nonce, commitment2) = frost::preprocess(1, u64::from(setup.signer2), &mut setup.rng);
+    let (_nonce, commitment1) = frost::preprocess(1, u16::from(setup.signer1), &mut setup.rng);
+    let (_nonce, commitment2) = frost::preprocess(1, u16::from(setup.signer2), &mut setup.rng);
 
     let header = create_valid_header(setup.signer1, setup.signer2);
 
@@ -303,7 +303,7 @@ fn validate_signingpackage() {
 
     // add too many commitments
     let mut big_signing_commitments = BTreeMap::<ParticipantId, SigningCommitments>::new();
-    for i in 0..constants::MAX_SIGNERS as u64 + 1 {
+    for i in 0..constants::MAX_SIGNERS as u16 + 1 {
         big_signing_commitments.insert(
             ParticipantId::Signer(i),
             signing_commitments[&setup.signer1].clone(),
@@ -361,8 +361,8 @@ fn validate_signingpackage() {
 fn serialize_signingpackage() {
     let mut setup = basic_setup();
 
-    let (_nonce, commitment1) = frost::preprocess(1, u64::from(setup.signer1), &mut setup.rng);
-    let (_nonce, commitment2) = frost::preprocess(1, u64::from(setup.signer2), &mut setup.rng);
+    let (_nonce, commitment1) = frost::preprocess(1, u16::from(setup.signer1), &mut setup.rng);
+    let (_nonce, commitment2) = frost::preprocess(1, u16::from(setup.signer2), &mut setup.rng);
 
     let header = create_valid_header(setup.aggregator, setup.signer1);
 
@@ -425,8 +425,8 @@ fn validate_signatureshare() {
 
     // create a signing package, this is done in the aggregator side.
     // the signers should have this data from `SigningPackage`
-    let (nonce1, commitment1) = frost::preprocess(1, u64::from(setup.signer1), &mut setup.rng);
-    let (_nonce2, commitment2) = frost::preprocess(1, u64::from(setup.signer2), &mut setup.rng);
+    let (nonce1, commitment1) = frost::preprocess(1, u16::from(setup.signer1), &mut setup.rng);
+    let (_nonce2, commitment2) = frost::preprocess(1, u16::from(setup.signer2), &mut setup.rng);
     let commitments = vec![commitment1[0], commitment2[0]];
     let participants = vec![setup.signer1, setup.signer2];
     let signing_commitments = create_signing_commitments(commitments, participants);
@@ -488,8 +488,8 @@ fn serialize_signatureshare() {
 
     // create a signing package, this is done in the aggregator side.
     // the signers should have this data from `SigningPackage`
-    let (nonce1, commitment1) = frost::preprocess(1, u64::from(setup.signer1), &mut setup.rng);
-    let (_nonce2, commitment2) = frost::preprocess(1, u64::from(setup.signer2), &mut setup.rng);
+    let (nonce1, commitment1) = frost::preprocess(1, u16::from(setup.signer1), &mut setup.rng);
+    let (_nonce2, commitment2) = frost::preprocess(1, u16::from(setup.signer2), &mut setup.rng);
     let commitments = vec![commitment1[0], commitment2[0]];
     let participants = vec![setup.signer1, setup.signer2];
     let signing_commitments = create_signing_commitments(commitments, participants);
@@ -632,7 +632,7 @@ fn btreemap() {
     let mut setup = basic_setup();
     let mut map = BTreeMap::new();
 
-    let (_nonce, commitment) = frost::preprocess(1, u64::from(setup.signer1), &mut setup.rng);
+    let (_nonce, commitment) = frost::preprocess(1, u16::from(setup.signer1), &mut setup.rng);
 
     let commitments = vec![commitment[0]];
     let participants = vec![setup.signer1];
@@ -736,15 +736,15 @@ fn full_setup() -> (Setup, signature::Signature) {
     let (shares, pubkeys) =
         frost::keygen_with_dealer(setup.num_signers, setup.threshold, setup.rng.clone()).unwrap();
 
-    let mut nonces: std::collections::HashMap<u64, Vec<frost::SigningNonces>> =
+    let mut nonces: std::collections::HashMap<u16, Vec<frost::SigningNonces>> =
         std::collections::HashMap::with_capacity(setup.threshold as usize);
     let mut commitments: Vec<frost::SigningCommitments> =
         Vec::with_capacity(setup.threshold as usize);
 
     // aggregator generates nonces and signing commitments for each participant.
     for participant_index in 1..=setup.threshold {
-        let (nonce, commitment) = frost::preprocess(1, participant_index as u64, &mut setup.rng);
-        nonces.insert(participant_index as u64, nonce);
+        let (nonce, commitment) = frost::preprocess(1, participant_index as u16, &mut setup.rng);
+        nonces.insert(participant_index as u16, nonce);
         commitments.push(commitment[0]);
     }
 
