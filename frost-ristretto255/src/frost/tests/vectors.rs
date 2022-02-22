@@ -15,38 +15,43 @@ lazy_static! {
 
 #[allow(clippy::type_complexity)]
 pub(crate) fn parse_test_vectors() -> (
-    Vec<KeyPackage>,
+    VerificationKey,
+    HashMap<u16, KeyPackage>,
+    &'static str,
     Vec<u8>,
     Vec<SigningCommitments>,
     Vec<u8>,
     Rho,
-    HashMap<u64, SignatureShare>,
+    HashMap<u16, SignatureShare>,
     Signature,
 ) {
     let inputs = &RISTRETTO255_SHA512["inputs"];
 
-    let message_bytes = hex::decode(inputs["message"].as_str().unwrap()).unwrap();
+    let message = inputs["message"].as_str().unwrap();
+    let message_bytes = hex::decode(message).unwrap();
 
-    let mut key_packages: Vec<KeyPackage> = Vec::new();
+    let mut key_packages: HashMap<u16, KeyPackage> = HashMap::new();
 
     let possible_signers = RISTRETTO255_SHA512["inputs"]["signers"]
         .as_object()
         .unwrap()
         .iter();
 
+    let group_public =
+        VerificationKey::from_hex(inputs["group_public_key"].as_str().unwrap()).unwrap();
+
     for (i, secret_share) in possible_signers {
         let secret = Secret::from_hex(secret_share["signer_share"].as_str().unwrap()).unwrap();
         let signer_public = secret.into();
 
         let key_package = KeyPackage {
-            index: u64::from_str(i).unwrap(),
+            index: u16::from_str(i).unwrap(),
             secret_share: secret,
             public: signer_public,
-            group_public: VerificationKey::from_hex(inputs["group_public_key"].as_str().unwrap())
-                .unwrap(),
+            group_public,
         };
 
-        key_packages.push(key_package);
+        key_packages.insert(key_package.index, key_package);
     }
 
     // Round one outputs
@@ -66,7 +71,7 @@ pub(crate) fn parse_test_vectors() -> (
     let mut signer_commitments: Vec<SigningCommitments> = Vec::new();
 
     for (i, signer) in round_one_outputs["signers"].as_object().unwrap().iter() {
-        let index = u64::from_str(i).unwrap();
+        let index = u16::from_str(i).unwrap();
 
         let signing_commitments = SigningCommitments {
             index,
@@ -85,15 +90,15 @@ pub(crate) fn parse_test_vectors() -> (
 
     let round_two_outputs = &RISTRETTO255_SHA512["round_two_outputs"];
 
-    let mut signature_shares: HashMap<u64, SignatureShare> = HashMap::new();
+    let mut signature_shares: HashMap<u16, SignatureShare> = HashMap::new();
 
     for (i, signer) in round_two_outputs["signers"].as_object().unwrap().iter() {
         let signature_share = SignatureShare {
-            index: u64::from_str(i).unwrap(),
+            index: u16::from_str(i).unwrap(),
             signature: SignatureResponse::from_hex(signer["sig_share"].as_str().unwrap()).unwrap(),
         };
 
-        signature_shares.insert(u64::from_str(i).unwrap(), signature_share);
+        signature_shares.insert(u16::from_str(i).unwrap(), signature_share);
     }
 
     // Final output
@@ -103,7 +108,9 @@ pub(crate) fn parse_test_vectors() -> (
     let signature = Signature::from_hex(final_output["sig"].as_str().unwrap()).unwrap();
 
     (
+        group_public,
         key_packages,
+        message,
         message_bytes,
         signer_commitments,
         group_binding_factor_input,

@@ -44,7 +44,7 @@ impl Arbitrary for ParticipantId {
 
     fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
         prop_oneof![
-            (u64::MIN..=constants::MAX_SIGNER_PARTICIPANT_ID).prop_map(ParticipantId::Signer),
+            (u16::MIN..=constants::MAX_SIGNER_PARTICIPANT_ID).prop_map(ParticipantId::Signer),
             Just(ParticipantId::Dealer),
             Just(ParticipantId::Aggregator),
         ]

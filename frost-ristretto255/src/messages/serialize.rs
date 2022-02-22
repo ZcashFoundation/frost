@@ -24,10 +24,10 @@ impl Serialize for ParticipantId {
         match *self {
             ParticipantId::Signer(id) => {
                 assert!(id <= MAX_SIGNER_PARTICIPANT_ID);
-                serializer.serialize_u64(id)
+                serializer.serialize_u16(id)
             }
-            ParticipantId::Dealer => serializer.serialize_u64(DEALER_PARTICIPANT_ID),
-            ParticipantId::Aggregator => serializer.serialize_u64(AGGREGATOR_PARTICIPANT_ID),
+            ParticipantId::Dealer => serializer.serialize_u16(DEALER_PARTICIPANT_ID),
+            ParticipantId::Aggregator => serializer.serialize_u16(AGGREGATOR_PARTICIPANT_ID),
         }
     }
 }
@@ -39,11 +39,11 @@ impl<'de> Visitor<'de> for ParticipantIdVisitor {
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str(
-            format!("an integer between {} and {}", std::u64::MIN, std::u64::MAX).as_str(),
+            format!("an integer between {} and {}", std::u16::MIN, std::u16::MAX).as_str(),
         )
     }
 
-    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+    fn visit_u16<E>(self, value: u16) -> Result<Self::Value, E>
     where
         E: de::Error,
     {
@@ -63,6 +63,6 @@ impl<'de> Deserialize<'de> for ParticipantId {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_u64(ParticipantIdVisitor)
+        deserializer.deserialize_u16(ParticipantIdVisitor)
     }
 }

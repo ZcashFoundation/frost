@@ -17,7 +17,7 @@ fn check_sign_with_dealer() {
         .map(|share| frost::KeyPackage::try_from(share).unwrap())
         .collect();
 
-    let mut nonces: HashMap<u64, Vec<frost::SigningNonces>> =
+    let mut nonces: HashMap<u16, Vec<frost::SigningNonces>> =
         HashMap::with_capacity(threshold as usize);
     let mut commitments: Vec<frost::SigningCommitments> = Vec::with_capacity(threshold as usize);
 
@@ -25,8 +25,8 @@ fn check_sign_with_dealer() {
     for participant_index in 1..(threshold + 1) {
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _threshold_.
-        let (nonce, commitment) = frost::preprocess(1, participant_index as u64, &mut rng);
-        nonces.insert(participant_index as u64, nonce);
+        let (nonce, commitment) = frost::preprocess(1, participant_index as u16, &mut rng);
+        nonces.insert(participant_index as u16, nonce);
         commitments.push(commitment[0]);
     }
 
