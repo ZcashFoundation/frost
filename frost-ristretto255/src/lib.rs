@@ -90,7 +90,7 @@ fn generate_challenge(R_bytes: &[u8; 32], pubkey_bytes: &[u8; 32], msg: &[u8]) -
 
     preimage.extend_from_slice(R_bytes);
     preimage.extend_from_slice(pubkey_bytes);
-    preimage.extend_from_slice(&H3(msg));
+    preimage.extend_from_slice(msg);
 
     let challenge_wide = H2(&preimage[..]);
 
