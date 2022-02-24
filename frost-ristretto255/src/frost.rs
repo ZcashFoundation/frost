@@ -273,8 +273,16 @@ pub struct ShareCommitment(pub(crate) Vec<CoefficientCommitment>);
 
 /// The product of all signers' individual commitments, published as part of the
 /// final signature.
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub struct GroupCommitment(pub(crate) RistrettoPoint);
+
+impl Debug for GroupCommitment {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("GroupCommitment")
+            .field(&hex::encode(self.0.compress().to_bytes()))
+            .finish()
+    }
+}
 
 impl TryFrom<&SigningPackage> for GroupCommitment {
     type Error = &'static str;
@@ -686,10 +694,19 @@ impl TryFrom<[u8; 32]> for Rho {
 
 /// A representation of a single signature share used in FROST structures and messages, including
 /// the group commitment share.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq)]
 pub struct SignatureResponse {
     pub(crate) R_share: RistrettoPoint,
     pub(crate) z_share: Scalar,
+}
+
+impl Debug for SignatureResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("SignatureResponse")
+            .field("R_share", &hex::encode(self.R_share.compress().to_bytes()))
+            .field("z_share", &hex::encode(self.z_share.to_bytes()))
+            .finish()
+    }
 }
 
 impl From<SignatureResponse> for [u8; 64] {
@@ -727,12 +744,21 @@ impl From<SignatureResponse> for [u8; 64] {
 
 /// A participant's signature share, which the coordinator will use to aggregate
 /// with all other signer's shares into the joint signature.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq)]
 pub struct SignatureShare {
     /// Represents the participant index.
     pub(crate) index: u16,
     /// This participant's signature over the message.
     pub(crate) signature: SignatureResponse,
+}
+
+impl Debug for SignatureShare {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("SignatureShare")
+            .field("index", &self.index)
+            .field("signature", &self.signature)
+            .finish()
+    }
 }
 
 // Zeroizes `SignatureShare` to be the `Default` value on drop (when it goes out
@@ -750,8 +776,6 @@ impl SignatureShare {
         lambda_i: Scalar,
         challenge: Scalar,
     ) -> Result<(), &'static str> {
-        println!("checking sig share: {:?}", self);
-
         if (RISTRETTO_BASEPOINT_POINT * self.signature.z_share)
             != (self.signature.R_share + (public_key.0 * challenge * lambda_i))
         {
@@ -848,24 +872,14 @@ pub fn sign(
 
     let lambda_i = generate_lagrange_coeff(key_package.index, signing_package)?;
 
-    println!("signer_nonces: {:?}", signer_nonces);
-
     // The Schnorr signature share
     let z_share: Scalar = signer_nonces.hiding.0
         + (signer_nonces.binding.0 * rho.0)
         + (lambda_i * key_package.secret_share.0 * challenge);
 
-    println!(
-        "z_share_{:?}: {:?}",
-        key_package.index,
-        hex::encode(z_share.to_bytes())
-    );
-
     // The Schnorr signature commitment share
     let R_share: RistrettoPoint =
         signer_commitments.hiding.0 + (signer_commitments.binding.0 * rho.0);
-
-    println!("R_share_{:?}: {:?}", key_package.index, R_share.compress());
 
     let signature_share = SignatureShare {
         index: key_package.index,
@@ -903,28 +917,11 @@ pub fn aggregate(
         signing_package.message.as_slice(),
     );
 
-    let rho = Rho::from(signing_package);
-
     for signing_share in signing_shares {
         let signer_pubkey = pubkeys.signer_pubkeys.get(&signing_share.index).unwrap();
         let lambda_i = generate_lagrange_coeff(signing_share.index, signing_package)?;
-        let signer_commitments = signing_package
-            .signing_commitments
-            .iter()
-            .find(|comm| comm.index == signing_share.index)
-            .ok_or("No matching signing commitment for signer")?;
 
-        let commitment_i = signer_commitments.hiding.0 + (signer_commitments.binding.0 * rho.0);
-
-        println!("calc'd: {:?}", commitment_i.compress());
-        println!("passed: {:?}", signing_share.signature.R_share.compress());
-
-        let verify_result = signing_share.verify(signer_pubkey, lambda_i, challenge);
-
-        println!(
-            "sig share {:?} verify result: {:?}",
-            signing_share.index, verify_result
-        );
+        signing_share.verify(signer_pubkey, lambda_i, challenge)?;
     }
 
     // The aggregation of the signature shares by summing them up, resulting in
@@ -934,11 +931,9 @@ pub fn aggregate(
 
     for signature_share in signing_shares {
         z += signature_share.signature.z_share;
+        // TODO(dconnolly): enforce this == group_commitment? This is not in the spec.
         R += signature_share.signature.R_share;
     }
-
-    println!("R: {:?}", R);
-    println!("group_commitment: {:?}", group_commitment);
 
     Ok(Signature {
         R_bytes: group_commitment.0.compress().to_bytes(),

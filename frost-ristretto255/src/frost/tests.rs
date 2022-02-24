@@ -84,7 +84,7 @@ fn check_sign_with_test_vectors() {
     }
 
     /////////////////////////////////////////////////////////////////////////////
-    // Round 1
+    // Round 1: generating nonces and signing commitments for each participant
     /////////////////////////////////////////////////////////////////////////////
 
     for (i, _) in signer_commitments.clone() {
@@ -104,7 +104,7 @@ fn check_sign_with_test_vectors() {
     }
 
     /////////////////////////////////////////////////////////////////////////////
-    // Round 2
+    // Round 2: each participant generates their signature share
     /////////////////////////////////////////////////////////////////////////////
 
     let signer_commitments_vec = signer_commitments
@@ -124,8 +124,6 @@ fn check_sign_with_test_vectors() {
     let mut our_signature_shares: Vec<frost::SignatureShare> = Vec::new();
 
     // Each participant generates their signature share
-    println!("{:?}", signer_nonces.keys());
-
     for index in signer_nonces.keys() {
         let key_package = key_packages[index];
         let nonces = signer_nonces[index];
@@ -138,14 +136,8 @@ fn check_sign_with_test_vectors() {
         our_signature_shares.push(signature_share);
     }
 
-    for _sig_share in our_signature_shares {
-        // sig_share.check_is_valid()?;
-        // println!("Ours: {:?}", sig_share);
-
-        // // !!! DIVERGANCE !!!
-        // println!("Test vector: {:?}", signature_shares[&sig_share.index]);
-
-        // assert_eq!(sig_share, signature_shares[&sig_share.index]);
+    for sig_share in our_signature_shares.clone() {
+        assert_eq!(sig_share, signature_shares[&sig_share.index]);
     }
 
     let signer_pubkeys = key_packages
@@ -158,8 +150,12 @@ fn check_sign_with_test_vectors() {
         group_public,
     };
 
-    // The aggregator collects the signing shares from all participants and generates the final
-    // signature.
+    ////////////////////////////////////////////////////////////////////////////
+    // Aggregation:  collects the signing shares from all participants,
+    // generates the final signature.
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Aggregate the FROST signature from test vector sig shares
     let group_signature_result = frost::aggregate(
         &signing_package,
         &signature_shares
@@ -169,11 +165,21 @@ fn check_sign_with_test_vectors() {
         &pubkey_package,
     );
 
-    println!("{:?}", group_signature_result);
-
+    // Check that the aggregation passed signature share verification and generation
     assert!(group_signature_result.is_ok());
 
+    // Check that the generated signature matches the test vector signature
     let group_signature = group_signature_result.unwrap();
+    assert_eq!(group_signature, signature);
 
+    // Aggregate the FROST signature from our signature shares
+    let group_signature_result =
+        frost::aggregate(&signing_package, &our_signature_shares, &pubkey_package);
+
+    // Check that the aggregation passed signature share verification and generation
+    assert!(group_signature_result.is_ok());
+
+    // Check that the generated signature matches the test vector signature
+    let group_signature = group_signature_result.unwrap();
     assert_eq!(group_signature, signature);
 }

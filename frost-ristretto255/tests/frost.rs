@@ -21,7 +21,7 @@ fn check_sign_with_dealer() {
     let mut commitments: HashMap<u16, Vec<frost::SigningCommitments>> = HashMap::new();
 
     ////////////////////////////////////////////////////////////////////////////
-    // Round 1, generating nonces and signing commitments for each participant.
+    // Round 1: generating nonces and signing commitments for each participant
     ////////////////////////////////////////////////////////////////////////////
 
     for participant_index in 1..(threshold + 1) {
@@ -65,28 +65,27 @@ fn check_sign_with_dealer() {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // Aggregator collects the signing shares from all participants and
+    // Aggregation:  collects the signing shares from all participants,
     // generates the final signature.
     ////////////////////////////////////////////////////////////////////////////
 
-    // Aggregate
+    // Aggregate (also verifies the signature shares)
     let group_signature_res = frost::aggregate(&signing_package, &signature_shares[..], &pubkeys);
+
     assert!(group_signature_res.is_ok());
 
     let group_signature = group_signature_res.unwrap();
 
     // Check that the threshold signature can be verified by the group public
-    // key (aka verification key).
+    // key (the verification key).
     assert!(pubkeys
         .group_public
         .verify(message, &group_signature)
         .is_ok());
 
-    let nonces_2 = nonces.clone();
-
     // Check that the threshold signature can be verified by the group public
-    // key (aka verification key) from SharePackage.group_public
-    for (participant_index, _) in nonces_2 {
+    // key (the verification key) from SharePackage.group_public
+    for (participant_index, _) in nonces.clone() {
         let key_package = key_packages.get(participant_index as usize).unwrap();
 
         assert!(key_package

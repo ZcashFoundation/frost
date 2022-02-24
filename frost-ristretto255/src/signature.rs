@@ -11,11 +11,20 @@
 //! Schnorr signatures on the Ristretto group
 
 /// A Schnorr signature on the Ristretto group.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Signature {
     pub(crate) R_bytes: [u8; 32],
     pub(crate) z_bytes: [u8; 32],
+}
+
+impl std::fmt::Debug for Signature {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Signature")
+            .field("R", &hex::encode(self.R_bytes))
+            .field("z", &hex::encode(self.z_bytes))
+            .finish()
+    }
 }
 
 impl From<[u8; 64]> for Signature {
