@@ -18,7 +18,7 @@ use sha2::{Digest, Sha512};
 pub mod batch;
 mod error;
 pub mod frost;
-mod messages;
+// mod messages;
 pub(crate) mod signature;
 mod signing_key;
 mod verification_key;
@@ -40,9 +40,6 @@ pub(crate) fn H1(m: &[u8]) -> [u8; 64] {
     let h = Sha512::new()
         .chain(CONTEXT_STRING.as_bytes())
         .chain("rho")
-        // TODO: double-check big endian vs little endian representation of integers like this
-        // frost-dalek also uses to_be_bytes
-        .chain(m.len().to_be_bytes())
         .chain(m);
 
     let mut output = [0u8; 64];
@@ -57,9 +54,6 @@ pub(crate) fn H2(m: &[u8]) -> [u8; 64] {
     let h = Sha512::new()
         .chain(CONTEXT_STRING.as_bytes())
         .chain("chal")
-        // TODO: double-check big endian vs little endian representation of integers like this
-        // frost-dalek also uses to_be_bytes
-        .chain(m.len().to_be_bytes())
         .chain(m);
 
     let mut output = [0u8; 64];

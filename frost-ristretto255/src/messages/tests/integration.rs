@@ -440,6 +440,7 @@ fn validate_signatureshare() {
     let signature_share = frost::sign(
         &signing_package,
         &nonce1[0],
+        &commitment1[0],
         &frost::KeyPackage::try_from(shares[0].clone()).unwrap(),
     )
     .unwrap();
@@ -448,7 +449,7 @@ fn validate_signatureshare() {
     let header = create_valid_header(setup.aggregator, setup.signer1);
 
     let payload = Payload::SignatureShare(SignatureShare {
-        signature: SignatureResponse(signature_share.signature.0.to_bytes()),
+        signature: signature_share.signature,
     });
 
     let message = Message {

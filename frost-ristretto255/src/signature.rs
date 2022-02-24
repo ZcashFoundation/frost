@@ -14,25 +14,25 @@
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Signature {
-    pub(crate) r_bytes: [u8; 32],
-    pub(crate) s_bytes: [u8; 32],
+    pub(crate) R_bytes: [u8; 32],
+    pub(crate) z_bytes: [u8; 32],
 }
 
 impl From<[u8; 64]> for Signature {
     fn from(bytes: [u8; 64]) -> Signature {
-        let mut r_bytes = [0; 32];
-        r_bytes.copy_from_slice(&bytes[0..32]);
-        let mut s_bytes = [0; 32];
-        s_bytes.copy_from_slice(&bytes[32..64]);
-        Signature { r_bytes, s_bytes }
+        let mut R_bytes = [0; 32];
+        R_bytes.copy_from_slice(&bytes[0..32]);
+        let mut z_bytes = [0; 32];
+        z_bytes.copy_from_slice(&bytes[32..64]);
+        Signature { R_bytes, z_bytes }
     }
 }
 
 impl From<Signature> for [u8; 64] {
     fn from(sig: Signature) -> [u8; 64] {
         let mut bytes = [0; 64];
-        bytes[0..32].copy_from_slice(&sig.r_bytes[..]);
-        bytes[32..64].copy_from_slice(&sig.s_bytes[..]);
+        bytes[0..32].copy_from_slice(&sig.R_bytes[..]);
+        bytes[32..64].copy_from_slice(&sig.z_bytes[..]);
         bytes
     }
 }

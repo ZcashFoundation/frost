@@ -21,7 +21,11 @@
 //! Internally, keygen_with_dealer generates keys using Verifiable Secret
 //! Sharing,  where shares are generated using Shamir Secret Sharing.
 
-use std::{collections::HashMap, convert::TryFrom};
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    fmt::{self, Debug},
+};
 
 use curve25519_dalek::{
     constants::RISTRETTO_BASEPOINT_POINT,
@@ -42,9 +46,18 @@ use crate::{generate_challenge, Signature, VerificationKey, H1, H3};
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Secret(pub(crate) Scalar);
 
-// Zeroizes `Secret` to be the `Default` value on drop (when it goes out of
-// scope).  Luckily the derived `Default` includes the `Default` impl of
-// Scalar, which is four 0u64's under the hood.
+impl Secret {
+    /// Generates a new uniformly random secret value using the provided RNG.
+    pub fn random<R>(rng: &mut R) -> Self
+    where
+        R: CryptoRng + RngCore,
+    {
+        Self(Scalar::random(rng))
+    }
+}
+
+// Zeroizes `Secret` to be the `Default` value on drop (when it goes out of scope).  Luckily the
+// derived `Default` includes the `Default` impl of Scalar, which is four 0u64's under the hood.
 impl DefaultIsZeroes for Secret {}
 
 impl From<Scalar> for Secret {
@@ -106,6 +119,31 @@ pub struct SecretShare {
     pub(crate) commitment: ShareCommitment,
 }
 
+impl SecretShare {
+    /// Verifies that a share is consistent with a commitment.
+    ///
+    /// This ensures that this participant's share has been generated using the same
+    /// mechanism as all other signing participants. Note that participants *MUST*
+    /// ensure that they have the same view as all other participants of the
+    /// commitment!
+    pub fn verify(&self) -> Result<(), &'static str> {
+        let f_result = RISTRETTO_BASEPOINT_POINT * self.value.0;
+
+        let x = Scalar::from(self.index as u16);
+
+        let (_, result) = self.commitment.0.iter().fold(
+            (Scalar::one(), RistrettoPoint::identity()),
+            |(x_to_the_i, sum_so_far), comm_i| (x_to_the_i * x, sum_so_far + comm_i.0 * x_to_the_i),
+        );
+
+        if !(f_result == result) {
+            return Err("SecretShare is invalid.");
+        }
+
+        Ok(())
+    }
+}
+
 /// A Ristretto point that is a commitment to one coefficient of our secret
 /// polynomial.
 ///
@@ -123,9 +161,76 @@ pub(crate) struct Commitment(pub(crate) RistrettoPoint);
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct CoefficientCommitment(pub(crate) RistrettoPoint);
 
+/// A scalar used in Ristretto that is a signing nonce.
+#[derive(Clone, Copy, Default, PartialEq)]
+pub(crate) struct Nonce(pub(crate) Scalar);
+
+impl Nonce {
+    /// Generates a new uniformly random signing nonce.
+    ///
+    /// Each participant generates signing nonces before performing a signing
+    /// operation.
+    pub fn random<R>(rng: &mut R) -> Self
+    where
+        R: CryptoRng + RngCore,
+    {
+        // The values of 'hiding' and 'binding' nonces must be non-zero so that commitments are
+        // not the identity.
+        Self(Scalar::random(rng))
+    }
+}
+
+impl AsRef<Scalar> for Nonce {
+    fn as_ref(&self) -> &Scalar {
+        &self.0
+    }
+}
+
+impl Debug for Nonce {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("Nonce")
+            .field(&hex::encode(self.0.to_bytes()))
+            .finish()
+    }
+}
+
+// Zeroizes `Secret` to be the `Default` value on drop (when it goes out of scope).  Luckily the
+// derived `Default` includes the `Default` impl of Scalar, which is four 0u64's under the hood.
+impl DefaultIsZeroes for Nonce {}
+
+impl FromHex for Nonce {
+    type Error = &'static str;
+
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+        let mut bytes = [0u8; 32];
+
+        match hex::decode_to_slice(hex, &mut bytes[..]) {
+            Ok(()) => Self::try_from(bytes),
+            Err(_) => Err("invalid hex"),
+        }
+    }
+}
+
+impl TryFrom<[u8; 32]> for Nonce {
+    type Error = &'static str;
+
+    fn try_from(source: [u8; 32]) -> Result<Self, &'static str> {
+        match Scalar::from_canonical_bytes(source) {
+            Some(scalar) => Ok(Self(scalar)),
+            None => Err("ristretto scalar were not canonical byte representation"),
+        }
+    }
+}
+
 /// A Ristretto point that is a commitment to a signing nonce share.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct NonceCommitment(pub(crate) RistrettoPoint);
+
+impl From<Nonce> for NonceCommitment {
+    fn from(nonce: Nonce) -> Self {
+        Self(RISTRETTO_BASEPOINT_POINT * nonce.0)
+    }
+}
 
 impl FromHex for NonceCommitment {
     type Error = &'static str;
@@ -168,7 +273,7 @@ pub struct ShareCommitment(pub(crate) Vec<CoefficientCommitment>);
 
 /// The product of all signers' individual commitments, published as part of the
 /// final signature.
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct GroupCommitment(pub(crate) RistrettoPoint);
 
 impl TryFrom<&SigningPackage> for GroupCommitment {
@@ -222,7 +327,7 @@ pub struct SharePackage {
 /// When using a central dealer, [`SharePackage`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct KeyPackage {
     /// Denotes the participant index each secret share key package is owned by.
     pub index: u16,
@@ -246,7 +351,7 @@ impl TryFrom<SharePackage> for KeyPackage {
     /// dealer, but implementations *MUST* make sure that all participants have
     /// a consistent view of this commitment in practice.
     fn try_from(share_package: SharePackage) -> Result<Self, &'static str> {
-        verify_secret_share(&share_package.secret_share)?;
+        share_package.secret_share.verify()?;
 
         Ok(KeyPackage {
             index: share_package.index,
@@ -287,7 +392,7 @@ pub fn keygen_with_dealer<R: RngCore + CryptoRng>(
     let mut bytes = [0; 64];
     rng.fill_bytes(&mut bytes);
 
-    let secret = Secret(Scalar::random(&mut rng));
+    let secret = Secret::random(&mut rng);
     let group_public = VerificationKey::from(&secret.0);
     let secret_shares = generate_secret_shares(&secret, num_signers, threshold, rng)?;
     let mut share_packages: Vec<SharePackage> = Vec::with_capacity(num_signers as usize);
@@ -313,29 +418,6 @@ pub fn keygen_with_dealer<R: RngCore + CryptoRng>(
             group_public,
         },
     ))
-}
-
-/// Verifies that a share is consistent with a commitment.
-///
-/// This ensures that this participant's share has been generated using the same
-/// mechanism as all other signing participants. Note that participants *MUST*
-/// ensure that they have the same view as all other participants of the
-/// commitment!
-fn verify_secret_share(secret_share: &SecretShare) -> Result<(), &'static str> {
-    let f_result = RISTRETTO_BASEPOINT_POINT * secret_share.value.0;
-
-    let x = Scalar::from(secret_share.index as u16);
-
-    let (_, result) = secret_share.commitment.0.iter().fold(
-        (Scalar::one(), RistrettoPoint::identity()),
-        |(x_to_the_i, sum_so_far), comm_i| (x_to_the_i * x, sum_so_far + comm_i.0 * x_to_the_i),
-    );
-
-    if !(f_result == result) {
-        return Err("SecretShare is invalid.");
-    }
-
-    Ok(())
 }
 
 /// Creates secret shares for a given secret.
@@ -426,8 +508,8 @@ fn generate_secret_shares<R: RngCore + CryptoRng>(
 /// signing key.
 #[derive(Clone, Copy, Default, Debug)]
 pub struct SigningNonces {
-    hiding: Scalar,
-    binding: Scalar,
+    hiding: Nonce,
+    binding: Nonce,
 }
 
 // Zeroizes `SigningNonces` to be the `Default` value on drop (when it goes out of scope).  Luckily
@@ -444,23 +526,10 @@ impl SigningNonces {
     where
         R: CryptoRng + RngCore,
     {
-        fn random_nonzero_bytes<R>(rng: &mut R) -> [u8; 64]
-        where
-            R: CryptoRng + RngCore,
-        {
-            let mut bytes = [0; 64];
-            loop {
-                rng.fill_bytes(&mut bytes);
-                if bytes != [0; 64] {
-                    return bytes;
-                }
-            }
-        }
-
         // The values of 'hiding' and 'binding' must be non-zero so that commitments are
         // not the identity.
-        let hiding = Scalar::from_bytes_mod_order_wide(&random_nonzero_bytes(rng));
-        let binding = Scalar::from_bytes_mod_order_wide(&random_nonzero_bytes(rng));
+        let hiding = Nonce::random(rng);
+        let binding = Nonce::random(rng);
 
         Self { hiding, binding }
     }
@@ -484,8 +553,8 @@ impl From<(u16, &SigningNonces)> for SigningCommitments {
     fn from((index, nonces): (u16, &SigningNonces)) -> Self {
         Self {
             index,
-            hiding: NonceCommitment(RISTRETTO_BASEPOINT_POINT * nonces.hiding),
-            binding: NonceCommitment(RISTRETTO_BASEPOINT_POINT * nonces.binding),
+            hiding: nonces.hiding.into(),
+            binding: nonces.binding.into(),
         }
     }
 }
@@ -578,6 +647,7 @@ impl SigningPackage {
 /// of commitments, and a specific message.
 ///
 /// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md>
+#[derive(Debug, PartialEq)]
 pub(crate) struct Rho(Scalar);
 
 impl From<&SigningPackage> for Rho {
@@ -614,38 +684,50 @@ impl TryFrom<[u8; 32]> for Rho {
     }
 }
 
-/// A representation of a single signature used in FROST structures and
-/// messages.
+/// A representation of a single signature share used in FROST structures and messages, including
+/// the group commitment share.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct SignatureResponse(pub(crate) Scalar);
+pub struct SignatureResponse {
+    pub(crate) R_share: RistrettoPoint,
+    pub(crate) z_share: Scalar,
+}
 
-impl FromHex for SignatureResponse {
-    type Error = &'static str;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let mut bytes = [0u8; 32];
-
-        match hex::decode_to_slice(hex, &mut bytes[..]) {
-            Ok(()) => SignatureResponse::try_from(bytes),
-            Err(_) => Err("invalid hex"),
-        }
+impl From<SignatureResponse> for [u8; 64] {
+    fn from(sig: SignatureResponse) -> [u8; 64] {
+        let mut bytes = [0; 64];
+        bytes[0..32].copy_from_slice(&sig.R_share.compress().to_bytes());
+        bytes[32..64].copy_from_slice(&sig.z_share.to_bytes());
+        bytes
     }
 }
 
-impl TryFrom<[u8; 32]> for SignatureResponse {
-    type Error = &'static str;
+// impl FromHex for SignatureResponse {
+//     type Error = &'static str;
 
-    fn try_from(source: [u8; 32]) -> Result<Self, &'static str> {
-        match Scalar::from_canonical_bytes(source) {
-            Some(scalar) => Ok(SignatureResponse(scalar)),
-            None => Err("scalar was not canonically encoded"),
-        }
-    }
-}
+//     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+//         let mut bytes = [0u8; 32];
+
+//         match hex::decode_to_slice(hex, &mut bytes[..]) {
+//             Ok(()) => SignatureResponse::try_from(bytes),
+//             Err(_) => Err("invalid hex"),
+//         }
+//     }
+// }
+
+// impl TryFrom<[u8; 32]> for SignatureResponse {
+//     type Error = &'static str;
+
+//     fn try_from(source: [u8; 32]) -> Result<Self, &'static str> {
+//         match Scalar::from_canonical_bytes(source) {
+//             Some(scalar) => Ok(SignatureResponse(scalar)),
+//             None => Err("scalar was not canonically encoded"),
+//         }
+//     }
+// }
 
 /// A participant's signature share, which the coordinator will use to aggregate
 /// with all other signer's shares into the joint signature.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct SignatureShare {
     /// Represents the participant index.
     pub(crate) index: u16,
@@ -662,15 +744,16 @@ impl DefaultIsZeroes for SignatureShare {}
 impl SignatureShare {
     /// Tests if a signature share issued by a participant is valid before
     /// aggregating it into a final joint signature to publish.
-    pub fn check_is_valid(
+    pub fn verify(
         &self,
-        pubkey: &Public,
+        public_key: &Public,
         lambda_i: Scalar,
-        commitment: RistrettoPoint,
         challenge: Scalar,
     ) -> Result<(), &'static str> {
-        if (RISTRETTO_BASEPOINT_POINT * self.signature.0)
-            != (commitment + (pubkey.0 * challenge * lambda_i))
+        println!("checking sig share: {:?}", self);
+
+        if (RISTRETTO_BASEPOINT_POINT * self.signature.z_share)
+            != (self.signature.R_share + (public_key.0 * challenge * lambda_i))
         {
             return Err("Invalid signature share");
         }
@@ -749,10 +832,11 @@ fn generate_lagrange_coeff(
 /// the commitment that was assigned by the coordinator in the SigningPackage.
 pub fn sign(
     signing_package: &SigningPackage,
-    participant_nonces: &SigningNonces,
+    signer_nonces: &SigningNonces,
+    signer_commitments: &SigningCommitments,
     key_package: &KeyPackage,
 ) -> Result<SignatureShare, &'static str> {
-    let lambda_i = generate_lagrange_coeff(key_package.index, signing_package)?;
+    let rho: Rho = signing_package.into();
 
     let group_commitment = GroupCommitment::try_from(signing_package)?;
 
@@ -762,17 +846,33 @@ pub fn sign(
         signing_package.message.as_slice(),
     );
 
-    let rho: Rho = signing_package.into();
+    let lambda_i = generate_lagrange_coeff(key_package.index, signing_package)?;
+
+    println!("signer_nonces: {:?}", signer_nonces);
 
     // The Schnorr signature share
-    let signature: Scalar = participant_nonces.hiding
-        + (participant_nonces.binding * rho.0)
+    let z_share: Scalar = signer_nonces.hiding.0
+        + (signer_nonces.binding.0 * rho.0)
         + (lambda_i * key_package.secret_share.0 * challenge);
 
-    Ok(SignatureShare {
+    println!(
+        "z_share_{:?}: {:?}",
+        key_package.index,
+        hex::encode(z_share.to_bytes())
+    );
+
+    // The Schnorr signature commitment share
+    let R_share: RistrettoPoint =
+        signer_commitments.hiding.0 + (signer_commitments.binding.0 * rho.0);
+
+    println!("R_share_{:?}: {:?}", key_package.index, R_share.compress());
+
+    let signature_share = SignatureShare {
         index: key_package.index,
-        signature: SignatureResponse(signature),
-    })
+        signature: SignatureResponse { z_share, R_share },
+    };
+
+    Ok(signature_share)
 }
 
 /// Verifies each participant's signature share, and if all are valid,
@@ -806,28 +906,42 @@ pub fn aggregate(
     let rho = Rho::from(signing_package);
 
     for signing_share in signing_shares {
-        let signer_pubkey = pubkeys.signer_pubkeys[&signing_share.index];
+        let signer_pubkey = pubkeys.signer_pubkeys.get(&signing_share.index).unwrap();
         let lambda_i = generate_lagrange_coeff(signing_share.index, signing_package)?;
-        let signer_commitment = signing_package
+        let signer_commitments = signing_package
             .signing_commitments
             .iter()
             .find(|comm| comm.index == signing_share.index)
             .ok_or("No matching signing commitment for signer")?;
 
-        let commitment_i = signer_commitment.hiding.0 + (signer_commitment.binding.0 * rho.0);
+        let commitment_i = signer_commitments.hiding.0 + (signer_commitments.binding.0 * rho.0);
 
-        signing_share.check_is_valid(&signer_pubkey, lambda_i, commitment_i, challenge)?;
+        println!("calc'd: {:?}", commitment_i.compress());
+        println!("passed: {:?}", signing_share.signature.R_share.compress());
+
+        let verify_result = signing_share.verify(signer_pubkey, lambda_i, challenge);
+
+        println!(
+            "sig share {:?} verify result: {:?}",
+            signing_share.index, verify_result
+        );
     }
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
     let mut z = Scalar::zero();
+    let mut R: RistrettoPoint = RistrettoPoint::identity();
+
     for signature_share in signing_shares {
-        z += signature_share.signature.0;
+        z += signature_share.signature.z_share;
+        R += signature_share.signature.R_share;
     }
 
+    println!("R: {:?}", R);
+    println!("group_commitment: {:?}", group_commitment);
+
     Ok(Signature {
-        r_bytes: group_commitment.0.compress().to_bytes(),
-        s_bytes: z.to_bytes(),
+        R_bytes: group_commitment.0.compress().to_bytes(),
+        z_bytes: z.to_bytes(),
     })
 }

@@ -44,7 +44,7 @@ impl<'msg, M: AsRef<[u8]>> From<(VerificationKeyBytes, Signature, &'msg M)> for 
     fn from((vk_bytes, sig, msg): (VerificationKeyBytes, Signature, &'msg M)) -> Self {
         // Compute c now to avoid dependency on the msg lifetime.
 
-        let c = crate::generate_challenge(&sig.r_bytes, &vk_bytes.bytes, msg.as_ref());
+        let c = crate::generate_challenge(&sig.R_bytes, &vk_bytes.bytes, msg.as_ref());
 
         Self { vk_bytes, sig, c }
     }
@@ -123,12 +123,12 @@ impl Verifier {
         let mut P_coeff_acc = Scalar::zero();
 
         for item in self.signatures.iter() {
-            let (s_bytes, r_bytes, c) = (item.sig.s_bytes, item.sig.r_bytes, item.c);
+            let (z_bytes, R_bytes, c) = (item.sig.z_bytes, item.sig.R_bytes, item.c);
 
-            let s = Scalar::from_bytes_mod_order(s_bytes);
+            let s = Scalar::from_bytes_mod_order(z_bytes);
 
             let R = {
-                match CompressedRistretto::from_slice(&r_bytes).decompress() {
+                match CompressedRistretto::from_slice(&R_bytes).decompress() {
                     Some(point) => point,
                     None => return Err(Error::InvalidSignature),
                 }
