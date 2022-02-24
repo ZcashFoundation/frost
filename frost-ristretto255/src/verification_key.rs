@@ -125,19 +125,19 @@ impl VerificationKey {
     pub fn verify(&self, msg: &[u8], signature: &Signature) -> Result<(), Error> {
         self.verify_prehashed(
             signature,
-            crate::generate_challenge(&signature.r_bytes, &self.bytes.bytes, msg),
+            crate::generate_challenge(&signature.R_bytes, &self.bytes.bytes, msg),
         )
     }
 
     /// Verify a purported `signature` with a prehashed challenge.
     #[allow(non_snake_case)]
     pub(crate) fn verify_prehashed(&self, signature: &Signature, c: Scalar) -> Result<(), Error> {
-        let R = match CompressedRistretto::from_slice(&signature.r_bytes).decompress() {
+        let R = match CompressedRistretto::from_slice(&signature.R_bytes).decompress() {
             Some(point) => point,
             None => return Err(Error::InvalidSignature),
         };
 
-        let s = match Scalar::from_canonical_bytes(signature.s_bytes) {
+        let s = match Scalar::from_canonical_bytes(signature.z_bytes) {
             Some(s) => s,
             None => return Err(Error::InvalidSignature),
         };

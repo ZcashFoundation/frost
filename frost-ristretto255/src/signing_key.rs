@@ -100,13 +100,13 @@ impl SigningKey {
         );
 
         // XXX: does this need `RistrettoPoint::from_uniform_bytes()` ?
-        let r_bytes = (RISTRETTO_BASEPOINT_POINT * nonce).compress().to_bytes();
+        let R_bytes = (RISTRETTO_BASEPOINT_POINT * nonce).compress().to_bytes();
 
         // Generate Schnorr challenge
-        let c = crate::generate_challenge(&r_bytes, &self.pk.bytes.bytes, msg);
+        let c = crate::generate_challenge(&R_bytes, &self.pk.bytes.bytes, msg);
 
-        let s_bytes = (nonce + (c * self.sk)).to_bytes();
+        let z_bytes = (nonce + (c * self.sk)).to_bytes();
 
-        Signature { r_bytes, s_bytes }
+        Signature { R_bytes, z_bytes }
     }
 }

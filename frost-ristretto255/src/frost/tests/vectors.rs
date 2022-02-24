@@ -19,7 +19,8 @@ pub(crate) fn parse_test_vectors() -> (
     HashMap<u16, KeyPackage>,
     &'static str,
     Vec<u8>,
-    Vec<SigningCommitments>,
+    HashMap<u16, SigningNonces>,
+    HashMap<u16, SigningCommitments>,
     Vec<u8>,
     Rho,
     HashMap<u16, SignatureShare>,
@@ -68,10 +69,18 @@ pub(crate) fn parse_test_vectors() -> (
     let group_binding_factor =
         Rho::from_hex(round_one_outputs["group_binding_factor"].as_str().unwrap()).unwrap();
 
-    let mut signer_commitments: Vec<SigningCommitments> = Vec::new();
+    let mut signer_nonces: HashMap<u16, SigningNonces> = HashMap::new();
+    let mut signer_commitments: HashMap<u16, SigningCommitments> = HashMap::new();
 
     for (i, signer) in round_one_outputs["signers"].as_object().unwrap().iter() {
         let index = u16::from_str(i).unwrap();
+
+        let signing_nonces = SigningNonces {
+            hiding: Nonce::from_hex(signer["hiding_nonce"].as_str().unwrap()).unwrap(),
+            binding: Nonce::from_hex(signer["binding_nonce"].as_str().unwrap()).unwrap(),
+        };
+
+        signer_nonces.insert(index, signing_nonces);
 
         let signing_commitments = SigningCommitments {
             index,
@@ -83,7 +92,7 @@ pub(crate) fn parse_test_vectors() -> (
             .unwrap(),
         };
 
-        signer_commitments.push(signing_commitments);
+        signer_commitments.insert(index, signing_commitments);
     }
 
     // Round two outputs
@@ -95,7 +104,20 @@ pub(crate) fn parse_test_vectors() -> (
     for (i, signer) in round_two_outputs["signers"].as_object().unwrap().iter() {
         let signature_share = SignatureShare {
             index: u16::from_str(i).unwrap(),
-            signature: SignatureResponse::from_hex(signer["sig_share"].as_str().unwrap()).unwrap(),
+            signature: SignatureResponse {
+                R_share: ristretto::CompressedRistretto::from_slice(
+                    &hex::decode(signer["group_commitment_share"].as_str().unwrap()).unwrap()[..],
+                )
+                .decompress()
+                .unwrap(),
+                z_share: Scalar::from_canonical_bytes(
+                    hex::decode(signer["sig_share"].as_str().unwrap())
+                        .unwrap()
+                        .try_into()
+                        .unwrap(),
+                )
+                .unwrap(),
+            },
         };
 
         signature_shares.insert(u16::from_str(i).unwrap(), signature_share);
@@ -112,6 +134,7 @@ pub(crate) fn parse_test_vectors() -> (
         key_packages,
         message,
         message_bytes,
+        signer_nonces,
         signer_commitments,
         group_binding_factor_input,
         group_binding_factor,

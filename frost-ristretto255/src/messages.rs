@@ -67,17 +67,17 @@ pub struct GroupCommitment([u8; 32]);
 /// representation".
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
 #[cfg_attr(test, derive(Arbitrary))]
-pub struct SignatureResponse([u8; 32]);
+pub struct SignatureResponse([u8; 64]);
 
 impl From<signature::Signature> for SignatureResponse {
     fn from(value: signature::Signature) -> SignatureResponse {
-        SignatureResponse(value.s_bytes)
+        SignatureResponse(value.into())
     }
 }
 
 impl From<signature::Signature> for GroupCommitment {
     fn from(value: signature::Signature) -> GroupCommitment {
-        GroupCommitment(value.r_bytes)
+        GroupCommitment(value.R_bytes)
     }
 }
 
@@ -287,10 +287,10 @@ pub struct SignatureShare {
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct AggregateSignature {
-    /// The aggregated group commitment: [`signature::Signature::r_bytes`]
+    /// The aggregated group commitment: [`signature::Signature::R_bytes`]
     /// returned by [`frost::aggregate()`]
     group_commitment: GroupCommitment,
     /// A plain Schnorr signature created by summing all the signature shares:
-    /// [`signature::Signature::s_bytes`] returned by [`frost::aggregate()`]
+    /// [`signature::Signature::z_bytes`] returned by [`frost::aggregate()`]
     schnorr_signature: SignatureResponse,
 }
