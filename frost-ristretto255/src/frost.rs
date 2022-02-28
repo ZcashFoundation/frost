@@ -718,30 +718,6 @@ impl From<SignatureResponse> for [u8; 64] {
     }
 }
 
-// impl FromHex for SignatureResponse {
-//     type Error = &'static str;
-
-//     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-//         let mut bytes = [0u8; 32];
-
-//         match hex::decode_to_slice(hex, &mut bytes[..]) {
-//             Ok(()) => SignatureResponse::try_from(bytes),
-//             Err(_) => Err("invalid hex"),
-//         }
-//     }
-// }
-
-// impl TryFrom<[u8; 32]> for SignatureResponse {
-//     type Error = &'static str;
-
-//     fn try_from(source: [u8; 32]) -> Result<Self, &'static str> {
-//         match Scalar::from_canonical_bytes(source) {
-//             Some(scalar) => Ok(SignatureResponse(scalar)),
-//             None => Err("scalar was not canonically encoded"),
-//         }
-//     }
-// }
-
 /// A participant's signature share, which the coordinator will use to aggregate
 /// with all other signer's shares into the joint signature.
 #[derive(Clone, Copy, Default, PartialEq)]
