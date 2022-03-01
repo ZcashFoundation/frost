@@ -557,6 +557,12 @@ pub struct SigningCommitments {
     pub(crate) binding: NonceCommitment,
 }
 
+impl SigningCommitments {
+    fn to_group_commitment_share(&self, binding_factor: &Rho) -> GroupCommitmentShare {
+        GroupCommitmentShare(self.hiding.0 + (self.binding.0 * binding_factor.0))
+    }
+}
+
 impl From<(u16, &SigningNonces)> for SigningCommitments {
     fn from((index, nonces): (u16, &SigningNonces)) -> Self {
         Self {
@@ -566,6 +572,13 @@ impl From<(u16, &SigningNonces)> for SigningCommitments {
         }
     }
 }
+
+/// One signer's share of the group commitment, derived from their individual signing commitments
+/// and the binding factor _rho_.
+///
+/// Used to verify signature shares.
+#[derive(Clone, Copy, Default, PartialEq)]
+pub struct GroupCommitmentShare(RistrettoPoint);
 
 /// Encode the list of group signing commitments.
 ///
@@ -603,7 +616,7 @@ fn encode_group_commitments(signing_commitments: Vec<SigningCommitments>) -> Vec
 pub struct SigningPackage {
     /// The set of commitments participants published in the first round of the
     /// protocol.
-    signing_commitments: Vec<SigningCommitments>,
+    signing_commitments: HashMap<u16, SigningCommitments>,
     /// Message which each participant will sign.
     ///
     /// Each signer should perform protocol-specific verification on the
@@ -622,14 +635,20 @@ impl SigningPackage {
         signing_commitments.sort_by_key(|a| a.index);
 
         SigningPackage {
-            signing_commitments,
+            signing_commitments: signing_commitments
+                .into_iter()
+                .map(|s| (s.index, s))
+                .collect(),
             message,
         }
     }
 
     /// Get the signing commitments, sorted by the participant indices
-    pub fn signing_commitments(&self) -> &Vec<SigningCommitments> {
-        &self.signing_commitments
+    pub fn signing_commitments(&self) -> Vec<SigningCommitments> {
+        let mut signing_commitments: Vec<SigningCommitments> =
+            self.signing_commitments.values().cloned().collect();
+        signing_commitments.sort_by_key(|a| a.index);
+        signing_commitments
     }
 
     /// Get the message to be signed
@@ -642,7 +661,8 @@ impl SigningPackage {
     fn rho_preimage(&self) -> Vec<u8> {
         let mut preimage = vec![];
 
-        preimage.extend_from_slice(&encode_group_commitments(self.signing_commitments.clone())[..]);
+        preimage
+            .extend_from_slice(&encode_group_commitments(self.signing_commitments().clone())[..]);
         preimage.extend_from_slice(&H3(self.message.as_slice()));
 
         preimage
@@ -655,7 +675,7 @@ impl SigningPackage {
 /// of commitments, and a specific message.
 ///
 /// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md>
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Rho(Scalar);
 
 impl From<&SigningPackage> for Rho {
@@ -696,14 +716,17 @@ impl TryFrom<[u8; 32]> for Rho {
 /// the group commitment share.
 #[derive(Clone, Copy, Default, PartialEq)]
 pub struct SignatureResponse {
-    pub(crate) R_share: RistrettoPoint,
+    pub(crate) R_share: GroupCommitmentShare,
     pub(crate) z_share: Scalar,
 }
 
 impl Debug for SignatureResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("SignatureResponse")
-            .field("R_share", &hex::encode(self.R_share.compress().to_bytes()))
+            .field(
+                "R_share",
+                &hex::encode(self.R_share.0.compress().to_bytes()),
+            )
             .field("z_share", &hex::encode(self.z_share.to_bytes()))
             .finish()
     }
@@ -712,7 +735,7 @@ impl Debug for SignatureResponse {
 impl From<SignatureResponse> for [u8; 64] {
     fn from(sig: SignatureResponse) -> [u8; 64] {
         let mut bytes = [0; 64];
-        bytes[0..32].copy_from_slice(&sig.R_share.compress().to_bytes());
+        bytes[0..32].copy_from_slice(&sig.R_share.0.compress().to_bytes());
         bytes[32..64].copy_from_slice(&sig.z_share.to_bytes());
         bytes
     }
@@ -748,12 +771,13 @@ impl SignatureShare {
     /// aggregating it into a final joint signature to publish.
     pub fn verify(
         &self,
+        group_commitment_share: GroupCommitmentShare,
         public_key: &Public,
         lambda_i: Scalar,
         challenge: Scalar,
     ) -> Result<(), &'static str> {
         if (RISTRETTO_BASEPOINT_POINT * self.signature.z_share)
-            != (self.signature.R_share + (public_key.0 * challenge * lambda_i))
+            != (group_commitment_share.0 + (public_key.0 * challenge * lambda_i))
         {
             return Err("Invalid signature share");
         }
@@ -854,8 +878,7 @@ pub fn sign(
         + (lambda_i * key_package.secret_share.0 * challenge);
 
     // The Schnorr signature commitment share
-    let R_share: RistrettoPoint =
-        signer_commitments.hiding.0 + (signer_commitments.binding.0 * rho.0);
+    let R_share = signer_commitments.to_group_commitment_share(&rho);
 
     let signature_share = SignatureShare {
         index: key_package.index,
@@ -893,22 +916,25 @@ pub fn aggregate(
         signing_package.message.as_slice(),
     );
 
+    let rho: Rho = signing_package.into();
+
+    // Verify the signature shares
     for signing_share in signing_shares {
         let signer_pubkey = pubkeys.signer_pubkeys.get(&signing_share.index).unwrap();
         let lambda_i = generate_lagrange_coeff(signing_share.index, signing_package)?;
 
-        signing_share.verify(signer_pubkey, lambda_i, challenge)?;
+        let R_share = signing_package.signing_commitments[&signing_share.index]
+            .to_group_commitment_share(&rho);
+
+        signing_share.verify(R_share, signer_pubkey, lambda_i, challenge)?;
     }
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
     let mut z = Scalar::zero();
-    let mut R: RistrettoPoint = RistrettoPoint::identity();
 
     for signature_share in signing_shares {
         z += signature_share.signature.z_share;
-        // TODO(dconnolly): enforce this == group_commitment? This is not in the spec.
-        R += signature_share.signature.R_share;
     }
 
     Ok(Signature {

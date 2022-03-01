@@ -105,11 +105,15 @@ pub(crate) fn parse_test_vectors() -> (
         let signature_share = SignatureShare {
             index: u16::from_str(i).unwrap(),
             signature: SignatureResponse {
-                R_share: ristretto::CompressedRistretto::from_slice(
-                    &hex::decode(signer["group_commitment_share"].as_str().unwrap()).unwrap()[..],
-                )
-                .decompress()
-                .unwrap(),
+                R_share:
+                    GroupCommitmentShare(
+                        ristretto::CompressedRistretto::from_slice(
+                            &hex::decode(signer["group_commitment_share"].as_str().unwrap())
+                                .unwrap()[..],
+                        )
+                        .decompress()
+                        .unwrap(),
+                    ),
                 z_share: Scalar::from_canonical_bytes(
                     hex::decode(signer["sig_share"].as_str().unwrap())
                         .unwrap()
