@@ -9,12 +9,13 @@ fn check_sign_with_dealer() {
     let mut rng = thread_rng();
     let numsigners = 5;
     let threshold = 3;
-    let (shares, pubkeys) = frost::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
+    let (shares, pubkeys) =
+        frost::keys::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
 
     // Verifies the secret shares from the dealer
-    let key_packages: Vec<frost::KeyPackage> = shares
+    let key_packages: Vec<frost::keys::KeyPackage> = shares
         .into_iter()
-        .map(|share| frost::KeyPackage::try_from(share).unwrap())
+        .map(|share| frost::keys::KeyPackage::try_from(share).unwrap())
         .collect();
 
     let mut nonces: HashMap<u16, Vec<frost::SigningNonces>> = HashMap::new();

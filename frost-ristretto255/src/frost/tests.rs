@@ -6,7 +6,9 @@ mod vectors;
 
 use vectors::*;
 
-fn reconstruct_secret(secret_shares: Vec<SecretShare>) -> Result<Scalar, &'static str> {
+fn reconstruct_secret(
+    secret_shares: Vec<frost::keys::SecretShare>,
+) -> Result<Scalar, &'static str> {
     let numshares = secret_shares.len();
 
     if numshares < 1 {
@@ -47,11 +49,11 @@ fn reconstruct_secret(secret_shares: Vec<SecretShare>) -> Result<Scalar, &'stati
 fn check_share_generation() {
     let mut rng = thread_rng();
 
-    let secret = Secret::random(&mut rng);
+    let secret = frost::keys::Secret::random(&mut rng);
 
     let _ = RISTRETTO_BASEPOINT_POINT * secret.0;
 
-    let secret_shares = generate_secret_shares(&secret, 5, 3, rng).unwrap();
+    let secret_shares = frost::keys::generate_secret_shares(&secret, 5, 3, rng).unwrap();
 
     for secret_share in secret_shares.iter() {
         assert_eq!(secret_share.verify(), Ok(()));
@@ -145,7 +147,7 @@ fn check_sign_with_test_vectors() {
         .map(|(i, key_package)| (i, key_package.public))
         .collect();
 
-    let pubkey_package = PublicKeyPackage {
+    let pubkey_package = frost::keys::PublicKeyPackage {
         signer_pubkeys,
         group_public,
     };
