@@ -5,7 +5,10 @@ use hex;
 use lazy_static::lazy_static;
 use serde_json::Value;
 
-use crate::{frost::*, Signature};
+use crate::{
+    frost::{keys::*, *},
+    Signature, VerificationKey,
+};
 
 lazy_static! {
     pub static ref RISTRETTO255_SHA512: Value =
