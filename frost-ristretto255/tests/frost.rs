@@ -39,7 +39,7 @@ fn check_sign_with_dealer() {
     let mut signature_shares: Vec<frost::round2::SignatureShare> = Vec::new();
     let message = "message to sign".as_bytes();
     let comms = commitments.clone().into_values().flatten().collect();
-    let signing_package = frost::round2::SigningPackage::new(comms, message.to_vec());
+    let signing_package = frost::SigningPackage::new(comms, message.to_vec());
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share

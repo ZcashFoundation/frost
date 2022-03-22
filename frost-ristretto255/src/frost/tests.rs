@@ -117,7 +117,7 @@ fn check_sign_with_test_vectors() {
         .map(|(_, signing_commitments)| signing_commitments)
         .collect();
 
-    let signing_package = frost::round2::SigningPackage::new(signer_commitments_vec, message_bytes);
+    let signing_package = frost::SigningPackage::new(signer_commitments_vec, message_bytes);
 
     assert_eq!(signing_package.rho_preimage(), group_binding_factor_input);
 
