@@ -1,3 +1,5 @@
+use curve25519_dalek::{constants::RISTRETTO_BASEPOINT_POINT, scalar::Scalar};
+
 use rand::thread_rng;
 
 use crate::frost::{self, *};
@@ -95,12 +97,12 @@ fn check_sign_with_test_vectors() {
         let nonce_commitments = signer_commitments.get(&i).unwrap();
 
         assert_eq!(
-            NonceCommitment::from(nonces.hiding),
+            frost::round1::NonceCommitment::from(nonces.hiding),
             nonce_commitments.hiding
         );
 
         assert_eq!(
-            NonceCommitment::from(nonces.binding),
+            frost::round1::NonceCommitment::from(nonces.binding),
             nonce_commitments.binding
         );
     }
@@ -115,7 +117,7 @@ fn check_sign_with_test_vectors() {
         .map(|(_, signing_commitments)| signing_commitments)
         .collect();
 
-    let signing_package = frost::SigningPackage::new(signer_commitments_vec, message_bytes);
+    let signing_package = frost::round2::SigningPackage::new(signer_commitments_vec, message_bytes);
 
     assert_eq!(signing_package.rho_preimage(), group_binding_factor_input);
 
@@ -123,7 +125,7 @@ fn check_sign_with_test_vectors() {
 
     assert_eq!(rho, group_binding_factor);
 
-    let mut our_signature_shares: Vec<frost::SignatureShare> = Vec::new();
+    let mut our_signature_shares: Vec<frost::round2::SignatureShare> = Vec::new();
 
     // Each participant generates their signature share
     for index in signer_nonces.keys() {
@@ -133,7 +135,7 @@ fn check_sign_with_test_vectors() {
 
         // Each participant generates their signature share.
         let signature_share =
-            frost::sign(&signing_package, &nonces, &commitments, &key_package).unwrap();
+            frost::round2::sign(&signing_package, &nonces, &commitments, &key_package).unwrap();
 
         our_signature_shares.push(signature_share);
     }
@@ -163,7 +165,7 @@ fn check_sign_with_test_vectors() {
         &signature_shares
             .values()
             .cloned()
-            .collect::<Vec<SignatureShare>>(),
+            .collect::<Vec<frost::round2::SignatureShare>>(),
         &pubkey_package,
     );
 
