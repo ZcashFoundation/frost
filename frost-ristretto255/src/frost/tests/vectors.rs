@@ -1,12 +1,13 @@
-use std::collections::HashMap;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
+
+use curve25519_dalek::{ristretto, scalar::Scalar};
 
 use hex;
 use lazy_static::lazy_static;
 use serde_json::Value;
 
 use crate::{
-    frost::{keys::*, *},
+    frost::{keys::*, round1::*, round2::*, *},
     Signature, VerificationKey,
 };
 
@@ -17,7 +18,7 @@ lazy_static! {
 }
 
 #[allow(clippy::type_complexity)]
-pub(crate) fn parse_test_vectors() -> (
+pub(super) fn parse_test_vectors() -> (
     VerificationKey,
     HashMap<u16, KeyPackage>,
     &'static str,
