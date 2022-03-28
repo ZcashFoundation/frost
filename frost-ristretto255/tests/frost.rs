@@ -60,7 +60,7 @@ fn check_sign_with_dealer() {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // Aggregation:  collects the signing shares from all participants,
+    // Aggregation: collects the signing shares from all participants,
     // generates the final signature.
     ////////////////////////////////////////////////////////////////////////////
 

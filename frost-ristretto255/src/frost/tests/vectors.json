@@ -46,12 +46,10 @@
       "participants": "1,2",
       "signers": {
         "1": {
-          "sig_share": "ec6b075f17c5670e80b1fda8f6de1cfe3c79db06a852f8d5650fb71eaad69501",
-          "group_commitment_share": "bc7e792fce347a15d547935652377c406cc721965c58d3003dbd947a6dfddc0c"
+          "sig_share": "ec6b075f17c5670e80b1fda8f6de1cfe3c79db06a852f8d5650fb71eaad69501"
         },
         "2": {
-          "sig_share": "87ceccc477069aa9b751b307f25955daaf943a3abc51f214a114781de0f58e03",
-          "group_commitment_share": "92c4f352ec392ba779271dc2ed09cda37f38d8c283747d4a85b4c9ce7289cb07"
+          "sig_share": "87ceccc477069aa9b751b307f25955daaf943a3abc51f214a114781de0f58e03"
         }
       }
     },
