@@ -46,6 +46,9 @@ use crate::{generate_challenge, Signature, H1, H3};
 struct Rho(Scalar);
 
 impl From<&SigningPackage> for Rho {
+    // [`compute_binding_factor`] in the spec
+    //
+    // [`compute_binding_factor`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.4
     fn from(signing_package: &SigningPackage) -> Rho {
         let preimage = signing_package.rho_preimage();
 
@@ -206,6 +209,10 @@ impl TryFrom<&SigningPackage> for GroupCommitment {
 
     /// Generates the group commitment which is published as part of the joint
     /// Schnorr signature.
+    ///
+    /// Implements [`compute_group_commitment`] from the spec.
+    ///
+    /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.4
     fn try_from(signing_package: &SigningPackage) -> Result<GroupCommitment, &'static str> {
         let rho: Rho = signing_package.into();
 

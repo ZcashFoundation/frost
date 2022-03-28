@@ -187,6 +187,8 @@ pub struct GroupCommitmentShare(pub(super) RistrettoPoint);
 
 /// Encode the list of group signing commitments.
 ///
+/// Implements [`encode_group_commitment_list()`] from the spec.
+///
 /// Inputs:
 /// - commitment_list = [(j, D_j, E_j), ...], a list of commitments issued by each signer,
 ///   where each element in the list indicates the signer index and their
@@ -196,7 +198,7 @@ pub struct GroupCommitmentShare(pub(super) RistrettoPoint);
 /// Outputs:
 /// - A byte string containing the serialized representation of B.
 ///
-/// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding>
+/// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.3
 pub(super) fn encode_group_commitments(signing_commitments: Vec<SigningCommitments>) -> Vec<u8> {
     // B MUST be sorted in ascending order by signer index.
     //
