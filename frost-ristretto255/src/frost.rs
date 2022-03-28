@@ -84,6 +84,20 @@ fn generate_lagrange_coeff(
     signer_index: u16,
     signing_package: &SigningPackage,
 ) -> Result<Scalar, &'static str> {
+    let signer_index_scalar = Scalar::from(signer_index as u16);
+
+    if signer_index_scalar == Scalar::zero() {
+        return Err("Invalid parameters");
+    }
+
+    if signing_package
+        .signing_commitments()
+        .iter()
+        .any(|commitment| Scalar::from(commitment.index as u16) == Scalar::zero())
+    {
+        return Err("Invalid parameters");
+    }
+
     let mut num = Scalar::one();
     let mut den = Scalar::one();
 
@@ -94,8 +108,10 @@ fn generate_lagrange_coeff(
         if commitment.index == signer_index {
             continue;
         }
-        num *= Scalar::from(commitment.index as u16);
-        den *= Scalar::from(commitment.index as u16) - Scalar::from(signer_index as u16);
+
+        let commitment_index_scalar = Scalar::from(commitment.index as u16);
+        num *= commitment_index_scalar;
+        den *= commitment_index_scalar - signer_index_scalar;
     }
 
     if den == Scalar::zero() {
