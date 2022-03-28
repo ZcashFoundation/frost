@@ -160,6 +160,9 @@ pub struct SigningCommitments {
 }
 
 impl SigningCommitments {
+    /// Computes the [signature commitment share] from these round one signing commitments.
+    ///
+    /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#name-signature-share-verificatio
     pub(super) fn to_group_commitment_share(
         self,
         binding_factor: &frost::Rho,
@@ -180,8 +183,6 @@ impl From<(u16, &SigningNonces)> for SigningCommitments {
 
 /// One signer's share of the group commitment, derived from their individual signing commitments
 /// and the binding factor _rho_.
-///
-/// Used to verify signature shares.
 #[derive(Clone, Copy, Default, PartialEq)]
 pub struct GroupCommitmentShare(pub(super) RistrettoPoint);
 

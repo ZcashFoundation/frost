@@ -11,37 +11,29 @@ use crate::{
     generate_challenge,
 };
 
-/// A representation of a single signature share used in FROST structures and messages, including
-/// the group commitment share.
+/// A representation of a single signature share used in FROST structures and messages.
+
 #[derive(Clone, Copy, Default, PartialEq)]
 pub struct SignatureResponse {
-    pub(super) R_share: round1::GroupCommitmentShare,
     pub(super) z_share: Scalar,
 }
 
 impl Debug for SignatureResponse {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("SignatureResponse")
-            .field(
-                "R_share",
-                &hex::encode(self.R_share.0.compress().to_bytes()),
-            )
             .field("z_share", &hex::encode(self.z_share.to_bytes()))
             .finish()
     }
 }
 
-impl From<SignatureResponse> for [u8; 64] {
-    fn from(sig: SignatureResponse) -> [u8; 64] {
-        let mut bytes = [0; 64];
-        bytes[0..32].copy_from_slice(&sig.R_share.0.compress().to_bytes());
-        bytes[32..64].copy_from_slice(&sig.z_share.to_bytes());
-        bytes
+impl From<SignatureResponse> for [u8; 32] {
+    fn from(sig: SignatureResponse) -> [u8; 32] {
+        sig.z_share.to_bytes()
     }
 }
 
-/// A participant's signature share, which the coordinator will use to aggregate
-/// with all other signer's shares into the joint signature.
+/// A participant's signature share, which the coordinator will aggregate with all other signer's
+/// shares into the joint signature.
 #[derive(Clone, Copy, Default, PartialEq)]
 pub struct SignatureShare {
     /// Represents the participant index.
@@ -68,6 +60,10 @@ impl DefaultIsZeroes for SignatureShare {}
 impl SignatureShare {
     /// Tests if a signature share issued by a participant is valid before
     /// aggregating it into a final joint signature to publish.
+    ///
+    /// This is the final step of [`verify_signature_share`] from the spec.
+    ///
+    /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.3
     pub fn verify(
         &self,
         group_commitment_share: round1::GroupCommitmentShare,
@@ -80,6 +76,7 @@ impl SignatureShare {
         {
             return Err("Invalid signature share");
         }
+
         Ok(())
     }
 }
@@ -102,7 +99,8 @@ pub fn sign(
     signer_commitments: &round1::SigningCommitments,
     key_package: &frost::keys::KeyPackage,
 ) -> Result<SignatureShare, &'static str> {
-    // Encodes the commitment list as part of generating [`Rho`], the binding factor.
+    // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
+    // binding factor.
     let rho: frost::Rho = signing_package.into();
 
     // Compute the group commitment from signing commitments produced in round one.
@@ -123,12 +121,9 @@ pub fn sign(
         + (signer_nonces.binding.0 * rho.0)
         + (lambda_i * key_package.secret_share.0 * challenge);
 
-    // The Schnorr signature commitment share
-    let R_share = signer_commitments.to_group_commitment_share(&rho);
-
     let signature_share = SignatureShare {
         index: key_package.index,
-        signature: SignatureResponse { z_share, R_share },
+        signature: SignatureResponse { z_share },
     };
 
     Ok(signature_share)

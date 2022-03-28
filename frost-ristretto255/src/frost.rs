@@ -260,30 +260,44 @@ pub fn aggregate(
     signing_shares: &[round2::SignatureShare],
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, &'static str> {
+    // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
+    // binding factor.
+    let rho: Rho = signing_package.into();
+
+    // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = GroupCommitment::try_from(signing_package)?;
 
+    // Compute the per-message challenge.
     let challenge = generate_challenge(
         &group_commitment.0.compress().to_bytes(),
         &pubkeys.group_public.bytes.bytes,
         signing_package.message().as_slice(),
     );
 
-    let rho: Rho = signing_package.into();
-
-    // Verify the signature shares
+    // Verify the signature shares.
     for signing_share in signing_shares {
+        // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
+        // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
         let signer_pubkey = pubkeys.signer_pubkeys.get(&signing_share.index).unwrap();
+
+        // Compute Lagrange coefficient.
         let lambda_i = derive_lagrange_coeff(signing_share.index, signing_package)?;
 
+        // Compute the commitment share.
         let R_share = signing_package
             .signing_commitment(&signing_share.index)
             .to_group_commitment_share(&rho);
 
+        // Compute relation values to verify this signing share.
         signing_share.verify(R_share, signer_pubkey, lambda_i, challenge)?;
     }
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
+    //
+    // Implements [`frost_aggregate`] from the spec.
+    //
+    // [`frost_aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.3-4
     let mut z = Scalar::zero();
 
     for signature_share in signing_shares {
