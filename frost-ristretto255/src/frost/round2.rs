@@ -108,7 +108,7 @@ pub fn sign(
         signing_package.message.as_slice(),
     );
 
-    let lambda_i = frost::generate_lagrange_coeff(key_package.index, signing_package)?;
+    let lambda_i = frost::derive_lagrange_coeff(key_package.index, signing_package)?;
 
     // The Schnorr signature share
     let z_share: Scalar = signer_nonces.hiding.0
