@@ -96,7 +96,6 @@ impl SignatureShare {
 pub fn sign(
     signing_package: &SigningPackage,
     signer_nonces: &round1::SigningNonces,
-    signer_commitments: &round1::SigningCommitments,
     key_package: &frost::keys::KeyPackage,
 ) -> Result<SignatureShare, &'static str> {
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the

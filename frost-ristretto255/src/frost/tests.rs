@@ -131,11 +131,9 @@ fn check_sign_with_test_vectors() {
     for index in signer_nonces.keys() {
         let key_package = key_packages[index];
         let nonces = signer_nonces[index];
-        let commitments = signer_commitments[index];
 
         // Each participant generates their signature share.
-        let signature_share =
-            frost::round2::sign(&signing_package, &nonces, &commitments, &key_package).unwrap();
+        let signature_share = frost::round2::sign(&signing_package, &nonces, &key_package).unwrap();
 
         our_signature_shares.push(signature_share);
     }

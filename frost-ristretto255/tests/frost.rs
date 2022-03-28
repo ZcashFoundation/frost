@@ -52,16 +52,10 @@ fn check_sign_with_dealer() {
             .unwrap();
 
         let nonces_to_use = nonces.get(participant_index).unwrap()[0];
-        let commitments_to_use = commitments.get(participant_index).unwrap()[0];
 
         // Each participant generates their signature share.
-        let signature_share = frost::round2::sign(
-            &signing_package,
-            &nonces_to_use,
-            &commitments_to_use,
-            key_package,
-        )
-        .unwrap();
+        let signature_share =
+            frost::round2::sign(&signing_package, &nonces_to_use, key_package).unwrap();
         signature_shares.push(signature_share);
     }
 
