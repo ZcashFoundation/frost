@@ -80,7 +80,7 @@ impl TryFrom<[u8; 32]> for Rho {
 }
 
 /// Generates the lagrange coefficient for the i'th participant.
-fn generate_lagrange_coeff(
+fn derive_lagrange_coeff(
     signer_index: u16,
     signing_package: &SigningPackage,
 ) -> Result<Scalar, &'static str> {
@@ -266,7 +266,7 @@ pub fn aggregate(
     // Verify the signature shares
     for signing_share in signing_shares {
         let signer_pubkey = pubkeys.signer_pubkeys.get(&signing_share.index).unwrap();
-        let lambda_i = generate_lagrange_coeff(signing_share.index, signing_package)?;
+        let lambda_i = derive_lagrange_coeff(signing_share.index, signing_package)?;
 
         let R_share = signing_package
             .signing_commitment(&signing_share.index)
