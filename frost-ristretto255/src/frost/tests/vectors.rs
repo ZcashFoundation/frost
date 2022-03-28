@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use curve25519_dalek::{ristretto, scalar::Scalar};
+use curve25519_dalek::scalar::Scalar;
 
 use hex;
 use lazy_static::lazy_static;

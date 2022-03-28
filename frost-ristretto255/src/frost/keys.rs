@@ -171,6 +171,10 @@ pub struct SharePackage {
 /// key. The output from this function is a set of shares along with one single
 /// commitment that participants use to verify the integrity of the share. The
 /// number of signers is limited to 255.
+///
+/// Implements [`trusted_dealer_keygen`] from the spec.
+///
+/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B
 pub fn keygen_with_dealer<R: RngCore + CryptoRng>(
     num_signers: u8,
     threshold: u8,
@@ -277,18 +281,22 @@ pub struct PublicKeyPackage {
 /// polynomial f
 /// - For each participant i, their secret share is f(i)
 /// - The commitment to the secret polynomial f is [g^a, g^b, g^c]
+///
+/// Implements [`secret_key_shard`] from the spec.
+///
+/// [`secret_key_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B.1
 pub fn generate_secret_shares<R: RngCore + CryptoRng>(
     secret: &Secret,
     numshares: u8,
     threshold: u8,
     mut rng: R,
 ) -> Result<Vec<SecretShare>, &'static str> {
-    if threshold < 1 {
-        return Err("Threshold cannot be 0");
+    if threshold < 2 {
+        return Err("Threshold cannot be less than 2");
     }
 
-    if numshares < 1 {
-        return Err("Number of shares cannot be 0");
+    if numshares < 2 {
+        return Err("Number of shares cannot be less than the minimum threshold 2");
     }
 
     if threshold > numshares {
