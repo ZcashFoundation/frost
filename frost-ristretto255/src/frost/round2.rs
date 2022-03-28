@@ -86,31 +86,39 @@ impl SignatureShare {
 
 /// Performed once by each participant selected for the signing operation.
 ///
+/// Implements [`sign`] from the spec.
+///
 /// Receives the message to be signed and a set of signing commitments and a set
 /// of randomizing commitments to be used in that signing operation, including
 /// that for this participant.
 ///
 /// Assumes the participant has already determined which nonce corresponds with
 /// the commitment that was assigned by the coordinator in the SigningPackage.
+///
+/// [`sign`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.2
 pub fn sign(
     signing_package: &SigningPackage,
     signer_nonces: &round1::SigningNonces,
     signer_commitments: &round1::SigningCommitments,
     key_package: &frost::keys::KeyPackage,
 ) -> Result<SignatureShare, &'static str> {
+    // Encodes the commitment list as part of generating [`Rho`], the binding factor.
     let rho: frost::Rho = signing_package.into();
 
+    // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = GroupCommitment::try_from(signing_package)?;
 
+    // Compute Lagrange coefficient.
+    let lambda_i = frost::derive_lagrange_coeff(key_package.index, signing_package)?;
+
+    // Compute the per-message challenge.
     let challenge = generate_challenge(
         &group_commitment.0.compress().to_bytes(),
         &key_package.group_public.bytes.bytes,
         signing_package.message.as_slice(),
     );
 
-    let lambda_i = frost::derive_lagrange_coeff(key_package.index, signing_package)?;
-
-    // The Schnorr signature share
+    // Compute the Schnorr signature share.
     let z_share: Scalar = signer_nonces.hiding.0
         + (signer_nonces.binding.0 * rho.0)
         + (lambda_i * key_package.secret_share.0 * challenge);

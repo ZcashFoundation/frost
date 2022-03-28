@@ -79,12 +79,13 @@ pub(crate) fn H3(m: &[u8]) -> [u8; 64] {
 
 /// Generates the challenge as is required for Schnorr signatures.
 ///
-/// Deals in bytes, so that FROST and singleton signing and verification can use it with different
+/// Deals in bytes, so that [FROST] and singleton signing and verification can use it with different
 /// types.
 ///
 /// This is the only invocation of the H2 hash function from the [RFC].
 ///
-/// [RFC]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
+/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.6
+/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-3.2
 fn generate_challenge(R_bytes: &[u8; 32], pubkey_bytes: &[u8; 32], msg: &[u8]) -> Scalar {
     let mut preimage = vec![];
 
