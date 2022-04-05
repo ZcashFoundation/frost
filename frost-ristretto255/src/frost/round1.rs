@@ -25,6 +25,10 @@ impl Nonce {
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
+    ///
+    /// An implementation of `RandomNonzeroScalar()` from the [spec].
+    ///
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.4
     pub fn random<R>(rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
