@@ -31,7 +31,12 @@ impl Nonce {
     {
         // The values of 'hiding' and 'binding' nonces must be non-zero so that commitments are
         // not the identity.
-        Self(Scalar::random(rng))
+        loop {
+            let scalar = Scalar::random(rng);
+            if scalar != Scalar::zero() {
+                return Self(scalar);
+            }
+        }
     }
 }
 
@@ -71,8 +76,9 @@ impl TryFrom<[u8; 32]> for Nonce {
 
     fn try_from(source: [u8; 32]) -> Result<Self, &'static str> {
         match Scalar::from_canonical_bytes(source) {
-            Some(scalar) => Ok(Self(scalar)),
-            None => Err("ristretto scalar were not canonical byte representation"),
+            Some(scalar) if scalar != Scalar::zero() => Ok(Self(scalar)),
+            None => Err("ristretto scalar not canonical byte representation"),
+            _ => Err("invalid nonce value"),
         }
     }
 }
