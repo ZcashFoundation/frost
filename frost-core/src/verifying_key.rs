@@ -6,9 +6,7 @@ use std::{
 use crate::{Ciphersuite, Error, Group, Signature, SigningKey};
 
 /// A valid verification key for Schnorr signatures over a prime order group (or subgroup)..
-pub trait VerifyingKey<C: Ciphersuite>:
-    Copy + Clone + Debug + PartialEq + From<SigningKey<C, Signature = Self::Signature>>
-{
+pub trait VerifyingKey<C: Ciphersuite>: Copy + Clone + PartialEq {
     /// The `Signature` type this key verifies.
     type Signature: Signature<C>;
 
@@ -16,7 +14,7 @@ pub trait VerifyingKey<C: Ciphersuite>:
     fn point(&self) -> <C::Group as Group>::Element;
 
     /// Derive a `VerifyingKey` from a `SigningKey`.
-    fn from(s: &SigningKey<C, Signature = Self::Signature>) -> Self;
+    fn from(s: &SigningKey<C>) -> Self;
 
     /// Serialize this verifying key into byte representation.
     fn to_bytes(&self) -> &[u8];

@@ -4,9 +4,11 @@
 
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-pub mod batch;
+use rand_core::{CryptoRng, RngCore};
+
+// pub mod batch;
 mod error;
-pub mod frost;
+//pub mod frost;
 pub(crate) mod signature;
 mod signing_key;
 mod verifying_key;
@@ -46,6 +48,12 @@ pub trait Group {
     /// The 'base' of [`ScalarBaseMult()`] from the spec.
     /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1
     const BASEPOINT: Self::Element;
+
+    /// Generate a random scalar from the entire space [0, l-1]
+    fn random_scalar<R: RngCore + CryptoRng>(rng: R) -> Self::Scalar;
+
+    /// Generate a random scalar from the entire space [1, l-1]
+    fn random_nonzero_scalar<R: RngCore + CryptoRng>(rng: R) -> Self::Scalar;
 }
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash

@@ -1,11 +1,9 @@
 //! Schnorr signatures over prime order groups (or subgroups)
 
-use std::fmt::Debug;
-
 use crate::{Ciphersuite, Group};
 
 /// A Schnorr signature over some prime order group (or subgroup).
-pub trait Signature<C: Ciphersuite>: Copy + Clone + Debug + Eq + PartialEq {
+pub trait Signature<C: Ciphersuite>: Copy + Clone {
     /// Get the scalar `z` component of a Schnorr signature.
     ///
     /// This function MUST check the validity of the deserialization of a scalar field element as [`DeserializeScalar()`] from the spec.
