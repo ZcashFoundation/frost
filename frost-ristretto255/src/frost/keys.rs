@@ -113,12 +113,16 @@ pub struct SecretShare {
 }
 
 impl SecretShare {
-    /// Verifies that a share is consistent with a commitment.
+    /// Verifies that a secret share is consistent with a verifiable secret sharing commitment.
     ///
     /// This ensures that this participant's share has been generated using the same
     /// mechanism as all other signing participants. Note that participants *MUST*
     /// ensure that they have the same view as all other participants of the
     /// commitment!
+    ///
+    /// An implementation of `vss_verify()` from the [spec].
+    ///
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#appendix-B.2-4
     pub fn verify(&self) -> Result<(), &'static str> {
         let f_result = RISTRETTO_BASEPOINT_POINT * self.value.0;
 
