@@ -2,7 +2,7 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{Mul, Sub};
 
 use rand_core::{CryptoRng, RngCore};
 
@@ -10,13 +10,13 @@ use rand_core::{CryptoRng, RngCore};
 mod error;
 //pub mod frost;
 pub(crate) mod signature;
-mod signing_key;
-mod verifying_key;
+// mod signing_key;
+// mod verifying_key;
 
 pub use error::Error;
 pub use signature::Signature;
-pub use signing_key::SigningKey;
-pub use verifying_key::VerifyingKey;
+// pub use signing_key::SigningKey;
+// pub use verifying_key::VerifyingKey;
 
 /// A prime-order group (or subgroup) that provides everything we need to create and verify Schnorr
 /// signatures.
@@ -36,48 +36,53 @@ pub trait Group {
     /// full group.
     ///
     /// If using a prime order elliptic curve, the cofactor should be 1 in the scalar field.
-    const COFACTOR: Self::Scalar;
+    fn cofactor() -> Self::Scalar;
 
     /// Additive [identity] of the prime order group.
     ///
     /// [identity]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.2
-    const IDENTITY: Self::Element;
+    fn identity() -> Self::Element;
 
     /// The fixed generator element of the prime order group.
     ///
     /// The 'base' of [`ScalarBaseMult()`] from the spec.
     /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1
-    const BASEPOINT: Self::Element;
+    fn generator() -> Self::Element;
 
     /// Generate a random scalar from the entire space [0, l-1]
-    fn random_scalar<R: RngCore + CryptoRng>(rng: R) -> Self::Scalar;
+    fn random_scalar<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
 
     /// Generate a random scalar from the entire space [1, l-1]
-    fn random_nonzero_scalar<R: RngCore + CryptoRng>(rng: R) -> Self::Scalar;
+    fn random_nonzero_scalar<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
 }
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.
 ///
+/// The `HASH_BYTES` const generic parameter is the number of bytes output by the ciphersuite hash
+/// function (and the H* associated functions). It might be nicer to use an associated const instead
+/// but that's not yet supported in Rust.
+///
+///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-ciphersuites
-pub trait Ciphersuite {
+pub trait Ciphersuite<const HASH_BYTES: usize> {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
     /// H1 for a FROST ciphersuite.
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H1(m: &[u8]) -> &[u8];
+    fn H1(m: &[u8]) -> [u8; HASH_BYTES];
 
     /// H2 for a FROST ciphersuite.
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H2(m: &[u8]) -> &[u8];
+    fn H2(m: &[u8]) -> [u8; HASH_BYTES];
 
     /// H3 for a FROST ciphersuite.
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H3(m: &[u8]) -> &[u8];
+    fn H3(m: &[u8]) -> [u8; HASH_BYTES];
 
     /// Generates the challenge as is required for Schnorr signatures.
     ///
@@ -93,4 +98,10 @@ pub trait Ciphersuite {
         pubkey_bytes: &[u8; 32],
         msg: &[u8],
     ) -> <Self::Group as Group>::Scalar;
+}
+
+/// A `Thing` that is parameterized by a generic `Ciphersuite` type.
+#[allow(dead_code)]
+pub struct Thing<const N: usize, C: Ciphersuite<N>> {
+    inner: <C::Group as Group>::Element,
 }

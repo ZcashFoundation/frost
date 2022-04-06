@@ -3,7 +3,7 @@
 use crate::{Ciphersuite, Group};
 
 /// A Schnorr signature over some prime order group (or subgroup).
-pub trait Signature<C: Ciphersuite>: Copy + Clone {
+pub trait Signature<const N: usize, C: Ciphersuite<N>>: Copy + Clone {
     /// Get the scalar `z` component of a Schnorr signature.
     ///
     /// This function MUST check the validity of the deserialization of a scalar field element as [`DeserializeScalar()`] from the spec.
