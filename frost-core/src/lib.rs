@@ -57,32 +57,30 @@ pub trait Group {
 }
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
-/// function.
-///
-/// The `HASH_BYTES` const generic parameter is the number of bytes output by the ciphersuite hash
-/// function (and the H* associated functions). It might be nicer to use an associated const instead
-/// but that's not yet supported in Rust.
-///
+/// function.///
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-ciphersuites
-pub trait Ciphersuite<const HASH_BYTES: usize> {
+pub trait Ciphersuite {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
+
+    /// The bytes output by the ciphersuite hash function (and the H* associated functions).
+    type HashOutput;
 
     /// H1 for a FROST ciphersuite.
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H1(m: &[u8]) -> [u8; HASH_BYTES];
+    fn H1(m: &[u8]) -> Self::HashOutput;
 
     /// H2 for a FROST ciphersuite.
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H2(m: &[u8]) -> [u8; HASH_BYTES];
+    fn H2(m: &[u8]) -> Self::HashOutput;
 
     /// H3 for a FROST ciphersuite.
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H3(m: &[u8]) -> [u8; HASH_BYTES];
+    fn H3(m: &[u8]) -> Self::HashOutput;
 
     /// Generates the challenge as is required for Schnorr signatures.
     ///
@@ -102,6 +100,21 @@ pub trait Ciphersuite<const HASH_BYTES: usize> {
 
 /// A `Thing` that is parameterized by a generic `Ciphersuite` type.
 #[allow(dead_code)]
-pub struct Thing<const N: usize, C: Ciphersuite<N>> {
-    inner: <C::Group as Group>::Element,
+pub struct Thing<C: Ciphersuite> {
+    ///
+    pub inner: <C::Group as Group>::Element,
+}
+
+impl<C: Ciphersuite> std::fmt::Debug for Thing<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Thing").finish()
+    }
+}
+
+impl<C: Ciphersuite> std::default::Default for Thing<C> {
+    fn default() -> Self {
+        Self {
+            inner: <C as Ciphersuite>::Group::identity(),
+        }
+    }
 }

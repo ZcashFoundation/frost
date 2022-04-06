@@ -7,7 +7,7 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
-use frost_core::{Ciphersuite, Group};
+use frost_core::{Ciphersuite, Group, Thing};
 
 pub struct RistrettoGroup;
 
@@ -51,13 +51,15 @@ const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512";
 
 pub struct Ristretto255Sha512;
 
-impl Ciphersuite<64> for Ristretto255Sha512 {
+impl Ciphersuite for Ristretto255Sha512 {
     type Group = RistrettoGroup;
+
+    type HashOutput = [u8; 64];
 
     /// H1 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H1(m: &[u8]) -> [u8; 64] {
+    fn H1(m: &[u8]) -> Self::HashOutput {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
             .chain("rho")
@@ -71,7 +73,7 @@ impl Ciphersuite<64> for Ristretto255Sha512 {
     /// H2 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-    fn H2(m: &[u8]) -> [u8; 64] {
+    fn H2(m: &[u8]) -> Self::HashOutput {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
             .chain("chal")
@@ -85,7 +87,7 @@ impl Ciphersuite<64> for Ristretto255Sha512 {
     /// H3 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-    fn H3(m: &[u8]) -> [u8; 64] {
+    fn H3(m: &[u8]) -> Self::HashOutput {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
             .chain("digest")
@@ -122,9 +124,18 @@ impl Ciphersuite<64> for Ristretto255Sha512 {
     }
 }
 
+pub mod ristretto {
+
+    use super::*;
+
+    pub type RistrettoThing = Thing<Ristretto255Sha512>;
+}
+
 #[test]
 fn use_parameterized_types() {
     let h3_image = Ristretto255Sha512::H3(b"test_message");
 
     println!("h3_image: {:?}", h3_image);
+
+    let thing = ristretto::RistrettoThing::default();
 }
