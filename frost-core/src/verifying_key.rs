@@ -1,39 +1,52 @@
-use std::{
-    convert::{TryFrom, TryInto},
-    fmt::Debug,
-};
+use crate::{Ciphersuite, Error, Group, Signature};
 
-use crate::{Ciphersuite, Error, Group, Signature, SigningKey};
+/// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
+#[derive(Copy, Clone, PartialEq)]
+pub struct VerifyingKey<C: Ciphersuite> {
+    pub(crate) element: <C::Group as Group>::Element,
+}
 
-/// A valid verification key for Schnorr signatures over a prime order group (or subgroup)..
-pub trait VerifyingKey<C: Ciphersuite>: Copy + Clone + PartialEq {
-    /// The `Signature` type this key verifies.
-    type Signature: Signature<C>;
+// impl<C: Ciphersuite> From<VerifyingKey<C>> for <C::Group as Group>::ElementSerialization {
+//     fn from(pk: VerifyingKey<C>) -> <C::Group as Group>::ElementSerialization {
+//         pk.bytes.bytes
+//     }
+// }
 
-    /// Get the inner group element.
-    fn point(&self) -> <C::Group as Group>::Element;
+// impl<C: Ciphersuite> TryFrom<<C::Group as Group>::ElementSerialization> for VerifyingKey<C> {
+//     type Error = Error;
 
-    /// Derive a `VerifyingKey` from a `SigningKey`.
-    fn from(s: &SigningKey<C>) -> Self;
+//     fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
+//         VerifyingKeyBytes::from(bytes).try_into()
+//     }
+// }
 
-    /// Serialize this verifying key into byte representation.
-    fn to_bytes(&self) -> &[u8];
+impl<C> VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
+    /// Deserialize from bytes
+    pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<VerifyingKey<C>, Error> {
+        <C::Group as Group>::deserialize(&bytes).map(|element| VerifyingKey { element })
+    }
+
+    /// Serialize `VerifyingKey` to bytes
+    pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
+        <C::Group as Group>::serialize(&self.element)
+    }
 
     /// Verify a purported `signature` over `msg` made by this verification key.
-    fn verify(&self, msg: &[u8], signature: &Self::Signature) -> Result<(), Error> {
-        let c = C::challenge(&signature.R().into(), &self.to_bytes(), msg);
+    pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error> {
+        let c = crate::challenge::<C>(&signature.R, &self.element, msg);
 
-        let R = &signature.R();
+        // Verify check is h * ( - z * B + R  + c * A) == 0
+        //                 h * ( z * B - c * A - R) == 0
+        //
+        // where h is the cofactor
+        let zB = C::Group::generator() * signature.z;
+        let cA = self.element * c;
+        let check = (zB - cA - signature.R) * C::Group::cofactor();
 
-        let s = &signature.z();
-
-        // Verify check is h * ( - s * B + R  + c * A) == 0
-        //                 h * ( s * B - c * A - R) == 0
-        let sB = C::Group::BASEPOINT * s;
-        let cA = self.point() * c;
-        let check = sB - cA - R;
-
-        if check == C::Group::IDENTITY {
+        if check == C::Group::identity() {
             Ok(())
         } else {
             Err(Error::InvalidSignature)

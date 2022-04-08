@@ -1,24 +1,22 @@
-// -*- mode: rust; -*-
-//
-// This file is part of redjubjub.
-// Copyright (c) 2019-2021 Zcash Foundation
-// See LICENSE for licensing information.
-//
-// Authors:
-// - Deirdre Connolly <deirdre@zfnd.org>
-// - Henry de Valence <hdevalence@hdevalence.ca>
+//! FROST Error types
 
 use thiserror::Error;
 
-/// An error related to RedJubJub signatures.
+/// An error related to FROST.
 #[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Error {
+    /// The encoding of a group scalar was malformed.
+    #[error("Malformed scalar encoding.")]
+    MalformedScalar,
+    /// The encoding of a group element was malformed.
+    #[error("Malformed group element encoding.")]
+    MalformedElement,
     /// The encoding of a signing key was malformed.
     #[error("Malformed signing key encoding.")]
     MalformedSigningKey,
-    /// The encoding of a verification key was malformed.
-    #[error("Malformed verification key encoding.")]
-    MalformedVerificationKey,
+    /// The encoding of a verifying key was malformed.
+    #[error("Malformed verifying key encoding.")]
+    MalformedVerifyingKey,
     /// Signature verification failed.
     #[error("Invalid signature.")]
     InvalidSignature,

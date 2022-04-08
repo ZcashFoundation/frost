@@ -1,52 +1,64 @@
-use std::fmt::Debug;
+//! Schnorr signature signing keys
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{Ciphersuite, Error, Group, Signature, VerifyingKey};
+use crate::{Ciphersuite, Error, Field, Group, Signature, VerifyingKey};
 
-/// A signing key for a Schnorr signature over the group.
-pub trait SigningKey<C: Ciphersuite>: Copy + Clone {
-    /// The signature type that signing with this key will create.
-    type Signature: Signature<C>;
+/// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
+#[derive(Copy, Clone)]
+pub struct SigningKey<C>
+where
+    C: Ciphersuite,
+{
+    scalar: <<C::Group as Group>::Field as Field>::Scalar,
+}
 
+impl<C> From<&SigningKey<C>> for VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
+    fn from(signing_key: &SigningKey<C>) -> VerifyingKey<C> {
+        VerifyingKey {
+            element: C::Group::generator() * signing_key.scalar,
+        }
+    }
+}
+
+impl<C> SigningKey<C>
+where
+    C: Ciphersuite,
+{
     /// Generate a new signing key.
-    fn new<R: RngCore + CryptoRng>(rng: R) -> Self;
+    pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> SigningKey<C> {
+        let scalar = <<C::Group as Group>::Field as Field>::random_nonzero(&mut rng);
 
-    /// Parse a signing key from its byte representation.
-    fn from_bytes(bytes: &[u8]) -> Self;
+        SigningKey { scalar }
+    }
 
-    /// Serialize a signing key into its byte representation.
-    fn to_bytes(&self) -> &[u8];
+    /// Deserialize from bytes
+    pub fn from_bytes(
+        bytes: <<C::Group as Group>::Field as Field>::Serialization,
+    ) -> Result<SigningKey<C>, Error> {
+        <<C::Group as Group>::Field as Field>::deserialize(&bytes)
+            .map(|scalar| SigningKey { scalar })
+    }
 
-    /// Get inner type as Scalar.
-    fn scalar(&self) -> <C::Group as Group>::Scalar;
+    /// Serialize `VerifyingKey` to bytes
+    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+        <<C::Group as Group>::Field as Field>::serialize(&self.scalar)
+    }
 
     /// Create a signature `msg` using this `SigningKey`.
-    fn sign<R: RngCore + CryptoRng>(&self, rng: R, msg: &[u8]) -> Self::Signature {
-        // // Choose a byte sequence uniformly at random of length
-        // // (\ell_H + 128)/8 bytes.  For RedJubjub this is (512 + 128)/8 = 80.
-        // let random_bytes = {
-        //     let mut bytes = [0; 80];
-        //     rng.fill_bytes(&mut bytes);
-        //     bytes
-        // };
+    pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<C> {
+        let k = <<C::Group as Group>::Field as Field>::random_nonzero(&mut rng);
 
-        // let nonce = Scalar::from_hash(
-        //     Sha512::new()
-        //         .chain(&random_bytes[..])
-        //         .chain(&self.pk.bytes.bytes[..]) // XXX ugly
-        //         .chain(msg),
-        // );
-
-        let k = <C::Group as Group>::random_nonzero_scalar(rng);
-
-        let R = <C::Group as Group>::BASEPOINT * k;
+        let R = <C::Group as Group>::generator() * k;
 
         // Generate Schnorr challenge
-        let c = C::challenge(&R.into(), &self.pubkey_bytes, msg);
+        let c = crate::challenge::<C>(&R, &VerifyingKey::from(self).element, msg);
 
-        let z = k + (c * self.scalar());
+        let z = k + (c * self.scalar);
 
-        Self::from_bytes(R.into(), z.into())
+        Signature { R, z }
     }
 }

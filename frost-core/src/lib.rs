@@ -2,7 +2,7 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use std::ops::{Mul, Sub};
+use std::ops::{Add, Mul, Sub};
 
 use rand_core::{CryptoRng, RngCore};
 
@@ -10,13 +10,59 @@ use rand_core::{CryptoRng, RngCore};
 mod error;
 //pub mod frost;
 pub(crate) mod signature;
-// mod signing_key;
-// mod verifying_key;
+mod signing_key;
+mod verifying_key;
 
 pub use error::Error;
 pub use signature::Signature;
-// pub use signing_key::SigningKey;
-// pub use verifying_key::VerifyingKey;
+pub use signing_key::SigningKey;
+pub use verifying_key::VerifyingKey;
+
+/// A prime order finite field GF(q) over which all scalar values for our prime order group can be
+/// multiplied are defined.
+///
+/// This trait does not have to be implemented for a finite field scalar itself, it can be a
+/// pass-through, implemented for a type just for the ciphersuite, and calls through to another
+/// implementation underneath, so that this trait does not have to be implemented for types you
+/// don't own.
+pub trait Field {
+    /// An element of the scalar field GF(p).
+    type Scalar: Add<Output = Self::Scalar>
+        + Copy
+        + Clone
+        + Eq
+        + Mul<Output = Self::Scalar>
+        + PartialEq
+        + Sub<Output = Self::Scalar>;
+
+    /// A unique byte array buf of fixed length N.
+    type Serialization: AsRef<[u8]> + Default;
+
+    /// Generate a random scalar from the entire space [0, l-1]
+    ///
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.3>
+    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
+
+    /// Generate a random scalar from the entire space [1, l-1]
+    ///
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.4>
+    fn random_nonzero<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
+
+    /// A member function of a group _G_ that maps an [`Element`] to a unique byte array buf of
+    /// fixed length Ne.
+    ///
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.5>
+    fn serialize(scalar: &Self::Scalar) -> Self::Serialization;
+
+    /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
+    ///
+    /// Fails if the input is not a valid byte representation of an [`Element`] of the
+    /// [`Group`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
+    /// resulting [`Element`] is the identity element of the group
+    ///
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.6>
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error>;
+}
 
 /// A prime-order group (or subgroup) that provides everything we need to create and verify Schnorr
 /// signatures.
@@ -26,17 +72,34 @@ pub use signature::Signature;
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
 pub trait Group {
-    /// An element of the scalar finite field that our group is defined over.
-    type Scalar;
+    /// A prime order finite field GF(q) over which all scalar values for our prime order group can
+    /// be multiplied are defined.
+    type Field: Field;
 
     /// An element of our group that we will be computing over.
-    type Element: Mul<Self::Scalar, Output = Self::Element> + Sub<Output = Self::Element>;
+    type Element: Add
+        + Copy
+        + Clone
+        + Eq
+        + Mul<<Self::Field as Field>::Scalar, Output = Self::Element>
+        + PartialEq
+        + Sub<Output = Self::Element>;
+
+    /// A unique byte array buf of fixed length N.
+    type Serialization: AsRef<[u8]> + Default;
+
+    /// Outputs the order of G (i.e. p)
+    ///
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.1>
+    fn order() -> <Self::Field as Field>::Scalar;
 
     /// The order of the the quotient group when the prime order subgroup divides the order of the
-    /// full group.
+    /// full curve group.
     ///
     /// If using a prime order elliptic curve, the cofactor should be 1 in the scalar field.
-    fn cofactor() -> Self::Scalar;
+    ///
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-4.1-3>
+    fn cofactor() -> <Self::Field as Field>::Scalar;
 
     /// Additive [identity] of the prime order group.
     ///
@@ -49,72 +112,83 @@ pub trait Group {
     /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1
     fn generator() -> Self::Element;
 
-    /// Generate a random scalar from the entire space [0, l-1]
-    fn random_scalar<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
+    /// A member function of a group _G_ that maps an [`Element`] to a unique byte array buf of
+    /// fixed length Ne.
+    ///
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.5>
+    fn serialize(element: &Self::Element) -> Self::Serialization;
 
-    /// Generate a random scalar from the entire space [1, l-1]
-    fn random_nonzero_scalar<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
+    /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
+    ///
+    /// Fails if the input is not a valid byte representation of an [`Element`] of the
+    /// [`Group`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
+    /// resulting [`Element`] is the identity element of the group
+    ///
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.6>
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error>;
 }
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
-/// function.///
+/// function.
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-ciphersuites
 pub trait Ciphersuite {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
-    /// The bytes output by the ciphersuite hash function (and the H* associated functions).
-    type HashOutput;
+    /// A unique byte array of fixed length.
+    type HashOutput: AsRef<[u8]>;
 
-    /// H1 for a FROST ciphersuite.
-    ///
-    /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H1(m: &[u8]) -> Self::HashOutput;
+    /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
+    /// `Group::ScalarSerialization`
+    // TODO(dconnolly): I just want to 'add together' the above serializations. How?
+    // const generics aren't my favorite either.
+    type SignatureSerialization: AsRef<[u8]>;
 
-    /// H2 for a FROST ciphersuite.
+    /// [H1] for a FROST ciphersuite.
     ///
-    /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H2(m: &[u8]) -> Self::HashOutput;
+    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    ///
+    /// [H1]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
+
+    /// [H2] for a FROST ciphersuite.
+    ///
+    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    ///
+    /// [H2]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
     /// H3 for a FROST ciphersuite.
     ///
+    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
+    ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H3(m: &[u8]) -> Self::HashOutput;
-
-    /// Generates the challenge as is required for Schnorr signatures.
-    ///
-    /// Deals in bytes, so that [FROST] and singleton signing and verification can use it with different
-    /// types.
-    ///
-    /// This is the only invocation of the H2 hash function from the [RFC].
-    ///
-    /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-4.6
-    /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.2
-    fn challenge(
-        R_bytes: &[u8; 32],
-        pubkey_bytes: &[u8; 32],
-        msg: &[u8],
-    ) -> <Self::Group as Group>::Scalar;
 }
 
-/// A `Thing` that is parameterized by a generic `Ciphersuite` type.
-#[allow(dead_code)]
-pub struct Thing<C: Ciphersuite> {
-    ///
-    pub inner: <C::Group as Group>::Element,
-}
+/// Generates the challenge as is required for Schnorr signatures.
+///
+/// Deals in bytes, so that [FROST] and singleton signing and verification can use it with different
+/// types.
+///
+/// This is the only invocation of the H2 hash function from the [RFC].
+///
+/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-4.6
+/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.2
+fn challenge<C>(
+    R: &<C::Group as Group>::Element,
+    verifying_key: &<C::Group as Group>::Element,
+    msg: &[u8],
+) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar
+where
+    C: Ciphersuite,
+{
+    let mut preimage = vec![];
 
-impl<C: Ciphersuite> std::fmt::Debug for Thing<C> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Thing").finish()
-    }
-}
+    preimage.extend_from_slice(&<C::Group as Group>::serialize(&R).as_ref());
+    preimage.extend_from_slice(&<C::Group as Group>::serialize(&verifying_key).as_ref());
+    preimage.extend_from_slice(msg);
 
-impl<C: Ciphersuite> std::default::Default for Thing<C> {
-    fn default() -> Self {
-        Self {
-            inner: <C as Ciphersuite>::Group::identity(),
-        }
-    }
+    C::H2(&preimage[..])
 }
