@@ -2,6 +2,21 @@
 
 Rust implementations of ['Two-Round Threshold Schnorr Signatures with FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/).
 
+Unlike signatures in a single-party setting, threshold signatures require cooperation among a
+threshold number of signers, each holding a share of a common private key. The security of threshold
+schemes in general assume that an adversary can corrupt strictly fewer than a threshold number of
+participants.
+
+['Two-Round Threshold Schnorr Signatures with
+FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/) presents a variant of a Flexible
+Round-Optimized Schnorr Threshold (FROST) signature scheme originally defined in
+[FROST20](https://eprint.iacr.org/2020/852.pdf). FROST reduces network overhead during threshold
+signing operations while employing a novel technique to protect against forgery attacks applicable
+to prior Schnorr-based threshold signature constructions. This variant of FROST requires two rounds
+to compute a signature, and implements signing efficiency improvements described by
+[Schnorr21](https://eprint.iacr.org/2021/1375.pdf). Single-round signing with FROST is not
+implemented here.
+
 ## Status ⚠
 
 The FROST specification is not yet finalized, and this codebase has not yet been audited or
@@ -108,7 +123,5 @@ for (participant_index, _) in nonces.clone() {
 }
 
 ```
-
-
 
 
