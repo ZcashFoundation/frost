@@ -13,17 +13,6 @@ where
     scalar: <<C::Group as Group>::Field as Field>::Scalar,
 }
 
-impl<C> From<&SigningKey<C>> for VerifyingKey<C>
-where
-    C: Ciphersuite,
-{
-    fn from(signing_key: &SigningKey<C>) -> VerifyingKey<C> {
-        VerifyingKey {
-            element: C::Group::generator() * signing_key.scalar,
-        }
-    }
-}
-
 impl<C> SigningKey<C>
 where
     C: Ciphersuite,
@@ -43,7 +32,7 @@ where
             .map(|scalar| SigningKey { scalar })
     }
 
-    /// Serialize `VerifyingKey` to bytes
+    /// Serialize `SigningKey` to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field as Field>::serialize(&self.scalar)
     }
@@ -55,10 +44,30 @@ where
         let R = <C::Group as Group>::generator() * k;
 
         // Generate Schnorr challenge
-        let c = crate::challenge::<C>(&R, &VerifyingKey::from(self).element, msg);
+        let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self).element, msg);
 
         let z = k + (c * self.scalar);
 
         Signature { R, z }
+    }
+}
+
+impl<C> From<&SigningKey<C>> for VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
+    fn from(signing_key: &SigningKey<C>) -> Self {
+        VerifyingKey {
+            element: C::Group::generator() * signing_key.scalar,
+        }
+    }
+}
+
+impl<C> From<SigningKey<C>> for VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
+    fn from(signing_key: SigningKey<C>) -> Self {
+        VerifyingKey::<C>::from(&signing_key)
     }
 }

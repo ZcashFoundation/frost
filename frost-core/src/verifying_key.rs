@@ -1,8 +1,11 @@
-use crate::{Ciphersuite, Error, Group, Signature};
+use crate::{frost, Ciphersuite, Error, Field, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq)]
-pub struct VerifyingKey<C: Ciphersuite> {
+pub struct VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
     pub(crate) element: <C::Group as Group>::Element,
 }
 
@@ -24,6 +27,12 @@ impl<C> VerifyingKey<C>
 where
     C: Ciphersuite,
 {
+    // pub(crate) fn from(scalar: &<<C::Group as Group>::Field as Field>::Scalar) -> Self {
+    //     let element = <C::Group as Group>::generator() * *scalar;
+
+    //     VerifyingKey { element }
+    // }
+
     /// Deserialize from bytes
     pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<VerifyingKey<C>, Error> {
         <C::Group as Group>::deserialize(&bytes).map(|element| VerifyingKey { element })

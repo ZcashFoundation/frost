@@ -2,13 +2,16 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use std::ops::{Add, Mul, Sub};
+use std::{
+    default::Default,
+    ops::{Add, Mul, Sub},
+};
 
 use rand_core::{CryptoRng, RngCore};
 
 // pub mod batch;
 mod error;
-//pub mod frost;
+pub mod frost;
 pub(crate) mod signature;
 mod signing_key;
 mod verifying_key;
@@ -25,7 +28,7 @@ pub use verifying_key::VerifyingKey;
 /// pass-through, implemented for a type just for the ciphersuite, and calls through to another
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
-pub trait Field {
+pub trait Field: Copy + Clone {
     /// An element of the scalar field GF(p).
     type Scalar: Add<Output = Self::Scalar>
         + Copy
@@ -36,7 +39,15 @@ pub trait Field {
         + Sub<Output = Self::Scalar>;
 
     /// A unique byte array buf of fixed length N.
-    type Serialization: AsRef<[u8]> + Default;
+    ///
+    /// Little-endian!
+    type Serialization: AsRef<[u8]> + Default + From<[u8; 4]>;
+
+    /// Returns the zero element of the field, the additive identity.
+    fn zero() -> Self::Scalar;
+
+    /// Returns the one element of the field, the multiplicative identity.
+    fn one() -> Self::Scalar;
 
     /// Generate a random scalar from the entire space [0, l-1]
     ///
@@ -71,13 +82,13 @@ pub trait Field {
 /// pass-through, implemented for a type just for the ciphersuite, and calls through to another
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
-pub trait Group {
+pub trait Group: Copy + Clone {
     /// A prime order finite field GF(q) over which all scalar values for our prime order group can
     /// be multiplied are defined.
     type Field: Field;
 
     /// An element of our group that we will be computing over.
-    type Element: Add
+    type Element: Add<Output = Self::Element>
         + Copy
         + Clone
         + Eq
@@ -86,6 +97,8 @@ pub trait Group {
         + Sub<Output = Self::Element>;
 
     /// A unique byte array buf of fixed length N.
+    ///
+    /// Little-endian!
     type Serialization: AsRef<[u8]> + Default;
 
     /// Outputs the order of G (i.e. p)
@@ -132,7 +145,7 @@ pub trait Group {
 /// function.
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-ciphersuites
-pub trait Ciphersuite {
+pub trait Ciphersuite: Copy + Clone {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 

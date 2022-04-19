@@ -1,20 +1,31 @@
 #![allow(non_snake_case)]
 
 use curve25519_dalek::{
-    constants::RISTRETTO_BASEPOINT_POINT, digest::Update, ristretto::RistrettoPoint,
-    scalar::Scalar, traits::Identity,
+    constants::{BASEPOINT_ORDER, RISTRETTO_BASEPOINT_POINT},
+    digest::Update,
+    ristretto::{CompressedRistretto, RistrettoPoint},
+    scalar::Scalar,
+    traits::Identity,
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
-use frost_core::{Ciphersuite, Group, Thing};
+use frost_core::{Ciphersuite, Error, Group};
 
 pub struct RistrettoGroup;
 
 impl Group for RistrettoGroup {
+    type Element = RistrettoPoint;
+
     type Scalar = Scalar;
 
-    type Element = RistrettoPoint;
+    type ElementSerialization = [u8; 32];
+
+    type ScalarSerialization = [u8; 32];
+
+    fn order() -> Self::Scalar {
+        BASEPOINT_ORDER
+    }
 
     fn cofactor() -> Self::Scalar {
         Scalar::one()
@@ -42,6 +53,28 @@ impl Group for RistrettoGroup {
             }
         }
     }
+
+    fn serialize_element(element: &Self::Element) -> Self::ElementSerialization {
+        element.compress().to_bytes()
+    }
+
+    fn deserialize_element(buf: &Self::ElementSerialization) -> Result<Self::Element, Error> {
+        match CompressedRistretto::from_slice(buf.as_ref()).decompress() {
+            Some(point) => Ok(point),
+            None => Err(Error::MalformedElement),
+        }
+    }
+
+    fn serialize_scalar(scalar: &Self::Scalar) -> Self::ScalarSerialization {
+        scalar.to_bytes()
+    }
+
+    fn deserialize_scalar(buf: &Self::ScalarSerialization) -> Result<Self::Scalar, Error> {
+        match Scalar::from_canonical_bytes(*buf) {
+            Some(s) => Ok(s),
+            None => Err(Error::MalformedScalar),
+        }
+    }
 }
 
 /// Context string 'FROST-RISTRETTO255-SHA512' from the ciphersuite in the [spec]
@@ -56,10 +89,12 @@ impl Ciphersuite for Ristretto255Sha512 {
 
     type HashOutput = [u8; 64];
 
+    type SignatureSerialization = [u8; 64];
+
     /// H1 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H1(m: &[u8]) -> Self::HashOutput {
+    fn H1(m: &[u8]) -> <Self::Group as Group>::Scalar {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
             .chain("rho")
@@ -67,13 +102,13 @@ impl Ciphersuite for Ristretto255Sha512 {
 
         let mut output = [0u8; 64];
         output.copy_from_slice(h.finalize().as_slice());
-        output
+        <Self::Group as Group>::Scalar::from_bytes_mod_order_wide(&output)
     }
 
     /// H2 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-    fn H2(m: &[u8]) -> Self::HashOutput {
+    fn H2(m: &[u8]) -> <Self::Group as Group>::Scalar {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
             .chain("chal")
@@ -81,7 +116,7 @@ impl Ciphersuite for Ristretto255Sha512 {
 
         let mut output = [0u8; 64];
         output.copy_from_slice(h.finalize().as_slice());
-        output
+        <Self::Group as Group>::Scalar::from_bytes_mod_order_wide(&output)
     }
 
     /// H3 for FROST(ristretto255, SHA-512)
@@ -97,38 +132,6 @@ impl Ciphersuite for Ristretto255Sha512 {
         output.copy_from_slice(h.finalize().as_slice());
         output
     }
-
-    /// Generates the challenge as is required for Schnorr signatures.
-    ///
-    /// Deals in bytes, so that [FROST] and singleton signing and verification can use it with different
-    /// types.
-    ///
-    /// This is the only invocation of the H2 hash function from the [RFC].
-    ///
-    /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.6
-    /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-3.2
-    fn challenge(
-        R_bytes: &[u8; 32],
-        pubkey_bytes: &[u8; 32],
-        msg: &[u8],
-    ) -> <Self::Group as frost_core::Group>::Scalar {
-        let mut preimage = vec![];
-
-        preimage.extend_from_slice(R_bytes);
-        preimage.extend_from_slice(pubkey_bytes);
-        preimage.extend_from_slice(msg);
-
-        let challenge_wide = Self::H2(&preimage[..]);
-
-        Scalar::from_bytes_mod_order_wide(&challenge_wide)
-    }
-}
-
-pub mod ristretto {
-
-    use super::*;
-
-    pub type RistrettoThing = Thing<Ristretto255Sha512>;
 }
 
 #[test]
@@ -136,6 +139,4 @@ fn use_parameterized_types() {
     let h3_image = Ristretto255Sha512::H3(b"test_message");
 
     println!("h3_image: {:?}", h3_image);
-
-    let thing = ristretto::RistrettoThing::default();
 }
