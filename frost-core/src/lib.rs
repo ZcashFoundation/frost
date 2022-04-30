@@ -8,6 +8,7 @@ use std::{
 };
 
 use rand_core::{CryptoRng, RngCore};
+use zeroize::Zeroize;
 
 // pub mod batch;
 mod error;
@@ -41,6 +42,7 @@ pub trait Field: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
+    // TODO(dconnolly): just turn this into ByteLen or something, a const number of bytes
     type Serialization: AsRef<[u8]> + Default + From<[u8; 4]>;
 
     /// Returns the zero element of the field, the additive identity.
@@ -48,6 +50,10 @@ pub trait Field: Copy + Clone {
 
     /// Returns the one element of the field, the multiplicative identity.
     fn one() -> Self::Scalar;
+
+    /// Computes the multiplicative inverse of an element of the scalar field, failing if the
+    /// element is zero.
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error>;
 
     /// Generate a random scalar from the entire space [0, l-1]
     ///
@@ -99,6 +105,7 @@ pub trait Group: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
+    // TODO(dconnolly): just turn this into ByteLen or something, a const number of bytes
     type Serialization: AsRef<[u8]> + Default;
 
     /// Outputs the order of G (i.e. p)
@@ -150,12 +157,14 @@ pub trait Ciphersuite: Copy + Clone {
     type Group: Group;
 
     /// A unique byte array of fixed length.
+    // TODO(dconnolly): just turn this into ByteLen or something, a const number of bytes
     type HashOutput: AsRef<[u8]>;
 
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
     // TODO(dconnolly): I just want to 'add together' the above serializations. How?
     // const generics aren't my favorite either.
+    // TODO(dconnolly): just turn this into ByteLen or something, a const number of bytes
     type SignatureSerialization: AsRef<[u8]>;
 
     /// [H1] for a FROST ciphersuite.

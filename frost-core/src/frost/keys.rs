@@ -2,9 +2,9 @@
 
 use std::{collections::HashMap, convert::TryFrom, default::Default};
 
-// use hex::FromHex;
+use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
-use zeroize::DefaultIsZeroes;
+use zeroize::{DefaultIsZeroes, Zeroize, ZeroizeOnDrop};
 
 use crate::{Ciphersuite, Error, Field, Group, VerifyingKey};
 
@@ -48,6 +48,18 @@ where
     }
 }
 
+// Implements [`Zeroize`] by overwriting a value with the [`Default::default()`] value
+impl<C> DefaultIsZeroes for Secret<C> where C: Ciphersuite {}
+
+// impl<C> Drop for Secret<C>
+// where
+//     C: Ciphersuite,
+// {
+//     fn drop(&mut self) {
+//         self.zeroize()
+//     }
+// }
+
 impl<C> From<&Secret<C>> for VerifyingKey<C>
 where
     C: Ciphersuite,
@@ -59,10 +71,6 @@ where
     }
 }
 
-// Zeroizes `Secret` to be the `Default` value on drop (when it goes out of scope).  Luckily the
-// derived `Default` includes the `Default` impl of Scalar, which is four 0u64's under the hood.
-impl<C> DefaultIsZeroes for Secret<C> where C: Ciphersuite {}
-
 // impl<C> FromHex for Secret<C>
 // where
 //     C: Ciphersuite,
@@ -70,10 +78,10 @@ impl<C> DefaultIsZeroes for Secret<C> where C: Ciphersuite {}
 //     type Error = &'static str;
 
 //     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-//         let mut bytes = [0u8; 32];
+//         let mut bytes: <<C::Group as Group>::Field as Field>::Serialization = Default::default();
 
 //         match hex::decode_to_slice(hex, &mut bytes[..]) {
-//             Ok(()) => Secret::try_from(bytes),
+//             Ok(()) => Self::from_bytes(bytes).map_err(|e| &*e.to_string()),
 //             Err(_) => Err("invalid hex"),
 //         }
 //     }
@@ -117,9 +125,7 @@ where
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
 #[derive(Clone, Copy, PartialEq)]
-pub(super) struct CoefficientCommitment<C>(pub(super) <C::Group as Group>::Element)
-where
-    C: Ciphersuite;
+pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
 
 /// Contains the commitments to the coefficients for our secret polynomial _f_,
 /// used to generate participants' key shares.
@@ -142,7 +148,7 @@ pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
 ///
 /// `n` is the total number of shares and `t` is the threshold required to reconstruct the secret;
 /// in this case we use Shamir's secret sharing.
-#[derive(Clone)]
+#[derive(Clone, Zeroize)]
 pub struct SecretShare<C: Ciphersuite> {
     pub(super) index: u32,
     /// Secret Key.
@@ -261,7 +267,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// When using a central dealer, [`SharePackage`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant index each secret share key package is owned by.
     pub index: u32,
@@ -380,12 +386,10 @@ pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     // and `coeffs` as the other coefficients at the point x=share_index,
     // using Horner's method.
     for index in 1..=numshares as u32 {
-        // let scalar_index = Scalar::from(index as u32);
         let scalar_index =
             <<C::Group as Group>::Field as Field>::deserialize(&(index.to_le_bytes().into()))
                 .unwrap();
 
-        // let mut value = Scalar::zero();
         let mut value = <<C::Group as Group>::Field as Field>::zero();
 
         // Polynomial evaluation, for this index
