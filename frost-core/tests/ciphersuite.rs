@@ -10,24 +10,69 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
-use frost_core::{Ciphersuite, Error, Group};
+use frost_core::{Ciphersuite, Error, Field, Group};
+
+pub struct RistrettoScalarField;
+
+impl Field for RistrettoScalarField {
+    type Scalar = Scalar;
+
+    type Serialization = [u8; 32];
+
+    fn zero() -> Self::Scalar {
+        Scalar::zero()
+    }
+
+    fn one() -> Self::Scalar {
+        Scalar::one()
+    }
+
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+        // !TODO!(dconnolly): do a ct_eq with zero, failing if it is
+        Ok(scalar.invert())
+    }
+
+    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
+        Scalar::random(rng)
+    }
+
+    fn random_nonzero<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
+        loop {
+            let scalar = Scalar::random(rng);
+
+            // This impl of `Eq` calls to `ConstantTimeEq` under the hood
+            if scalar != Scalar::zero() {
+                return scalar;
+            }
+        }
+    }
+
+    fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
+        scalar.to_bytes()
+    }
+
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+        match Scalar::from_canonical_bytes(*buf) {
+            Some(s) => Ok(s),
+            None => Err(Error::MalformedScalar),
+        }
+    }
+}
 
 pub struct RistrettoGroup;
 
 impl Group for RistrettoGroup {
+    type Field = RistrettoScalarField;
+
     type Element = RistrettoPoint;
 
-    type Scalar = Scalar;
+    type Serialization = [u8; 32];
 
-    type ElementSerialization = [u8; 32];
-
-    type ScalarSerialization = [u8; 32];
-
-    fn order() -> Self::Scalar {
+    fn order() -> Self::Field::Scalar {
         BASEPOINT_ORDER
     }
 
-    fn cofactor() -> Self::Scalar {
+    fn cofactor() -> Self::Field::Scalar {
         Scalar::one()
     }
 
@@ -39,40 +84,14 @@ impl Group for RistrettoGroup {
         RISTRETTO_BASEPOINT_POINT
     }
 
-    fn random_scalar<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
-        Scalar::random(rng)
-    }
-
-    fn random_nonzero_scalar<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
-        loop {
-            let scalar = Scalar::random(rng);
-
-            // This impl of `Eq` calls to `ConstantTimeEq` under the hood
-            if scalar != Scalar::zero() {
-                return scalar;
-            }
-        }
-    }
-
-    fn serialize_element(element: &Self::Element) -> Self::ElementSerialization {
+    fn serialize(element: &Self::Element) -> Self::Serialization {
         element.compress().to_bytes()
     }
 
-    fn deserialize_element(buf: &Self::ElementSerialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
         match CompressedRistretto::from_slice(buf.as_ref()).decompress() {
             Some(point) => Ok(point),
             None => Err(Error::MalformedElement),
-        }
-    }
-
-    fn serialize_scalar(scalar: &Self::Scalar) -> Self::ScalarSerialization {
-        scalar.to_bytes()
-    }
-
-    fn deserialize_scalar(buf: &Self::ScalarSerialization) -> Result<Self::Scalar, Error> {
-        match Scalar::from_canonical_bytes(*buf) {
-            Some(s) => Ok(s),
-            None => Err(Error::MalformedScalar),
         }
     }
 }
@@ -94,7 +113,7 @@ impl Ciphersuite for Ristretto255Sha512 {
     /// H1 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H1(m: &[u8]) -> <Self::Group as Group>::Scalar {
+    fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
             .chain("rho")
@@ -102,13 +121,13 @@ impl Ciphersuite for Ristretto255Sha512 {
 
         let mut output = [0u8; 64];
         output.copy_from_slice(h.finalize().as_slice());
-        <Self::Group as Group>::Scalar::from_bytes_mod_order_wide(&output)
+        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
     }
 
     /// H2 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-    fn H2(m: &[u8]) -> <Self::Group as Group>::Scalar {
+    fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
             .chain("chal")
@@ -116,7 +135,7 @@ impl Ciphersuite for Ristretto255Sha512 {
 
         let mut output = [0u8; 64];
         output.copy_from_slice(h.finalize().as_slice());
-        <Self::Group as Group>::Scalar::from_bytes_mod_order_wide(&output)
+        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
     }
 
     /// H3 for FROST(ristretto255, SHA-512)

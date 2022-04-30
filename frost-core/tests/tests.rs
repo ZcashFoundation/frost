@@ -1,27 +1,28 @@
-use curve25519_dalek::{constants::RISTRETTO_BASEPOINT_POINT, scalar::Scalar};
-
+use frost_core::{Ciphersuite, Error, Field, Group};
 use rand::thread_rng;
 
-use crate::frost::{self, *};
-
+mod ciphersuite;
 mod vectors;
 
+use ciphersuite::*;
 use vectors::*;
 
-fn reconstruct_secret(
-    secret_shares: Vec<frost::keys::SecretShare>,
-) -> Result<Scalar, &'static str> {
+// TODO(dconnolly): finish genericizing
+fn reconstruct_secret<C: Ciphersuite>(
+    secret_shares: Vec<frost::keys::SecretShare<C>>,
+) -> Result<<<C::Group as Group>::Field as Field>::Scalar, &'static str> {
     let numshares = secret_shares.len();
 
     if numshares < 1 {
         return Err("No secret_shares provided");
     }
 
-    let mut lagrange_coeffs: Vec<Scalar> = Vec::with_capacity(numshares as usize);
+    let mut lagrange_coeffs: Vec<<<C::Group as Group>::Field as Field>::Scalar> =
+        Vec::with_capacity(numshares as usize);
 
     for i in 0..numshares {
-        let mut num = Scalar::one();
-        let mut den = Scalar::one();
+        let mut num = <<C::Group as Group>::Field as Field>::one();
+        let mut den = <<C::Group as Group>::Field as Field>::one();
         for j in 0..numshares {
             if j == i {
                 continue;
@@ -36,7 +37,7 @@ fn reconstruct_secret(
         lagrange_coeffs.push(num * den.invert());
     }
 
-    let mut secret = Scalar::zero();
+    let mut secret = <<C::Group as Group>::Field as Field>::zero();
 
     for i in 0..numshares {
         secret += lagrange_coeffs[i] * secret_shares[i].value.0;

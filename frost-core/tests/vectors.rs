@@ -2,13 +2,13 @@ use std::{collections::HashMap, str::FromStr};
 
 use curve25519_dalek::scalar::Scalar;
 
-use hex;
+use hex::{self, FromHex};
 use lazy_static::lazy_static;
 use serde_json::Value;
 
 use crate::{
     frost::{keys::*, round1::*, round2::*, *},
-    Signature, VerificationKey,
+    Signature, VerifyingKey,
 };
 
 lazy_static! {
@@ -19,7 +19,7 @@ lazy_static! {
 
 #[allow(clippy::type_complexity)]
 pub(super) fn parse_test_vectors() -> (
-    VerificationKey,
+    VerifyingKey,
     HashMap<u16, KeyPackage>,
     &'static str,
     Vec<u8>,
@@ -43,7 +43,7 @@ pub(super) fn parse_test_vectors() -> (
         .iter();
 
     let group_public =
-        VerificationKey::from_hex(inputs["group_public_key"].as_str().unwrap()).unwrap();
+        VerifyingKey::from_hex(inputs["group_public_key"].as_str().unwrap()).unwrap();
 
     for (i, secret_share) in possible_signers {
         let secret = Secret::from_hex(secret_share["signer_share"].as_str().unwrap()).unwrap();
