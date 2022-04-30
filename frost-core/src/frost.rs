@@ -18,9 +18,6 @@ pub mod keys;
 pub mod round1;
 pub mod round2;
 
-#[cfg(test)]
-mod tests;
-
 use crate::{Ciphersuite, Error, Field, Group, Signature};
 
 /// The binding factor, also known as _rho_ (ρ)
