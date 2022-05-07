@@ -10,9 +10,7 @@
 //! Internally, keygen_with_dealer generates keys using Verifiable Secret
 //! Sharing, where shares are generated using Shamir Secret Sharing.
 
-use std::{collections::HashMap, convert::TryFrom, fmt, fmt::Debug};
-
-use hex::FromHex;
+use std::{collections::HashMap, convert::TryFrom};
 
 pub mod keys;
 pub mod round1;
@@ -196,7 +194,7 @@ where
 
         preimage
             .extend_from_slice(&round1::encode_group_commitments(self.signing_commitments())[..]);
-        preimage.extend_from_slice(&C::H3(self.message.as_slice()).as_ref());
+        preimage.extend_from_slice(C::H3(self.message.as_slice()).as_ref());
 
         preimage
     }
@@ -272,7 +270,7 @@ where
 /// service attack due to publishing an invalid signature.
 pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
-    signing_shares: &[round2::SignatureShare<C>],
+    signature_shares: &[round2::SignatureShare<C>],
     pubkeys: &keys::PublicKeyPackage<C>,
 ) -> Result<Signature<C>, &'static str>
 where
@@ -293,21 +291,21 @@ where
     );
 
     // Verify the signature shares.
-    for signing_share in signing_shares {
+    for signature_share in signature_shares {
         // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
         // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
-        let signer_pubkey = pubkeys.signer_pubkeys.get(&signing_share.index).unwrap();
+        let signer_pubkey = pubkeys.signer_pubkeys.get(&signature_share.index).unwrap();
 
         // Compute Lagrange coefficient.
-        let lambda_i = derive_lagrange_coeff(signing_share.index, signing_package)?;
+        let lambda_i = derive_lagrange_coeff(signature_share.index, signing_package)?;
 
         // Compute the commitment share.
         let R_share = signing_package
-            .signing_commitment(&signing_share.index)
+            .signing_commitment(&signature_share.index)
             .to_group_commitment_share(&rho);
 
-        // Compute relation values to verify this signing share.
-        signing_share.verify(R_share, signer_pubkey, lambda_i, challenge)?;
+        // Compute relation values to verify this signature share.
+        signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
     }
 
     // The aggregation of the signature shares by summing them up, resulting in
@@ -318,7 +316,7 @@ where
     // [`frost_aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.3-4
     let mut z = <<C::Group as Group>::Field as Field>::zero();
 
-    for signature_share in signing_shares {
+    for signature_share in signature_shares {
         z = z + signature_share.signature.z_share;
     }
 

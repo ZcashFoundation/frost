@@ -8,7 +8,6 @@ use std::{
 };
 
 use rand_core::{CryptoRng, RngCore};
-use zeroize::Zeroize;
 
 // pub mod batch;
 mod error;
@@ -42,7 +41,6 @@ pub trait Field: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    // TODO(dconnolly): just turn this into ByteLen or something, a const number of bytes
     type Serialization: AsRef<[u8]> + Default + From<[u8; 4]>;
 
     /// Returns the zero element of the field, the additive identity.
@@ -105,7 +103,6 @@ pub trait Group: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    // TODO(dconnolly): just turn this into ByteLen or something, a const number of bytes
     type Serialization: AsRef<[u8]> + Default;
 
     /// Outputs the order of G (i.e. p)
@@ -136,6 +133,7 @@ pub trait Group: Copy + Clone {
     /// fixed length Ne.
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.5>
+    // TODO: In a better future, this should be to a [u8; Self::N_BYTES] where N_BYTES is an associated const
     fn serialize(element: &Self::Element) -> Self::Serialization;
 
     /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
@@ -145,6 +143,7 @@ pub trait Group: Copy + Clone {
     /// resulting [`Element`] is the identity element of the group
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.6>
+    // TODO: In a better future, this should be from a [u8; Self::N_BYTES] where N_BYTES is an associated const
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error>;
 }
 
@@ -157,14 +156,10 @@ pub trait Ciphersuite: Copy + Clone {
     type Group: Group;
 
     /// A unique byte array of fixed length.
-    // TODO(dconnolly): just turn this into ByteLen or something, a const number of bytes
     type HashOutput: AsRef<[u8]>;
 
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
-    // TODO(dconnolly): I just want to 'add together' the above serializations. How?
-    // const generics aren't my favorite either.
-    // TODO(dconnolly): just turn this into ByteLen or something, a const number of bytes
     type SignatureSerialization: AsRef<[u8]>;
 
     /// [H1] for a FROST ciphersuite.
@@ -189,6 +184,13 @@ pub trait Ciphersuite: Copy + Clone {
     fn H3(m: &[u8]) -> Self::HashOutput;
 }
 
+/// A type refinement for the scalar field element representing the per-message _[challenge]_.
+///
+/// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-signature-challenge-computa
+pub struct Challenge<C: Ciphersuite>(
+    pub(crate) <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
+);
+
 /// Generates the challenge as is required for Schnorr signatures.
 ///
 /// Deals in bytes, so that [FROST] and singleton signing and verification can use it with different
@@ -202,15 +204,15 @@ fn challenge<C>(
     R: &<C::Group as Group>::Element,
     verifying_key: &<C::Group as Group>::Element,
     msg: &[u8],
-) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar
+) -> Challenge<C>
 where
     C: Ciphersuite,
 {
     let mut preimage = vec![];
 
-    preimage.extend_from_slice(&<C::Group as Group>::serialize(&R).as_ref());
-    preimage.extend_from_slice(&<C::Group as Group>::serialize(&verifying_key).as_ref());
+    preimage.extend_from_slice(<C::Group as Group>::serialize(R).as_ref());
+    preimage.extend_from_slice(<C::Group as Group>::serialize(verifying_key).as_ref());
     preimage.extend_from_slice(msg);
 
-    C::H2(&preimage[..])
+    Challenge(C::H2(&preimage[..]))
 }

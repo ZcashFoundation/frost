@@ -46,7 +46,7 @@ where
         // Generate Schnorr challenge
         let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self).element, msg);
 
-        let z = k + (c * self.scalar);
+        let z = k + (c.0 * self.scalar);
 
         Signature { R, z }
     }

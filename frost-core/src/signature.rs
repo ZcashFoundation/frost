@@ -12,36 +12,41 @@ pub struct Signature<C: Ciphersuite> {
     pub(crate) z: <<C::Group as Group>::Field as Field>::Scalar,
 }
 
+// impl<C> Signature<C>
+// where
+//     C: Ciphersuite,
+// {
+//     fn from_bytes(bytes: C::SignatureSerialization) -> Signature<C> {
+
+//         // Signature {
+//         //     R:
+//         //     z:
+//         // }
+//     }
+
+//     fn to_bytes(&self) -> C::SignatureSerialization {
+
+//         // Signature {
+//         //     R:
+//         //     z:
+//         // }
+//     }
+// }
+
 impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Signature")
-            .field("R", &hex::encode(<C::Group as Group>::serialize(&self.R)))
+            .field(
+                "R",
+                &hex::encode(<C::Group as Group>::serialize(&self.R).as_ref()),
+            )
             .field(
                 "z",
-                &hex::encode(<<C::Group as Group>::Field as Field>::serialize(&self.z)),
+                &hex::encode(<<C::Group as Group>::Field as Field>::serialize(&self.z).as_ref()),
             )
             .finish()
     }
 }
-
-// impl<C: Ciphersuite> From<C::SignatureSerialization> for Signature<C> {
-//     fn from(bytes: C::SignatureSerialization) -> Signature<C> {
-//         let mut R_bytes = <C::Group as Group>::ElementSerialization
-//         R_bytes.copy_from_slice(&bytes[0..32]);
-//         let mut z_bytes = [0; 32];
-//         z_bytes.copy_from_slice(&bytes[32..64]);
-//         Signature { R_bytes, z_bytes }
-//     }
-// }
-
-// impl<C: Ciphersuite> From<Signature<C>> for [u8; 64] {
-//     fn from(sig: Signature<C>) -> [u8; 64] {
-//         let mut bytes = [0; 64];
-//         bytes[0..32].copy_from_slice(&sig.R_bytes[..]);
-//         bytes[32..64].copy_from_slice(&sig.z_bytes[..]);
-//         bytes
-//     }
-// }
 
 // impl<C: Ciphersuite> hex::FromHex for Signature<C> {
 //     type Error = &'static str;

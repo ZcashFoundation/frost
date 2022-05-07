@@ -2,12 +2,10 @@
 
 use std::fmt::{self, Debug};
 
-use zeroize::DefaultIsZeroes;
-
 use crate::{
     challenge,
     frost::{self, round1, *},
-    Ciphersuite, Error, Field, Group,
+    Challenge, Ciphersuite, Error, Field, Group,
 };
 
 /// A representation of a single signature share used in FROST structures and messages.
@@ -68,13 +66,13 @@ where
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.3
     pub fn verify(
         &self,
-        group_commitment_share: round1::GroupCommitmentShare<C>,
+        group_commitment_share: &round1::GroupCommitmentShare<C>,
         public_key: &frost::keys::Public<C>,
         lambda_i: <<C::Group as Group>::Field as Field>::Scalar,
-        challenge: <<C::Group as Group>::Field as Field>::Scalar,
+        challenge: &Challenge<C>,
     ) -> Result<(), &'static str> {
         if (<C::Group as Group>::generator() * self.signature.z_share)
-            != (group_commitment_share.0 + (public_key.0 * challenge * lambda_i))
+            != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
             return Err("Invalid signature share");
         }
@@ -138,7 +136,7 @@ pub fn sign<C: Ciphersuite>(
     // Compute the Schnorr signature share.
     let z_share: <<C::Group as Group>::Field as Field>::Scalar = signer_nonces.hiding.0
         + (signer_nonces.binding.0 * rho.0)
-        + (lambda_i * key_package.secret_share.0 * challenge);
+        + (lambda_i * key_package.secret_share.0 * challenge.0);
 
     let signature_share = SignatureShare::<C> {
         index: key_package.index,

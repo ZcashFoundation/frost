@@ -1,4 +1,4 @@
-use crate::{frost, Ciphersuite, Error, Field, Group, Signature};
+use crate::{Ciphersuite, Error, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq)]
@@ -52,7 +52,7 @@ where
         //
         // where h is the cofactor
         let zB = C::Group::generator() * signature.z;
-        let cA = self.element * c;
+        let cA = self.element * c.0;
         let check = (zB - cA - signature.R) * C::Group::cofactor();
 
         if check == C::Group::identity() {

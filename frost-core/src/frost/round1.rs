@@ -1,11 +1,11 @@
 //! FROST Round 1 functionality and types
 
-use std::fmt::Debug;
 
-use hex::FromHex;
+
+
 use rand_core::{CryptoRng, RngCore};
 
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize};
 
 use crate::{frost, Ciphersuite, Error, Field, Group};
 
@@ -222,8 +222,8 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 
     for item in sorted_signing_commitments {
         bytes.extend_from_slice(&item.index.to_be_bytes()[..]);
-        bytes.extend_from_slice(&<C::Group as Group>::serialize(&item.hiding.0).as_ref());
-        bytes.extend_from_slice(&<C::Group as Group>::serialize(&item.binding.0).as_ref());
+        bytes.extend_from_slice(<C::Group as Group>::serialize(&item.hiding.0).as_ref());
+        bytes.extend_from_slice(<C::Group as Group>::serialize(&item.binding.0).as_ref());
     }
 
     bytes

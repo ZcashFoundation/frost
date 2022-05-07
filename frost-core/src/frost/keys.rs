@@ -2,9 +2,9 @@
 
 use std::{collections::HashMap, convert::TryFrom, default::Default};
 
-use hex::FromHex;
+
 use rand_core::{CryptoRng, RngCore};
-use zeroize::{DefaultIsZeroes, Zeroize, ZeroizeOnDrop};
+use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{Ciphersuite, Error, Field, Group, VerifyingKey};
 
