@@ -79,6 +79,8 @@ pub trait Field: Copy + Clone {
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error>;
 }
 
+pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar;
+
 /// A prime-order group (or subgroup) that provides everything we need to create and verify Schnorr
 /// signatures.
 ///
@@ -133,7 +135,6 @@ pub trait Group: Copy + Clone {
     /// fixed length Ne.
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.5>
-    // TODO: In a better future, this should be to a [u8; Self::N_BYTES] where N_BYTES is an associated const
     fn serialize(element: &Self::Element) -> Self::Serialization;
 
     /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
@@ -143,9 +144,10 @@ pub trait Group: Copy + Clone {
     /// resulting [`Element`] is the identity element of the group
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.6>
-    // TODO: In a better future, this should be from a [u8; Self::N_BYTES] where N_BYTES is an associated const
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error>;
 }
+
+pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.

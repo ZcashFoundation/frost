@@ -6,7 +6,7 @@ use hex::{self, FromHex};
 use lazy_static::lazy_static;
 use serde_json::Value;
 
-use crate::{
+use frost_core::{
     frost::{keys::*, round1::*, round2::*, *},
     Signature, VerifyingKey,
 };

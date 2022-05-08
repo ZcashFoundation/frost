@@ -1,4 +1,4 @@
-use frost_core::{Ciphersuite, Error, Field, Group};
+use frost_core::{Ciphersuite, Element, Error, Field, Group, Scalar};
 use rand::thread_rng;
 
 mod ciphersuite;
@@ -7,40 +7,60 @@ mod vectors;
 use ciphersuite::*;
 use vectors::*;
 
+/// Recompute the secret from t-of-n secret shares using Lagrange interpolation.
 // TODO(dconnolly): finish genericizing
 fn reconstruct_secret<C: Ciphersuite>(
     secret_shares: Vec<frost::keys::SecretShare<C>>,
-) -> Result<<<C::Group as Group>::Field as Field>::Scalar, &'static str> {
+) -> Result<Scalar<C>, &'static str> {
     let numshares = secret_shares.len();
 
     if numshares < 1 {
         return Err("No secret_shares provided");
     }
 
-    let mut lagrange_coeffs: Vec<<<C::Group as Group>::Field as Field>::Scalar> =
-        Vec::with_capacity(numshares as usize);
+    let mut lagrange_coeffs: Vec<Scalar<C>> = Vec::with_capacity(numshares as usize);
 
+    let secret_share_index_scalars: Vec<Scalar<C>> = (0..numshares)
+        .map(|i| {
+            <<C::Group as Group>::Field as Field>::deserialize(
+                &(secret_shares[i].index.to_le_bytes().into()),
+            )
+            .unwrap()
+        })
+        .collect();
+
+    // Compute the Lagrange coefficients
     for i in 0..numshares {
         let mut num = <<C::Group as Group>::Field as Field>::one();
         let mut den = <<C::Group as Group>::Field as Field>::one();
+
         for j in 0..numshares {
             if j == i {
                 continue;
             }
-            num *= Scalar::from(secret_shares[j].index as u64);
-            den *= Scalar::from(secret_shares[j].index as u64)
-                - Scalar::from(secret_shares[i].index as u64);
+
+            // numerator *= j
+            num = num * secret_share_index_scalars[j];
+
+            // denominator *= j - i
+            den = den * (secret_share_index_scalars[j] - secret_share_index_scalars[i]);
         }
-        if den == Scalar::zero() {
+
+        // If at this step, the denominator is zero in the scalar field, there must be a duplicate
+        // secret share.
+        if den == <<C::Group as Group>::Field as Field>::zero() {
             return Err("Duplicate shares provided");
         }
-        lagrange_coeffs.push(num * den.invert());
+
+        // Save numerator * 1/denomintor in the scalar field
+        lagrange_coeffs.push(num * <<C::Group as Group>::Field as Field>::invert(&den).unwrap());
     }
 
     let mut secret = <<C::Group as Group>::Field as Field>::zero();
 
+    //
     for i in 0..numshares {
-        secret += lagrange_coeffs[i] * secret_shares[i].value.0;
+        secret = secret + (lagrange_coeffs[i] * secret_shares[i].value.0);
     }
 
     Ok(secret)

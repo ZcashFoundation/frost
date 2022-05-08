@@ -68,11 +68,11 @@ impl Group for RistrettoGroup {
 
     type Serialization = [u8; 32];
 
-    fn order() -> Self::Field::Scalar {
+    fn order() -> <Self::Field as Field>::Scalar {
         BASEPOINT_ORDER
     }
 
-    fn cofactor() -> Self::Field::Scalar {
+    fn cofactor() -> <Self::Field as Field>::Scalar {
         Scalar::one()
     }
 

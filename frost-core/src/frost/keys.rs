@@ -2,7 +2,6 @@
 
 use std::{collections::HashMap, convert::TryFrom, default::Default};
 
-
 use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
@@ -223,7 +222,6 @@ pub struct SharePackage<C: Ciphersuite> {
 ///
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
-///
 /// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B
 pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     num_signers: u8,
@@ -395,11 +393,13 @@ pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
         // Polynomial evaluation, for this index
         //
         // We rely only on `Add` and `Mul` here so as to not require `AddAssign` and `MulAssign`
+        //
+        // Note that this is from the 'last' coefficient to the 'first'.
         for i in (0..numcoeffs).rev() {
-            value = coefficients[i as usize] + value;
-            value = scalar_index * value;
+            value = value + coefficients[i as usize];
+            value = value * scalar_index;
         }
-        value = secret.0 + value;
+        value = value + secret.0;
 
         secret_shares.push(SecretShare {
             index: index as u32,
