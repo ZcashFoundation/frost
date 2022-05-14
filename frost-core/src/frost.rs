@@ -10,13 +10,22 @@
 //! Internally, keygen_with_dealer generates keys using Verifiable Secret
 //! Sharing, where shares are generated using Shamir Secret Sharing.
 
-use std::{collections::HashMap, convert::TryFrom};
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    fmt::{self, Debug},
+};
 
+use hex::FromHex;
+
+mod identifier;
 pub mod keys;
 pub mod round1;
 pub mod round2;
 
 use crate::{Ciphersuite, Error, Field, Group, Signature};
+
+pub use self::identifier::Identifier;
 
 /// The binding factor, also known as _rho_ (ρ)
 ///
@@ -25,22 +34,33 @@ use crate::{Ciphersuite, Error, Field, Group, Signature};
 ///
 /// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md>
 #[derive(Clone, PartialEq)]
-struct Rho<C: Ciphersuite>(<<C::Group as Group>::Field as Field>::Scalar);
+pub struct Rho<C: Ciphersuite>(<<C::Group as Group>::Field as Field>::Scalar);
 
 impl<C> Rho<C>
 where
     C: Ciphersuite,
 {
-    /// Deserialize [`Rho`] from bytes
+    /// Deserializes [`Rho`] from bytes.
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
         <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
-    /// Serialize [`Rho`] to bytes
+    /// Serializes [`Rho`] to bytes.
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field as Field>::serialize(&self.0)
+    }
+}
+
+impl<C> Debug for Rho<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("Rho")
+            .field(&hex::encode(self.to_bytes()))
+            .finish()
     }
 }
 
@@ -60,34 +80,32 @@ where
     }
 }
 
-// impl<C> FromHex for Rho<C>
-// where
-//     C: Ciphersuite,
-// {
-//     type Error = &'static str;
+impl<C> FromHex for Rho<C>
+where
+    C: Ciphersuite,
+{
+    type Error = &'static str;
 
-//     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-//         let mut bytes = [0u8; 32];
-
-//         match hex::decode_to_slice(hex, &mut bytes[..]) {
-//             Ok(()) => Self::try_from(bytes),
-//             Err(_) => Err("invalid hex"),
-//         }
-//     }
-// }
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+        match FromHex::from_hex(hex) {
+            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed scalar encoding"),
+            Err(_) => Err("invalid hex"),
+        }
+    }
+}
 
 /// Generates the lagrange coefficient for the i'th participant.
 fn derive_lagrange_coeff<C: Ciphersuite>(
-    signer_index: u32,
+    signer_id: u16,
     signing_package: &SigningPackage<C>,
 ) -> Result<<<C::Group as Group>::Field as Field>::Scalar, &'static str> {
-    let signer_index_scalar =
-        <<C::Group as Group>::Field as Field>::deserialize(&(signer_index.to_le_bytes().into()))
-            .unwrap();
+    // This should fail and panic if signer_id_scalar is 0 in the scalar field.
+    let signer_id_scalar = Identifier::<C>::try_from(signer_id).unwrap();
 
     let zero = <<C::Group as Group>::Field as Field>::zero();
 
-    if signer_index_scalar == zero {
+    // TODO: This is redundant
+    if signer_id_scalar.0 == zero {
         return Err("Invalid parameters");
     }
 
@@ -95,11 +113,9 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
         .signing_commitments()
         .iter()
         .any(|commitment| {
-            let commitment_index_scalar = <<C::Group as Group>::Field as Field>::deserialize(
-                &(commitment.index.to_le_bytes().into()),
-            )
-            .unwrap();
-            commitment_index_scalar == zero
+            let commitment_id_scalar = Identifier::<C>::try_from(commitment.index).unwrap();
+
+            *commitment_id_scalar == zero
         })
     {
         return Err("Invalid parameters");
@@ -112,16 +128,14 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
     for commitment in signing_package.signing_commitments() {
-        if commitment.index == signer_index {
+        if commitment.index == signer_id {
             continue;
         }
 
-        let commitment_index_scalar = <<C::Group as Group>::Field as Field>::deserialize(
-            &(commitment.index.to_le_bytes().into()),
-        )
-        .unwrap();
-        num = num * commitment_index_scalar;
-        den = den * (commitment_index_scalar - signer_index_scalar);
+        let commitment_id_scalar = Identifier::<C>::try_from(commitment.index).unwrap();
+
+        num = num * *commitment_id_scalar;
+        den = den * (*commitment_id_scalar - *signer_id_scalar);
     }
 
     if den == zero {
@@ -139,7 +153,7 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
 pub struct SigningPackage<C: Ciphersuite> {
     /// The set of commitments participants published in the first round of the
     /// protocol.
-    signing_commitments: HashMap<u32, round1::SigningCommitments<C>>,
+    signing_commitments: HashMap<u16, round1::SigningCommitments<C>>,
     /// Message which each participant will sign.
     ///
     /// Each signer should perform protocol-specific verification on the
@@ -170,7 +184,7 @@ where
     }
 
     /// Get a signing commitment by its participant index.
-    pub fn signing_commitment(&self, index: &u32) -> round1::SigningCommitments<C> {
+    pub fn signing_commitment(&self, index: &u16) -> round1::SigningCommitments<C> {
         self.signing_commitments[index]
     }
 
@@ -189,7 +203,7 @@ where
 
     /// Compute the preimage to H3 to compute rho
     // We separate this out into its own method so it can be tested
-    pub(super) fn rho_preimage(&self) -> Vec<u8> {
+    pub fn rho_preimage(&self) -> Vec<u8> {
         let mut preimage = vec![];
 
         preimage

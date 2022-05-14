@@ -1,18 +1,21 @@
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
+#![forbid(unsafe_code)]
 
 use std::{
     default::Default,
+    fmt::Debug,
     ops::{Add, Mul, Sub},
 };
 
+use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 
 // pub mod batch;
 mod error;
 pub mod frost;
-pub(crate) mod signature;
+mod signature;
 mod signing_key;
 mod verifying_key;
 
@@ -41,7 +44,7 @@ pub trait Field: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + Default + From<[u8; 4]>;
+    type Serialization: AsRef<[u8]> + AsMut<[u8]> + Debug + Default + FromHex + TryFrom<Vec<u8>>;
 
     /// Returns the zero element of the field, the additive identity.
     fn zero() -> Self::Scalar;
@@ -79,6 +82,7 @@ pub trait Field: Copy + Clone {
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error>;
 }
 
+/// An element of the [`Ciphersuite`] `C`'s [`Group`]'s scalar [`Field`].
 pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar;
 
 /// A prime-order group (or subgroup) that provides everything we need to create and verify Schnorr
@@ -105,7 +109,7 @@ pub trait Group: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + Default;
+    type Serialization: AsRef<[u8]> + AsMut<[u8]> + Default + FromHex + TryFrom<Vec<u8>>;
 
     /// Outputs the order of G (i.e. p)
     ///
@@ -147,6 +151,7 @@ pub trait Group: Copy + Clone {
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error>;
 }
 
+/// An element of the [`Ciphersuite`] `C`'s [`Group`].
 pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
@@ -162,7 +167,7 @@ pub trait Ciphersuite: Copy + Clone {
 
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
-    type SignatureSerialization: AsRef<[u8]>;
+    type SignatureSerialization: AsRef<[u8]> + FromHex + TryFrom<Vec<u8>>;
 
     /// [H1] for a FROST ciphersuite.
     ///

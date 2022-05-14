@@ -1,5 +1,9 @@
 //! Schnorr signatures over prime order groups (or subgroups)
 
+use std::fmt::Debug;
+
+// use hex::FromHex;
+
 use crate::{Ciphersuite, Field, Group};
 
 /// A Schnorr signature over some prime order group (or subgroup).
@@ -12,26 +16,31 @@ pub struct Signature<C: Ciphersuite> {
     pub(crate) z: <<C::Group as Group>::Field as Field>::Scalar,
 }
 
-// impl<C> Signature<C>
-// where
-//     C: Ciphersuite,
-// {
-//     fn from_bytes(bytes: C::SignatureSerialization) -> Signature<C> {
+impl<C> Signature<C>
+where
+    C: Ciphersuite,
+{
+    // fn from_bytes(bytes: C::SignatureSerialization) -> Result<Signature<C>, Error> {
 
-//         // Signature {
-//         //     R:
-//         //     z:
-//         // }
-//     }
+    //     // Signature {
+    //     //     R:
+    //     //     z:
+    //     // }
+    // }
 
-//     fn to_bytes(&self) -> C::SignatureSerialization {
+    /// Converts this signature to its [`C::SignatureSerialization`] in bytes.
+    pub fn to_bytes(&self) -> C::SignatureSerialization
+    where
+        <<C as Ciphersuite>::SignatureSerialization as TryFrom<Vec<u8>>>::Error: Debug,
+    {
+        let mut bytes = vec![];
 
-//         // Signature {
-//         //     R:
-//         //     z:
-//         // }
-//     }
-// }
+        bytes.extend(<C::Group as Group>::serialize(&self.R).as_ref());
+        bytes.extend(<<C::Group as Group>::Field as Field>::serialize(&self.z).as_ref());
+
+        bytes.try_into().unwrap()
+    }
+}
 
 impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -48,14 +57,15 @@ impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
     }
 }
 
-// impl<C: Ciphersuite> hex::FromHex for Signature<C> {
+// impl<C> FromHex for Signature<C>
+// where
+//     C: Ciphersuite,
+// {
 //     type Error = &'static str;
 
 //     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-//         let mut bytes = [0u8; 64];
-
-//         match hex::decode_to_slice(hex, &mut bytes[..]) {
-//             Ok(()) => Ok(Self::from(bytes)),
+//         match FromHex::from_hex(hex) {
+//             Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed scalar encoding"),
 //             Err(_) => Err("invalid hex"),
 //         }
 //     }

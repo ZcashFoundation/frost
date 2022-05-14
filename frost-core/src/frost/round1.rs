@@ -1,17 +1,16 @@
 //! FROST Round 1 functionality and types
 
+use std::fmt::{self, Debug};
 
-
-
+use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
-
-use zeroize::{Zeroize};
+use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Error, Field, Group};
 
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Zeroize)]
-pub(super) struct Nonce<C: Ciphersuite>(pub(super) <<C::Group as Group>::Field as Field>::Scalar);
+pub struct Nonce<C: Ciphersuite>(pub(super) <<C::Group as Group>::Field as Field>::Scalar);
 
 impl<C> Nonce<C>
 where
@@ -56,25 +55,23 @@ where
 //     }
 // }
 
-// impl<C> FromHex for Nonce<C>
-// where
-//     C: Ciphersuite,
-// {
-//     type Error = &'static str;
+impl<C> FromHex for Nonce<C>
+where
+    C: Ciphersuite,
+{
+    type Error = &'static str;
 
-//     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-//         let mut bytes: <<C::Group as Group>::Field as Field>::Serialization = Default::default();
-
-//         match hex::decode_to_slice(hex, &mut bytes[..]) {
-//             Ok(()) => Self::from_bytes(bytes),
-//             Err(_) => Err("invalid hex"),
-//         }
-//     }
-// }
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+        match FromHex::from_hex(hex) {
+            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed nonce encoding"),
+            Err(_) => Err("invalid hex"),
+        }
+    }
+}
 
 /// A Ristretto point that is a commitment to a signing nonce share.
 #[derive(Clone, Copy, PartialEq)]
-pub(super) struct NonceCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
+pub struct NonceCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
 
 impl<C> NonceCommitment<C>
 where
@@ -91,30 +88,48 @@ where
     }
 }
 
+impl<C> Debug for NonceCommitment<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("NonceCommitment")
+            .field(&hex::encode(self.to_bytes()))
+            .finish()
+    }
+}
+
 impl<C> From<Nonce<C>> for NonceCommitment<C>
 where
     C: Ciphersuite,
 {
     fn from(nonce: Nonce<C>) -> Self {
+        From::from(&nonce)
+    }
+}
+
+impl<C> From<&Nonce<C>> for NonceCommitment<C>
+where
+    C: Ciphersuite,
+{
+    fn from(nonce: &Nonce<C>) -> Self {
         Self(<C::Group as Group>::generator() * nonce.0)
     }
 }
 
-// impl<C> FromHex for NonceCommitment<C>
-// where
-//     C: Ciphersuite,
-// {
-//     type Error = &'static str;
+impl<C> FromHex for NonceCommitment<C>
+where
+    C: Ciphersuite,
+{
+    type Error = &'static str;
 
-//     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-//         let mut bytes: <C::Group as Group>::Serialization = Default::default();
-
-//         match hex::decode_to_slice(hex, &mut bytes[..]) {
-//             Ok(()) => Self::from_bytes(bytes),
-//             Err(_) => Err("invalid hex"),
-//         }
-//     }
-// }
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+        match FromHex::from_hex(hex) {
+            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed nonce commitment encoding"),
+            Err(_) => Err("invalid hex"),
+        }
+    }
+}
 
 /// Comprised of hiding and binding nonces.
 ///
@@ -123,8 +138,10 @@ where
 /// signing key.
 #[derive(Clone, Zeroize)]
 pub struct SigningNonces<C: Ciphersuite> {
-    pub(super) hiding: Nonce<C>,
-    pub(super) binding: Nonce<C>,
+    /// The hiding [`Nonce`].
+    pub hiding: Nonce<C>,
+    /// The binding [`Nonce`].
+    pub binding: Nonce<C>,
 }
 
 impl<C> SigningNonces<C>
@@ -146,6 +163,16 @@ where
 
         Self { hiding, binding }
     }
+
+    /// Gets the hiding [`Nonce`]
+    pub fn hiding(&self) -> &Nonce<C> {
+        &self.hiding
+    }
+
+    /// Gets the binding [`Nonce`]
+    pub fn binding(&self) -> &Nonce<C> {
+        &self.binding
+    }
 }
 
 /// Published by each participant in the first round of the signing protocol.
@@ -154,12 +181,12 @@ where
 /// SigningCommitment can be used for exactly *one* signature.
 #[derive(Copy, Clone)]
 pub struct SigningCommitments<C: Ciphersuite> {
-    /// The participant index
-    pub(super) index: u32,
-    /// The hiding point.
-    pub(super) hiding: NonceCommitment<C>,
-    /// The binding point.
-    pub(super) binding: NonceCommitment<C>,
+    /// The participant index.
+    pub index: u16,
+    /// Commitment to the hiding [`Nonce`].
+    pub hiding: NonceCommitment<C>,
+    /// Commitment to the binding [`Nonce`].
+    pub binding: NonceCommitment<C>,
 }
 
 impl<C> SigningCommitments<C>
@@ -175,13 +202,23 @@ where
     ) -> GroupCommitmentShare<C> {
         GroupCommitmentShare::<C>(self.hiding.0 + (self.binding.0 * binding_factor.0))
     }
+
+    /// Gets the hiding [`NonceCommitment`].
+    pub fn hiding(&self) -> &NonceCommitment<C> {
+        &self.hiding
+    }
+
+    /// Gets the binding [`NonceCommitment`].
+    pub fn binding(&self) -> &NonceCommitment<C> {
+        &self.binding
+    }
 }
 
-impl<C> From<(u32, &SigningNonces<C>)> for SigningCommitments<C>
+impl<C> From<(u16, &SigningNonces<C>)> for SigningCommitments<C>
 where
     C: Ciphersuite,
 {
-    fn from((index, nonces): (u32, &SigningNonces<C>)) -> Self {
+    fn from((index, nonces): (u16, &SigningNonces<C>)) -> Self {
         Self {
             index,
             hiding: nonces.hiding.clone().into(),
@@ -221,7 +258,7 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
     let mut bytes = vec![];
 
     for item in sorted_signing_commitments {
-        bytes.extend_from_slice(&item.index.to_be_bytes()[..]);
+        bytes.extend_from_slice(&item.index.to_be_bytes()); // TODO: 2-bytes until spec moves off u16
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.hiding.0).as_ref());
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.binding.0).as_ref());
     }
@@ -243,7 +280,7 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 // https://github.com/ZcashFoundation/redjubjub/issues/111
 pub fn preprocess<C, R>(
     num_nonces: u8,
-    participant_index: u32,
+    participant_index: u16,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
 where

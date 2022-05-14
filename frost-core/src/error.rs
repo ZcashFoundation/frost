@@ -5,6 +5,9 @@ use thiserror::Error;
 /// An error related to FROST.
 #[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Error {
+    /// This identifier is unserializable.
+    #[error("Malformed identifier is unserializable.")]
+    MalformedIdentifier,
     /// The encoding of a group scalar was malformed.
     #[error("Malformed scalar encoding.")]
     MalformedScalar,
@@ -20,4 +23,7 @@ pub enum Error {
     /// Signature verification failed.
     #[error("Invalid signature.")]
     InvalidSignature,
+    /// This scalar MUST NOT be zero.
+    #[error("Invalid for this scalar to be zero.")]
+    InvalidZeroScalar,
 }

@@ -5,14 +5,14 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 authors = ["Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
 keywords = ["cryptography", "crypto", "ristretto", "threshold", "signature", "schnorr"]
-description = "Traits to support implementing Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
+description = "Types and traits to support implementing Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
 
 [package.metadata.docs.rs]
 features = ["nightly"]

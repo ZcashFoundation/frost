@@ -2,16 +2,16 @@
 
 use curve25519_dalek::{
     constants::{BASEPOINT_ORDER, RISTRETTO_BASEPOINT_POINT},
-    digest::Update,
     ristretto::{CompressedRistretto, RistrettoPoint},
     scalar::Scalar,
     traits::Identity,
 };
 use rand_core::{CryptoRng, RngCore};
-use sha2::{Digest, Sha512};
+use sha2::{digest::Update, Digest, Sha512};
 
 use frost_core::{Ciphersuite, Error, Field, Group};
 
+#[derive(Clone, Copy)]
 pub struct RistrettoScalarField;
 
 impl Field for RistrettoScalarField {
@@ -28,8 +28,13 @@ impl Field for RistrettoScalarField {
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
-        // !TODO!(dconnolly): do a ct_eq with zero, failing if it is
-        Ok(scalar.invert())
+        // [`curve25519_dalek::scalar::Scalar`]'s Eq/PartialEq does a constant-time comparison using
+        // `ConstantTimeEq`
+        if *scalar == <Self as Field>::zero() {
+            Err(Error::InvalidZeroScalar)
+        } else {
+            Ok(scalar.invert())
+        }
     }
 
     fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
@@ -59,6 +64,7 @@ impl Field for RistrettoScalarField {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
 pub struct RistrettoGroup;
 
 impl Group for RistrettoGroup {
@@ -101,6 +107,7 @@ impl Group for RistrettoGroup {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.txt
 const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512";
 
+#[derive(Clone, Copy, PartialEq)]
 pub struct Ristretto255Sha512;
 
 impl Ciphersuite for Ristretto255Sha512 {

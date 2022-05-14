@@ -9,10 +9,10 @@ use crate::{
 };
 
 /// A representation of a single signature share used in FROST structures and messages.
-
 #[derive(Clone, Copy)]
 pub struct SignatureResponse<C: Ciphersuite> {
-    pub(super) z_share: <<C::Group as Group>::Field as Field>::Scalar,
+    /// The [`Scalar`] contribution to the group signature.
+    pub z_share: <<C::Group as Group>::Field as Field>::Scalar,
 }
 
 impl<C> SignatureResponse<C>
@@ -44,20 +44,37 @@ where
     }
 }
 
+impl<C> Eq for SignatureResponse<C> where C: Ciphersuite {}
+
+impl<C> PartialEq for SignatureResponse<C>
+where
+    C: Ciphersuite,
+{
+    // TODO: should this have any constant-time guarantees? I think signature shares are public.
+    fn eq(&self, other: &Self) -> bool {
+        self.z_share == other.z_share
+    }
+}
+
 /// A participant's signature share, which the coordinator will aggregate with all other signer's
 /// shares into the joint signature.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub struct SignatureShare<C: Ciphersuite> {
     /// Represents the participant index.
-    pub(super) index: u32,
+    pub index: u16,
     /// This participant's signature over the message.
-    pub(super) signature: SignatureResponse<C>,
+    pub signature: SignatureResponse<C>,
 }
 
 impl<C> SignatureShare<C>
 where
     C: Ciphersuite,
 {
+    /// Gets the participant index associated with this [`SignatureShare`].
+    pub fn index(&self) -> &u16 {
+        &self.index
+    }
+
     /// Tests if a signature share issued by a participant is valid before
     /// aggregating it into a final joint signature to publish.
     ///
@@ -95,8 +112,8 @@ where
 
 // // Zeroizes `SignatureShare` to be the `Default` value on drop (when it goes out
 // // of scope).  Luckily the derived `Default` includes the `Default` impl of
-// // Scalar, which is four 0u64's under the hood, and u32, which is
-// // 0u32.
+// // Scalar, which is four 0u64's under the hood, and u16, which is
+// // 0u16.
 // impl DefaultIsZeroes for SignatureShare {}
 
 /// Performed once by each participant selected for the signing operation.
@@ -124,7 +141,7 @@ pub fn sign<C: Ciphersuite>(
     let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
 
     // Compute Lagrange coefficient.
-    let lambda_i = frost::derive_lagrange_coeff(key_package.index, signing_package)?;
+    let lambda_i = frost::derive_lagrange_coeff(*key_package.index(), signing_package)?;
 
     // Compute the per-message challenge.
     let challenge = challenge::<C>(
@@ -139,7 +156,7 @@ pub fn sign<C: Ciphersuite>(
         + (lambda_i * key_package.secret_share.0 * challenge.0);
 
     let signature_share = SignatureShare::<C> {
-        index: key_package.index,
+        index: *key_package.index(),
         signature: SignatureResponse::<C> { z_share },
     };
 

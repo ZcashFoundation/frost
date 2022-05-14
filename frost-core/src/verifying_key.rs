@@ -1,3 +1,5 @@
+use hex::FromHex;
+
 use crate::{Ciphersuite, Error, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
@@ -8,20 +10,6 @@ where
 {
     pub(crate) element: <C::Group as Group>::Element,
 }
-
-// impl<C: Ciphersuite> From<VerifyingKey<C>> for <C::Group as Group>::ElementSerialization {
-//     fn from(pk: VerifyingKey<C>) -> <C::Group as Group>::ElementSerialization {
-//         pk.bytes.bytes
-//     }
-// }
-
-// impl<C: Ciphersuite> TryFrom<<C::Group as Group>::ElementSerialization> for VerifyingKey<C> {
-//     type Error = Error;
-
-//     fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
-//         VerifyingKeyBytes::from(bytes).try_into()
-//     }
-// }
 
 impl<C> VerifyingKey<C>
 where
@@ -62,3 +50,31 @@ where
         }
     }
 }
+
+impl<C> FromHex for VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
+    type Error = &'static str;
+
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+        match FromHex::from_hex(hex) {
+            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed verifying key encoding"),
+            Err(_) => Err("invalid hex"),
+        }
+    }
+}
+
+// impl<C: Ciphersuite> From<VerifyingKey<C>> for <C::Group as Group>::ElementSerialization {
+//     fn from(pk: VerifyingKey<C>) -> <C::Group as Group>::ElementSerialization {
+//         pk.bytes.bytes
+//     }
+// }
+
+// impl<C: Ciphersuite> TryFrom<<C::Group as Group>::ElementSerialization> for VerifyingKey<C> {
+//     type Error = Error;
+
+//     fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
+//         VerifyingKeyBytes::from(bytes).try_into()
+//     }
+// }
