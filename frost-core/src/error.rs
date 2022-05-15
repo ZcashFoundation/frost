@@ -3,6 +3,7 @@
 use thiserror::Error;
 
 /// An error related to FROST.
+#[non_exhaustive]
 #[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Error {
     /// This identifier is unserializable.
@@ -20,6 +21,9 @@ pub enum Error {
     /// The encoding of a verifying key was malformed.
     #[error("Malformed verifying key encoding.")]
     MalformedVerifyingKey,
+    /// The encoding of a signature was malformed.
+    #[error("Malformed signature encoding.")]
+    MalformedSignature,
     /// Signature verification failed.
     #[error("Invalid signature.")]
     InvalidSignature,

@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug};
+
 use hex::FromHex;
 
 use crate::{Ciphersuite, Error, Group, Signature};
@@ -48,6 +50,17 @@ where
         } else {
             Err(Error::InvalidSignature)
         }
+    }
+}
+
+impl<C> Debug for VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("VerifyingKey")
+            .field(&hex::encode(self.to_bytes()))
+            .finish()
     }
 }
 

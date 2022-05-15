@@ -13,8 +13,6 @@ use crate::{Ciphersuite, Error, Field, Group, Scalar};
 /// The identifier is a field element in the scalar field that the secret polynomial is defined
 /// over, corresponding to some x-coordinate for a polynomial f(x) = y.  MUST NOT be zero in the
 /// field, as f(0) = the shared secret.
-///
-///
 #[derive(Copy, Clone)]
 pub struct Identifier<C: Ciphersuite>(pub(crate) Scalar<C>);
 
@@ -82,29 +80,6 @@ where
         usize::from_le_bytes(bytes)
     }
 }
-
-// impl<C> From<u16> for Identifier<C>
-// where
-//     C: Ciphersuite,
-// {
-//     fn from(n: u16) -> Identifier<C> {
-//         let mut bytes: Vec<u8> = vec![];
-
-//         bytes.extend(&n.to_le_bytes());
-
-//         let serialization: <<C::Group as Group>::Field as Field>::Serialization =
-//             bytes.try_into().unwrap();
-
-//         let scalar = <<C::Group as Group>::Field as Field>::deserialize(&serialization).unwrap();
-
-//         // Participant identifiers are public, so this comparison doesn't need to be constant-time.
-//         if scalar == <<C::Group as Group>::Field as Field>::zero() {
-//             return Err("participant identifiers cannot be zero!");
-//         } else {
-//             Ok(Self(scalar))
-//         }
-//     }
-// }
 
 impl<C> Hash for Identifier<C>
 where

@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 // use hex::FromHex;
 
-use crate::{Ciphersuite, Field, Group};
+use crate::{Ciphersuite, Error, Field, Group};
 
 /// A Schnorr signature over some prime order group (or subgroup).
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -19,14 +19,41 @@ pub struct Signature<C: Ciphersuite> {
 impl<C> Signature<C>
 where
     C: Ciphersuite,
+    C::Group: Group,
+    <C::Group as Group>::Field: Field,
 {
-    // fn from_bytes(bytes: C::SignatureSerialization) -> Result<Signature<C>, Error> {
+    /// Converts bytes as [`C::SignatureSerialization`] into a `Signature<C>`.
+    pub fn from_bytes(bytes: C::SignatureSerialization) -> Result<Self, Error>
+    where
+        <<C::Group as Group>::Serialization as TryFrom<Vec<u8>>>::Error: Debug,
+        <<<C::Group as Group>::Field as Field>::Serialization as TryFrom<Vec<u8>>>::Error: Debug,
+    {
+        let mut R_bytes = Vec::from(<C::Group as Group>::Serialization::default().as_ref());
 
-    //     // Signature {
-    //     //     R:
-    //     //     z:
-    //     // }
-    // }
+        let R_bytes_len = R_bytes.len();
+
+        R_bytes[..].copy_from_slice(&bytes.as_ref()[0..R_bytes_len]);
+
+        println!("{:?}", R_bytes);
+
+        let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
+
+        let mut z_bytes =
+            Vec::from(<<C::Group as Group>::Field as Field>::Serialization::default().as_ref());
+
+        let z_bytes_len = z_bytes.len();
+
+        z_bytes[..].copy_from_slice(&bytes.as_ref()[R_bytes_len..z_bytes_len]);
+
+        println!("{:?}", z_bytes);
+
+        let z_serialization = &z_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
+
+        Ok(Self {
+            R: <C::Group as Group>::deserialize(&R_serialization)?,
+            z: <<C::Group as Group>::Field as Field>::deserialize(&z_serialization)?,
+        })
+    }
 
     /// Converts this signature to its [`C::SignatureSerialization`] in bytes.
     pub fn to_bytes(&self) -> C::SignatureSerialization
@@ -65,7 +92,7 @@ impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
 
 //     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
 //         match FromHex::from_hex(hex) {
-//             Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed scalar encoding"),
+//             Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed signature encoding"),
 //             Err(_) => Err("invalid hex"),
 //         }
 //     }
