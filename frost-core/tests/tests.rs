@@ -98,7 +98,7 @@ fn check_sign_with_test_vectors() {
         let nonces = &signer_nonces[index];
 
         // Each participant generates their signature share.
-        let signature_share = frost::round2::sign(&signing_package, &nonces, &key_package).unwrap();
+        let signature_share = frost::round2::sign(&signing_package, nonces, key_package).unwrap();
 
         our_signature_shares.push(signature_share);
     }
