@@ -1,4 +1,4 @@
-//! FROST Round 2 functionality and types, for signature share generation
+//! FROST participant identifiers
 
 use std::{
     fmt::{self, Debug},
