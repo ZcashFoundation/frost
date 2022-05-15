@@ -19,6 +19,7 @@ lazy_static! {
 }
 
 #[allow(clippy::type_complexity)]
+#[allow(dead_code)]
 pub(crate) fn parse_test_vectors() -> (
     VerifyingKey<Ristretto255Sha512>,
     HashMap<u16, KeyPackage<Ristretto255Sha512>>,
