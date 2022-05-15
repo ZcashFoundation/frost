@@ -50,8 +50,8 @@ where
         let z_serialization = &z_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 
         Ok(Self {
-            R: <C::Group as Group>::deserialize(&R_serialization)?,
-            z: <<C::Group as Group>::Field as Field>::deserialize(&z_serialization)?,
+            R: <C::Group as Group>::deserialize(R_serialization)?,
+            z: <<C::Group as Group>::Field as Field>::deserialize(z_serialization)?,
         })
     }
 

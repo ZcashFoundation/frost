@@ -44,8 +44,8 @@ where
     fn new<R: RngCore + CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
         let sk = SigningKey::<C>::new(&mut rng);
         let sig = sk.sign(&mut rng, &msg);
-        let vk = VerifyingKey::<C>::from(&sk).into();
-        let invalid_vk = VerifyingKey::<C>::from(&SigningKey::new(&mut rng)).into();
+        let vk = VerifyingKey::<C>::from(&sk);
+        let invalid_vk = VerifyingKey::<C>::from(&SigningKey::new(&mut rng));
         Self {
             msg,
             sig,

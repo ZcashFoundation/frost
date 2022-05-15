@@ -63,7 +63,7 @@ fn check_sign_with_dealer() {
 
         // Each participant generates their signature share.
         let signature_share =
-            frost::round2::sign(&signing_package, &nonces_to_use, key_package).unwrap();
+            frost::round2::sign(&signing_package, nonces_to_use, key_package).unwrap();
         signature_shares.push(signature_share);
     }
 
