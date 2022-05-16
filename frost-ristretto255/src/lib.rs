@@ -12,8 +12,8 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use curve25519_dalek::{digest::Update, scalar::Scalar};
-use sha2::{Digest, Sha512};
+use curve25519_dalek::scalar::Scalar;
+use sha2::{digest::Update, Digest, Sha512};
 
 pub mod batch;
 mod error;

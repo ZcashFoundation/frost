@@ -21,9 +21,6 @@ dependency, such as `frost-ristretto255`.
 
 ```rust
 
-
 ```
-
-
 
 
