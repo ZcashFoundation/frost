@@ -10,7 +10,7 @@
 
 use std::convert::{TryFrom, TryInto};
 
-use curve25519_dalek::{constants::RISTRETTO_BASEPOINT_POINT, digest::Update, scalar::Scalar};
+use curve25519_dalek::{constants::RISTRETTO_BASEPOINT_POINT, scalar::Scalar};
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
@@ -92,12 +92,15 @@ impl SigningKey {
             bytes
         };
 
-        let nonce = Scalar::from_hash(
-            Sha512::new()
-                .chain(&random_bytes[..])
-                .chain(&self.pk.bytes.bytes[..]) // XXX ugly
-                .chain(msg),
-        );
+        let mut hasher = Sha512::new();
+        hasher.update(&random_bytes[..]);
+        hasher.update(&self.pk.bytes.bytes[..]);
+        hasher.update(msg);
+
+        let mut hash_bytes = [0u8; 64];
+        hash_bytes.copy_from_slice(hasher.finalize().as_slice());
+
+        let nonce = Scalar::from_bytes_mod_order_wide(&hash_bytes);
 
         // XXX: does this need `RistrettoPoint::from_uniform_bytes()` ?
         let R_bytes = (RISTRETTO_BASEPOINT_POINT * nonce).compress().to_bytes();
