@@ -15,6 +15,7 @@ use rand_core::{CryptoRng, RngCore};
 // pub mod batch;
 mod error;
 pub mod frost;
+// mod scalar_mul;
 mod signature;
 mod signing_key;
 mod verifying_key;
@@ -194,9 +195,23 @@ pub trait Ciphersuite: Copy + Clone {
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
 ///
 /// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-signature-challenge-computa
+#[derive(Clone)]
 pub struct Challenge<C: Ciphersuite>(
     pub(crate) <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
 );
+
+impl<C> Debug for Challenge<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Secret")
+            .field(&hex::encode(
+                <<<C as Ciphersuite>::Group as Group>::Field as Field>::serialize(&self.0),
+            ))
+            .finish()
+    }
+}
 
 /// Generates the challenge as is required for Schnorr signatures.
 ///

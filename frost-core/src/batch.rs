@@ -1,14 +1,4 @@
-// -*- mode: rust; -*-
-//
-// This file is part of frost-ristretto255.
-// Copyright (c) 2019-2021 Zcash Foundation
-// See LICENSE for licensing information.
-//
-// Authors:
-// - Deirdre Connolly <deirdre@zfnd.org>
-// - Henry de Valence <hdevalence@hdevalence.ca>
-
-//! Performs batch Schnorr signature verification on the Ristretto group.
+//! Performs batch Schnorr signature verification.
 //!
 //! Batch verification asks whether *all* signatures in some set are valid,
 //! rather than asking whether *each* of them is valid. This allows sharing
@@ -19,14 +9,12 @@
 
 use std::convert::TryFrom;
 
-use curve25519_dalek::{
-    ristretto::{CompressedRistretto, RistrettoPoint},
-    scalar::Scalar,
-    traits::{Identity, VartimeMultiscalarMul},
-};
 use rand_core::{CryptoRng, RngCore};
 
-use crate::*;
+use crate::{
+    frost::{self, *},
+    *,
+};
 
 /// A batch verification item.
 ///
@@ -34,56 +22,64 @@ use crate::*;
 /// lifetime of the message. This is useful when using the batch verification
 /// API in an async context.
 #[derive(Clone, Debug)]
-pub struct Item {
-    vk_bytes: VerificationKeyBytes,
-    sig: Signature,
-    c: Scalar,
+pub struct Item<C: Ciphersuite> {
+    vk: VerifyingKey<C>,
+    sig: Signature<C>,
+    c: Challenge<C>,
 }
 
-impl<'msg, M: AsRef<[u8]>> From<(VerificationKeyBytes, Signature, &'msg M)> for Item {
-    fn from((vk_bytes, sig, msg): (VerificationKeyBytes, Signature, &'msg M)) -> Self {
+impl<'msg, C, M> From<(VerifyingKey<C>, Signature<C>, &'msg M)> for Item<C>
+where
+    C: Ciphersuite,
+    M: AsRef<[u8]>,
+{
+    fn from((vk, sig, msg): (VerifyingKey<C>, Signature<C>, &'msg M)) -> Self {
         // Compute c now to avoid dependency on the msg lifetime.
 
-        let c = crate::generate_challenge(&sig.R_bytes, &vk_bytes.bytes, msg.as_ref());
+        let c = crate::challenge(&sig.R, &vk.element, msg.as_ref());
 
-        Self { vk_bytes, sig, c }
+        Self { vk, sig, c }
     }
 }
 
-impl Item {
+impl<C> Item<C>
+where
+    C: Ciphersuite,
+{
     /// Perform non-batched verification of this `Item`.
     ///
     /// This is useful (in combination with `Item::clone`) for implementing
     /// fallback logic when batch verification fails. In contrast to
-    /// [`VerificationKey::verify`](crate::VerificationKey::verify), which
+    /// [`VerifyingKey::verify`](crate::VerifyingKey::verify), which
     /// requires borrowing the message data, the `Item` type is unlinked
     /// from the lifetime of the message.
-    #[allow(non_snake_case)]
     pub fn verify_single(self) -> Result<(), Error> {
-        VerificationKey::try_from(self.vk_bytes)
-            .and_then(|vk| vk.verify_prehashed(&self.sig, self.c))
+        VerifyingKey::try_from(self.vk_bytes).and_then(|vk| vk.verify_prehashed(&self.sig, self.c))
     }
 }
 
 #[derive(Default)]
 /// A batch verification context.
-pub struct Verifier {
+pub struct Verifier<C: Ciphersuite> {
     /// Signature data queued for verification.
-    signatures: Vec<Item>,
+    signatures: Vec<Item<C>>,
 }
 
-impl Verifier {
-    /// Construct a new batch verifier.
-    pub fn new() -> Verifier {
+impl<C> Verifier<C>
+where
+    C: Ciphersuite,
+{
+    /// Constructs a new batch verifier.
+    pub fn new() -> Verifier<C> {
         Verifier::default()
     }
 
-    /// Queue an Item for verification.
-    pub fn queue<I: Into<Item>>(&mut self, item: I) {
+    /// Queues an Item for verification.
+    pub fn queue<I: Into<Item<C>>>(&mut self, item: I) {
         self.signatures.push(item.into());
     }
 
-    /// Perform batch verification, returning `Ok(())` if all signatures were
+    /// Performs batch verification, returning `Ok(())` if all signatures were
     /// valid and `Err` otherwise.
     ///
     /// The batch verification equation is:
@@ -112,7 +108,6 @@ impl Verifier {
     /// notation in the [protocol specification §B.1][ps].
     ///
     /// [ps]: https://zips.z.cash/protocol/protocol.pdf#reddsabatchverify
-    #[allow(non_snake_case)]
     pub fn verify<R: RngCore + CryptoRng>(self, mut rng: R) -> Result<(), Error> {
         let n = self.signatures.len();
 
@@ -134,7 +129,7 @@ impl Verifier {
                 }
             };
 
-            let VK = VerificationKey::try_from(item.vk_bytes.bytes)?.point;
+            let VK = VerifyingKey::try_from(item.vk_bytes.bytes)?.point;
 
             let z = Scalar::random(&mut rng);
 
