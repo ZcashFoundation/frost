@@ -94,6 +94,8 @@ where
     }
 }
 
+// TODO: pub struct Lagrange<C: Ciphersuite>(Scalar);
+
 /// Generates the lagrange coefficient for the i'th participant.
 fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: u16,
