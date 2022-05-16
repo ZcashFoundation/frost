@@ -252,6 +252,8 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
     // B MUST be sorted in ascending order by signer index.
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
+    //
+    // TODO: AtLeastOne or other explicitly Sorted wrapper types?
     let mut sorted_signing_commitments = signing_commitments;
     sorted_signing_commitments.sort_by_key(|a| a.index);
 
