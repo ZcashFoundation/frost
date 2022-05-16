@@ -6,7 +6,7 @@ edition = "2021"
 # - Update CHANGELOG.md
 # - Create git tag.
 version = "0.1.0"
-authors = [ "Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>", "Henry de Valence <hdevalence@hdevalence.ca>"]
+authors = ["Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/frost"
@@ -20,7 +20,8 @@ features = ["nightly"]
 [dependencies]
 byteorder = "1.4"
 curve25519-dalek = { version = "4.0.0-pre.1", features = ["serde"] }
-# digest = "0.9"
+digest = "0.9"
+frost-core = { path = "../frost-core" }
 hex = { version = "0.4.3", features = ["serde"] }
 rand_core = "0.6"
 serde = { version = "1", optional = true, features = ["derive"] }

@@ -1,99 +1,264 @@
-// -*- mode: rust; -*-
-//
-// This file is part of redjubjub.
-// Copyright (c) 2019-2021 Zcash Foundation
-// See LICENSE for licensing information.
-//
-// Authors:
-// - Deirdre Connolly <deirdre@zfnd.org>
-// - Henry de Valence <hdevalence@hdevalence.ca>
-
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::{
+    constants::{BASEPOINT_ORDER, RISTRETTO_BASEPOINT_POINT},
+    ristretto::{CompressedRistretto, RistrettoPoint},
+    scalar::Scalar,
+    traits::Identity,
+};
+use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha512};
 
-pub mod batch;
-mod error;
-pub mod frost;
-// mod messages;
-pub(crate) mod signature;
-mod signing_key;
-mod verification_key;
+use frost_core::{frost, Ciphersuite, Error, Field, Group};
 
-pub use error::Error;
-pub use signature::Signature;
-pub use signing_key::SigningKey;
-pub use verification_key::{VerificationKey, VerificationKeyBytes};
+#[cfg(test)]
+mod tests;
+
+#[derive(Clone, Copy)]
+/// An implementation of the FROST ciphersuite scalar field.
+pub struct RistrettoScalarField;
+
+impl Field for RistrettoScalarField {
+    type Scalar = Scalar;
+
+    type Serialization = [u8; 32];
+
+    fn zero() -> Self::Scalar {
+        Scalar::zero()
+    }
+
+    fn one() -> Self::Scalar {
+        Scalar::one()
+    }
+
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+        // [`curve25519_dalek::scalar::Scalar`]'s Eq/PartialEq does a constant-time comparison using
+        // `ConstantTimeEq`
+        if *scalar == <Self as Field>::zero() {
+            Err(Error::InvalidZeroScalar)
+        } else {
+            Ok(scalar.invert())
+        }
+    }
+
+    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
+        Scalar::random(rng)
+    }
+
+    fn random_nonzero<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
+        loop {
+            let scalar = Scalar::random(rng);
+
+            // This impl of `Eq` calls to `ConstantTimeEq` under the hood
+            if scalar != Scalar::zero() {
+                return scalar;
+            }
+        }
+    }
+
+    fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
+        scalar.to_bytes()
+    }
+
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+        match Scalar::from_canonical_bytes(*buf) {
+            Some(s) => Ok(s),
+            None => Err(Error::MalformedScalar),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+/// An implementation of the FROST ciphersuite group.
+pub struct RistrettoGroup;
+
+impl Group for RistrettoGroup {
+    type Field = RistrettoScalarField;
+
+    type Element = RistrettoPoint;
+
+    type Serialization = [u8; 32];
+
+    fn order() -> <Self::Field as Field>::Scalar {
+        BASEPOINT_ORDER
+    }
+
+    fn cofactor() -> <Self::Field as Field>::Scalar {
+        Scalar::one()
+    }
+
+    fn identity() -> Self::Element {
+        RistrettoPoint::identity()
+    }
+
+    fn generator() -> Self::Element {
+        RISTRETTO_BASEPOINT_POINT
+    }
+
+    fn serialize(element: &Self::Element) -> Self::Serialization {
+        element.compress().to_bytes()
+    }
+
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+        match CompressedRistretto::from_slice(buf.as_ref()).decompress() {
+            Some(point) => Ok(point),
+            None => Err(Error::MalformedElement),
+        }
+    }
+}
 
 /// Context string 'FROST-RISTRETTO255-SHA512' from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-01.txt
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.txt
 const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512";
 
-/// H1 for FROST(ristretto255, SHA-512)
-///
-/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-pub(crate) fn H1(m: &[u8]) -> [u8; 64] {
-    let h = Sha512::new()
-        .chain(CONTEXT_STRING.as_bytes())
-        .chain("rho")
-        .chain(m);
+#[derive(Clone, Copy, PartialEq)]
+/// An implementation of the FROST ciphersuite Ristretto255-SHA512.
+pub struct Ristretto255Sha512;
 
-    let mut output = [0u8; 64];
-    output.copy_from_slice(h.finalize().as_slice());
-    output
+impl Ciphersuite for Ristretto255Sha512 {
+    type Group = RistrettoGroup;
+
+    type HashOutput = [u8; 64];
+
+    type SignatureSerialization = [u8; 64];
+
+    /// H1 for FROST(ristretto255, SHA-512)
+    ///
+    /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        let h = Sha512::new()
+            .chain(CONTEXT_STRING.as_bytes())
+            .chain("rho")
+            .chain(m);
+
+        let mut output = [0u8; 64];
+        output.copy_from_slice(h.finalize().as_slice());
+        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+    }
+
+    /// H2 for FROST(ristretto255, SHA-512)
+    ///
+    /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
+    fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        let h = Sha512::new()
+            .chain(CONTEXT_STRING.as_bytes())
+            .chain("chal")
+            .chain(m);
+
+        let mut output = [0u8; 64];
+        output.copy_from_slice(h.finalize().as_slice());
+        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+    }
+
+    /// H3 for FROST(ristretto255, SHA-512)
+    ///
+    /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
+    fn H3(m: &[u8]) -> Self::HashOutput {
+        let h = Sha512::new()
+            .chain(CONTEXT_STRING.as_bytes())
+            .chain("digest")
+            .chain(m);
+
+        let mut output = [0u8; 64];
+        output.copy_from_slice(h.finalize().as_slice());
+        output
+    }
 }
 
-/// H2 for FROST(ristretto255, SHA-512)
-///
-/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-pub(crate) fn H2(m: &[u8]) -> [u8; 64] {
-    let h = Sha512::new()
-        .chain(CONTEXT_STRING.as_bytes())
-        .chain("chal")
-        .chain(m);
+type R = Ristretto255Sha512;
 
-    let mut output = [0u8; 64];
-    output.copy_from_slice(h.finalize().as_slice());
-    output
+///
+pub mod keys {
+    use super::*;
+
+    ///
+    pub fn keygen_with_dealer<RNG: RngCore + CryptoRng>(
+        num_signers: u8,
+        threshold: u8,
+        mut rng: RNG,
+    ) -> Result<(Vec<SharePackage>, PublicKeyPackage), &'static str> {
+        frost::keys::keygen_with_dealer(num_signers, threshold, &mut rng)
+    }
+
+    ///
+    pub type SharePackage = frost::keys::SharePackage<R>;
+
+    ///
+    pub type KeyPackage = frost::keys::KeyPackage<R>;
+
+    ///
+    pub type PublicKeyPackage = frost::keys::PublicKeyPackage<R>;
 }
 
-/// H3 for FROST(ristretto255, SHA-512)
 ///
-/// Yes, this is just an alias for SHA-512.
-///
-/// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash-function-dep-hash
-pub(crate) fn H3(m: &[u8]) -> [u8; 64] {
-    let h = Sha512::new()
-        .chain(CONTEXT_STRING.as_bytes())
-        .chain("digest")
-        .chain(m);
+pub mod round1 {
+    use super::*;
+    ///
+    pub type SigningNonces = frost::round1::SigningNonces<R>;
 
-    let mut output = [0u8; 64];
-    output.copy_from_slice(h.finalize().as_slice());
-    output
+    ///
+    pub type SigningCommitments = frost::round1::SigningCommitments<R>;
+
+    ///
+    pub fn preprocess<RNG>(
+        num_nonces: u8,
+        participant_index: u16,
+        rng: &mut RNG,
+    ) -> (Vec<SigningNonces>, Vec<SigningCommitments>)
+    where
+        RNG: CryptoRng + RngCore,
+    {
+        frost::round1::preprocess::<R, RNG>(num_nonces, participant_index, rng)
+    }
 }
 
-/// Generates the challenge as is required for Schnorr signatures.
 ///
-/// Deals in bytes, so that [FROST] and singleton signing and verification can use it with different
-/// types.
+pub type SigningPackage = frost::SigningPackage<R>;
+
 ///
-/// This is the only invocation of the H2 hash function from the [RFC].
+pub mod round2 {
+    use super::*;
+
+    ///
+    pub type SignatureShare = frost::round2::SignatureShare<R>;
+
+    ///
+    pub type SigningPackage = frost::SigningPackage<R>;
+
+    ///
+    pub fn sign(
+        signing_package: &SigningPackage,
+        signer_nonces: &round1::SigningNonces,
+        key_package: &keys::KeyPackage,
+    ) -> Result<SignatureShare, &'static str> {
+        frost::round2::sign(&signing_package, signer_nonces, key_package)
+    }
+}
+
 ///
-/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.6
-/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-3.2
-fn generate_challenge(R_bytes: &[u8; 32], pubkey_bytes: &[u8; 32], msg: &[u8]) -> Scalar {
-    let mut preimage = vec![];
+pub type Signature = frost_core::Signature<R>;
 
-    preimage.extend_from_slice(R_bytes);
-    preimage.extend_from_slice(pubkey_bytes);
-    preimage.extend_from_slice(msg);
+///
+pub fn aggregate(
+    signing_package: &round2::SigningPackage,
+    signature_shares: &[round2::SignatureShare],
+    pubkeys: &keys::PublicKeyPackage,
+) -> Result<Signature, &'static str> {
+    frost::aggregate(&signing_package, &signature_shares[..], &pubkeys)
+}
 
-    let challenge_wide = H2(&preimage[..]);
+///
+pub type SigningKey = frost_core::SigningKey<R>;
 
-    Scalar::from_bytes_mod_order_wide(&challenge_wide)
+///
+pub type VerifyingKey = frost_core::VerifyingKey<R>;
+
+#[test]
+fn use_parameterized_types() {
+    let h3_image = Ristretto255Sha512::H3(b"test_message");
+
+    println!("h3_image: {:?}", h3_image);
 }

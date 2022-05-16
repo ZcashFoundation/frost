@@ -1,17 +1,14 @@
-use std::convert::TryFrom;
-
+use frost_ristretto255::*;
 use proptest::prelude::*;
 use rand_core::{CryptoRng, RngCore};
-
-use frost_ristretto255::*;
 
 /// A signature test-case, containing signature data and expected validity.
 #[derive(Clone, Debug)]
 struct SignatureCase {
     msg: Vec<u8>,
     sig: Signature,
-    pk_bytes: VerificationKeyBytes,
-    invalid_pk_bytes: VerificationKeyBytes,
+    vk: VerifyingKey,
+    invalid_vk: VerifyingKey,
     is_valid: bool,
 }
 
@@ -40,36 +37,32 @@ impl SignatureCase {
     fn new<R: RngCore + CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
         let sk = SigningKey::new(&mut rng);
         let sig = sk.sign(&mut rng, &msg);
-        let pk_bytes = VerificationKey::from(&sk).into();
-        let invalid_pk_bytes = VerificationKey::from(&SigningKey::new(&mut rng)).into();
+        let vk = VerifyingKey::from(&sk);
+        let invalid_vk = VerifyingKey::from(&SigningKey::new(&mut rng));
         Self {
             msg,
             sig,
-            pk_bytes,
-            invalid_pk_bytes,
+            vk,
+            invalid_vk,
             is_valid: true,
         }
     }
 
     // Check that signature verification succeeds or fails, as expected.
     fn check(&self) -> bool {
-        // The signature data is stored in (refined) byte types, but do a round trip
-        // conversion to raw bytes to exercise those code paths.
-        let sig = {
-            let bytes: [u8; 64] = self.sig.into();
-            Signature::from(bytes)
-        };
-        let pk_bytes = {
-            let bytes: [u8; 32] = self.pk_bytes.into();
-            VerificationKeyBytes::from(bytes)
-        };
+        // // The signature data is stored in (refined) byte types, but do a round trip
+        // // conversion to raw bytes to exercise those code paths.
+        // let sig = {
+        //     let bytes: [u8; 64] = self.sig.into();
+        //     Signature::<C>::from_bytes(bytes)
+        // };
 
-        // Check that the verification key is a valid RedJubjub verification key.
-        let pub_key = VerificationKey::try_from(pk_bytes)
-            .expect("The test verification key to be well-formed.");
+        // // Check that the verification key is a valid key.
+        // let pub_key = VerifyingKey::<C>::from_bytes(pk_bytes)
+        //     .expect("The test verification key to be well-formed.");
 
         // Check that signature validation has the expected result.
-        self.is_valid == pub_key.verify(&self.msg, &sig).is_ok()
+        self.is_valid == self.vk.verify(&self.msg, &self.sig).is_ok()
     }
 
     fn apply_tweak(&mut self, tweak: &Tweak) {
@@ -82,7 +75,7 @@ impl SignatureCase {
             }
             Tweak::ChangePubkey => {
                 // Changing the public key makes the signature invalid.
-                self.pk_bytes = self.invalid_pk_bytes;
+                self.vk = self.invalid_vk;
                 self.is_valid = false;
             }
         }
@@ -102,7 +95,7 @@ use rand_core::SeedableRng;
 
 proptest! {
 
-     #[test]
+    #[test]
     fn tweak_signature(
         tweaks in prop::collection::vec(tweak_strategy(), (0,5)),
         rng_seed in prop::array::uniform32(any::<u8>()),
@@ -114,17 +107,14 @@ proptest! {
 
         // Create a test case for each signature type.
         let msg = b"test message for proptests";
-        let mut binding = SignatureCase::new(&mut rng, msg.to_vec());
-        let mut spendauth = SignatureCase::new(&mut rng, msg.to_vec());
+        let mut sig = SignatureCase::new(&mut rng, msg.to_vec());
 
         // Apply tweaks to each case.
         for t in &tweaks {
-            binding.apply_tweak(t);
-            spendauth.apply_tweak(t);
+            sig.apply_tweak(t);
         }
 
-        assert!(binding.check());
-        assert!(spendauth.check());
+        assert!(sig.check());
     }
 
 
