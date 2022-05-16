@@ -34,6 +34,7 @@ where
     }
 
     /// Generates a new uniformly random secret value using the provided RNG.
+    // TODO: should this only be behind test?
     pub fn random<R>(mut rng: R) -> Self
     where
         R: CryptoRng + RngCore,
