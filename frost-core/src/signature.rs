@@ -34,8 +34,6 @@ where
 
         R_bytes[..].copy_from_slice(&bytes.as_ref()[0..R_bytes_len]);
 
-        println!("{:?}", R_bytes);
-
         let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 
         let mut z_bytes =
@@ -43,9 +41,8 @@ where
 
         let z_bytes_len = z_bytes.len();
 
-        z_bytes[..].copy_from_slice(&bytes.as_ref()[R_bytes_len..z_bytes_len]);
-
-        println!("{:?}", z_bytes);
+        // We extract the exact length of bytes we expect, not just the remaining bytes with `bytes[R_bytes_len..]`
+        z_bytes[..].copy_from_slice(&bytes.as_ref()[R_bytes_len..R_bytes_len + z_bytes_len]);
 
         let z_serialization = &z_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 

@@ -11,10 +11,12 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha512};
 
-use frost_core::{frost, Ciphersuite, Error, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, Group};
 
 #[cfg(test)]
 mod tests;
+
+pub use frost_core::Error;
 
 #[derive(Clone, Copy)]
 /// An implementation of the FROST ciphersuite scalar field.
@@ -255,10 +257,3 @@ pub type SigningKey = frost_core::SigningKey<R>;
 
 ///
 pub type VerifyingKey = frost_core::VerifyingKey<R>;
-
-#[test]
-fn use_parameterized_types() {
-    let h3_image = Ristretto255Sha512::H3(b"test_message");
-
-    println!("h3_image: {:?}", h3_image);
-}
