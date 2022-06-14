@@ -16,7 +16,7 @@ on:
 
 jobs:
   coverage:
-    name: Coverage (+nightly)
+    name: Coverage
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions-rs/toolchain@v1.0.7
         with:
-          toolchain: nightly
+          toolchain: stable
           override: true
           profile: minimal
           components: llvm-tools-preview
@@ -44,4 +44,4 @@ jobs:
         run: cargo llvm-cov --lcov --no-run --output-path lcov.info
 
       - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v3.1.0
