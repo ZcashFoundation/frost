@@ -11,10 +11,10 @@ use std::{
 
 use rand_core::{CryptoRng, RngCore};
 
-// pub mod batch;
+pub mod batch;
 mod error;
 pub mod frost;
-// mod scalar_mul;
+mod scalar_mul;
 mod signature;
 mod signing_key;
 mod verifying_key;

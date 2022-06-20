@@ -3,11 +3,13 @@ use std::{
     fmt::{Debug, Result},
 };
 
-pub trait NonAdjacentForm {
+use crate::{Ciphersuite, Element, Field, Group, Scalar};
+
+pub trait NonAdjacentForm<C: Ciphersuite> {
     fn non_adjacent_form(&self, w: usize) -> [i8; 256];
 }
 
-impl<C> NonAdjacentForm for Scalar<C>
+impl<C> NonAdjacentForm<C> for Scalar<C>
 where
     C: Ciphersuite,
 {
@@ -28,7 +30,10 @@ where
         let mut naf = [0i8; 256];
 
         let mut x_u64 = [0u64; 5];
-        LittleEndian::read_u64_into(&self.to_bytes(), &mut x_u64[0..4]);
+        LittleEndian::read_u64_into(
+            <<C::Group as Group>::Field as Field>::serialize(&self),
+            &mut x_u64[0..4],
+        );
 
         let width = 1 << w;
         let window_mask = width - 1;
@@ -78,7 +83,7 @@ where
 /// A trait for variable-time multiscalar multiplication without precomputation.
 ///
 /// Implement for a group element.
-pub trait VartimeMultiscalarMul: Clone {
+pub trait VartimeMultiscalarMul<C: Ciphersuite>: Clone {
     /// Given an iterator of public scalars and an iterator of
     /// `Option`s of group elements, compute either `Some(Q)`, where
     /// $$
@@ -88,7 +93,7 @@ pub trait VartimeMultiscalarMul: Clone {
     fn optional_multiscalar_mul<I, J>(scalars: I, elements: J) -> Option<Self>
     where
         I: IntoIterator,
-        I::Item: Borrow<Scalar>,
+        I::Item: Borrow<Scalar<C>>,
         J: IntoIterator<Item = Option<Self>>;
 
     /// Given an iterator of public scalars and an iterator of
@@ -102,7 +107,7 @@ pub trait VartimeMultiscalarMul: Clone {
     fn vartime_multiscalar_mul<I, J>(scalars: I, elements: J) -> Self
     where
         I: IntoIterator,
-        I::Item: Borrow<Scalar>,
+        I::Item: Borrow<Scalar<C>>,
         J: IntoIterator,
         J::Item: Borrow<Self>,
     {
@@ -114,14 +119,14 @@ pub trait VartimeMultiscalarMul: Clone {
     }
 }
 
-impl<C> VartimeMultiscalarMul for Element<C>
+impl<C> VartimeMultiscalarMul<C> for Element<C>
 where
     C: Ciphersuite,
 {
     fn optional_multiscalar_mul<I, J>(scalars: I, elements: J) -> Option<Element<C>>
     where
         I: IntoIterator,
-        I::Item: Borrow<Scalar>,
+        I::Item: Borrow<Scalar<C>>,
         J: IntoIterator<Item = Option<Element<C>>>,
     {
         let nafs: Vec<_> = scalars
@@ -156,9 +161,9 @@ where
 
 /// Holds odd multiples 1A, 3A, ..., 15A of a point A.
 #[derive(Copy, Clone)]
-pub(crate) struct LookupTable5<T>(pub(crate) [T; 8]);
+pub(crate) struct LookupTable5<C, T>(pub(crate) [T; 8]);
 
-impl<T: Copy> LookupTable5<T> {
+impl<C: Ciphersuite, T: Copy> LookupTable5<C, T> {
     /// Given public, odd \\( x \\) with \\( 0 < x < 2^4 \\), return \\(xA\\).
     pub fn select(&self, x: usize) -> T {
         debug_assert_eq!(x & 1, 1);
@@ -168,21 +173,21 @@ impl<T: Copy> LookupTable5<T> {
     }
 }
 
-impl<T: Debug> Debug for LookupTable5<T> {
+impl<C: Ciphersuite, T: Debug> Debug for LookupTable5<C, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result {
         write!(f, "LookupTable5({:?})", self.0)
     }
 }
 
-impl<'a, C> From<&'a <C::Group·as·Group>::Element> for LookupTable5<<C::Group·as·Group>::Element>
+impl<'a, C> From<&'a Element<C>> for LookupTable5<C, Element<C>>
 where
     C: Ciphersuite,
 {
-    fn from(A: &'a <C::Group·as·Group>::Element) -> Self {
+    fn from(A: &'a Element<C>) -> Self {
         let mut Ai = [A; 8];
         let A2 = A * A.clone();
         for i in 0..7 {
-            Ai[i + 1] = (&A2 + &Ai[i]);
+            Ai[i + 1] = &A2 + &Ai[i];
         }
         // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A]
         LookupTable5(Ai)

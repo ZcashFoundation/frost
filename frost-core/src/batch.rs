@@ -7,13 +7,13 @@
 //! of caller code (which must assemble a batch of signatures across
 //! work-items), and loss of the ability to easily pinpoint failing signatures.
 
-use std::convert::TryFrom;
+use std::{convert::TryFrom, iter::once};
 
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     frost::{self, *},
-    *,
+    Ciphersuite, Element, Scalar, *,
 };
 
 /// A batch verification item.
@@ -118,43 +118,31 @@ where
         let mut P_coeff_acc = Scalar::zero();
 
         for item in self.signatures.iter() {
-            let (z_bytes, R_bytes, c) = (item.sig.z_bytes, item.sig.R_bytes, item.c);
+            let z = item.sig.z.clone();
+            let R = item.sig.R.clone();
 
-            let s = Scalar::from_bytes_mod_order(z_bytes);
+            let blind = <<C::Group as Group>::Field as Field>::random(&mut rng);
 
-            let R = {
-                match CompressedRistretto::from_slice(&R_bytes).decompress() {
-                    Some(point) => point,
-                    None => return Err(Error::InvalidSignature),
-                }
-            };
-
-            let VK = VerifyingKey::try_from(item.vk_bytes.bytes)?.point;
-
-            let z = Scalar::random(&mut rng);
-
-            let P_coeff = z * s;
+            let P_coeff = blind * z;
             P_coeff_acc -= P_coeff;
 
-            R_coeffs.push(z);
+            R_coeffs.push(blind);
             Rs.push(R);
 
-            VK_coeffs.push(Scalar::zero() + (z * c));
-            VKs.push(VK);
+            VK_coeffs.push(<<C::Group as Group>::Field as Field>::zero() + (z * item.c));
+            VKs.push(item.vk.clone());
         }
-
-        use std::iter::once;
 
         let scalars = once(&P_coeff_acc)
             .chain(VK_coeffs.iter())
             .chain(R_coeffs.iter());
 
-        let basepoints = [curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT];
+        let basepoints = [<C::Group as Group>::generator()];
         let points = basepoints.iter().chain(VKs.iter()).chain(Rs.iter());
 
-        let check = RistrettoPoint::vartime_multiscalar_mul(scalars, points);
+        let check = Element::vartime_multiscalar_mul(scalars, points);
 
-        if check == RistrettoPoint::identity() {
+        if check == Element::identity() {
             Ok(())
         } else {
             Err(Error::InvalidSignature)
