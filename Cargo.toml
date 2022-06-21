@@ -4,4 +4,5 @@ members = [
     "frost-core",
     "frost-redjubjub",
     "frost-ristretto255",
+    "frost-p256",
 ]
