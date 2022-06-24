@@ -109,7 +109,7 @@ pub trait Group: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + Default + TryFrom<Vec<u8>>;
+    type Serialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
 
     /// Outputs the order of G (i.e. p)
     ///
