@@ -28,7 +28,11 @@ where
         <<C::Group as Group>::Serialization as TryFrom<Vec<u8>>>::Error: Debug,
         <<<C::Group as Group>::Field as Field>::Serialization as TryFrom<Vec<u8>>>::Error: Debug,
     {
-        let mut R_bytes = Vec::from(<C::Group as Group>::Serialization::default().as_ref());
+        // To compute the expected length of the encoded point, encode the generator
+        // and get its length. Note that we can't use the identity because it can be encoded
+        // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
+        let generator = <C::Group as Group>::generator();
+        let mut R_bytes = Vec::from(<C::Group as Group>::serialize(&generator).as_ref());
 
         let R_bytes_len = R_bytes.len();
 
