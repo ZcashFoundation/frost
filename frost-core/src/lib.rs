@@ -45,7 +45,7 @@ pub trait Field: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + AsMut<[u8]> + Debug + Default + FromHex + TryFrom<Vec<u8>>;
+    type Serialization: AsRef<[u8]> + Debug + Default + FromHex + TryFrom<Vec<u8>>;
 
     /// Returns the zero element of the field, the additive identity.
     fn zero() -> Self::Scalar;
@@ -110,7 +110,7 @@ pub trait Group: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + AsMut<[u8]> + Default + FromHex + TryFrom<Vec<u8>>;
+    type Serialization: AsRef<[u8]> + Default + FromHex + TryFrom<Vec<u8>>;
 
     /// Outputs the order of G (i.e. p)
     ///
