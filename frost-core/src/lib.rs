@@ -9,7 +9,6 @@ use std::{
     ops::{Add, Mul, Sub},
 };
 
-use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 
 // pub mod batch;
@@ -45,7 +44,7 @@ pub trait Field: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + Debug + Default + FromHex + TryFrom<Vec<u8>>;
+    type Serialization: AsRef<[u8]> + Debug + Default + TryFrom<Vec<u8>>;
 
     /// Returns the zero element of the field, the additive identity.
     fn zero() -> Self::Scalar;
@@ -110,7 +109,7 @@ pub trait Group: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + Default + FromHex + TryFrom<Vec<u8>>;
+    type Serialization: AsRef<[u8]> + Default + TryFrom<Vec<u8>>;
 
     /// Outputs the order of G (i.e. p)
     ///
@@ -168,7 +167,7 @@ pub trait Ciphersuite: Copy + Clone {
 
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
-    type SignatureSerialization: AsRef<[u8]> + FromHex + TryFrom<Vec<u8>>;
+    type SignatureSerialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
 
     /// [H1] for a FROST ciphersuite.
     ///

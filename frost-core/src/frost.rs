@@ -87,9 +87,10 @@ where
     type Error = &'static str;
 
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        match FromHex::from_hex(hex) {
+        let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
+        match v.try_into() {
             Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed scalar encoding"),
-            Err(_) => Err("invalid hex"),
+            Err(_) => Err("malformed scalar encoding"),
         }
     }
 }
