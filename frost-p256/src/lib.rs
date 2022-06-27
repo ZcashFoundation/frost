@@ -76,49 +76,6 @@ impl Field for P256ScalarField {
     }
 }
 
-/// Wrapper for [`p256::EncodedPoint`].
-#[derive(Default)]
-pub struct P256Serialization(p256::EncodedPoint);
-
-impl AsRef<p256::EncodedPoint> for P256Serialization {
-    fn as_ref(&self) -> &p256::EncodedPoint {
-        &self.0
-    }
-}
-
-impl From<p256::EncodedPoint> for P256Serialization {
-    fn from(encoded_point: p256::EncodedPoint) -> Self {
-        Self(encoded_point)
-    }
-}
-
-impl FromHex for P256Serialization {
-    type Error = &'static str;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let data = hex::decode(hex).map_err(|_| "hex decode error")?;
-        Ok(p256::EncodedPoint::from_bytes(data)
-            .map_err(|_| "point decode error")?
-            .into())
-    }
-}
-
-impl AsRef<[u8]> for P256Serialization {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-}
-
-impl TryFrom<Vec<u8>> for P256Serialization {
-    type Error = &'static str;
-
-    fn try_from(data: Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(p256::EncodedPoint::from_bytes(data)
-            .map_err(|_| "point decode error")?
-            .into())
-    }
-}
-
 #[derive(Clone, Copy, PartialEq)]
 /// An implementation of the FROST ciphersuite group.
 pub struct P256Group;
@@ -128,7 +85,13 @@ impl Group for P256Group {
 
     type Element = ProjectivePoint;
 
-    type Serialization = P256Serialization;
+    /// [SEC 1][1] serialization of a compressed point in P-256 takes 33 bytes
+    /// (1-byte prefix and 32 bytes for the coordinate).
+    /// Note that, in the spec, the identity is encoded as a single null byte;
+    /// bute here we pad with zeroes.
+    ///
+    /// [1]: https://secg.org/sec1-v2.pdf
+    type Serialization = [u8; 33];
 
     fn order() -> <Self::Field as Field>::Scalar {
         // TODO: rethink this, no way to represent the order in `Scalar`
@@ -148,12 +111,24 @@ impl Group for P256Group {
     }
 
     fn serialize(element: &Self::Element) -> Self::Serialization {
-        element.to_affine().to_encoded_point(true).into()
+        let mut fixed_serialized = [0; 33];
+        let serialized_point = element.to_affine().to_encoded_point(true);
+        let serialized = serialized_point.as_bytes();
+        // Sanity check; either it takes all bytes or a single byte (identity).
+        assert!(serialized.len() == fixed_serialized.len() || serialized.len() == 1);
+        {
+            // Copy to the left of the buffer (i.e. pad the identity with zeroes).
+            let (left, _right) = fixed_serialized.split_at_mut(serialized.len());
+            left.copy_from_slice(serialized);
+        }
+        fixed_serialized
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
-        match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&buf.0)) {
-            Some(point) => Ok(ProjectivePoint::from(point).into()),
+        let encoded_point =
+            p256::EncodedPoint::from_bytes(buf).map_err(|_| Error::MalformedElement)?;
+        match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
+            Some(point) => Ok(ProjectivePoint::from(point)),
             None => Err(Error::MalformedElement),
         }
     }
