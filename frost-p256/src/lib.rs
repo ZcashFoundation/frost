@@ -3,7 +3,6 @@
 #![doc = include_str!("../README.md")]
 
 use elliptic_curve::hash2curve::{hash_to_field, ExpandMsgXmd};
-use hex::FromHex;
 use p256::{
     elliptic_curve::{
         sec1::{FromEncodedPoint, ToEncodedPoint},
@@ -22,7 +21,7 @@ mod tests;
 pub use frost_core::Error;
 
 #[derive(Clone, Copy)]
-/// An implementation of the FROST ciphersuite scalar field.
+/// An implementation of the FROST P-256 SHA-256 ciphersuite scalar field.
 pub struct P256ScalarField;
 
 impl Field for P256ScalarField {
@@ -77,7 +76,7 @@ impl Field for P256ScalarField {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-/// An implementation of the FROST ciphersuite group.
+/// An implementation of the FROST P-256 ciphersuite group.
 pub struct P256Group;
 
 impl Group for P256Group {
@@ -87,8 +86,10 @@ impl Group for P256Group {
 
     /// [SEC 1][1] serialization of a compressed point in P-256 takes 33 bytes
     /// (1-byte prefix and 32 bytes for the coordinate).
-    /// Note that, in the spec, the identity is encoded as a single null byte;
-    /// bute here we pad with zeroes.
+    ///
+    /// Note that, in the P-256 spec, the identity is encoded as a single null byte;
+    /// but here we pad with zeroes. This is acceptable as the identity _should_ never 
+    /// be serialized in FROST, else we error.
     ///
     /// [1]: https://secg.org/sec1-v2.pdf
     type Serialization = [u8; 33];
