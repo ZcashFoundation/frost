@@ -187,7 +187,8 @@ impl Ciphersuite for P256Sha256 {
     }
 }
 
-type R = P256Sha256;
+// Shorthand alias for the ciphersuite
+type P = P256Sha256;
 
 ///
 pub mod keys {
@@ -203,23 +204,23 @@ pub mod keys {
     }
 
     ///
-    pub type SharePackage = frost::keys::SharePackage<R>;
+    pub type SharePackage = frost::keys::SharePackage<P>;
 
     ///
-    pub type KeyPackage = frost::keys::KeyPackage<R>;
+    pub type KeyPackage = frost::keys::KeyPackage<P>;
 
     ///
-    pub type PublicKeyPackage = frost::keys::PublicKeyPackage<R>;
+    pub type PublicKeyPackage = frost::keys::PublicKeyPackage<P>;
 }
 
 ///
 pub mod round1 {
     use super::*;
     ///
-    pub type SigningNonces = frost::round1::SigningNonces<R>;
+    pub type SigningNonces = frost::round1::SigningNonces<P>;
 
     ///
-    pub type SigningCommitments = frost::round1::SigningCommitments<R>;
+    pub type SigningCommitments = frost::round1::SigningCommitments<P>;
 
     ///
     pub fn preprocess<RNG>(
@@ -230,22 +231,22 @@ pub mod round1 {
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::preprocess::<R, RNG>(num_nonces, participant_index, rng)
+        frost::round1::preprocess::<P, RNG>(num_nonces, participant_index, rng)
     }
 }
 
 ///
-pub type SigningPackage = frost::SigningPackage<R>;
+pub type SigningPackage = frost::SigningPackage<P>;
 
 ///
 pub mod round2 {
     use super::*;
 
     ///
-    pub type SignatureShare = frost::round2::SignatureShare<R>;
+    pub type SignatureShare = frost::round2::SignatureShare<P>;
 
     ///
-    pub type SigningPackage = frost::SigningPackage<R>;
+    pub type SigningPackage = frost::SigningPackage<P>;
 
     ///
     pub fn sign(
@@ -258,7 +259,7 @@ pub mod round2 {
 }
 
 ///
-pub type Signature = frost_core::Signature<R>;
+pub type Signature = frost_core::Signature<P>;
 
 ///
 pub fn aggregate(
@@ -270,7 +271,7 @@ pub fn aggregate(
 }
 
 ///
-pub type SigningKey = frost_core::SigningKey<R>;
+pub type SigningKey = frost_core::SigningKey<P>;
 
 ///
-pub type VerifyingKey = frost_core::VerifyingKey<R>;
+pub type VerifyingKey = frost_core::VerifyingKey<P>;
