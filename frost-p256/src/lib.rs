@@ -38,7 +38,7 @@ impl Field for P256ScalarField {
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
-        // [`curve25519_dalek::scalar::Scalar`]'s Eq/PartialEq does a constant-time comparison using
+        // [`p256::Scalar`]'s Eq/PartialEq does a constant-time comparison using
         // `ConstantTimeEq`
         if *scalar == <Self as Field>::zero() {
             Err(Error::InvalidZeroScalar)
@@ -88,7 +88,7 @@ impl Group for P256Group {
     /// (1-byte prefix and 32 bytes for the coordinate).
     ///
     /// Note that, in the P-256 spec, the identity is encoded as a single null byte;
-    /// but here we pad with zeroes. This is acceptable as the identity _should_ never 
+    /// but here we pad with zeroes. This is acceptable as the identity _should_ never
     /// be serialized in FROST, else we error.
     ///
     /// [1]: https://secg.org/sec1-v2.pdf
