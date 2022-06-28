@@ -1,8 +1,8 @@
 use std::{collections::HashMap, str::FromStr};
 
-use elliptic_curve::PrimeField;
 use hex::{self, FromHex};
 use lazy_static::lazy_static;
+use p256::elliptic_curve::PrimeField;
 use p256::{FieldBytes, Scalar};
 use serde_json::Value;
 

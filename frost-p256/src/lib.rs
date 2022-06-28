@@ -2,7 +2,7 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use elliptic_curve::hash2curve::{hash_to_field, ExpandMsgXmd};
+use p256::elliptic_curve::hash2curve::{hash_to_field, ExpandMsgXmd};
 use p256::{
     elliptic_curve::{
         sec1::{FromEncodedPoint, ToEncodedPoint},
