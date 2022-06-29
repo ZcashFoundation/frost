@@ -128,6 +128,7 @@ impl Group for P256Group {
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
         let encoded_point =
             p256::EncodedPoint::from_bytes(buf).map_err(|_| Error::MalformedElement)?;
+
         match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
             Some(point) => Ok(ProjectivePoint::from(point)),
             None => Err(Error::MalformedElement),
@@ -138,7 +139,6 @@ impl Group for P256Group {
 /// Context string from the ciphersuite in the [spec]
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.txt
-
 const CONTEXT_STRING: &str = "FROST-P256-SHA256";
 
 #[derive(Clone, Copy, PartialEq)]
