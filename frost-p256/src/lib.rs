@@ -2,9 +2,9 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use p256::elliptic_curve::hash2curve::{hash_to_field, ExpandMsgXmd};
 use p256::{
     elliptic_curve::{
+        hash2curve::{hash_to_field, ExpandMsgXmd},
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
     },
@@ -117,8 +117,11 @@ impl Group for P256Group {
         let serialized = serialized_point.as_bytes();
         // Sanity check; either it takes all bytes or a single byte (identity).
         assert!(serialized.len() == fixed_serialized.len() || serialized.len() == 1);
+        // Copy to the left of the buffer (i.e. pad the identity with zeroes).
+        // TODO: Note that identity elements shouldn't be serialized in FROST. This will likely become
+        // part of the API and when that happens, we should return an error instead of
+        // doing this padding.
         {
-            // Copy to the left of the buffer (i.e. pad the identity with zeroes).
             let (left, _right) = fixed_serialized.split_at_mut(serialized.len());
             left.copy_from_slice(serialized);
         }
@@ -158,7 +161,8 @@ impl Ciphersuite for P256Sha256 {
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "rho";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&vec![m], dst.as_bytes(), &mut u).unwrap();
+        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&vec![m], dst.as_bytes(), &mut u)
+            .expect("should never return error according to error cases described in ExpandMsgXmd");
         u[0]
     }
 
@@ -168,7 +172,8 @@ impl Ciphersuite for P256Sha256 {
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "chal";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&vec![m], dst.as_bytes(), &mut u).unwrap();
+        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&vec![m], dst.as_bytes(), &mut u)
+            .expect("should never return error according to error cases described in ExpandMsgXmd");
         u[0]
     }
 
