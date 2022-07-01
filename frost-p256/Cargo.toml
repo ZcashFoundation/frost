@@ -20,7 +20,7 @@ features = ["nightly"]
 [dependencies]
 byteorder = "1.4"
 p256 = { version = "0.11.1", features = ["hash2curve"] }
-digest = "0.9"
+digest = "0.10"
 frost-core = { path = "../frost-core" }
 hex = { version = "0.4.3", features = ["serde"] }
 rand_core = "0.6"
