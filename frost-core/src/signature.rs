@@ -20,6 +20,15 @@ where
     C::Group: Group,
     <C::Group as Group>::Field: Field,
 {
+    /// Create a new Signature.
+    #[cfg(feature = "internals")]
+    pub fn new(
+        R: <C::Group as Group>::Element,
+        z: <<C::Group as Group>::Field as Field>::Scalar,
+    ) -> Self {
+        Self { R, z }
+    }
+
     /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
     pub fn from_bytes(bytes: C::SignatureSerialization) -> Result<Self, Error> {
         // To compute the expected length of the encoded point, encode the generator

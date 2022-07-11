@@ -241,6 +241,17 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
 #[derive(Clone)]
 pub struct Challenge<C: Ciphersuite>(pub(crate) <<C::Group as Group>::Field as Field>::Scalar);
 
+impl<C> Challenge<C>
+where
+    C: Ciphersuite,
+{
+    /// Return the underlying scalar.
+    #[cfg(feature = "internals")]
+    pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+        self.0
+    }
+}
+
 impl<C> Debug for Challenge<C>
 where
     C: Ciphersuite,
@@ -263,6 +274,7 @@ where
 ///
 /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-challenge-computa
 /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.2
+#[cfg_attr(feature = "internals", visibility::make(pub))]
 fn challenge<C>(R: &Element<C>, verifying_key: &Element<C>, msg: &[u8]) -> Challenge<C>
 where
     C: Ciphersuite,

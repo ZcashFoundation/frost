@@ -139,7 +139,7 @@ pub fn sign<C: Ciphersuite>(
         binding_factor_list[key_package.identifier].clone();
 
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
+    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
 
     // Compute Lagrange coefficient.
     let lambda_i = frost::derive_lagrange_coeff(key_package.identifier(), signing_package)?;

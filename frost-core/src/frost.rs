@@ -12,7 +12,6 @@
 
 use std::{
     collections::{BTreeMap, HashMap},
-    convert::TryFrom,
     fmt::{self, Debug},
     ops::Index,
 };
@@ -41,6 +40,18 @@ impl<C> BindingFactor<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`Rho`] from the given scalar.
+    #[cfg(feature = "internals")]
+    pub fn new(scalar: <<C::Group as Group>::Field as Field>::Scalar) -> Self {
+        Self(scalar)
+    }
+
+    /// Return the underlying scalar.
+    #[cfg(feature = "internals")]
+    pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+        self.0
+    }
+
     /// Deserializes [`BindingFactor`] from bytes.
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
@@ -73,6 +84,12 @@ impl<C> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`BindingFactorList`] from a vector of binding factors.
+    #[cfg(feature = "internals")]
+    pub fn new(binding_factors: BTreeMap<Identifier<C>, BindingFactor<C>>) -> Self {
+        Self(binding_factors)
+    }
+
     /// Return iterator through all factors.
     pub fn iter(&self) -> impl Iterator<Item = (&Identifier<C>, &BindingFactor<C>)> {
         self.0.iter()
@@ -136,6 +153,7 @@ where
 // TODO: pub struct Lagrange<C: Ciphersuite>(Scalar);
 
 /// Generates the lagrange coefficient for the i'th participant.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
 fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
@@ -185,7 +203,7 @@ impl<C> SigningPackage<C>
 where
     C: Ciphersuite,
 {
-    /// Create a new `SigingPackage`
+    /// Create a new `SigningPackage`
     ///
     /// The `signing_commitments` are sorted by participant `identifier`.
     pub fn new(
@@ -244,8 +262,24 @@ where
 
 /// The product of all signers' individual commitments, published as part of the
 /// final signature.
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct GroupCommitment<C: Ciphersuite>(pub(super) Element<C>);
+
+impl<C> GroupCommitment<C>
+where
+    C: Ciphersuite,
+{
+    /// Create a new `GroupCommitment`
+    pub fn new(element: <C::Group as Group>::Element) -> Self {
+        Self(element)
+    }
+
+    /// Return the underlying element.
+    #[cfg(feature = "internals")]
+    pub fn to_element(self) -> <C::Group as Group>::Element {
+        self.0
+    }
+}
 
 // impl<C> Debug for GroupCommitment<C> where C: Ciphersuite {
 //     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -255,43 +289,41 @@ pub struct GroupCommitment<C: Ciphersuite>(pub(super) Element<C>);
 //     }
 // }
 
-impl<C> TryFrom<&SigningPackage<C>> for GroupCommitment<C>
+/// Generates the group commitment which is published as part of the joint
+/// Schnorr signature.
+///
+/// Implements [`compute_group_commitment`] from the spec.
+///
+/// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.5
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+fn compute_group_commitment<C>(
+    signing_package: &SigningPackage<C>,
+    binding_factor_list: &BindingFactorList<C>,
+) -> Result<GroupCommitment<C>, Error>
 where
     C: Ciphersuite,
 {
-    type Error = Error;
+    let identity = <C::Group as Group>::identity();
 
-    /// Generates the group commitment which is published as part of the joint
-    /// Schnorr signature.
-    ///
-    /// Implements [`compute_group_commitment`] from the spec.
-    ///
-    /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.5
-    fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, Error> {
-        let binding_factor_list: BindingFactorList<C> = signing_package.into();
+    let mut group_commitment = <C::Group as Group>::identity();
 
-        let identity = <C::Group>::identity();
-
-        let mut group_commitment = <C::Group>::identity();
-
-        // Ala the sorting of B, just always sort by identifier in ascending order
-        //
-        // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
-        for commitment in signing_package.signing_commitments() {
-            // The following check prevents a party from accidentally revealing their share.
-            // Note that the '&&' operator would be sufficient.
-            if identity == commitment.binding.0 || identity == commitment.hiding.0 {
-                return Err(Error::IdentityCommitment);
-            }
-
-            let binding_factor = binding_factor_list[commitment.identifier].clone();
-
-            group_commitment = group_commitment
-                + (commitment.hiding.0 + (commitment.binding.0 * binding_factor.0));
+    // Ala the sorting of B, just always sort by identifier in ascending order
+    //
+    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
+    for commitment in signing_package.signing_commitments() {
+        // The following check prevents a party from accidentally revealing their share.
+        // Note that the '&&' operator would be sufficient.
+        if identity == commitment.binding.0 || identity == commitment.hiding.0 {
+            return Err(Error::IdentityCommitment);
         }
 
-        Ok(GroupCommitment(group_commitment))
+        let binding_factor = binding_factor_list[commitment.identifier].clone();
+
+        group_commitment =
+            group_commitment + (commitment.hiding.0 + (commitment.binding.0 * binding_factor.0));
     }
+
+    Ok(GroupCommitment::new(group_commitment))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -326,7 +358,7 @@ where
     let binding_factor_list: BindingFactorList<C> = signing_package.into();
 
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
+    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
 
     // Compute the per-message challenge.
     let challenge = crate::challenge::<C>(

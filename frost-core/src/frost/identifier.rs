@@ -19,7 +19,8 @@ impl<C> Identifier<C>
 where
     C: Ciphersuite,
 {
-    // Serialize the underlying scalar.
+    /// Serialize the underlying scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
     }

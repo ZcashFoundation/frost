@@ -54,6 +54,12 @@ where
         Self(C::H3(input.as_slice()))
     }
 
+    /// Return the underlying scalar.
+    #[cfg(feature = "internals")]
+    pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+        self.0
+    }
+
     /// Deserialize [`Nonce`] from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
@@ -100,6 +106,12 @@ impl<C> NonceCommitment<C>
 where
     C: Ciphersuite,
 {
+    /// Return the underlying element.
+    #[cfg(feature = "internals")]
+    pub fn to_element(self) -> <C::Group as Group>::Element {
+        self.0
+    }
+
     /// Deserialize [`NonceCommitment`] from bytes
     pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error> {
         <C::Group>::deserialize(&bytes).map(|element| Self(element))
@@ -221,6 +233,7 @@ where
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(super) fn to_group_commitment_share(
         self,
         binding_factor: &frost::BindingFactor<C>,
@@ -271,6 +284,7 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 /// - A byte string containing the serialized representation of B.
 ///
 /// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-list-operations
+#[cfg_attr(feature = "internals", visibility::make(pub))]
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: Vec<SigningCommitments<C>>,
 ) -> Vec<u8> {

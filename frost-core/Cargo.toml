@@ -25,6 +25,7 @@ hex = { version = "0.4.3", features = ["serde"] }
 rand_core = "0.6"
 serde = { version = "1", optional = true, features = ["derive"] }
 thiserror = "1.0"
+visibility = "0.0.1"
 zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
 
 # Test dependencies used with the test-impl feature
@@ -46,3 +47,4 @@ nightly = []
 default = ["serde"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["proptest", "proptest-derive", "serde_json"]
+internals = []
