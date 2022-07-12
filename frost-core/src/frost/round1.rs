@@ -273,6 +273,9 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 /// Done once by each participant, to generate _their_ nonces and commitments
 /// that are then used during signing.
 ///
+/// This is only needed if pre-processing is needed (for 1-round FROST). For
+/// regular 2-round FROST, use [`commit`].
+///
 /// When performing signing using two rounds, num_nonces would equal 1, to
 /// perform the first round. Batching entails generating more than one
 /// nonce/commitment pair at a time.  Nonces should be stored in secret storage
@@ -302,4 +305,23 @@ where
     }
 
     (signing_nonces, signing_commitments)
+}
+
+/// Performed once by each participant selected for the signing operation.
+///
+/// Implements [`commit`] from the spec.
+///
+/// Generates the signing nonces and commitments to be used in the signing
+/// operation.
+///
+/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-round-one-commitment
+pub fn commit<C, R>(
+    participant_index: u16,
+    rng: &mut R,
+) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
+where
+    C: Ciphersuite,
+    R: CryptoRng + RngCore,
+{
+    preprocess(1, participant_index, rng)
 }
