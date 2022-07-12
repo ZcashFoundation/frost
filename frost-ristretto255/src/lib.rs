@@ -205,15 +205,14 @@ pub mod round1 {
     pub type SigningCommitments = frost::round1::SigningCommitments<R>;
 
     ///
-    pub fn preprocess<RNG>(
-        num_nonces: u8,
+    pub fn commit<RNG>(
         participant_index: u16,
         rng: &mut RNG,
     ) -> (Vec<SigningNonces>, Vec<SigningCommitments>)
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::preprocess::<R, RNG>(num_nonces, participant_index, rng)
+        frost::round1::commit::<R, RNG>(participant_index, rng)
     }
 }
 
