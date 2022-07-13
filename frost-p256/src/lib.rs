@@ -141,8 +141,8 @@ impl Group for P256Group {
 
 /// Context string from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.txt
-const CONTEXT_STRING: &str = "FROST-P256-SHA256";
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-1
+const CONTEXT_STRING: &str = "FROST-P256-SHA256-v5";
 
 #[derive(Clone, Copy, PartialEq)]
 /// An implementation of the FROST ciphersuite FROST(P-256, SHA-256).
@@ -157,7 +157,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H1 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-frostp-256-sha-256
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "rho";
@@ -168,7 +168,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H2 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-frostp-256-sha-256
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "chal";
@@ -179,7 +179,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H3 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-frostp-256-sha-256
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.3
     fn H3(m: &[u8]) -> Self::HashOutput {
         let h = Sha256::new()
             .chain(CONTEXT_STRING.as_bytes())
@@ -189,6 +189,17 @@ impl Ciphersuite for P256Sha256 {
         let mut output = [0u8; 32];
         output.copy_from_slice(h.finalize().as_slice());
         output
+    }
+
+    /// H4 for FROST(P-256, SHA-256)
+    ///
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.4
+    fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        let mut u = [P256ScalarField::zero()];
+        let dst = CONTEXT_STRING.to_owned() + "nonce";
+        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&vec![m], dst.as_bytes(), &mut u)
+            .expect("should never return error according to error cases described in ExpandMsgXmd");
+        u[0]
     }
 }
 
@@ -220,6 +231,8 @@ pub mod keys {
 
 ///
 pub mod round1 {
+    use frost_core::frost::keys::KeyPackage;
+
     use super::*;
     ///
     pub type SigningNonces = frost::round1::SigningNonces<P>;
@@ -229,13 +242,13 @@ pub mod round1 {
 
     ///
     pub fn commit<RNG>(
-        participant_index: u16,
+        key_package: &KeyPackage<P>,
         rng: &mut RNG,
     ) -> (Vec<SigningNonces>, Vec<SigningCommitments>)
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::commit::<P, RNG>(participant_index, rng)
+        frost::round1::commit::<P, RNG>(key_package, rng)
     }
 }
 
