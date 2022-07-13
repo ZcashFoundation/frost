@@ -3,7 +3,7 @@
 #![doc = include_str!("../README.md")]
 
 use curve25519_dalek::{
-    constants::{BASEPOINT_ORDER, RISTRETTO_BASEPOINT_POINT},
+    constants::RISTRETTO_BASEPOINT_POINT,
     ristretto::{CompressedRistretto, RistrettoPoint},
     scalar::Scalar,
     traits::Identity,
@@ -82,10 +82,6 @@ impl Group for RistrettoGroup {
     type Element = RistrettoPoint;
 
     type Serialization = [u8; 32];
-
-    fn order() -> <Self::Field as Field>::Scalar {
-        BASEPOINT_ORDER
-    }
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
         Scalar::one()
