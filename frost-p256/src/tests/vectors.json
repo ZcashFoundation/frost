@@ -2,58 +2,58 @@
   "config": {
     "MAX_SIGNERS": "3",
     "NUM_SIGNERS": "2",
-    "THRESHOLD_LIMIT": "2",
+    "MIN_SIGNERS": "2",
     "name": "FROST(P-256, SHA-256)",
     "group": "P-256",
     "hash": "SHA-256"
   },
   "inputs": {
-    "group_secret_key": "6f090d1393ff53bbcbba036c00b8830ab4546c251dece199eb03a6a51a5a5929",
-    "group_public_key": "03db0945167b62e6472ad46373b6cbbca88e2a9a4883071f0b3fde4b2b6d7b6ba6",
+    "group_secret_key": "8ba9bba2e0fd8c4767154d35a0b7562244a4aaf6f36c8fb8735fa48b301bd8de",
+    "group_public_key": "023a309ad94e9fe8a7ba45dfc58f38bf091959d3c99cfbd02b4dc00585ec45ab70",
     "message": "74657374",
     "signers": {
       "1": {
-        "signer_share": "738552e18ea4f2090597aca6c23c1666845c21c676813f9e26786f1e410dcecf"
+        "signer_share": "0c9c1a0fe806c184add50bbdcac913dda73e482daf95dcb9f35dbb0d8a9f7731"
       },
       "2": {
-        "signer_share": "780198af894a90563f7555e183bfa9c25463d767cf159da261ed379767c14475"
+        "signer_share": "8d8e787bef0ff6c2f494ca45f4dad198c6bee01212d6c84067159c52e1863ad5"
       },
       "3": {
-        "signer_share": "7c7dde7d83f02ea37952ff1c45433d1e246b8d0927a9fba69d6200108e74ba1b"
+        "signer_share": "0e80d6e8f6192c003b5488ce1eec8f5429587d48cf001541e713b2d53c09d928"
       }
     }
   },
   "round_one_outputs": {
-    "participants": "1,2",
-    "group_binding_factor_input": "000102f34caab210d59324e12ba41f0802d9545f7f702906930766b86c462bb8ff7f3402b724640ea9e262469f401c9006991ba3247c2c91b97cdb1f0eeab1a777e24e1e0002037f8a998dfc2e60a7ad63bc987cb27b8abf78a68bd924ec6adb9f251850cbe711024a4e90422a19dd8463214e997042206c39d3df56168b458592462090c89dbcf84efca0c54f70a585d6aae28679482b4aed03ae5d38297b9092ab3376d46fdf55",
-    "group_binding_factor": "9df349a9f34bf01627f6b4f8b376e8c8261d55508d1cac2919cdaf7f9cb20e70",
+    "participants": "1,3",
+    "group_binding_factor_input": "000102688facca4e2540ef303734c5aee8e7cdba0bc7ab94abfe63d05ebc68dde0f4c702ae64b6f0506acc3395fecd4bc70a9eb9f8e5394264c2d2aa0c8faff857ea3058000303c21b8ee50b6478ac845c0687504db6792873f5a327ff6a3115558070b517299302f3c73c912838f707f549bf4d63432f1fbe128fa35ec8ba6eca849ebd248aa46a7a753fed12531fbcd151e1d84702927c39063e780e91c01f02bd11b60d7632bf",
+    "group_binding_factor": "cf7ffe4b8ad6edb6237efaa8cbfb2dfb2fd08d163b6ad9063720f14779a9e143",
     "signers": {
       "1": {
-        "hiding_nonce": "3da92a503cf7e3f72f62dabedbb3ffcc9f555f1c1e78527940fe3fed6d45e56f",
-        "binding_nonce": "ec97c41fc77ae7e795067976b2edd8b679f792abb062e4d0c33f0f37d2e363eb",
-        "hiding_nonce_commitment": "02f34caab210d59324e12ba41f0802d9545f7f702906930766b86c462bb8ff7f34",
-        "binding_nonce_commitment": "02b724640ea9e262469f401c9006991ba3247c2c91b97cdb1f0eeab1a777e24e1e"
+        "hiding_nonce": "081617b24375e069b39f649d4c4ce2fba6e38b73e7c16759de0b6079a22c4c7e",
+        "binding_nonce": "4de5fb77d99f03a2491a83a6a4cb91ca3c82a3f34ce94cec939174f47c9f95dd",
+        "hiding_nonce_commitment": "02688facca4e2540ef303734c5aee8e7cdba0bc7ab94abfe63d05ebc68dde0f4c7",
+        "binding_nonce_commitment": "02ae64b6f0506acc3395fecd4bc70a9eb9f8e5394264c2d2aa0c8faff857ea3058"
       },
-      "2": {
-        "hiding_nonce": "06cb4425031e695d1f8ac61320717d63918d3edc7a02fcd3f23ade47532b1fd9",
-        "binding_nonce": "2d965a4ea73115b8065c98c1d95c7085db247168012a834d8285a7c02f11e3e0",
-        "hiding_nonce_commitment": "037f8a998dfc2e60a7ad63bc987cb27b8abf78a68bd924ec6adb9f251850cbe711",
-        "binding_nonce_commitment": "024a4e90422a19dd8463214e997042206c39d3df56168b458592462090c89dbcf8"
+      "3": {
+        "hiding_nonce": "d186ea92593f83ea83181b184d41aa93493301ac2bc5b4b1767e94d2db943e38",
+        "binding_nonce": "486e2ee25a3fbc8e6399d748b077a2755fde99fa85cc24fa647ea4ebf5811a15",
+        "hiding_nonce_commitment": "03c21b8ee50b6478ac845c0687504db6792873f5a327ff6a3115558070b5172993",
+        "binding_nonce_commitment": "02f3c73c912838f707f549bf4d63432f1fbe128fa35ec8ba6eca849ebd248aa46a"
       }
     }
   },
   "round_two_outputs": {
-    "participants": "1,2",
+    "participants": "1,3",
     "signers": {
       "1": {
-        "sig_share": "120a8ef8a5936444d8087cb10df5648629895e94582720760a10c8c217e3417b"
+        "sig_share": "9e4d8865faf8c7b3193a3b35eda3d9e12118447114b1e7d5b4809ea28067f8a9"
       },
-      "2": {
-        "sig_share": "2a7ff42d849f1bcc0e5f75d5810900a3e8f68ab717ff10d7a6da89f8bb0c16aa"
+      "3": {
+        "sig_share": "b7d094eab6305ae74daeed1acd31abba9ab81f638d38b72c132cb25a5dfae1fc"
       }
     }
   },
   "final_output": {
-    "sig": "035cfbd148da711bbc823455b682ed01a1be3c5415cf692f4a91b7fe22d1dec3453c8a83262a328010e667f2868efe652a127fe94b7026314db0eb52bad2ef5825"
+    "sig": "0342c14c77f9d4ef9b8bd64fb0d7bbfdb9f8216a44e5f7bbe6ac0f3ed5e1a57367561e1d51b129229966e92850bad5859bfee96926fad3007cd3f38639e1ffb554"
   }
 }

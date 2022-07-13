@@ -8,6 +8,8 @@ use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Error, Field, Group};
 
+use super::keys::KeyPackage;
+
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Zeroize)]
 pub struct Nonce<C: Ciphersuite>(pub(super) <<C::Group as Group>::Field as Field>::Scalar);
@@ -16,21 +18,32 @@ impl<C> Nonce<C>
 where
     C: Ciphersuite,
 {
-    /// Generates a new uniformly random signing nonce.
+    /// Generates a new uniformly random signing nonce by sourcing fresh
+    /// randomness and combining with the secret key, to hedge against a bad
+    /// RNG.
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
     ///
-    /// An implementation of `RandomNonzeroScalar()` from the [spec].
+    /// An implementation of `nonce_generate(secret)` from the [spec].
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.4
-    pub fn random<R>(rng: &mut R) -> Self
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-nonce-generation
+    pub fn new<R>(key_package: &KeyPackage<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
-        // The values of 'hiding' and 'binding' nonces must be non-zero so that commitments are
-        // not the identity.
-        Self(<<C::Group as Group>::Field as Field>::random_nonzero(rng))
+        let mut k_enc = [0; 32];
+        rng.fill_bytes(&mut k_enc[..]);
+
+        let secret_enc =
+            <<C::Group as Group>::Field as Field>::serialize(&key_package.secret_share.0);
+
+        let input: Vec<u8> = k_enc
+            .iter()
+            .chain(secret_enc.as_ref().iter())
+            .cloned()
+            .collect();
+        Self(C::H4(input.as_slice()))
     }
 
     /// Deserialize [`Nonce`] from bytes
@@ -154,14 +167,14 @@ where
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
-    pub fn new<R>(rng: &mut R) -> Self
+    pub fn new<R>(key_package: &KeyPackage<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
         // The values of 'hiding' and 'binding' must be non-zero so that commitments are
         // not the identity.
-        let hiding = Nonce::<C>::random(rng);
-        let binding = Nonce::<C>::random(rng);
+        let hiding = Nonce::<C>::new(key_package, rng);
+        let binding = Nonce::<C>::new(key_package, rng);
 
         Self { hiding, binding }
     }
@@ -287,7 +300,7 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 // https://github.com/ZcashFoundation/redjubjub/issues/111
 pub fn preprocess<C, R>(
     num_nonces: u8,
-    participant_index: u16,
+    key_package: &KeyPackage<C>,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
 where
@@ -299,8 +312,8 @@ where
         Vec::with_capacity(num_nonces as usize);
 
     for _ in 0..num_nonces {
-        let nonces = SigningNonces::new(rng);
-        signing_commitments.push(SigningCommitments::from((participant_index, &nonces)));
+        let nonces = SigningNonces::new(key_package, rng);
+        signing_commitments.push(SigningCommitments::from((key_package.index, &nonces)));
         signing_nonces.push(nonces);
     }
 
@@ -314,14 +327,14 @@ where
 /// Generates the signing nonces and commitments to be used in the signing
 /// operation.
 ///
-/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-round-one-commitment
+/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-5.1
 pub fn commit<C, R>(
-    participant_index: u16,
+    key_package: &KeyPackage<C>,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
 where
     C: Ciphersuite,
     R: CryptoRng + RngCore,
 {
-    preprocess(1, participant_index, rng)
+    preprocess(1, key_package, rng)
 }

@@ -36,7 +36,10 @@ fn check_sign_with_dealer() {
     for participant_index in 1..(threshold + 1) {
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _threshold_.
-        let (nonce, commitment) = frost::round1::commit(participant_index as u16, &mut rng);
+        let (nonce, commitment) = frost::round1::commit(
+            key_packages.get((participant_index - 1) as usize).unwrap(),
+            &mut rng,
+        );
         nonces.insert(participant_index as u16, nonce);
         commitments.insert(participant_index as u16, commitment);
     }

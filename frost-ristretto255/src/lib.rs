@@ -111,10 +111,10 @@ impl Group for RistrettoGroup {
     }
 }
 
-/// Context string 'FROST-RISTRETTO255-SHA512' from the ciphersuite in the [spec]
+/// Context string 'FROST-RISTRETTO255-SHA512-v5' from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.txt
-const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512";
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.2-1
+const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v5";
 
 #[derive(Clone, Copy, PartialEq)]
 /// An implementation of the FROST ciphersuite Ristretto255-SHA512.
@@ -168,6 +168,20 @@ impl Ciphersuite for Ristretto255Sha512 {
         output.copy_from_slice(h.finalize().as_slice());
         output
     }
+
+    /// H4 for FROST(ristretto255, SHA-512)
+    ///
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-frostristretto255-sha-512
+    fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        let h = Sha512::new()
+            .chain(CONTEXT_STRING.as_bytes())
+            .chain("nonce")
+            .chain(m);
+
+        let mut output = [0u8; 64];
+        output.copy_from_slice(h.finalize().as_slice());
+        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+    }
 }
 
 type R = Ristretto255Sha512;
@@ -197,6 +211,8 @@ pub mod keys {
 
 ///
 pub mod round1 {
+    use frost_core::frost::keys::KeyPackage;
+
     use super::*;
     ///
     pub type SigningNonces = frost::round1::SigningNonces<R>;
@@ -206,13 +222,13 @@ pub mod round1 {
 
     ///
     pub fn commit<RNG>(
-        participant_index: u16,
+        key_package: &KeyPackage<R>,
         rng: &mut RNG,
     ) -> (Vec<SigningNonces>, Vec<SigningCommitments>)
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::commit::<R, RNG>(participant_index, rng)
+        frost::round1::commit::<R, RNG>(key_package, rng)
     }
 }
 
