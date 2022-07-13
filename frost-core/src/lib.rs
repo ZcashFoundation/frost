@@ -111,11 +111,6 @@ pub trait Group: Copy + Clone {
     /// Little-endian!
     type Serialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
 
-    /// Outputs the order of G (i.e. p)
-    ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.1>
-    fn order() -> <Self::Field as Field>::Scalar;
-
     /// The order of the the quotient group when the prime order subgroup divides the order of the
     /// full curve group.
     ///
