@@ -94,11 +94,6 @@ impl Group for P256Group {
     /// [1]: https://secg.org/sec1-v2.pdf
     type Serialization = [u8; 33];
 
-    fn order() -> <Self::Field as Field>::Scalar {
-        // TODO: rethink this, no way to represent the order in `Scalar`
-        Scalar::zero()
-    }
-
     fn cofactor() -> <Self::Field as Field>::Scalar {
         Scalar::one()
     }
