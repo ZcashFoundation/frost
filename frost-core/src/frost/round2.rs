@@ -133,6 +133,12 @@ pub fn sign<C: Ciphersuite>(
     signer_nonces: &round1::SigningNonces<C>,
     key_package: &frost::keys::KeyPackage<C>,
 ) -> Result<SignatureShare<C>, &'static str> {
+    let public_key = if let Some(randomizer) = &signing_package.randomizer {
+        key_package.group_public.element + <C::Group as Group>::generator() * *randomizer
+    } else {
+        key_package.group_public.element
+    };
+
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
     // binding factor.
     let rho: frost::Rho<C> = signing_package.into();
@@ -146,7 +152,7 @@ pub fn sign<C: Ciphersuite>(
     // Compute the per-message challenge.
     let challenge = challenge::<C>(
         &group_commitment.0,
-        &key_package.group_public.element,
+        &public_key,
         signing_package.message.as_slice(),
     );
 

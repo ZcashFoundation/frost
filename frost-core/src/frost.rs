@@ -162,6 +162,8 @@ pub struct SigningPackage<C: Ciphersuite> {
     /// Each signer should perform protocol-specific verification on the
     /// message.
     message: Vec<u8>,
+    /// The randomizer Scalar.
+    randomizer: Option<crate::Scalar<C>>,
 }
 
 impl<C> SigningPackage<C>
@@ -183,7 +185,19 @@ where
                 .map(|s| (s.index, s))
                 .collect(),
             message,
+            randomizer: None,
         }
+    }
+
+    /// Create a new `SigningPackage` wit the specified randomizer.
+    pub fn with_randomizer(
+        signing_commitments: Vec<round1::SigningCommitments<C>>,
+        message: Vec<u8>,
+        randomizer: crate::Scalar<C>,
+    ) -> Self {
+        let mut package = Self::new(signing_commitments, message);
+        package.randomizer = Some(randomizer);
+        package
     }
 
     /// Get a signing commitment by its participant index.
@@ -212,6 +226,11 @@ where
         preimage
             .extend_from_slice(&round1::encode_group_commitments(self.signing_commitments())[..]);
         preimage.extend_from_slice(C::H3(self.message.as_slice()).as_ref());
+        if let Some(randomizer) = &self.randomizer {
+            preimage.extend_from_slice(
+                <<C::Group as Group>::Field as Field>::serialize(randomizer).as_ref(),
+            )
+        };
 
         preimage
     }
@@ -296,6 +315,12 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
+    let public_key = if let Some(randomizer) = &signing_package.randomizer {
+        pubkeys.group_public.element + <C::Group as Group>::generator() * *randomizer
+    } else {
+        pubkeys.group_public.element
+    };
+
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
     // binding factor.
     let rho: Rho<C> = signing_package.into();
@@ -306,7 +331,7 @@ where
     // Compute the per-message challenge.
     let challenge = crate::challenge::<C>(
         &group_commitment.0,
-        &pubkeys.group_public.element,
+        &public_key,
         signing_package.message().as_slice(),
     );
 
@@ -339,6 +364,10 @@ where
     for signature_share in signature_shares {
         z = z + signature_share.signature.z_share;
     }
+
+    if let Some(randomizer) = signing_package.randomizer {
+        z = z + challenge.0 * randomizer;
+    };
 
     Ok(Signature {
         R: group_commitment.0,
