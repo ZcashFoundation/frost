@@ -43,6 +43,7 @@ where
             .chain(secret_enc.as_ref().iter())
             .cloned()
             .collect();
+
         Self(C::H4(input.as_slice()))
     }
 
