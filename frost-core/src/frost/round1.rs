@@ -8,7 +8,7 @@ use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Error, Field, Group};
 
-use super::keys::{KeyPackage, Secret};
+use super::keys::Secret;
 
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Zeroize)]
@@ -300,7 +300,8 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 // https://github.com/ZcashFoundation/redjubjub/issues/111
 pub fn preprocess<C, R>(
     num_nonces: u8,
-    key_package: &KeyPackage<C>,
+    participant_index: u16,
+    secret: &Secret<C>,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
 where
@@ -312,8 +313,8 @@ where
         Vec::with_capacity(num_nonces as usize);
 
     for _ in 0..num_nonces {
-        let nonces = SigningNonces::new(&key_package.secret_share, rng);
-        signing_commitments.push(SigningCommitments::from((key_package.index, &nonces)));
+        let nonces = SigningNonces::new(secret, rng);
+        signing_commitments.push(SigningCommitments::from((participant_index, &nonces)));
         signing_nonces.push(nonces);
     }
 
@@ -329,12 +330,18 @@ where
 ///
 /// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-5.1
 pub fn commit<C, R>(
-    key_package: &KeyPackage<C>,
+    participant_index: u16,
+    secret: &Secret<C>,
     rng: &mut R,
-) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
+) -> (SigningNonces<C>, SigningCommitments<C>)
 where
     C: Ciphersuite,
     R: CryptoRng + RngCore,
 {
-    preprocess(1, key_package, rng)
+    let (mut vec_signing_nonces, mut vec_signing_commitments) =
+        preprocess(1, participant_index, secret, rng);
+    (
+        vec_signing_nonces.pop().expect("must have 1 element"),
+        vec_signing_commitments.pop().expect("must have 1 element"),
+    )
 }

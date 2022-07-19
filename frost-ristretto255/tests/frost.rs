@@ -21,8 +21,8 @@ fn check_sign_with_dealer() {
         .map(|share| keys::KeyPackage::try_from(share).unwrap())
         .collect();
 
-    let mut nonces: HashMap<u16, Vec<round1::SigningNonces>> = HashMap::new();
-    let mut commitments: HashMap<u16, Vec<round1::SigningCommitments>> = HashMap::new();
+    let mut nonces: HashMap<u16, round1::SigningNonces> = HashMap::new();
+    let mut commitments: HashMap<u16, round1::SigningCommitments> = HashMap::new();
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 1: generating nonces and signing commitments for each participant
@@ -32,7 +32,11 @@ fn check_sign_with_dealer() {
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _threshold_.
         let (nonce, commitment) = round1::commit(
-            key_packages.get((participant_index - 1) as usize).unwrap(),
+            participant_index as u16,
+            key_packages
+                .get((participant_index - 1) as usize)
+                .unwrap()
+                .secret_share(),
             &mut rng,
         );
         nonces.insert(participant_index as u16, nonce);
@@ -44,7 +48,7 @@ fn check_sign_with_dealer() {
     // - take one (unused) commitment per signing participant
     let mut signature_shares: Vec<round2::SignatureShare> = Vec::new();
     let message = "message to sign".as_bytes();
-    let comms = commitments.clone().into_values().flatten().collect();
+    let comms = commitments.clone().into_values().collect();
     let signing_package = SigningPackage::new(comms, message.to_vec());
 
     ////////////////////////////////////////////////////////////////////////////
@@ -57,7 +61,7 @@ fn check_sign_with_dealer() {
             .find(|key_package| *participant_index == key_package.index)
             .unwrap();
 
-        let nonces_to_use = &nonces.get(participant_index).unwrap()[0];
+        let nonces_to_use = &nonces.get(participant_index).unwrap();
 
         // Each participant generates their signature share.
         let signature_share = round2::sign(&signing_package, nonces_to_use, key_package).unwrap();
