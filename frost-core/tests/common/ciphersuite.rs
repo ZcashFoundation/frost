@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use curve25519_dalek::{
-    constants::{BASEPOINT_ORDER, RISTRETTO_BASEPOINT_POINT},
+    constants::RISTRETTO_BASEPOINT_POINT,
     ristretto::{CompressedRistretto, RistrettoPoint},
     scalar::Scalar,
     traits::Identity,
@@ -74,10 +74,6 @@ impl Group for RistrettoGroup {
 
     type Serialization = [u8; 32];
 
-    fn order() -> <Self::Field as Field>::Scalar {
-        BASEPOINT_ORDER
-    }
-
     fn cofactor() -> <Self::Field as Field>::Scalar {
         Scalar::one()
     }
@@ -102,10 +98,10 @@ impl Group for RistrettoGroup {
     }
 }
 
-/// Context string 'FROST-RISTRETTO255-SHA512' from the ciphersuite in the [spec]
+/// Context string 'FROST-RISTRETTO255-SHA512-v5' from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.txt
-const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512";
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.2-1
+const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v5";
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Ristretto255Sha512;
@@ -157,6 +153,17 @@ impl Ciphersuite for Ristretto255Sha512 {
         let mut output = [0u8; 64];
         output.copy_from_slice(h.finalize().as_slice());
         output
+    }
+
+    fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        let h = Sha512::new()
+            .chain(CONTEXT_STRING.as_bytes())
+            .chain("nonce")
+            .chain(m);
+
+        let mut output = [0u8; 64];
+        output.copy_from_slice(h.finalize().as_slice());
+        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
     }
 }
 

@@ -58,18 +58,18 @@ pub trait Field: Copy + Clone {
 
     /// Generate a random scalar from the entire space [0, l-1]
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.3>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.3>
     fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
 
     /// Generate a random scalar from the entire space [1, l-1]
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.4>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.4>
     fn random_nonzero<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
 
     /// A member function of a group _G_ that maps an [`Element`] to a unique byte array buf of
     /// fixed length Ne.
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.5>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.7>
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization;
 
     /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
@@ -78,7 +78,7 @@ pub trait Field: Copy + Clone {
     /// [`Group`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
     /// resulting [`Element`] is the identity element of the group
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.6>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.8>
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error>;
 }
 
@@ -111,11 +111,6 @@ pub trait Group: Copy + Clone {
     /// Little-endian!
     type Serialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
 
-    /// Outputs the order of G (i.e. p)
-    ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.1>
-    fn order() -> <Self::Field as Field>::Scalar;
-
     /// The order of the the quotient group when the prime order subgroup divides the order of the
     /// full curve group.
     ///
@@ -126,19 +121,19 @@ pub trait Group: Copy + Clone {
 
     /// Additive [identity] of the prime order group.
     ///
-    /// [identity]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.2
+    /// [identity]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.2
     fn identity() -> Self::Element;
 
     /// The fixed generator element of the prime order group.
     ///
     /// The 'base' of [`ScalarBaseMult()`] from the spec.
-    /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1
+    /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1
     fn generator() -> Self::Element;
 
     /// A member function of a group _G_ that maps an [`Element`] to a unique byte array buf of
     /// fixed length Ne.
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.5>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.5>
     fn serialize(element: &Self::Element) -> Self::Serialization;
 
     /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
@@ -147,7 +142,7 @@ pub trait Group: Copy + Clone {
     /// [`Group`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
     /// resulting [`Element`] is the identity element of the group
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.6>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.6>
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error>;
 }
 
@@ -157,7 +152,7 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.
 ///
-/// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-ciphersuites
+/// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-ciphersuites
 pub trait Ciphersuite: Copy + Clone {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
@@ -189,11 +184,18 @@ pub trait Ciphersuite: Copy + Clone {
     ///
     /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H3(m: &[u8]) -> Self::HashOutput;
+
+    /// [H4] for a FROST ciphersuite.
+    ///
+    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    ///
+    /// [H4]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 }
 
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
 ///
-/// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#name-signature-challenge-computa
+/// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-signature-challenge-computa
 #[derive(Clone)]
 pub struct Challenge<C: Ciphersuite>(
     pub(crate) <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
@@ -219,8 +221,8 @@ where
 ///
 /// This is the only invocation of the H2 hash function from the [RFC].
 ///
-/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-4.6
-/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.2
+/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-4.7
+/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.2
 fn challenge<C>(
     R: &<C::Group as Group>::Element,
     verifying_key: &<C::Group as Group>::Element,

@@ -26,8 +26,8 @@ fn check_sign_with_dealer() {
         .map(|share| frost::keys::KeyPackage::try_from(share).unwrap())
         .collect();
 
-    let mut nonces: HashMap<u16, Vec<frost::round1::SigningNonces<R>>> = HashMap::new();
-    let mut commitments: HashMap<u16, Vec<frost::round1::SigningCommitments<R>>> = HashMap::new();
+    let mut nonces: HashMap<u16, frost::round1::SigningNonces<R>> = HashMap::new();
+    let mut commitments: HashMap<u16, frost::round1::SigningCommitments<R>> = HashMap::new();
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 1: generating nonces and signing commitments for each participant
@@ -36,7 +36,14 @@ fn check_sign_with_dealer() {
     for participant_index in 1..(threshold + 1) {
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _threshold_.
-        let (nonce, commitment) = frost::round1::preprocess(1, participant_index as u16, &mut rng);
+        let (nonce, commitment) = frost::round1::commit(
+            participant_index as u16,
+            key_packages
+                .get((participant_index - 1) as usize)
+                .unwrap()
+                .secret_share(),
+            &mut rng,
+        );
         nonces.insert(participant_index as u16, nonce);
         commitments.insert(participant_index as u16, commitment);
     }
@@ -46,7 +53,7 @@ fn check_sign_with_dealer() {
     // - take one (unused) commitment per signing participant
     let mut signature_shares: Vec<frost::round2::SignatureShare<R>> = Vec::new();
     let message = "message to sign".as_bytes();
-    let comms = commitments.clone().into_values().flatten().collect();
+    let comms = commitments.clone().into_values().collect();
     let signing_package = frost::SigningPackage::new(comms, message.to_vec());
 
     ////////////////////////////////////////////////////////////////////////////
@@ -59,7 +66,7 @@ fn check_sign_with_dealer() {
             .find(|key_package| *participant_index == key_package.index)
             .unwrap();
 
-        let nonces_to_use = &nonces.get(participant_index).unwrap()[0];
+        let nonces_to_use = &nonces.get(participant_index).unwrap();
 
         // Each participant generates their signature share.
         let signature_share =

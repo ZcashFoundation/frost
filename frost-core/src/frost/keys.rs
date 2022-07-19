@@ -203,7 +203,7 @@ where
     ///
     /// An implementation of `vss_verify()` from the [spec].
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#appendix-B.2-4
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#appendix-B.2-5
     pub fn verify(&self) -> Result<(), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
 

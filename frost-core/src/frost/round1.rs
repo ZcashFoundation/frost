@@ -8,6 +8,8 @@ use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Error, Field, Group};
 
+use super::keys::Secret;
+
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Zeroize)]
 pub struct Nonce<C: Ciphersuite>(pub(super) <<C::Group as Group>::Field as Field>::Scalar);
@@ -16,21 +18,32 @@ impl<C> Nonce<C>
 where
     C: Ciphersuite,
 {
-    /// Generates a new uniformly random signing nonce.
+    /// Generates a new uniformly random signing nonce by sourcing fresh
+    /// randomness and combining with the secret key, to hedge against a bad
+    /// RNG.
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
     ///
-    /// An implementation of `RandomNonzeroScalar()` from the [spec].
+    /// An implementation of `nonce_generate(secret)` from the [spec].
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-3.1-3.4
-    pub fn random<R>(rng: &mut R) -> Self
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-nonce-generation
+    pub fn new<R>(secret: &Secret<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
-        // The values of 'hiding' and 'binding' nonces must be non-zero so that commitments are
-        // not the identity.
-        Self(<<C::Group as Group>::Field as Field>::random_nonzero(rng))
+        let mut k_enc = [0; 32];
+        rng.fill_bytes(&mut k_enc[..]);
+
+        let secret_enc = <<C::Group as Group>::Field as Field>::serialize(&secret.0);
+
+        let input: Vec<u8> = k_enc
+            .iter()
+            .chain(secret_enc.as_ref().iter())
+            .cloned()
+            .collect();
+
+        Self(C::H4(input.as_slice()))
     }
 
     /// Deserialize [`Nonce`] from bytes
@@ -154,14 +167,14 @@ where
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
-    pub fn new<R>(rng: &mut R) -> Self
+    pub fn new<R>(secret: &Secret<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
         // The values of 'hiding' and 'binding' must be non-zero so that commitments are
         // not the identity.
-        let hiding = Nonce::<C>::random(rng);
-        let binding = Nonce::<C>::random(rng);
+        let hiding = Nonce::<C>::new(secret, rng);
+        let binding = Nonce::<C>::new(secret, rng);
 
         Self { hiding, binding }
     }
@@ -273,6 +286,9 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 /// Done once by each participant, to generate _their_ nonces and commitments
 /// that are then used during signing.
 ///
+/// This is only needed if pre-processing is needed (for 1-round FROST). For
+/// regular 2-round FROST, use [`commit`].
+///
 /// When performing signing using two rounds, num_nonces would equal 1, to
 /// perform the first round. Batching entails generating more than one
 /// nonce/commitment pair at a time.  Nonces should be stored in secret storage
@@ -285,6 +301,7 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 pub fn preprocess<C, R>(
     num_nonces: u8,
     participant_index: u16,
+    secret: &Secret<C>,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
 where
@@ -296,10 +313,35 @@ where
         Vec::with_capacity(num_nonces as usize);
 
     for _ in 0..num_nonces {
-        let nonces = SigningNonces::new(rng);
+        let nonces = SigningNonces::new(secret, rng);
         signing_commitments.push(SigningCommitments::from((participant_index, &nonces)));
         signing_nonces.push(nonces);
     }
 
     (signing_nonces, signing_commitments)
+}
+
+/// Performed once by each participant selected for the signing operation.
+///
+/// Implements [`commit`] from the spec.
+///
+/// Generates the signing nonces and commitments to be used in the signing
+/// operation.
+///
+/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-5.1
+pub fn commit<C, R>(
+    participant_index: u16,
+    secret: &Secret<C>,
+    rng: &mut R,
+) -> (SigningNonces<C>, SigningCommitments<C>)
+where
+    C: Ciphersuite,
+    R: CryptoRng + RngCore,
+{
+    let (mut vec_signing_nonces, mut vec_signing_commitments) =
+        preprocess(1, participant_index, secret, rng);
+    (
+        vec_signing_nonces.pop().expect("must have 1 element"),
+        vec_signing_commitments.pop().expect("must have 1 element"),
+    )
 }

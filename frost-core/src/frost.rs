@@ -247,7 +247,8 @@ where
 
         let identity = <C::Group as Group>::identity();
 
-        let mut accumulator = <C::Group as Group>::identity();
+        let mut group_hiding_commitment = <C::Group as Group>::identity();
+        let mut group_binding_commitment = <C::Group as Group>::identity();
 
         // Ala the sorting of B, just always sort by index in ascending order
         //
@@ -258,11 +259,13 @@ where
             if identity == commitment.binding.0 || identity == commitment.hiding.0 {
                 return Err("Commitment equals the identity.");
             }
-
-            accumulator = accumulator + (commitment.hiding.0 + (commitment.binding.0 * rho.0))
+            group_hiding_commitment = group_hiding_commitment + commitment.hiding.0;
+            group_binding_commitment = group_binding_commitment + commitment.binding.0;
         }
 
-        Ok(GroupCommitment(accumulator))
+        Ok(GroupCommitment(
+            group_hiding_commitment + group_binding_commitment * rho.0,
+        ))
     }
 }
 
