@@ -226,7 +226,7 @@ pub mod keys {
 
 ///
 pub mod round1 {
-    use frost_core::frost::keys::KeyPackage;
+    use frost_core::frost::keys::{KeyPackage, Secret};
 
     use super::*;
     ///
@@ -237,13 +237,14 @@ pub mod round1 {
 
     ///
     pub fn commit<RNG>(
-        key_package: &KeyPackage<P>,
+        participant_index: u16,
+        secret: &Secret<P>,
         rng: &mut RNG,
-    ) -> (Vec<SigningNonces>, Vec<SigningCommitments>)
+    ) -> (SigningNonces, SigningCommitments)
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::commit::<P, RNG>(key_package, rng)
+        frost::round1::commit::<P, RNG>(participant_index, secret, rng)
     }
 }
 
