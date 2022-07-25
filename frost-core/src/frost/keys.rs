@@ -173,12 +173,12 @@ pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
 /// `n` is the total number of shares and `t` is the threshold required to reconstruct the secret;
 /// in this case we use Shamir's secret sharing.
 ///
-/// As a solution to the secret polynomial _f_ (a 'point'), the `index` is the x-coordinate, and the
+/// As a solution to the secret polynomial _f_ (a 'point'), the `identifier` is the x-coordinate, and the
 /// `value` is the y-coordinate.
 #[derive(Clone, Zeroize)]
 pub struct SecretShare<C: Ciphersuite> {
-    /// The participant index of this [`SecretShare`].
-    pub index: u16,
+    /// The participant identifier of this [`SecretShare`].
+    pub identifier: Identifier<C>,
     /// Secret Key.
     pub value: Secret<C>,
     /// The commitments to be distributed among signers.
@@ -207,16 +207,14 @@ where
     pub fn verify(&self) -> Result<(), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
 
-        let x = Identifier::<C>::try_from(self.index).unwrap();
+        let x = self.identifier.to_scalar();
 
         let (_, result) = self.commitment.0.iter().fold(
             (
                 <<C::Group as Group>::Field as Field>::one(),
                 <C::Group as Group>::identity(),
             ),
-            |(x_to_the_i, sum_so_far), comm_i| {
-                (*x * x_to_the_i, sum_so_far + comm_i.0 * x_to_the_i)
-            },
+            |(x_to_the_i, sum_so_far), comm_i| (x * x_to_the_i, sum_so_far + comm_i.0 * x_to_the_i),
         );
 
         if !(f_result == result) {
@@ -234,8 +232,8 @@ where
 /// .into(), which under the hood also performs validation.
 #[derive(Clone)]
 pub struct SharePackage<C: Ciphersuite> {
-    /// Denotes the participant index each share is owned by.
-    pub index: u16,
+    /// Denotes the participant identifier each share is owned by.
+    pub identifier: Identifier<C>,
     /// This participant's secret share.
     pub secret_share: SecretShare<C>,
     /// This participant's public key.
@@ -268,19 +266,20 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let group_public = VerifyingKey::from(&secret);
     let secret_shares = generate_secret_shares(&secret, num_signers, threshold, rng)?;
     let mut share_packages: Vec<SharePackage<C>> = Vec::with_capacity(num_signers as usize);
-    let mut signer_pubkeys: HashMap<u16, Public<C>> = HashMap::with_capacity(num_signers as usize);
+    let mut signer_pubkeys: HashMap<Identifier<C>, Public<C>> =
+        HashMap::with_capacity(num_signers as usize);
 
     for secret_share in secret_shares {
         let signer_public = secret_share.value.into();
 
         share_packages.push(SharePackage {
-            index: secret_share.index,
+            identifier: secret_share.identifier,
             secret_share: secret_share.clone(),
             public: signer_public,
             group_public,
         });
 
-        signer_pubkeys.insert(secret_share.index, signer_public);
+        signer_pubkeys.insert(secret_share.identifier, signer_public);
     }
 
     Ok((
@@ -300,8 +299,8 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// [`KeyPackage`]s, which they store to later use during signing.
 #[derive(Clone)]
 pub struct KeyPackage<C: Ciphersuite> {
-    /// Denotes the participant index each secret share key package is owned by.
-    pub index: u16,
+    /// Denotes the participant identifier each secret share key package is owned by.
+    pub identifier: Identifier<C>,
     /// This participant's secret share.
     pub secret_share: Secret<C>,
     /// This participant's public key.
@@ -314,9 +313,9 @@ impl<C> KeyPackage<C>
 where
     C: Ciphersuite,
 {
-    /// Gets the participant index associated with this [`KeyPackage`].
-    pub fn index(&self) -> &u16 {
-        &self.index
+    /// Gets the participant identifier associated with this [`KeyPackage`].
+    pub fn identifier(&self) -> &Identifier<C> {
+        &self.identifier
     }
 
     /// Gets the participant's [`Secret`] share associated with this [`KeyPackage`].
@@ -353,7 +352,7 @@ where
         share_package.secret_share.verify()?;
 
         Ok(KeyPackage {
-            index: share_package.index,
+            identifier: share_package.identifier,
             secret_share: share_package.secret_share.value,
             public: share_package.public,
             group_public: share_package.group_public,
@@ -370,7 +369,7 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     /// correct view of participants' public keys to perform verification before
     /// publishing a signature. `signer_pubkeys` represents all signers for a
     /// signing operation.
-    pub signer_pubkeys: HashMap<u16, Public<C>>,
+    pub signer_pubkeys: HashMap<Identifier<C>, Public<C>>,
     /// The joint public key for the entire group.
     pub group_public: VerifyingKey<C>,
 }
@@ -438,24 +437,25 @@ pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     }
 
     // Evaluate the polynomial with `secret` as the constant term
-    // and `coeffs` as the other coefficients at the point x=share_index,
+    // and `coeffs` as the other coefficients at the point x=share_identifier,
     // using Horner's method.
     for id in (1..=numshares as u16).map_while(|i| Identifier::<C>::try_from(i).ok()) {
         let mut value = <<C::Group as Group>::Field as Field>::zero();
+        let id_scalar = id.to_scalar();
 
-        // Polynomial evaluation, for this index
+        // Polynomial evaluation, for this identifier
         //
         // We rely only on `Add` and `Mul` here so as to not require `AddAssign` and `MulAssign`
         //
         // Note that this is from the 'last' coefficient to the 'first'.
         for i in (0..numcoeffs).rev() {
             value = value + coefficients[i as usize];
-            value = *id * value;
+            value = id_scalar * value;
         }
         value = value + secret.0;
 
         secret_shares.push(SecretShare {
-            index: usize::from(id) as u16,
+            identifier: id,
             value: Secret(value),
             commitment: commitment.clone(),
         });
@@ -474,7 +474,7 @@ pub fn reconstruct_secret<C: Ciphersuite>(
 
     let secret_share_map: HashMap<Identifier<C>, SecretShare<C>> = secret_shares
         .into_iter()
-        .map(|share| (Identifier::<C>::try_from(share.index).unwrap(), share))
+        .map(|share| (share.identifier, share))
         .collect();
 
     let mut secret = <<C::Group as Group>::Field as Field>::zero();
@@ -483,17 +483,19 @@ pub fn reconstruct_secret<C: Ciphersuite>(
     for (i, secret_share) in secret_share_map.clone() {
         let mut num = <<C::Group as Group>::Field as Field>::one();
         let mut den = <<C::Group as Group>::Field as Field>::one();
+        let i_scalar = i.to_scalar();
 
         for j in secret_share_map.clone().into_keys() {
             if j == i {
                 continue;
             }
+            let j_scalar = j.to_scalar();
 
             // numerator *= j
-            num = num * *j;
+            num = num * j_scalar;
 
             // denominator *= j - i
-            den = den * (*j - *i);
+            den = den * (j_scalar - i_scalar);
         }
 
         // If at this step, the denominator is zero in the scalar field, there must be a duplicate

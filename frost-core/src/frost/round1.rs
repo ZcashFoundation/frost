@@ -8,7 +8,7 @@ use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Error, Field, Group};
 
-use super::keys::Secret;
+use super::{keys::Secret, Identifier};
 
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Zeroize)]
@@ -196,8 +196,8 @@ where
 /// SigningCommitment can be used for exactly *one* signature.
 #[derive(Copy, Clone)]
 pub struct SigningCommitments<C: Ciphersuite> {
-    /// The participant index.
-    pub index: u16,
+    /// The participant identifier.
+    pub identifier: Identifier<C>,
     /// Commitment to the hiding [`Nonce`].
     pub hiding: NonceCommitment<C>,
     /// Commitment to the binding [`Nonce`].
@@ -229,13 +229,13 @@ where
     }
 }
 
-impl<C> From<(u16, &SigningNonces<C>)> for SigningCommitments<C>
+impl<C> From<(Identifier<C>, &SigningNonces<C>)> for SigningCommitments<C>
 where
     C: Ciphersuite,
 {
-    fn from((index, nonces): (u16, &SigningNonces<C>)) -> Self {
+    fn from((identifier, nonces): (Identifier<C>, &SigningNonces<C>)) -> Self {
         Self {
-            index,
+            identifier,
             hiding: nonces.hiding.clone().into(),
             binding: nonces.binding.clone().into(),
         }
@@ -253,9 +253,9 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) <C::Group as Group>::
 ///
 /// Inputs:
 /// - commitment_list = [(j, D_j, E_j), ...], a list of commitments issued by each signer,
-///   where each element in the list indicates the signer index and their
+///   where each element in the list indicates the signer identifier and their
 ///   two commitment Element values. B MUST be sorted in ascending order
-///   by signer index.
+///   by signer identifier.
 ///
 /// Outputs:
 /// - A byte string containing the serialized representation of B.
@@ -264,18 +264,18 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) <C::Group as Group>::
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: Vec<SigningCommitments<C>>,
 ) -> Vec<u8> {
-    // B MUST be sorted in ascending order by signer index.
+    // B MUST be sorted in ascending order by signer identifier.
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
     //
     // TODO: AtLeastOne or other explicitly Sorted wrapper types?
     let mut sorted_signing_commitments = signing_commitments;
-    sorted_signing_commitments.sort_by_key(|a| a.index);
+    sorted_signing_commitments.sort_by_key(|a| a.identifier);
 
     let mut bytes = vec![];
 
     for item in sorted_signing_commitments {
-        bytes.extend_from_slice(&item.index.to_be_bytes()); // TODO: 2-bytes until spec moves off u16
+        bytes.extend_from_slice(&u16::from(item.identifier).to_be_bytes()); // TODO: 2-bytes until spec moves off u16
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.hiding.0).as_ref());
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.binding.0).as_ref());
     }
@@ -300,7 +300,7 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 // https://github.com/ZcashFoundation/redjubjub/issues/111
 pub fn preprocess<C, R>(
     num_nonces: u8,
-    participant_index: u16,
+    participant_identifier: Identifier<C>,
     secret: &Secret<C>,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
@@ -314,7 +314,7 @@ where
 
     for _ in 0..num_nonces {
         let nonces = SigningNonces::new(secret, rng);
-        signing_commitments.push(SigningCommitments::from((participant_index, &nonces)));
+        signing_commitments.push(SigningCommitments::from((participant_identifier, &nonces)));
         signing_nonces.push(nonces);
     }
 
@@ -330,7 +330,7 @@ where
 ///
 /// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-5.1
 pub fn commit<C, R>(
-    participant_index: u16,
+    participant_identifier: Identifier<C>,
     secret: &Secret<C>,
     rng: &mut R,
 ) -> (SigningNonces<C>, SigningCommitments<C>)
@@ -339,7 +339,7 @@ where
     R: CryptoRng + RngCore,
 {
     let (mut vec_signing_nonces, mut vec_signing_commitments) =
-        preprocess(1, participant_index, secret, rng);
+        preprocess(1, participant_identifier, secret, rng);
     (
         vec_signing_nonces.pop().expect("must have 1 element"),
         vec_signing_commitments.pop().expect("must have 1 element"),
