@@ -202,6 +202,9 @@ impl Ciphersuite for P256Sha256 {
 type P = P256Sha256;
 
 ///
+pub type Identifier = frost::Identifier<P>;
+
+///
 pub mod keys {
     use super::*;
 
@@ -237,14 +240,14 @@ pub mod round1 {
 
     ///
     pub fn commit<RNG>(
-        participant_index: u16,
+        participant_identifier: frost::Identifier<P>,
         secret: &Secret<P>,
         rng: &mut RNG,
     ) -> (SigningNonces, SigningCommitments)
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::commit::<P, RNG>(participant_index, secret, rng)
+        frost::round1::commit::<P, RNG>(participant_identifier, secret, rng)
     }
 }
 

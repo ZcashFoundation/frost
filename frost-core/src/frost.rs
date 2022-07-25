@@ -99,46 +99,28 @@ where
 
 /// Generates the lagrange coefficient for the i'th participant.
 fn derive_lagrange_coeff<C: Ciphersuite>(
-    signer_id: u16,
+    signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
 ) -> Result<<<C::Group as Group>::Field as Field>::Scalar, &'static str> {
-    // This should fail and panic if signer_id_scalar is 0 in the scalar field.
-    let signer_id_scalar = Identifier::<C>::try_from(signer_id).unwrap();
+    let signer_id_scalar = signer_id.to_scalar();
 
     let zero = <<C::Group as Group>::Field as Field>::zero();
-
-    // TODO: This is redundant
-    if signer_id_scalar.0 == zero {
-        return Err("Invalid parameters");
-    }
-
-    if signing_package
-        .signing_commitments()
-        .iter()
-        .any(|commitment| {
-            let commitment_id_scalar = Identifier::<C>::try_from(commitment.index).unwrap();
-
-            *commitment_id_scalar == zero
-        })
-    {
-        return Err("Invalid parameters");
-    }
 
     let mut num = <<C::Group as Group>::Field as Field>::one();
     let mut den = <<C::Group as Group>::Field as Field>::one();
 
-    // Ala the sorting of B, just always sort by index in ascending order
+    // Ala the sorting of B, just always sort by identifier in ascending order
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
     for commitment in signing_package.signing_commitments() {
-        if commitment.index == signer_id {
+        if commitment.identifier == *signer_id {
             continue;
         }
 
-        let commitment_id_scalar = Identifier::<C>::try_from(commitment.index).unwrap();
+        let commitment_id_scalar = commitment.identifier.to_scalar();
 
-        num = num * *commitment_id_scalar;
-        den = den * (*commitment_id_scalar - *signer_id_scalar);
+        num = num * commitment_id_scalar;
+        den = den * (commitment_id_scalar - signer_id_scalar);
     }
 
     if den == zero {
@@ -156,7 +138,7 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
 pub struct SigningPackage<C: Ciphersuite> {
     /// The set of commitments participants published in the first round of the
     /// protocol.
-    signing_commitments: HashMap<u16, round1::SigningCommitments<C>>,
+    signing_commitments: HashMap<Identifier<C>, round1::SigningCommitments<C>>,
     /// Message which each participant will sign.
     ///
     /// Each signer should perform protocol-specific verification on the
@@ -170,32 +152,30 @@ where
 {
     /// Create a new `SigingPackage`
     ///
-    /// The `signing_commitments` are sorted by participant `index`.
+    /// The `signing_commitments` are sorted by participant `identifier`.
     pub fn new(
-        mut signing_commitments: Vec<round1::SigningCommitments<C>>,
+        signing_commitments: Vec<round1::SigningCommitments<C>>,
         message: Vec<u8>,
     ) -> SigningPackage<C> {
-        signing_commitments.sort_by_key(|a| a.index);
-
         SigningPackage {
             signing_commitments: signing_commitments
                 .into_iter()
-                .map(|s| (s.index, s))
+                .map(|s| (s.identifier, s))
                 .collect(),
             message,
         }
     }
 
-    /// Get a signing commitment by its participant index.
-    pub fn signing_commitment(&self, index: &u16) -> round1::SigningCommitments<C> {
-        self.signing_commitments[index]
+    /// Get a signing commitment by its participant identifier.
+    pub fn signing_commitment(&self, identifier: &Identifier<C>) -> round1::SigningCommitments<C> {
+        self.signing_commitments[identifier]
     }
 
     /// Get the signing commitments, sorted by the participant indices
     pub fn signing_commitments(&self) -> Vec<round1::SigningCommitments<C>> {
         let mut signing_commitments: Vec<round1::SigningCommitments<C>> =
             self.signing_commitments.values().cloned().collect();
-        signing_commitments.sort_by_key(|a| a.index);
+        signing_commitments.sort_by_key(|a| a.identifier);
         signing_commitments
     }
 
@@ -250,7 +230,7 @@ where
         let mut group_hiding_commitment = <C::Group as Group>::identity();
         let mut group_binding_commitment = <C::Group as Group>::identity();
 
-        // Ala the sorting of B, just always sort by index in ascending order
+        // Ala the sorting of B, just always sort by identifier in ascending order
         //
         // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
         for commitment in signing_package.signing_commitments() {
@@ -314,14 +294,17 @@ where
     for signature_share in signature_shares {
         // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
         // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
-        let signer_pubkey = pubkeys.signer_pubkeys.get(&signature_share.index).unwrap();
+        let signer_pubkey = pubkeys
+            .signer_pubkeys
+            .get(&signature_share.identifier)
+            .unwrap();
 
         // Compute Lagrange coefficient.
-        let lambda_i = derive_lagrange_coeff(signature_share.index, signing_package)?;
+        let lambda_i = derive_lagrange_coeff(&signature_share.identifier, signing_package)?;
 
         // Compute the commitment share.
         let R_share = signing_package
-            .signing_commitment(&signature_share.index)
+            .signing_commitment(&signature_share.identifier)
             .to_group_commitment_share(&rho);
 
         // Compute relation values to verify this signature share.

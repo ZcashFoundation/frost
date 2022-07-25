@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom};
 
-use frost_core::frost;
+use frost_core::frost::{self, Identifier};
 use rand::thread_rng;
 
 mod common;
@@ -21,31 +21,38 @@ fn check_sign_with_dealer() {
         frost::keys::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
 
     // Verifies the secret shares from the dealer
-    let key_packages: Vec<frost::keys::KeyPackage<R>> = shares
+    let key_packages: HashMap<frost::Identifier<R>, frost::keys::KeyPackage<R>> = shares
         .into_iter()
-        .map(|share| frost::keys::KeyPackage::try_from(share).unwrap())
+        .map(|share| {
+            (
+                share.identifier,
+                frost::keys::KeyPackage::try_from(share).unwrap(),
+            )
+        })
         .collect();
 
-    let mut nonces: HashMap<u16, frost::round1::SigningNonces<R>> = HashMap::new();
-    let mut commitments: HashMap<u16, frost::round1::SigningCommitments<R>> = HashMap::new();
+    let mut nonces: HashMap<Identifier<R>, frost::round1::SigningNonces<R>> = HashMap::new();
+    let mut commitments: HashMap<Identifier<R>, frost::round1::SigningCommitments<R>> =
+        HashMap::new();
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 1: generating nonces and signing commitments for each participant
     ////////////////////////////////////////////////////////////////////////////
 
-    for participant_index in 1..(threshold + 1) {
+    for participant_index in 1..(threshold as u16 + 1) {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _threshold_.
         let (nonce, commitment) = frost::round1::commit(
-            participant_index as u16,
+            participant_identifier,
             key_packages
-                .get((participant_index - 1) as usize)
+                .get(&participant_identifier)
                 .unwrap()
                 .secret_share(),
             &mut rng,
         );
-        nonces.insert(participant_index as u16, nonce);
-        commitments.insert(participant_index as u16, commitment);
+        nonces.insert(participant_identifier, nonce);
+        commitments.insert(participant_identifier, commitment);
     }
 
     // This is what the signature aggregator / coordinator needs to do:
@@ -60,13 +67,10 @@ fn check_sign_with_dealer() {
     // Round 2: each participant generates their signature share
     ////////////////////////////////////////////////////////////////////////////
 
-    for participant_index in nonces.keys() {
-        let key_package = key_packages
-            .iter()
-            .find(|key_package| *participant_index == key_package.index)
-            .unwrap();
+    for participant_identifier in nonces.keys() {
+        let key_package = key_packages.get(participant_identifier).unwrap();
 
-        let nonces_to_use = &nonces.get(participant_index).unwrap();
+        let nonces_to_use = &nonces.get(participant_identifier).unwrap();
 
         // Each participant generates their signature share.
         let signature_share =
@@ -95,8 +99,8 @@ fn check_sign_with_dealer() {
 
     // Check that the threshold signature can be verified by the group public
     // key (the verification key) from SharePackage.group_public
-    for (participant_index, _) in nonces.clone() {
-        let key_package = key_packages.get(participant_index as usize).unwrap();
+    for (participant_identifier, _) in nonces.clone() {
+        let key_package = key_packages.get(&participant_identifier).unwrap();
 
         assert!(key_package
             .group_public
