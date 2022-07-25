@@ -60,8 +60,8 @@ where
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct SignatureShare<C: Ciphersuite> {
-    /// Represents the participant index.
-    pub index: u16,
+    /// Represents the participant identifier.
+    pub identifier: Identifier<C>,
     /// This participant's signature over the message.
     pub signature: SignatureResponse<C>,
 }
@@ -70,9 +70,9 @@ impl<C> SignatureShare<C>
 where
     C: Ciphersuite,
 {
-    /// Gets the participant index associated with this [`SignatureShare`].
-    pub fn index(&self) -> &u16 {
-        &self.index
+    /// Gets the participant identifier associated with this [`SignatureShare`].
+    pub fn identifier(&self) -> &Identifier<C> {
+        &self.identifier
     }
 
     /// Tests if a signature share issued by a participant is valid before
@@ -104,7 +104,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("SignatureShare")
-            .field("index", &self.index)
+            .field("identifier", &self.identifier)
             .field("signature", &self.signature)
             .finish()
     }
@@ -141,7 +141,7 @@ pub fn sign<C: Ciphersuite>(
     let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
 
     // Compute Lagrange coefficient.
-    let lambda_i = frost::derive_lagrange_coeff(*key_package.index(), signing_package)?;
+    let lambda_i = frost::derive_lagrange_coeff(key_package.identifier(), signing_package)?;
 
     // Compute the per-message challenge.
     let challenge = challenge::<C>(
@@ -156,7 +156,7 @@ pub fn sign<C: Ciphersuite>(
         + (lambda_i * key_package.secret_share.0 * challenge.0);
 
     let signature_share = SignatureShare::<C> {
-        index: *key_package.index(),
+        identifier: *key_package.identifier(),
         signature: SignatureResponse::<C> { z_share },
     };
 

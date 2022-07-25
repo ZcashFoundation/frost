@@ -1,4 +1,4 @@
-use frost_core::frost;
+use frost_core::frost::{self};
 use rand::thread_rng;
 
 mod common;
@@ -93,9 +93,9 @@ fn check_sign_with_test_vectors() {
     let mut our_signature_shares: Vec<frost::round2::SignatureShare<R>> = Vec::new();
 
     // Each participant generates their signature share
-    for index in signer_nonces.keys() {
-        let key_package = &key_packages[index];
-        let nonces = &signer_nonces[index];
+    for identifier in signer_nonces.keys() {
+        let key_package = &key_packages[identifier];
+        let nonces = &signer_nonces[identifier];
 
         // Each participant generates their signature share.
         let signature_share = frost::round2::sign(&signing_package, nonces, key_package).unwrap();
@@ -104,7 +104,7 @@ fn check_sign_with_test_vectors() {
     }
 
     for sig_share in our_signature_shares.clone() {
-        assert_eq!(sig_share, signature_shares[sig_share.index()]);
+        assert_eq!(sig_share, signature_shares[sig_share.identifier()]);
     }
 
     let signer_pubkeys = key_packages
@@ -150,3 +150,18 @@ fn check_sign_with_test_vectors() {
     let group_signature = group_signature_result.unwrap();
     assert_eq!(group_signature.to_bytes().to_vec(), signature_bytes);
 }
+
+// This allows checking that to_scalar() works for all possible inputs;
+// but requires making to_scalar() public.
+// #[test]
+// fn test_identifier_to_scalar() {
+//     type R = Ristretto255Sha512;
+
+//     let one = <<<R as Ciphersuite>::Group as Group>::Field as Field>::one();
+//     let mut sum = <<<R as Ciphersuite>::Group as Group>::Field as Field>::one();
+//     for i in 1..0xFFFFu16 {
+//         let identifier: Identifier<R> = i.try_into().unwrap();
+//         assert_eq!(sum, identifier.to_scalar());
+//         sum = sum + one;
+//     }
+// }

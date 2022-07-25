@@ -22,14 +22,14 @@ lazy_static! {
 #[allow(dead_code)]
 pub(crate) fn parse_test_vectors() -> (
     VerifyingKey<P256Sha256>,
-    HashMap<u16, KeyPackage<P256Sha256>>,
+    HashMap<Identifier<P256Sha256>, KeyPackage<P256Sha256>>,
     &'static str,
     Vec<u8>,
-    HashMap<u16, SigningNonces<P256Sha256>>,
-    HashMap<u16, SigningCommitments<P256Sha256>>,
+    HashMap<Identifier<P256Sha256>, SigningNonces<P256Sha256>>,
+    HashMap<Identifier<P256Sha256>, SigningCommitments<P256Sha256>>,
     Vec<u8>,
     Rho<P256Sha256>,
-    HashMap<u16, SignatureShare<P256Sha256>>,
+    HashMap<Identifier<P256Sha256>, SignatureShare<P256Sha256>>,
     Vec<u8>, // Signature<P256Sha256>,
 ) {
     type R = P256Sha256;
@@ -39,7 +39,7 @@ pub(crate) fn parse_test_vectors() -> (
     let message = inputs["message"].as_str().unwrap();
     let message_bytes = hex::decode(message).unwrap();
 
-    let mut key_packages: HashMap<u16, KeyPackage<R>> = HashMap::new();
+    let mut key_packages: HashMap<Identifier<P256Sha256>, KeyPackage<R>> = HashMap::new();
 
     let possible_signers = P256_SHA256["inputs"]["signers"].as_object().unwrap().iter();
 
@@ -51,13 +51,13 @@ pub(crate) fn parse_test_vectors() -> (
         let signer_public = secret.into();
 
         let key_package = KeyPackage::<R> {
-            index: u16::from_str(i).unwrap(),
+            identifier: u16::from_str(i).unwrap().try_into().unwrap(),
             secret_share: secret,
             public: signer_public,
             group_public,
         };
 
-        key_packages.insert(*key_package.index(), key_package);
+        key_packages.insert(*key_package.identifier(), key_package);
     }
 
     // Round one outputs
@@ -74,21 +74,21 @@ pub(crate) fn parse_test_vectors() -> (
     let group_binding_factor =
         Rho::<R>::from_hex(round_one_outputs["group_binding_factor"].as_str().unwrap()).unwrap();
 
-    let mut signer_nonces: HashMap<u16, SigningNonces<R>> = HashMap::new();
-    let mut signer_commitments: HashMap<u16, SigningCommitments<R>> = HashMap::new();
+    let mut signer_nonces: HashMap<Identifier<R>, SigningNonces<R>> = HashMap::new();
+    let mut signer_commitments: HashMap<Identifier<R>, SigningCommitments<R>> = HashMap::new();
 
     for (i, signer) in round_one_outputs["signers"].as_object().unwrap().iter() {
-        let index = u16::from_str(i).unwrap();
+        let identifier = u16::from_str(i).unwrap().try_into().unwrap();
 
         let signing_nonces = SigningNonces::<R> {
             hiding: Nonce::<R>::from_hex(signer["hiding_nonce"].as_str().unwrap()).unwrap(),
             binding: Nonce::<R>::from_hex(signer["binding_nonce"].as_str().unwrap()).unwrap(),
         };
 
-        signer_nonces.insert(index, signing_nonces);
+        signer_nonces.insert(identifier, signing_nonces);
 
         let signing_commitments = SigningCommitments::<R> {
-            index,
+            identifier,
             hiding: NonceCommitment::from_hex(signer["hiding_nonce_commitment"].as_str().unwrap())
                 .unwrap(),
             binding: NonceCommitment::from_hex(
@@ -97,18 +97,18 @@ pub(crate) fn parse_test_vectors() -> (
             .unwrap(),
         };
 
-        signer_commitments.insert(index, signing_commitments);
+        signer_commitments.insert(identifier, signing_commitments);
     }
 
     // Round two outputs
 
     let round_two_outputs = &P256_SHA256["round_two_outputs"];
 
-    let mut signature_shares: HashMap<u16, SignatureShare<R>> = HashMap::new();
+    let mut signature_shares: HashMap<Identifier<R>, SignatureShare<R>> = HashMap::new();
 
     for (i, signer) in round_two_outputs["signers"].as_object().unwrap().iter() {
         let signature_share = SignatureShare::<R> {
-            index: u16::from_str(i).unwrap(),
+            identifier: u16::from_str(i).unwrap().try_into().unwrap(),
             signature: SignatureResponse {
                 z_share: Scalar::from_repr(*FieldBytes::from_slice(
                     hex::decode(signer["sig_share"].as_str().unwrap())
@@ -119,7 +119,10 @@ pub(crate) fn parse_test_vectors() -> (
             },
         };
 
-        signature_shares.insert(u16::from_str(i).unwrap(), signature_share);
+        signature_shares.insert(
+            u16::from_str(i).unwrap().try_into().unwrap(),
+            signature_share,
+        );
     }
 
     // Final output
