@@ -1,14 +1,12 @@
-use frost_core::*;
+//! Ciphersuite-generic functions for proptests
+
+use crate::*;
 use proptest::prelude::*;
 use rand_core::{CryptoRng, RngCore};
 
-mod common;
-
-use common::ciphersuite::Ristretto255Sha512 as R;
-
 /// A signature test-case, containing signature data and expected validity.
 #[derive(Clone, Debug)]
-struct SignatureCase<C: Ciphersuite> {
+pub struct SignatureCase<C: Ciphersuite> {
     msg: Vec<u8>,
     sig: Signature<C>,
     vk: VerifyingKey<C>,
@@ -18,7 +16,7 @@ struct SignatureCase<C: Ciphersuite> {
 
 /// A modification to a test-case.
 #[derive(Copy, Clone, Debug)]
-enum Tweak {
+pub enum Tweak {
     /// No-op, used to check that unchanged cases verify.
     None,
     /// Change the message the signature is defined for, invalidating the signature.
@@ -41,7 +39,8 @@ impl<C> SignatureCase<C>
 where
     C: Ciphersuite,
 {
-    fn new<R: RngCore + CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
+    /// Create a new SignatureCase.
+    pub fn new<R: RngCore + CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
         let sk = SigningKey::<C>::new(&mut rng);
         let sig = sk.sign(&mut rng, &msg);
         let vk = VerifyingKey::<C>::from(&sk);
@@ -55,8 +54,8 @@ where
         }
     }
 
-    // Check that signature verification succeeds or fails, as expected.
-    fn check(&self) -> bool {
+    /// Check that signature verification succeeds or fails, as expected.
+    pub fn check(&self) -> bool {
         // // The signature data is stored in (refined) byte types, but do a round trip
         // // conversion to raw bytes to exercise those code paths.
         // let sig = {
@@ -72,7 +71,8 @@ where
         self.is_valid == self.vk.verify(&self.msg, &self.sig).is_ok()
     }
 
-    fn apply_tweak(&mut self, tweak: &Tweak) {
+    /// Apply the given tweak to the signature test case.
+    pub fn apply_tweak(&mut self, tweak: &Tweak) {
         match tweak {
             Tweak::None => {}
             Tweak::ChangeMessage => {
@@ -89,41 +89,11 @@ where
     }
 }
 
-fn tweak_strategy() -> impl Strategy<Value = Tweak> {
+/// Tweak the proptest strategy
+pub fn tweak_strategy() -> impl Strategy<Value = Tweak> {
     prop_oneof![
         10 => Just(Tweak::None),
         1 => Just(Tweak::ChangeMessage),
         1 => Just(Tweak::ChangePubkey),
     ]
-}
-
-use rand_chacha::ChaChaRng;
-use rand_core::SeedableRng;
-
-proptest! {
-
-    #[test]
-    fn tweak_signature(
-        tweaks in prop::collection::vec(tweak_strategy(), (0,5)),
-        rng_seed in prop::array::uniform32(any::<u8>()),
-    ) {
-        // Use a deterministic RNG so that test failures can be reproduced.
-        // Seeding with 64 bits of entropy is INSECURE and this code should
-        // not be copied outside of this test!
-        let mut rng = ChaChaRng::from_seed(rng_seed);
-
-        // Create a test case for each signature type.
-        let msg = b"test message for proptests";
-        let mut sig = SignatureCase::<R>::new(&mut rng, msg.to_vec());
-
-
-        // Apply tweaks to each case.
-        for t in &tweaks {
-            sig.apply_tweak(t);
-        }
-
-        assert!(sig.check());
-    }
-
-
 }

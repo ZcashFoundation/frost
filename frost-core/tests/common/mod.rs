@@ -10,4 +10,3 @@
 //! <https://doc.rust-lang.org/book/ch11-03-test-organization.html#submodules-in-integration-tests>
 
 pub mod ciphersuite;
-pub mod vectors;
