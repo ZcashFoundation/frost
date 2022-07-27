@@ -248,7 +248,7 @@ pub mod round2 {
         signer_nonces: &round1::SigningNonces,
         key_package: &keys::KeyPackage,
     ) -> Result<SignatureShare, &'static str> {
-        frost::round2::sign(&signing_package, signer_nonces, key_package)
+        frost::round2::sign(signing_package, signer_nonces, key_package)
     }
 }
 
@@ -261,7 +261,7 @@ pub fn aggregate(
     signature_shares: &[round2::SignatureShare],
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, &'static str> {
-    frost::aggregate(&signing_package, &signature_shares[..], &pubkeys)
+    frost::aggregate(signing_package, signature_shares, pubkeys)
 }
 
 ///
