@@ -35,7 +35,7 @@ where
 
     /// Verify a purported `signature` over `msg` made by this verification key.
     pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error> {
-        C::VerifySignature(msg, signature, self)
+        C::verify_signature(msg, signature, self)
     }
 }
 

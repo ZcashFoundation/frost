@@ -194,9 +194,9 @@ pub trait Ciphersuite: Copy + Clone {
 
     /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
     /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
-    /// You may override this to provide a tailored implementation, but it must also multiply
-    /// by the cofactor to comply with the RFC.
-    fn VerifySignature(
+    /// You may override this to provide a tailored implementation, but if the ciphersuite defines it,
+    /// it must also multiply by the cofactor to comply with the RFC.
+    fn verify_signature(
         msg: &[u8],
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
