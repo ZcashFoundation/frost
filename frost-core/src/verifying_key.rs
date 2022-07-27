@@ -35,31 +35,7 @@ where
 
     /// Verify a purported `signature` over `msg` made by this verification key.
     pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error> {
-        let c = crate::challenge::<C>(&signature.R, &self.element, msg);
-
-        self.verify_prehashed(signature, c)
-    }
-
-    /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification
-    /// key.
-    pub(crate) fn verify_prehashed(
-        &self,
-        signature: &Signature<C>,
-        challenge: Challenge<C>,
-    ) -> Result<(), Error> {
-        // Verify check is h * ( - z * B + R  + c * A) == 0
-        //                 h * ( z * B - c * A - R) == 0
-        //
-        // where h is the cofactor
-        let zB = C::Group::generator() * signature.z;
-        let cA = self.element * challenge.0;
-        let check = (zB - cA - signature.R) * C::Group::cofactor();
-
-        if check == C::Group::identity() {
-            Ok(())
-        } else {
-            Err(Error::InvalidSignature)
-        }
+        C::VerifySignature(msg, signature, self)
     }
 }
 

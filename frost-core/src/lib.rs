@@ -191,6 +191,32 @@ pub trait Ciphersuite: Copy + Clone {
     ///
     /// [H4]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
+
+    /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
+    /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
+    /// You may override this to provide a tailored implementation, but it must also multiply
+    /// by the cofactor to comply with the RFC.
+    fn VerifySignature(
+        msg: &[u8],
+        signature: &Signature<Self>,
+        public_key: &VerifyingKey<Self>,
+    ) -> Result<(), Error> {
+        let c = crate::challenge::<Self>(&signature.R, &public_key.element, msg);
+
+        // Verify check is h * ( - z * B + R  + c * A) == 0
+        //                 h * ( z * B - c * A - R) == 0
+        //
+        // where h is the cofactor
+        let zB = Self::Group::generator() * signature.z;
+        let cA = public_key.element * c.0;
+        let check = (zB - cA - signature.R) * Self::Group::cofactor();
+
+        if check == Self::Group::identity() {
+            Ok(())
+        } else {
+            Err(Error::InvalidSignature)
+        }
+    }
 }
 
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
