@@ -1,20 +1,116 @@
 name: CI
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
+
   test_nightly:
     name: test on nightly
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
-    # Because we use nightly features for building docs,
-    # using --all-features will fail without nightly toolchain.
-    - uses: actions-rs/toolchain@v1.0.7
-      with:
-        toolchain: nightly
-        override: true
-    - uses: actions-rs/cargo@v1.0.3
-      with:
-        command: test
-        args: --all-features
+      - uses: actions/checkout@v3.0.2
+      # Because we use nightly features for building docs,
+      # using --all-features will fail without nightly toolchain.
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: nightly
+          override: true
+      - uses: actions-rs/cargo@v1.0.3
+        with:
+          command: test
+          args: --all-features
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3.0.2
+        with:
+          persist-credentials: false
+
+      - name: Check workflow permissions
+        id: check_permissions
+        uses: scherermichael-oss/action-has-permission@1.0.6
+        with:
+          required-permission: write
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run clippy action to produce annotations
+        uses: actions-rs/clippy-check@v1.0.7
+        if: ${{ steps.check_permissions.outputs.has-permission }}
+        with:
+          # GitHub displays the clippy job and its results as separate entries
+          name: Clippy (stable) Results
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features --all-targets -- -D warnings
+
+      - uses: actions-rs/toolchain@v1.0.1
+        if: ${{ !steps.check_permissions.outputs.has-permission }}
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Run clippy manually without annotations
+        if: ${{ !steps.check_permissions.outputs.has-permission }}
+        run: cargo clippy --all-features --all-targets -- -D warnings
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: stable
+          components: rustfmt
+          override: true
+
+      - uses: Swatinem/rust-cache@v1
+
+      - uses: actions-rs/cargo@v1.0.3
+        with:
+          command: fmt
+          args: --all -- --check
+
+  docs:
+    name: Check Rust doc
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - uses: actions-rs/cargo@v1.0.3
+        with:
+          command: doc
+          args: --no-deps --document-private-items --all-features
+
+  actionlint:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v3.0.2
+      - uses: reviewdog/action-actionlint@v1.26.0
+        with:
+          level: warning
+          fail_on_error: false
