@@ -226,7 +226,7 @@ pub mod keys {
 
 ///
 pub mod round1 {
-    use frost_core::frost::keys::{Secret};
+    use frost_core::frost::keys::Secret;
 
     use super::*;
     ///
