@@ -41,7 +41,9 @@ pub fn parse_test_vectors<C: Ciphersuite>(
         VerifyingKey::<C>::from_hex(inputs["group_public_key"].as_str().unwrap()).unwrap();
 
     for (i, secret_share) in possible_signers {
-        let secret = Secret::<C>::from_hex(secret_share["signer_share"].as_str().unwrap()).unwrap();
+        let secret =
+            SecretShareValue::<C>::from_hex(secret_share["signer_share"].as_str().unwrap())
+                .unwrap();
         let signer_public = secret.into();
 
         let key_package = KeyPackage::<C> {
@@ -162,7 +164,7 @@ where
     for key_package in key_packages.values() {
         assert_eq!(
             *key_package.public(),
-            frost::keys::Public::from(*key_package.secret_share())
+            frost::keys::PublicVerificationShare::from(*key_package.secret_share())
         );
     }
 
