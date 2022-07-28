@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "frost-core",
-    "frost-redjubjub",
+    #"frost-redjubjub",
     "frost-ristretto255",
     "frost-p256",
 ]
