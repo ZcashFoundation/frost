@@ -19,6 +19,7 @@ features = ["nightly"]
 
 [dependencies]
 byteorder = "1.4"
+debugless-unwrap = "0.0.4"
 digest = "0.10"
 hex = { version = "0.4.3", features = ["serde"] }
 rand_core = "0.6"

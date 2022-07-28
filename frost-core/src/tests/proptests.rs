@@ -56,16 +56,16 @@ where
 
     /// Check that signature verification succeeds or fails, as expected.
     pub fn check(&self) -> bool {
-        // // The signature data is stored in (refined) byte types, but do a round trip
-        // // conversion to raw bytes to exercise those code paths.
-        // let sig = {
-        //     let bytes: [u8; 64] = self.sig.into();
-        //     Signature::<C>::from_bytes(bytes)
-        // };
+        // The signature data is stored in (refined) byte types, but do a round trip
+        // conversion to raw bytes to exercise those code paths.
+        let _sig = {
+            let bytes = self.sig.to_bytes();
+            Signature::<C>::from_bytes(bytes)
+        };
 
-        // // Check that the verification key is a valid key.
-        // let pub_key = VerifyingKey::<C>::from_bytes(pk_bytes)
-        //     .expect("The test verification key to be well-formed.");
+        // Check that the verification key is a valid key.
+        let _pub_key = VerifyingKey::<C>::from_bytes(self.vk.to_bytes())
+            .expect("The test verification key to be well-formed.");
 
         // Check that signature validation has the expected result.
         self.is_valid == self.vk.verify(&self.msg, &self.sig).is_ok()

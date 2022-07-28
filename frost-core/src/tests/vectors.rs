@@ -1,6 +1,7 @@
 //! Helper function for testing with test vectors.
 use std::{collections::HashMap, str::FromStr};
 
+use debugless_unwrap::DebuglessUnwrap;
 use hex::{self, FromHex};
 use serde_json::Value;
 
@@ -23,12 +24,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(
     Rho<C>,
     HashMap<Identifier<C>, SignatureShare<C>>,
     Vec<u8>, // Signature<C>,
-)
-where
-    <<C::Group as Group>::Serialization as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-    <<<C::Group as Group>::Field as Field>::Serialization as TryFrom<Vec<u8>>>::Error:
-        std::fmt::Debug,
-{
+) {
     let inputs = &json_vectors["inputs"];
 
     let message = inputs["message"].as_str().unwrap();
@@ -108,7 +104,7 @@ where
         let sig_share = <<C::Group as Group>::Field as Field>::Serialization::try_from(
             hex::decode(signer["sig_share"].as_str().unwrap()).unwrap(),
         )
-        .unwrap();
+        .debugless_unwrap();
 
         let signature_share = SignatureShare::<C> {
             identifier: u16::from_str(i).unwrap().try_into().unwrap(),
@@ -145,11 +141,6 @@ where
 /// Test with the given test vectors for a ciphersuite.
 pub fn check_sign_with_test_vectors<C: Ciphersuite + PartialEq>(json_vectors: &Value)
 where
-    <<C::Group as Group>::Serialization as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-    <<<C::Group as Group>::Field as Field>::Serialization as TryFrom<Vec<u8>>>::Error:
-        std::fmt::Debug,
-    <<C as Ciphersuite>::SignatureSerialization as std::convert::TryFrom<std::vec::Vec<u8>>>::Error:
-        std::fmt::Debug,
     C::Group: PartialEq,
 {
     let (
