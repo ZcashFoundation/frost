@@ -84,7 +84,7 @@ where
     pub fn verify(
         &self,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
-        public_key: &frost::keys::Public<C>,
+        public_key: &frost::keys::PublicVerificationShare<C>,
         lambda_i: <<C::Group as Group>::Field as Field>::Scalar,
         challenge: &Challenge<C>,
     ) -> Result<(), &'static str> {
