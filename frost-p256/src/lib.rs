@@ -75,7 +75,7 @@ impl Field for P256ScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST P-256 ciphersuite group.
 pub struct P256Group;
 
@@ -139,7 +139,7 @@ impl Group for P256Group {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-1
 const CONTEXT_STRING: &str = "FROST-P256-SHA256-v5";
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST ciphersuite FROST(P-256, SHA-256).
 pub struct P256Sha256;
 
@@ -156,7 +156,7 @@ impl Ciphersuite for P256Sha256 {
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "rho";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&vec![m], dst.as_bytes(), &mut u)
+        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
             .expect("should never return error according to error cases described in ExpandMsgXmd");
         u[0]
     }
@@ -167,7 +167,7 @@ impl Ciphersuite for P256Sha256 {
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "chal";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&vec![m], dst.as_bytes(), &mut u)
+        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
             .expect("should never return error according to error cases described in ExpandMsgXmd");
         u[0]
     }
@@ -192,7 +192,7 @@ impl Ciphersuite for P256Sha256 {
     fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "nonce";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&vec![m], dst.as_bytes(), &mut u)
+        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
             .expect("should never return error according to error cases described in ExpandMsgXmd");
         u[0]
     }
@@ -267,7 +267,7 @@ pub mod round2 {
         signer_nonces: &round1::SigningNonces,
         key_package: &keys::KeyPackage,
     ) -> Result<SignatureShare, &'static str> {
-        frost::round2::sign(&signing_package, signer_nonces, key_package)
+        frost::round2::sign(signing_package, signer_nonces, key_package)
     }
 }
 
@@ -280,7 +280,7 @@ pub fn aggregate(
     signature_shares: &[round2::SignatureShare],
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, &'static str> {
-    frost::aggregate(&signing_package, &signature_shares[..], &pubkeys)
+    frost::aggregate(signing_package, signature_shares, pubkeys)
 }
 
 ///

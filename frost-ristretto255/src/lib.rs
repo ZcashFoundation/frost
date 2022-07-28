@@ -72,7 +72,7 @@ impl Field for RistrettoScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST ciphersuite group.
 pub struct RistrettoGroup;
 
@@ -112,7 +112,7 @@ impl Group for RistrettoGroup {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.2-1
 const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v5";
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST ciphersuite Ristretto255-SHA512.
 pub struct Ristretto255Sha512;
 
@@ -248,7 +248,7 @@ pub mod round2 {
         signer_nonces: &round1::SigningNonces,
         key_package: &keys::KeyPackage,
     ) -> Result<SignatureShare, &'static str> {
-        frost::round2::sign(&signing_package, signer_nonces, key_package)
+        frost::round2::sign(signing_package, signer_nonces, key_package)
     }
 }
 
@@ -261,7 +261,7 @@ pub fn aggregate(
     signature_shares: &[round2::SignatureShare],
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, &'static str> {
-    frost::aggregate(&signing_package, &signature_shares[..], &pubkeys)
+    frost::aggregate(signing_package, signature_shares, pubkeys)
 }
 
 ///
