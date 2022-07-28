@@ -72,7 +72,7 @@ impl Field for RistrettoScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST ciphersuite group.
 pub struct RistrettoGroup;
 
@@ -112,7 +112,7 @@ impl Group for RistrettoGroup {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.2-1
 const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v5";
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST ciphersuite Ristretto255-SHA512.
 pub struct Ristretto255Sha512;
 
