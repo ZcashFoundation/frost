@@ -194,7 +194,9 @@ where
         &self.value
     }
 
-    /// Verifies that a secret share is consistent with a verifiable secret sharing commitment.
+    /// Verifies that a secret share is consistent with a verifiable secret sharing commitment,
+    /// and returns the derived group info for the participant (their public verification share,
+    /// and the group public key) if successful.
     ///
     /// This ensures that this participant's share has been generated using the same
     /// mechanism as all other signing participants. Note that participants *MUST*
@@ -202,9 +204,11 @@ where
     /// commitment!
     ///
     /// An implementation of `vss_verify()` from the [spec].
+    /// This also implements `derive_group_info()` from the [spec] (which is very similar),
+    /// but only for this participant.
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#appendix-B.2-5
-    pub fn verify(&self) -> Result<(), &'static str> {
+    pub fn verify(&self) -> Result<(PublicVerificationShare<C>, VerifyingKey<C>), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
 
         let x = self.identifier.to_scalar();
@@ -221,7 +225,11 @@ where
             return Err("SecretShare is invalid.");
         }
 
-        Ok(())
+        let group_public = VerifyingKey {
+            element: self.commitment.0[0].0,
+        };
+
+        Ok((PublicVerificationShare(result), group_public))
     }
 }
 
@@ -236,10 +244,6 @@ pub struct SharePackage<C: Ciphersuite> {
     pub identifier: Identifier<C>,
     /// This participant's secret share.
     pub secret_share: SecretShare<C>,
-    /// This participant's public key.
-    pub public: PublicVerificationShare<C>,
-    /// The public signing key that represents the entire group.
-    pub group_public: VerifyingKey<C>,
 }
 
 /// Allows all participants' keys to be generated using a central, trusted
@@ -275,8 +279,6 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         share_packages.push(SharePackage {
             identifier: secret_share.identifier,
             secret_share: secret_share.clone(),
-            public: signer_public,
-            group_public,
         });
 
         signer_pubkeys.insert(secret_share.identifier, signer_public);
@@ -349,13 +351,13 @@ where
     /// dealer, but implementations *MUST* make sure that all participants have
     /// a consistent view of this commitment in practice.
     fn try_from(share_package: SharePackage<C>) -> Result<Self, &'static str> {
-        share_package.secret_share.verify()?;
+        let (public, group_public) = share_package.secret_share.verify()?;
 
         Ok(KeyPackage {
             identifier: share_package.identifier,
             secret_share: share_package.secret_share.value,
-            public: share_package.public,
-            group_public: share_package.group_public,
+            public,
+            group_public,
         })
     }
 }
