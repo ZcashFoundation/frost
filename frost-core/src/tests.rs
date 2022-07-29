@@ -16,7 +16,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     let secret_shares = frost::keys::generate_secret_shares(&secret, 5, 3, rng).unwrap();
 
     for secret_share in secret_shares.iter() {
-        assert_eq!(secret_share.verify(), Ok(()));
+        assert!(secret_share.verify().is_ok());
     }
 
     assert_eq!(
