@@ -139,10 +139,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(
 }
 
 /// Test with the given test vectors for a ciphersuite.
-pub fn check_sign_with_test_vectors<C: Ciphersuite + PartialEq>(json_vectors: &Value)
-where
-    C::Group: PartialEq,
-{
+pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     let (
         group_public,
         key_packages,
