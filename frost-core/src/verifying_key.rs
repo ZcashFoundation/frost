@@ -42,7 +42,7 @@ where
 
     /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification
     /// key.
-    pub fn verify_prehashed(
+    pub(crate) fn verify_prehashed(
         &self,
         signature: &Signature<C>,
         challenge: Challenge<C>,
