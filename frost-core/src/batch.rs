@@ -124,7 +124,7 @@ where
             R_coeffs.push(blind);
             Rs.push(R);
 
-            VK_coeffs.push(<<C::Group as Group>::Field as Field>::zero() + (z * item.c.0));
+            VK_coeffs.push(<<C::Group as Group>::Field as Field>::zero() + (blind * item.c.0));
             VKs.push(item.vk.element);
         }
 
