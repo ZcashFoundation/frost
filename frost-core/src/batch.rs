@@ -138,9 +138,7 @@ where
         let check: Element<C> =
             VartimeMultiscalarMul::<C>::vartime_multiscalar_mul(scalars, points);
 
-        println!("{:?}", <C::Group as Group>::serialize(&check));
-
-        if check == <C::Group as Group>::identity() {
+        if (check * <C::Group as Group>::cofactor()) == <C::Group as Group>::identity() {
             Ok(())
         } else {
             Err(Error::InvalidSignature)
