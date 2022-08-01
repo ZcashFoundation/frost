@@ -15,7 +15,8 @@ fn batch_verify() {
         let vk = VerifyingKey::<R>::from(&sk);
         let msg = b"BatchVerifyTest";
         let sig = sk.sign(&mut rng, &msg[..]);
-        batch.queue((vk.into(), sig, msg));
+        assert!(vk.verify(msg, &sig).is_ok());
+        batch.queue((vk, sig, msg));
     }
     assert!(batch.verify(rng).is_ok());
 }
@@ -37,14 +38,14 @@ fn bad_batch_verify() {
                 } else {
                     sk.sign(&mut rng, b"bad")
                 };
-                (vk.into(), sig, msg).into()
+                (vk, sig, msg).into()
             }
             1 => {
                 let sk = SigningKey::new(&mut rng);
                 let vk = VerifyingKey::<R>::from(&sk);
                 let msg = b"BatchVerifyTest";
                 let sig = sk.sign(&mut rng, &msg[..]);
-                (vk.into(), sig, msg).into()
+                (vk, sig, msg).into()
             }
             _ => unreachable!(),
         };

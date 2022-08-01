@@ -7,14 +7,11 @@
 //! of caller code (which must assemble a batch of signatures across
 //! work-items), and loss of the ability to easily pinpoint failing signatures.
 
-use std::{convert::TryFrom, iter::once};
+use std::iter::once;
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{
-    frost::{self, *},
-    Ciphersuite, Element, Scalar, *,
-};
+use crate::{scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, *};
 
 /// A batch verification item.
 ///
@@ -35,7 +32,6 @@ where
 {
     fn from((vk, sig, msg): (VerifyingKey<C>, Signature<C>, &'msg M)) -> Self {
         // Compute c now to avoid dependency on the msg lifetime.
-
         let c = crate::challenge(&sig.R, &vk.element, msg.as_ref());
 
         Self { vk, sig, c }
@@ -54,11 +50,10 @@ where
     /// requires borrowing the message data, the `Item` type is unlinked
     /// from the lifetime of the message.
     pub fn verify_single(self) -> Result<(), Error> {
-        VerifyingKey::try_from(self.vk_bytes).and_then(|vk| vk.verify_prehashed(&self.sig, self.c))
+        self.vk.verify_prehashed(&self.sig, self.c)
     }
 }
 
-#[derive(Default)]
 /// A batch verification context.
 pub struct Verifier<C: Ciphersuite> {
     /// Signature data queued for verification.
@@ -115,22 +110,22 @@ where
         let mut VKs = Vec::with_capacity(n);
         let mut R_coeffs = Vec::with_capacity(self.signatures.len());
         let mut Rs = Vec::with_capacity(self.signatures.len());
-        let mut P_coeff_acc = Scalar::zero();
+        let mut P_coeff_acc = <<C::Group as Group>::Field as Field>::zero();
 
         for item in self.signatures.iter() {
-            let z = item.sig.z.clone();
-            let R = item.sig.R.clone();
+            let z = item.sig.z;
+            let R = item.sig.R;
 
             let blind = <<C::Group as Group>::Field as Field>::random(&mut rng);
 
             let P_coeff = blind * z;
-            P_coeff_acc -= P_coeff;
+            P_coeff_acc = P_coeff_acc - P_coeff;
 
             R_coeffs.push(blind);
             Rs.push(R);
 
-            VK_coeffs.push(<<C::Group as Group>::Field as Field>::zero() + (z * item.c));
-            VKs.push(item.vk.clone());
+            VK_coeffs.push(<<C::Group as Group>::Field as Field>::zero() + (z * item.c.0));
+            VKs.push(item.vk.element);
         }
 
         let scalars = once(&P_coeff_acc)
@@ -140,12 +135,24 @@ where
         let basepoints = [<C::Group as Group>::generator()];
         let points = basepoints.iter().chain(VKs.iter()).chain(Rs.iter());
 
-        let check = Element::vartime_multiscalar_mul(scalars, points);
+        let check: Element<C> =
+            VartimeMultiscalarMul::<C>::vartime_multiscalar_mul(scalars, points);
 
-        if check == Element::identity() {
+        println!("{:?}", <C::Group as Group>::serialize(&check));
+
+        if check == <C::Group as Group>::identity() {
             Ok(())
         } else {
             Err(Error::InvalidSignature)
         }
+    }
+}
+
+impl<C> Default for Verifier<C>
+where
+    C: Ciphersuite,
+{
+    fn default() -> Self {
+        Self { signatures: vec![] }
     }
 }

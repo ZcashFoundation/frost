@@ -66,17 +66,17 @@ pub trait Field: Copy + Clone {
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.4>
     fn random_nonzero<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
 
-    /// A member function of a group _G_ that maps an [`Element`] to a unique byte array buf of
+    /// A member function of a [`Field`] that maps a [`Scalar`] to a unique byte array buf of
     /// fixed length Ne.
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.7>
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization;
 
-    /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
+    /// A member function of a [`Field`] that attempts to map a byte array `buf` to a [`Scalar`].
     ///
-    /// Fails if the input is not a valid byte representation of an [`Element`] of the
-    /// [`Group`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
-    /// resulting [`Element`] is the identity element of the group
+    /// Fails if the input is not a valid byte representation of an [`Scalar`] of the
+    /// [`Field`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
+    /// resulting [`Scalar`] is zero
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.8>
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error>;
@@ -109,7 +109,7 @@ pub trait Group: Copy + Clone {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
+    type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>>;
 
     /// The order of the the quotient group when the prime order subgroup divides the order of the
     /// full curve group.
