@@ -1,21 +1,30 @@
+//! Non-adjacent form (NAF) implementations for fast batch scalar multiplcation
+
 use std::{
     borrow::Borrow,
     fmt::{Debug, Result},
+    marker::PhantomData,
 };
 
-pub trait NonAdjacentForm {
+use crate::{Ciphersuite, Element, Field, Group, Scalar};
+
+/// A trait for transforming a scalar generic over a ciphersuite to a non-adjacent form (NAF).
+pub trait NonAdjacentForm<C: Ciphersuite> {
     fn non_adjacent_form(&self, w: usize) -> [i8; 256];
 }
 
-impl<C> NonAdjacentForm for Scalar<C>
+impl<C> NonAdjacentForm<C> for Scalar<C>
 where
     C: Ciphersuite,
 {
-    /// Computes a width-\\(w\\) "Non-Adjacent Form" of this scalar.
+    /// Computes a width-(w) "Non-Adjacent Form" of this scalar.
     ///
     /// Thanks to curve25519-dalek for the original implementation that informed this one.
     ///
+    /// # Safety
+    ///
     /// The full scalar field MUST fit in 256 bits in this implementation.
+    /// Assumes that a little-endian representations of the scalar in NAF work.
     fn non_adjacent_form(&self, w: usize) -> [i8; 256] {
         // required by the NAF definition
         debug_assert!(w >= 2);
@@ -24,11 +33,14 @@ where
 
         use byteorder::{ByteOrder, LittleEndian};
 
-        // NB: Assumes a scalar that fits in 256 bits.
+        // Safety: assumes a scalar that fits in 256 bits.
         let mut naf = [0i8; 256];
 
         let mut x_u64 = [0u64; 5];
-        LittleEndian::read_u64_into(&self.to_bytes(), &mut x_u64[0..4]);
+        LittleEndian::read_u64_into(
+            <<C::Group as Group>::Field as Field>::serialize(self).as_ref(),
+            &mut x_u64[0..4],
+        );
 
         let width = 1 << w;
         let window_mask = width - 1;
@@ -78,7 +90,7 @@ where
 /// A trait for variable-time multiscalar multiplication without precomputation.
 ///
 /// Implement for a group element.
-pub trait VartimeMultiscalarMul: Clone {
+pub trait VartimeMultiscalarMul<C: Ciphersuite>: Clone {
     /// Given an iterator of public scalars and an iterator of
     /// `Option`s of group elements, compute either `Some(Q)`, where
     /// $$
@@ -88,7 +100,7 @@ pub trait VartimeMultiscalarMul: Clone {
     fn optional_multiscalar_mul<I, J>(scalars: I, elements: J) -> Option<Self>
     where
         I: IntoIterator,
-        I::Item: Borrow<Scalar>,
+        I::Item: Borrow<Scalar<C>>,
         J: IntoIterator<Item = Option<Self>>;
 
     /// Given an iterator of public scalars and an iterator of
@@ -102,7 +114,7 @@ pub trait VartimeMultiscalarMul: Clone {
     fn vartime_multiscalar_mul<I, J>(scalars: I, elements: J) -> Self
     where
         I: IntoIterator,
-        I::Item: Borrow<Scalar>,
+        I::Item: Borrow<Scalar<C>>,
         J: IntoIterator,
         J::Item: Borrow<Self>,
     {
@@ -114,36 +126,36 @@ pub trait VartimeMultiscalarMul: Clone {
     }
 }
 
-impl<C> VartimeMultiscalarMul for Element<C>
+impl<C> VartimeMultiscalarMul<C> for Element<C>
 where
     C: Ciphersuite,
 {
     fn optional_multiscalar_mul<I, J>(scalars: I, elements: J) -> Option<Element<C>>
     where
         I: IntoIterator,
-        I::Item: Borrow<Scalar>,
+        I::Item: Borrow<Scalar<C>>,
         J: IntoIterator<Item = Option<Element<C>>>,
     {
         let nafs: Vec<_> = scalars
             .into_iter()
-            .map(|c| c.borrow().non_adjacent_form(5))
+            .map(|c| NonAdjacentForm::<C>::non_adjacent_form(c.borrow(), 5))
             .collect();
 
         let lookup_tables = elements
             .into_iter()
-            .map(|P_opt| P_opt.map(|P| LookupTable5::<Element<C>>::from(&P)))
+            .map(|P_opt| P_opt.map(|P| LookupTable5::<C, Element<C>>::from(&P)))
             .collect::<Option<Vec<_>>>()?;
 
         let mut r = <C::Group as Group>::identity();
 
         for i in (0..256).rev() {
-            let mut t = r + r.clone();
+            let mut t = r + r;
 
             for (naf, lookup_table) in nafs.iter().zip(lookup_tables.iter()) {
                 if naf[i] > 0 {
-                    t = &t + &lookup_table.select(naf[i] as usize);
+                    t = t + lookup_table.select(naf[i] as usize);
                 } else if naf[i] < 0 {
-                    t = &t - &lookup_table.select(-naf[i] as usize);
+                    t = t - lookup_table.select(-naf[i] as usize);
                 }
             }
 
@@ -156,35 +168,42 @@ where
 
 /// Holds odd multiples 1A, 3A, ..., 15A of a point A.
 #[derive(Copy, Clone)]
-pub(crate) struct LookupTable5<T>(pub(crate) [T; 8]);
+pub(crate) struct LookupTable5<C, T> {
+    pub(crate) bytes: [T; 8],
+    pub(crate) _marker: PhantomData<C>,
+}
 
-impl<T: Copy> LookupTable5<T> {
+impl<C: Ciphersuite, T: Copy> LookupTable5<C, T> {
     /// Given public, odd \\( x \\) with \\( 0 < x < 2^4 \\), return \\(xA\\).
     pub fn select(&self, x: usize) -> T {
         debug_assert_eq!(x & 1, 1);
         debug_assert!(x < 16);
 
-        self.0[x / 2]
+        self.bytes[x / 2]
     }
 }
 
-impl<T: Debug> Debug for LookupTable5<T> {
+impl<C: Ciphersuite, T: Debug> Debug for LookupTable5<C, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result {
-        write!(f, "LookupTable5({:?})", self.0)
+        write!(f, "LookupTable5({:?})", self.bytes)
     }
 }
 
-impl<'a, C> From<&'a <C::Group·as·Group>::Element> for LookupTable5<<C::Group·as·Group>::Element>
+impl<'a, C> From<&'a Element<C>> for LookupTable5<C, Element<C>>
 where
     C: Ciphersuite,
 {
-    fn from(A: &'a <C::Group·as·Group>::Element) -> Self {
-        let mut Ai = [A; 8];
-        let A2 = A * A.clone();
+    fn from(A: &'a Element<C>) -> Self {
+        let mut Ai = [*A; 8];
+        let A2 = *A + *A;
         for i in 0..7 {
-            Ai[i + 1] = (&A2 + &Ai[i]);
+            Ai[i + 1] = A2 + Ai[i];
         }
+
         // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A]
-        LookupTable5(Ai)
+        LookupTable5 {
+            bytes: Ai,
+            _marker: PhantomData,
+        }
     }
 }
