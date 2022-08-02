@@ -7,14 +7,11 @@
 //! of caller code (which must assemble a batch of signatures across
 //! work-items), and loss of the ability to easily pinpoint failing signatures.
 
-use std::convert::TryFrom;
+use std::iter::once;
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{
-    frost::{self, *},
-    *,
-};
+use crate::{scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, *};
 
 /// A batch verification item.
 ///
@@ -35,7 +32,6 @@ where
 {
     fn from((vk, sig, msg): (VerifyingKey<C>, Signature<C>, &'msg M)) -> Self {
         // Compute c now to avoid dependency on the msg lifetime.
-
         let c = crate::challenge(&sig.R, &vk.element, msg.as_ref());
 
         Self { vk, sig, c }
@@ -54,11 +50,10 @@ where
     /// requires borrowing the message data, the `Item` type is unlinked
     /// from the lifetime of the message.
     pub fn verify_single(self) -> Result<(), Error> {
-        VerifyingKey::try_from(self.vk_bytes).and_then(|vk| vk.verify_prehashed(&self.sig, self.c))
+        self.vk.verify_prehashed(&self.sig, self.c)
     }
 }
 
-#[derive(Default)]
 /// A batch verification context.
 pub struct Verifier<C: Ciphersuite> {
     /// Signature data queued for verification.
@@ -115,49 +110,47 @@ where
         let mut VKs = Vec::with_capacity(n);
         let mut R_coeffs = Vec::with_capacity(self.signatures.len());
         let mut Rs = Vec::with_capacity(self.signatures.len());
-        let mut P_coeff_acc = Scalar::zero();
+        let mut P_coeff_acc = <<C::Group as Group>::Field as Field>::zero();
 
         for item in self.signatures.iter() {
-            let (z_bytes, R_bytes, c) = (item.sig.z_bytes, item.sig.R_bytes, item.c);
+            let z = item.sig.z;
+            let R = item.sig.R;
 
-            let s = Scalar::from_bytes_mod_order(z_bytes);
+            let blind = <<C::Group as Group>::Field as Field>::random(&mut rng);
 
-            let R = {
-                match CompressedRistretto::from_slice(&R_bytes).decompress() {
-                    Some(point) => point,
-                    None => return Err(Error::InvalidSignature),
-                }
-            };
+            let P_coeff = blind * z;
+            P_coeff_acc = P_coeff_acc - P_coeff;
 
-            let VK = VerifyingKey::try_from(item.vk_bytes.bytes)?.point;
-
-            let z = Scalar::random(&mut rng);
-
-            let P_coeff = z * s;
-            P_coeff_acc -= P_coeff;
-
-            R_coeffs.push(z);
+            R_coeffs.push(blind);
             Rs.push(R);
 
-            VK_coeffs.push(Scalar::zero() + (z * c));
-            VKs.push(VK);
+            VK_coeffs.push(<<C::Group as Group>::Field as Field>::zero() + (blind * item.c.0));
+            VKs.push(item.vk.element);
         }
-
-        use std::iter::once;
 
         let scalars = once(&P_coeff_acc)
             .chain(VK_coeffs.iter())
             .chain(R_coeffs.iter());
 
-        let basepoints = [curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT];
+        let basepoints = [<C::Group as Group>::generator()];
         let points = basepoints.iter().chain(VKs.iter()).chain(Rs.iter());
 
-        let check = RistrettoPoint::vartime_multiscalar_mul(scalars, points);
+        let check: Element<C> =
+            VartimeMultiscalarMul::<C>::vartime_multiscalar_mul(scalars, points);
 
-        if check == RistrettoPoint::identity() {
+        if (check * <C::Group as Group>::cofactor()) == <C::Group as Group>::identity() {
             Ok(())
         } else {
             Err(Error::InvalidSignature)
         }
+    }
+}
+
+impl<C> Default for Verifier<C>
+where
+    C: Ciphersuite,
+{
+    fn default() -> Self {
+        Self { signatures: vec![] }
     }
 }
