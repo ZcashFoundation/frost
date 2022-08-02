@@ -264,7 +264,7 @@ pub type SigningPackage = frost::SigningPackage<R>;
 pub mod round2 {
     use super::*;
 
-    /// A participant's signature share, which the coordinator will aggregate with all other signer's
+    /// A FROST(ristretto255, SHA-512) participant's signature share, which the Coordinator will aggregate with all other signer's
     /// shares into the joint signature.
     pub type SignatureShare = frost::round2::SignatureShare<R>;
 
