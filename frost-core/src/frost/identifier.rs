@@ -73,9 +73,7 @@ where
 
         let serialized = <<C::Group as Group>::Field as Field>::serialize(&id.0);
 
-        for i in 0..bytes.len() {
-            bytes[i] = serialized.as_ref()[i];
-        }
+        bytes.copy_from_slice(&serialized.as_ref()[..8]);
 
         usize::from_le_bytes(bytes)
     }
