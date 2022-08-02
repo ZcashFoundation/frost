@@ -227,7 +227,7 @@ pub mod round1 {
 
     use super::*;
 
-    /// Comprised of hiding and binding nonces.
+    /// Comprised of FROST(ristretto255, SHA-512) hiding and binding nonces.
     ///
     /// Note that [`SigningNonces`] must be used *only once* for a signing
     /// operation; re-using nonces will result in leakage of a signer's long-lived
