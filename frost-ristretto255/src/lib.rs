@@ -295,7 +295,7 @@ pub type Signature = frost_core::Signature<R>;
 /// Verifies each participant's signature share, and if all are valid,
 /// aggregates the shares into a signature to publish.
 ///
-/// Resulting signature is compatible with verification of a plain SpendAuth
+/// Resulting signature is compatible with verification of a plain Schnorr 
 /// signature.
 ///
 /// This operation is performed by a coordinator that can communicate with all
