@@ -292,7 +292,7 @@ pub mod round2 {
 /// A Schnorr signature on FROST(ristretto255, SHA-512).
 pub type Signature = frost_core::Signature<R>;
 
-/// Verifies each participant's signature share, and if all are valid,
+/// Verifies each FROST(ristretto255, SHA-512) participant's signature share, and if all are valid,
 /// aggregates the shares into a signature to publish.
 ///
 /// Resulting signature is compatible with verification of a plain Schnorr 
