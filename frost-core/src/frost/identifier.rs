@@ -14,7 +14,7 @@ use crate::{Ciphersuite, Error, Field, Group, Scalar};
 /// over, corresponding to some x-coordinate for a polynomial f(x) = y.  MUST NOT be zero in the
 /// field, as f(0) = the shared secret.
 #[derive(Copy, Clone)]
-pub struct Identifier<C>(pub(crate) u16, PhantomData<C>);
+pub struct Identifier<C>(u16, PhantomData<C>);
 
 impl<C> Identifier<C>
 where
