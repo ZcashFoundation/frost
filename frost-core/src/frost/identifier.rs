@@ -21,6 +21,9 @@ where
     C: Ciphersuite,
 {
     // Convert the identifier to a Scalar.
+    //
+    // Ideally this would be a From<Identifier<C>> for Scalar<C> impl, but rustc
+    // doesn't like that
     pub(crate) fn to_scalar(self) -> Scalar<C> {
         // Classic left-to-right double-and-add algorithm that skips the first bit 1 (since
         // identifiers are never zero, there is always a bit 1), thus `sum` starts with 1 too.
