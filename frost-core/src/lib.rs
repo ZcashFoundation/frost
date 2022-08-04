@@ -194,8 +194,13 @@ pub trait Ciphersuite: Copy + Clone {
 
     /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
     /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
+    ///
+    /// # Cryptographic Safety
+    ///
     /// You may override this to provide a tailored implementation, but if the ciphersuite defines it,
-    /// it must also multiply by the cofactor to comply with the RFC.
+    /// it must also multiply by the cofactor to comply with the RFC. Note that batch verification
+    /// (see [`crate::batch::Verifier`]) also uses the default implementation regardless whether a
+    /// tailored implementation was provided.
     fn verify_signature(
         msg: &[u8],
         signature: &Signature<Self>,
