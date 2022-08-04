@@ -75,7 +75,7 @@ impl Field for P256ScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST P-256 ciphersuite group.
 pub struct P256Group;
 
@@ -139,7 +139,7 @@ impl Group for P256Group {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-1
 const CONTEXT_STRING: &str = "FROST-P256-SHA256-v5";
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST ciphersuite FROST(P-256, SHA-256).
 pub struct P256Sha256;
 
@@ -226,7 +226,7 @@ pub mod keys {
 
 ///
 pub mod round1 {
-    use frost_core::frost::keys::{Secret};
+    use frost_core::frost::keys::Secret;
 
     use super::*;
     ///
