@@ -29,6 +29,7 @@ where
         // identifiers are never zero, there is always a bit 1), thus `sum` starts with 1 too.
         let one = <<C::Group as Group>::Field as Field>::one();
         let mut sum = <<C::Group as Group>::Field as Field>::one();
+
         let bits = (self.0.to_be_bytes().len() as u32) * 8;
         for i in (0..(bits - self.0.leading_zeros() - 1)).rev() {
             sum = sum + sum;
