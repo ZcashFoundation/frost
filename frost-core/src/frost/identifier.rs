@@ -24,7 +24,12 @@ where
     //
     // Ideally this would be a From<Identifier<C>> for Scalar<C> impl, but rustc
     // doesn't like that
-    pub(crate) fn to_scalar(self) -> Scalar<C> {
+    pub(crate) fn to_scalar(self) -> Result<Scalar<C>, &'static str> {
+        // This should never happen since we check it when building Identifier,
+        // but we check again out of abundance of caution.
+        if self.0 == 0 {
+            return Err("Identifier must not be zero");
+        }
         // Classic left-to-right double-and-add algorithm that skips the first bit 1 (since
         // identifiers are never zero, there is always a bit 1), thus `sum` starts with 1 too.
         let one = <<C::Group as Group>::Field as Field>::one();
@@ -37,7 +42,7 @@ where
                 sum = sum + one;
             }
         }
-        sum
+        Ok(sum)
     }
 }
 

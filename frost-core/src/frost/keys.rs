@@ -207,7 +207,7 @@ where
     pub fn verify(&self) -> Result<(), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
 
-        let x = self.identifier.to_scalar();
+        let x = self.identifier.to_scalar()?;
 
         let (_, result) = self.commitment.0.iter().fold(
             (
@@ -441,7 +441,7 @@ pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     // using Horner's method.
     for id in (1..=numshares as u16).map_while(|i| Identifier::<C>::try_from(i).ok()) {
         let mut value = <<C::Group as Group>::Field as Field>::zero();
-        let id_scalar = id.to_scalar();
+        let id_scalar = id.to_scalar()?;
 
         // Polynomial evaluation, for this identifier
         //
@@ -483,13 +483,13 @@ pub fn reconstruct_secret<C: Ciphersuite>(
     for (i, secret_share) in secret_share_map.clone() {
         let mut num = <<C::Group as Group>::Field as Field>::one();
         let mut den = <<C::Group as Group>::Field as Field>::one();
-        let i_scalar = i.to_scalar();
+        let i_scalar = i.to_scalar()?;
 
         for j in secret_share_map.clone().into_keys() {
             if j == i {
                 continue;
             }
-            let j_scalar = j.to_scalar();
+            let j_scalar = j.to_scalar()?;
 
             // numerator *= j
             num = num * j_scalar;
