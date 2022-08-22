@@ -150,18 +150,3 @@ fn check_sign_with_test_vectors() {
     let group_signature = group_signature_result.unwrap();
     assert_eq!(group_signature.to_bytes().to_vec(), signature_bytes);
 }
-
-// This allows checking that to_scalar() works for all possible inputs;
-// but requires making to_scalar() public.
-// #[test]
-// fn test_identifier_to_scalar() {
-//     type R = Ristretto255Sha512;
-
-//     let one = <<<R as Ciphersuite>::Group as Group>::Field as Field>::one();
-//     let mut sum = <<<R as Ciphersuite>::Group as Group>::Field as Field>::one();
-//     for i in 1..0xFFFFu16 {
-//         let identifier: Identifier<R> = i.try_into().unwrap();
-//         assert_eq!(sum, identifier.to_scalar());
-//         sum = sum + one;
-//     }
-// }

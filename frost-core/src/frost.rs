@@ -102,7 +102,7 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
 ) -> Result<<<C::Group as Group>::Field as Field>::Scalar, &'static str> {
-    let signer_id_scalar = signer_id.to_scalar();
+    // let signer_id_scalar = signer_id.to_scalar();
 
     let zero = <<C::Group as Group>::Field as Field>::zero();
 
@@ -117,10 +117,12 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
             continue;
         }
 
-        let commitment_id_scalar = commitment.identifier.to_scalar();
+        // let commitment_id_scalar = commitment.identifier.to_scalar();
 
-        num = num * commitment_id_scalar;
-        den = den * (commitment_id_scalar - signer_id_scalar);
+        // num = num * commitment_id_scalar;
+        num *= commitment.identifier;
+        // den = den * (commitment_id_scalar - signer_id_scalar);
+        den *= commitment.identifier - *signer_id;
     }
 
     if den == zero {
