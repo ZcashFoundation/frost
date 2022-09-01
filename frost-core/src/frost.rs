@@ -33,7 +33,7 @@ pub use self::identifier::Identifier;
 /// of commitments, and a specific message.
 ///
 /// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md>
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Rho<C: Ciphersuite>(<<C::Group as Group>::Field as Field>::Scalar);
 
 impl<C> Rho<C>
@@ -199,7 +199,7 @@ where
 
 /// The product of all signers' individual commitments, published as part of the
 /// final signature.
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct GroupCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
 
 // impl<C> Debug for GroupCommitment<C> where C: Ciphersuite {

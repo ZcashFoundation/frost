@@ -14,7 +14,7 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
 
 /// A secret scalar value representing a signer's secret key.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Secret<C: Ciphersuite>(pub(crate) Scalar<C>);
 
 impl<C> Secret<C>
@@ -104,7 +104,7 @@ where
 }
 
 /// A public group element that represents a single signer's public key.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Public<C>(pub(super) <C::Group as Group>::Element)
 where
     C: Ciphersuite;

@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+// It's emitting false positives; see https://github.com/rust-lang/rust-clippy/issues/9413
+#![allow(clippy::derive_partial_eq_without_eq)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]

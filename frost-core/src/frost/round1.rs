@@ -11,7 +11,7 @@ use crate::{frost, Ciphersuite, Error, Field, Group};
 use super::{keys::Secret, Identifier};
 
 /// A scalar that is a signing nonce.
-#[derive(Clone, PartialEq, Zeroize)]
+#[derive(Clone, PartialEq, Eq, Zeroize)]
 pub struct Nonce<C: Ciphersuite>(pub(super) <<C::Group as Group>::Field as Field>::Scalar);
 
 impl<C> Nonce<C>
