@@ -24,6 +24,28 @@ pub use signature::Signature;
 pub use signing_key::SigningKey;
 pub use verifying_key::VerifyingKey;
 
+/// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification
+/// key.
+pub(crate) fn verify_prehashed<C: Ciphersuite>(
+    challenge: Challenge<C>,
+    signature: &Signature<C>,
+    public_key: &VerifyingKey<C>,
+) -> Result<(), Error> {
+    // Verify check is h * ( - z * B + R  + c * A) == 0
+    //                 h * ( z * B - c * A - R) == 0
+    //
+    // where h is the cofactor
+    let zB = C::Group::generator() * signature.z;
+    let cA = public_key.element * challenge.0;
+    let check = (zB - cA - signature.R) * C::Group::cofactor();
+
+    if check == C::Group::identity() {
+        Ok(())
+    } else {
+        Err(Error::InvalidSignature)
+    }
+}
+
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
 /// multiplied are defined.
 ///
@@ -208,19 +230,7 @@ pub trait Ciphersuite: Copy + Clone {
     ) -> Result<(), Error> {
         let c = crate::challenge::<Self>(&signature.R, &public_key.element, msg);
 
-        // Verify check is h * ( - z * B + R  + c * A) == 0
-        //                 h * ( z * B - c * A - R) == 0
-        //
-        // where h is the cofactor
-        let zB = Self::Group::generator() * signature.z;
-        let cA = public_key.element * c.0;
-        let check = (zB - cA - signature.R) * Self::Group::cofactor();
-
-        if check == Self::Group::identity() {
-            Ok(())
-        } else {
-            Err(Error::InvalidSignature)
-        }
+        verify_prehashed(c, signature, public_key)
     }
 }
 

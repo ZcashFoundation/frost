@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use hex::FromHex;
 
-use crate::{Challenge, Ciphersuite, Error, Group, Signature};
+use crate::{Ciphersuite, Error, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq)]
