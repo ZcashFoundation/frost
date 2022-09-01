@@ -183,6 +183,9 @@ impl Ciphersuite for Ristretto255Sha512 {
 type R = Ristretto255Sha512;
 
 ///
+pub type Identifier = frost::Identifier<R>;
+
+///
 pub mod keys {
     use super::*;
 
@@ -218,14 +221,14 @@ pub mod round1 {
 
     ///
     pub fn commit<RNG>(
-        participant_index: u16,
+        participant_identifier: frost::Identifier<R>,
         secret: &Secret<R>,
         rng: &mut RNG,
     ) -> (SigningNonces, SigningCommitments)
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::commit::<R, RNG>(participant_index, secret, rng)
+        frost::round1::commit::<R, RNG>(participant_identifier, secret, rng)
     }
 }
 

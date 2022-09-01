@@ -94,9 +94,9 @@ fn check_sign_with_test_vectors() {
     let mut our_signature_shares: Vec<frost::round2::SignatureShare<R>> = Vec::new();
 
     // Each participant generates their signature share
-    for index in signer_nonces.keys() {
-        let key_package = &key_packages[index];
-        let nonces = &signer_nonces[index];
+    for identifier in signer_nonces.keys() {
+        let key_package = &key_packages[identifier];
+        let nonces = &signer_nonces[identifier];
 
         // Each participant generates their signature share.
         let signature_share = frost::round2::sign(&signing_package, nonces, key_package).unwrap();
@@ -105,7 +105,7 @@ fn check_sign_with_test_vectors() {
     }
 
     for sig_share in our_signature_shares.clone() {
-        assert_eq!(sig_share, signature_shares[sig_share.index()]);
+        assert_eq!(sig_share, signature_shares[sig_share.identifier()]);
     }
 
     let signer_pubkeys = key_packages
