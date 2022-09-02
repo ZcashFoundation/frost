@@ -192,6 +192,18 @@ impl Ciphersuite for Ristretto255Sha512 {
         output.copy_from_slice(h.finalize().as_slice());
         output
     }
+
+    /// HDKG for FROST(ristretto255, SHA-512)
+    fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        let h = Sha512::new()
+            .chain(CONTEXT_STRING.as_bytes())
+            .chain("dkg")
+            .chain(m);
+
+        let mut output = [0u8; 64];
+        output.copy_from_slice(h.finalize().as_slice());
+        Some(<<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output))
+    }
 }
 
 type R = Ristretto255Sha512;

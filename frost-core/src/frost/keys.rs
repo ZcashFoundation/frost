@@ -14,6 +14,8 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
 
+pub mod dkg;
+
 /// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
 pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     size: usize,
@@ -23,6 +25,7 @@ pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
         .take(size)
         .collect()
 }
+
 
 /// A group secret to be split between participants.
 ///
@@ -359,6 +362,25 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
             group_public,
         },
     ))
+}
+
+/// Evaluate the polynomial with `secret` as the constant term
+/// and `coefficients` as the other coefficients at the point x=identifier,
+/// using Horner's method.
+// TODO: refactor with generate_secret_shares()
+fn evaluate_polynomial<C: Ciphersuite>(
+    identifier: Identifier<C>,
+    secret: Scalar<C>,
+    coefficients: &[Scalar<C>],
+) -> Result<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar, &'static str> {
+    let mut value = <<C::Group as Group>::Field as Field>::zero();
+    let ell_scalar = identifier.to_scalar()?;
+    for coeff in coefficients.iter().rev() {
+        value = value + *coeff;
+        value = ell_scalar * value;
+    }
+    value = value + secret;
+    Ok(value)
 }
 
 /// A FROST keypair, which can be generated either by a trusted dealer or using

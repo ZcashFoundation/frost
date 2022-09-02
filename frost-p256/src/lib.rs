@@ -210,6 +210,15 @@ impl Ciphersuite for P256Sha256 {
         output.copy_from_slice(h.finalize().as_slice());
         output
     }
+
+    /// HDKG for FROST(P-256, SHA-256)
+    fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        let mut u = [P256ScalarField::zero()];
+        let dst = CONTEXT_STRING.to_owned() + "dkg";
+        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
+            .expect("should never return error according to error cases described in ExpandMsgXmd");
+        Some(u[0])
+    }
 }
 
 // Shorthand alias for the ciphersuite
