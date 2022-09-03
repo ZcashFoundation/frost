@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+// It's emitting false positives; see https://github.com/rust-lang/rust-clippy/issues/9413
+#![allow(clippy::derive_partial_eq_without_eq)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
@@ -191,6 +193,25 @@ pub trait Ciphersuite: Copy + Clone {
     ///
     /// [H4]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
+
+    /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
+    /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
+    ///
+    /// # Cryptographic Safety
+    ///
+    /// You may override this to provide a tailored implementation, but if the ciphersuite defines it,
+    /// it must also multiply by the cofactor to comply with the RFC. Note that batch verification
+    /// (see [`crate::batch::Verifier`]) also uses the default implementation regardless whether a
+    /// tailored implementation was provided.
+    fn verify_signature(
+        msg: &[u8],
+        signature: &Signature<Self>,
+        public_key: &VerifyingKey<Self>,
+    ) -> Result<(), Error> {
+        let c = crate::challenge::<Self>(&signature.R, &public_key.element, msg);
+
+        public_key.verify_prehashed(c, signature)
+    }
 }
 
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
