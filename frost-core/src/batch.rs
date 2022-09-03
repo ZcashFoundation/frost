@@ -50,7 +50,7 @@ where
     /// requires borrowing the message data, the `Item` type is unlinked
     /// from the lifetime of the message.
     pub fn verify_single(self) -> Result<(), Error> {
-        verify_prehashed::<C>(self.c, &self.sig, &self.vk)
+        self.vk.verify_prehashed(self.c, &self.sig)
     }
 }
 

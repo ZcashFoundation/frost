@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use hex::FromHex;
 
-use crate::{Ciphersuite, Error, Group, Signature};
+use crate::{Challenge, Ciphersuite, Error, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq)]
@@ -31,6 +31,28 @@ where
     /// Serialize `VerifyingKey` to bytes
     pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
         <C::Group as Group>::serialize(&self.element)
+    }
+
+    /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification
+    /// key.
+    pub(crate) fn verify_prehashed(
+        &self,
+        challenge: Challenge<C>,
+        signature: &Signature<C>,
+    ) -> Result<(), Error> {
+        // Verify check is h * ( - z * B + R  + c * A) == 0
+        //                 h * ( z * B - c * A - R) == 0
+        //
+        // where h is the cofactor
+        let zB = C::Group::generator() * signature.z;
+        let cA = self.element * challenge.0;
+        let check = (zB - cA - signature.R) * C::Group::cofactor();
+
+        if check == C::Group::identity() {
+            Ok(())
+        } else {
+            Err(Error::InvalidSignature)
+        }
     }
 
     /// Verify a purported `signature` over `msg` made by this verification key.
