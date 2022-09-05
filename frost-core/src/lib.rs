@@ -19,6 +19,8 @@ pub mod frost;
 mod scalar_mul;
 mod signature;
 mod signing_key;
+#[cfg(any(test, feature = "test-impl"))]
+pub mod tests;
 mod verifying_key;
 
 pub use error::Error;

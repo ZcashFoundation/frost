@@ -19,12 +19,18 @@ features = ["nightly"]
 
 [dependencies]
 byteorder = "1.4"
+debugless-unwrap = "0.0.4"
 digest = "0.10"
 hex = { version = "0.4.3", features = ["serde"] }
 rand_core = "0.6"
 serde = { version = "1", optional = true, features = ["derive"] }
 thiserror = "1.0"
 zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
+
+# Test dependencies used with the test-impl feature
+proptest = { version = "1.0", optional = true }
+proptest-derive = { version = "0.3", optional = true }
+serde_json = { version = "1.0", optional = true }
 
 [dev-dependencies]
 curve25519-dalek = { version = "4.0.0-pre.1", features = ["serde"] }
@@ -38,3 +44,5 @@ sha2 = "0.10.2"
 [features]
 nightly = []
 default = ["serde"]
+# Exposes ciphersuite-generic tests for other crates to use
+test-impl = ["proptest", "proptest-derive", "serde_json"]

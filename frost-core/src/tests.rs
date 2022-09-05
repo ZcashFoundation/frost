@@ -1,16 +1,35 @@
+//! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use frost_core::frost::{self, Identifier};
-use rand::thread_rng;
+use crate::frost::{self, Identifier};
+use rand_core::{CryptoRng, RngCore};
 
-mod common;
+use crate::Ciphersuite;
 
-use common::ciphersuite::Ristretto255Sha512 as R;
+pub mod proptests;
+pub mod vectors;
 
-#[test]
-fn check_sign_with_dealer() {
-    let mut rng = thread_rng();
+/// Test share generation with a Ciphersuite
+pub fn check_share_generation<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(mut rng: R) {
+    let secret = frost::keys::Secret::<C>::random(&mut rng);
 
+    let secret_shares = frost::keys::generate_secret_shares(&secret, 5, 3, rng).unwrap();
+
+    for secret_share in secret_shares.iter() {
+        assert_eq!(secret_share.verify(), Ok(()));
+    }
+
+    assert_eq!(
+        frost::keys::reconstruct_secret::<C>(secret_shares).unwrap(),
+        secret
+    )
+}
+
+/// Test FROST signing with trusted dealer with a Ciphersuite.
+pub fn check_sign_with_dealer<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(mut rng: R)
+where
+    <C as Ciphersuite>::Group: std::cmp::PartialEq,
+{
     ////////////////////////////////////////////////////////////////////////////
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
@@ -21,7 +40,7 @@ fn check_sign_with_dealer() {
         frost::keys::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
 
     // Verifies the secret shares from the dealer
-    let key_packages: HashMap<frost::Identifier<R>, frost::keys::KeyPackage<R>> = shares
+    let key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> = shares
         .into_iter()
         .map(|share| {
             (
@@ -31,8 +50,8 @@ fn check_sign_with_dealer() {
         })
         .collect();
 
-    let mut nonces: HashMap<Identifier<R>, frost::round1::SigningNonces<R>> = HashMap::new();
-    let mut commitments: HashMap<Identifier<R>, frost::round1::SigningCommitments<R>> =
+    let mut nonces: HashMap<Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
+    let mut commitments: HashMap<Identifier<C>, frost::round1::SigningCommitments<C>> =
         HashMap::new();
 
     ////////////////////////////////////////////////////////////////////////////
@@ -58,7 +77,7 @@ fn check_sign_with_dealer() {
     // This is what the signature aggregator / coordinator needs to do:
     // - decide what message to sign
     // - take one (unused) commitment per signing participant
-    let mut signature_shares: Vec<frost::round2::SignatureShare<R>> = Vec::new();
+    let mut signature_shares: Vec<frost::round2::SignatureShare<C>> = Vec::new();
     let message = "message to sign".as_bytes();
     let comms = commitments.clone().into_values().collect();
     let signing_package = frost::SigningPackage::new(comms, message.to_vec());
