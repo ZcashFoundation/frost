@@ -10,7 +10,7 @@ pub mod proptests;
 pub mod vectors;
 
 /// Test share generation with a Ciphersuite
-pub fn check_share_generation<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let secret = frost::keys::Secret::<C>::random(&mut rng);
 
     let secret_shares = frost::keys::generate_secret_shares(&secret, 5, 3, rng).unwrap();
@@ -26,10 +26,7 @@ pub fn check_share_generation<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.
-pub fn check_sign_with_dealer<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(mut rng: R)
-where
-    <C as Ciphersuite>::Group: std::cmp::PartialEq,
-{
+pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     ////////////////////////////////////////////////////////////////////////////
     // Key generation
     ////////////////////////////////////////////////////////////////////////////

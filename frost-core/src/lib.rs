@@ -96,7 +96,7 @@ pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Sca
 /// pass-through, implemented for a type just for the ciphersuite, and calls through to another
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
-pub trait Group: Copy + Clone {
+pub trait Group: Copy + Clone + PartialEq {
     /// A prime order finite field GF(q) over which all scalar values for our prime order group can
     /// be multiplied are defined.
     type Field: Field;
@@ -157,7 +157,7 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 /// function.
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-ciphersuites
-pub trait Ciphersuite: Copy + Clone {
+pub trait Ciphersuite: Copy + Clone + PartialEq {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
