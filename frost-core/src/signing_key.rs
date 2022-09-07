@@ -10,7 +10,7 @@ pub struct SigningKey<C>
 where
     C: Ciphersuite,
 {
-    scalar: <<C::Group as Group>::Field as Field>::Scalar,
+    pub(crate) scalar: <<C::Group as Group>::Field as Field>::Scalar,
 }
 
 impl<C> SigningKey<C>

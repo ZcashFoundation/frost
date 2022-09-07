@@ -11,7 +11,7 @@ pub mod vectors;
 
 /// Test share generation with a Ciphersuite
 pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
-    let secret = frost::keys::SecretShareValue::<C>::random(&mut rng);
+    let secret = frost::keys::SharedSecret::<C>::random(&mut rng);
 
     let secret_shares = frost::keys::generate_secret_shares(&secret, 5, 3, rng).unwrap();
 

@@ -8,7 +8,7 @@ use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Error, Field, Group};
 
-use super::{keys::SecretShareValue, Identifier};
+use super::{keys::SigningShare, Identifier};
 
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Eq, Zeroize)]
@@ -18,9 +18,8 @@ impl<C> Nonce<C>
 where
     C: Ciphersuite,
 {
-    /// Generates a new uniformly random signing nonce by sourcing fresh
-    /// randomness and combining with the secret key, to hedge against a bad
-    /// RNG.
+    /// Generates a new uniformly random signing nonce by sourcing fresh randomness and combining
+    /// with the secret signing share, to hedge against a bad RNG.
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
@@ -28,7 +27,7 @@ where
     /// An implementation of `nonce_generate(secret)` from the [spec].
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-nonce-generation
-    pub fn new<R>(secret: &SecretShareValue<C>, rng: &mut R) -> Self
+    pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
@@ -167,7 +166,7 @@ where
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
-    pub fn new<R>(secret: &SecretShareValue<C>, rng: &mut R) -> Self
+    pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
@@ -301,7 +300,7 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 pub fn preprocess<C, R>(
     num_nonces: u8,
     participant_identifier: Identifier<C>,
-    secret: &SecretShareValue<C>,
+    secret: &SigningShare<C>,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
 where
@@ -331,7 +330,7 @@ where
 /// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-5.1
 pub fn commit<C, R>(
     participant_identifier: Identifier<C>,
-    secret: &SecretShareValue<C>,
+    secret: &SigningShare<C>,
     rng: &mut R,
 ) -> (SigningNonces<C>, SigningCommitments<C>)
 where

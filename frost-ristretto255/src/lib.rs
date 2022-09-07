@@ -210,7 +210,7 @@ pub mod keys {
 
 ///
 pub mod round1 {
-    use frost_core::frost::keys::SecretShareValue;
+    use frost_core::frost::keys::SigningShare;
 
     use super::*;
     ///
@@ -222,7 +222,7 @@ pub mod round1 {
     ///
     pub fn commit<RNG>(
         participant_identifier: frost::Identifier<R>,
-        secret: &SecretShareValue<R>,
+        secret: &SigningShare<R>,
         rng: &mut RNG,
     ) -> (SigningNonces, SigningCommitments)
     where
