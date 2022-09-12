@@ -31,7 +31,7 @@ zeroize = { version = "1", default-features = false, features = ["zeroize_derive
 
 [dev-dependencies]
 bincode = "1"
-criterion = "0.3"
+criterion = "0.4"
 ed25519-dalek = "1.0.1"
 ed25519-zebra = "3.0.0"
 lazy_static = "1.4"
