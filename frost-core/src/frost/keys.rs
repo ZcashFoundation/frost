@@ -117,17 +117,6 @@ where
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field as Field>::serialize(&self.0)
     }
-
-    // /// Generates a new uniformly random secret value using the provided RNG.
-    // // TODO: should this only be behind test?
-    // pub fn random<R>(mut rng: R) -> Self
-    // where
-    //     R: CryptoRng + RngCore,
-    // {
-    //     Self(<<C::Group as Group>::Field as Field>::random_nonzero(
-    //         &mut rng,
-    //     ))
-    // }
 }
 
 impl<C> Debug for SigningShare<C>
