@@ -5,13 +5,13 @@ use std::fmt::{self, Debug};
 use crate::{
     challenge,
     frost::{self, round1, *},
-    Challenge, Ciphersuite, Error, Field, Group,
+    Challenge, Ciphersuite, Error, Field, Group, Scalar,
 };
 
 /// A representation of a single signature share used in FROST structures and messages.
 #[derive(Clone, Copy)]
 pub struct SignatureResponse<C: Ciphersuite> {
-    /// The [`Scalar`] contribution to the group signature.
+    /// The scalar contribution to the group signature.
     pub z_share: <<C::Group as Group>::Field as Field>::Scalar,
 }
 
