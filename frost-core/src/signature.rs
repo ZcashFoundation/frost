@@ -20,7 +20,7 @@ where
     C::Group: Group,
     <C::Group as Group>::Field: Field,
 {
-    /// Converts bytes as [`C::SignatureSerialization`] into a `Signature<C>`.
+    /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
     pub fn from_bytes(bytes: C::SignatureSerialization) -> Result<Self, Error> {
         // To compute the expected length of the encoded point, encode the generator
         // and get its length. Note that we can't use the identity because it can be encoded
@@ -50,7 +50,7 @@ where
         })
     }
 
-    /// Converts this signature to its [`C::SignatureSerialization`] in bytes.
+    /// Converts this signature to its [`Ciphersuite::SignatureSerialization`] in bytes.
     pub fn to_bytes(&self) -> C::SignatureSerialization {
         let mut bytes = vec![];
 

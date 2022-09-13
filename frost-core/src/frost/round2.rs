@@ -5,7 +5,7 @@ use std::fmt::{self, Debug};
 use crate::{
     challenge,
     frost::{self, round1, *},
-    Challenge, Ciphersuite, Error, Field, Group, Scalar,
+    Challenge, Ciphersuite, Error, Field, Group,
 };
 
 /// A representation of a single signature share used in FROST structures and messages.
