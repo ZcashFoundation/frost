@@ -25,14 +25,14 @@ impl<C> SharedSecret<C>
 where
     C: Ciphersuite,
 {
-    /// Deserialize [`SharedSecret`] from bytes
+    /// Deserialize from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
         <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
-    /// Serialize [`Secret`] to bytes
+    /// Serialize to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field as Field>::serialize(&self.0)
     }
@@ -183,7 +183,7 @@ where
         <C::Group as Group>::deserialize(&bytes).map(|element| Self(element))
     }
 
-    /// Serialize [`Public`] to bytes
+    /// Serialize to bytes
     pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
         <C::Group as Group>::serialize(&self.0)
     }
@@ -194,7 +194,7 @@ where
     C: Ciphersuite,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Public")
+        f.debug_tuple("VerifyingShare")
             .field(&hex::encode(self.to_bytes()))
             .finish()
     }
@@ -209,7 +209,7 @@ where
     }
 }
 
-/// A [`Group::Element`] that is a commitment to one coefficient of our secret polynomial.
+/// A [`Group::Element`] newtype that is a commitment to one coefficient of our secret polynomial.
 ///
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
@@ -254,7 +254,7 @@ impl<C> SecretShare<C>
 where
     C: Ciphersuite,
 {
-    /// Gets the inner [`Secret`] share value.
+    /// Gets the inner [`SigningShare`] value.
     pub fn secret(&self) -> &SigningShare<C> {
         &self.value
     }
@@ -383,12 +383,12 @@ where
         &self.identifier
     }
 
-    /// Gets the participant's [`Secret`] share associated with this [`KeyPackage`].
+    /// Gets the participant's [`SigningShare`] associated with this [`KeyPackage`].
     pub fn secret_share(&self) -> &SigningShare<C> {
         &self.secret_share
     }
 
-    /// Gets the participant's [`Public`] key  associated with this [`Secret`] share in this [`KeyPackage`].
+    /// Gets the participant's [`VerifyingShare`] associated with the [`SigningShare`] in this [`KeyPackage`].
     pub fn public(&self) -> &VerifyingShare<C> {
         &self.public
     }
