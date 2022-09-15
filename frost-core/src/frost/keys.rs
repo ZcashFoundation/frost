@@ -13,22 +13,26 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
 
-/// A secret scalar value representing a signer's secret key.
+/// A group secret to be split between participants.
+///
+/// This is similar to a [`crate::SigningKey`], but this secret is not intended to be used
+/// on its own for signing, but split into shares that a threshold number of signers will use to
+/// sign.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Secret<C: Ciphersuite>(pub(crate) Scalar<C>);
+pub struct SharedSecret<C: Ciphersuite>(pub(crate) Scalar<C>);
 
-impl<C> Secret<C>
+impl<C> SharedSecret<C>
 where
     C: Ciphersuite,
 {
-    /// Deserialize [`Secret`] from bytes
+    /// Deserialize from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
         <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
-    /// Serialize [`Secret`] to bytes
+    /// Serialize to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field as Field>::serialize(&self.0)
     }
@@ -45,18 +49,18 @@ where
     }
 }
 
-impl<C> Debug for Secret<C>
+impl<C> Debug for SharedSecret<C>
 where
     C: Ciphersuite,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Secret")
+        f.debug_tuple("SharedSecret")
             .field(&hex::encode(self.to_bytes()))
             .finish()
     }
 }
 
-impl<C> Default for Secret<C>
+impl<C> Default for SharedSecret<C>
 where
     C: Ciphersuite,
 {
@@ -66,29 +70,20 @@ where
 }
 
 // Implements [`Zeroize`] by overwriting a value with the [`Default::default()`] value
-impl<C> DefaultIsZeroes for Secret<C> where C: Ciphersuite {}
+impl<C> DefaultIsZeroes for SharedSecret<C> where C: Ciphersuite {}
 
-// impl<C> Drop for Secret<C>
-// where
-//     C: Ciphersuite,
-// {
-//     fn drop(&mut self) {
-//         self.zeroize()
-//     }
-// }
-
-impl<C> From<&Secret<C>> for VerifyingKey<C>
+impl<C> From<&SharedSecret<C>> for VerifyingKey<C>
 where
     C: Ciphersuite,
 {
-    fn from(secret: &Secret<C>) -> Self {
+    fn from(secret: &SharedSecret<C>) -> Self {
         let element = <C::Group as Group>::generator() * secret.0;
 
         VerifyingKey { element }
     }
 }
 
-impl<C> FromHex for Secret<C>
+impl<C> FromHex for SharedSecret<C>
 where
     C: Ciphersuite,
 {
@@ -103,13 +98,72 @@ where
     }
 }
 
-/// A public group element that represents a single signer's public key.
+/// A secret scalar value representing a signer's share of the group secret.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct SigningShare<C: Ciphersuite>(pub(crate) Scalar<C>);
+
+impl<C> SigningShare<C>
+where
+    C: Ciphersuite,
+{
+    /// Deserialize from bytes
+    pub fn from_bytes(
+        bytes: <<C::Group as Group>::Field as Field>::Serialization,
+    ) -> Result<Self, Error> {
+        <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+    }
+
+    /// Serialize to bytes
+    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+    }
+}
+
+impl<C> Debug for SigningShare<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("SigningShare")
+            .field(&hex::encode(self.to_bytes()))
+            .finish()
+    }
+}
+
+impl<C> Default for SigningShare<C>
+where
+    C: Ciphersuite,
+{
+    fn default() -> Self {
+        Self(<<C::Group as Group>::Field as Field>::zero())
+    }
+}
+
+// Implements [`Zeroize`] by overwriting a value with the [`Default::default()`] value
+impl<C> DefaultIsZeroes for SigningShare<C> where C: Ciphersuite {}
+
+impl<C> FromHex for SigningShare<C>
+where
+    C: Ciphersuite,
+{
+    type Error = &'static str;
+
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
+        let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
+        match v.try_into() {
+            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed secret encoding"),
+            Err(_) => Err("malformed secret encoding"),
+        }
+    }
+}
+
+/// A public group element that represents a single signer's public verification share.
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub struct Public<C>(pub(super) <C::Group as Group>::Element)
+pub struct VerifyingShare<C>(pub(super) <C::Group as Group>::Element)
 where
     C: Ciphersuite;
 
-impl<C> Public<C>
+impl<C> VerifyingShare<C>
 where
     C: Ciphersuite,
 {
@@ -118,33 +172,33 @@ where
         <C::Group as Group>::deserialize(&bytes).map(|element| Self(element))
     }
 
-    /// Serialize [`Public`] to bytes
+    /// Serialize to bytes
     pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
         <C::Group as Group>::serialize(&self.0)
     }
 }
 
-impl<C> Debug for Public<C>
+impl<C> Debug for VerifyingShare<C>
 where
     C: Ciphersuite,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Public")
+        f.debug_tuple("VerifyingShare")
             .field(&hex::encode(self.to_bytes()))
             .finish()
     }
 }
 
-impl<C> From<Secret<C>> for Public<C>
+impl<C> From<SigningShare<C>> for VerifyingShare<C>
 where
     C: Ciphersuite,
 {
-    fn from(secret: Secret<C>) -> Public<C> {
-        Public(<C::Group as Group>::generator() * secret.0 as Scalar<C>)
+    fn from(secret: SigningShare<C>) -> VerifyingShare<C> {
+        VerifyingShare(<C::Group as Group>::generator() * secret.0 as Scalar<C>)
     }
 }
 
-/// A [`Group::Element`] that is a commitment to one coefficient of our secret polynomial.
+/// A [`Group::Element`] newtype that is a commitment to one coefficient of our secret polynomial.
 ///
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
@@ -180,7 +234,7 @@ pub struct SecretShare<C: Ciphersuite> {
     /// The participant identifier of this [`SecretShare`].
     pub identifier: Identifier<C>,
     /// Secret Key.
-    pub value: Secret<C>,
+    pub value: SigningShare<C>,
     /// The commitments to be distributed among signers.
     pub commitment: VerifiableSecretSharingCommitment<C>,
 }
@@ -189,8 +243,8 @@ impl<C> SecretShare<C>
 where
     C: Ciphersuite,
 {
-    /// Gets the inner [`Secret`] share value.
-    pub fn secret(&self) -> &Secret<C> {
+    /// Gets the inner [`SigningShare`] value.
+    pub fn secret(&self) -> &SigningShare<C> {
         &self.value
     }
 
@@ -237,8 +291,8 @@ pub struct SharePackage<C: Ciphersuite> {
     /// This participant's secret share.
     pub secret_share: SecretShare<C>,
     /// This participant's public key.
-    pub public: Public<C>,
-    /// The public signing key that represents the entire group.
+    pub public: VerifyingShare<C>,
+    /// The public verifying key that represents the entire group.
     pub group_public: VerifyingKey<C>,
 }
 
@@ -262,11 +316,11 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let mut bytes = [0; 64];
     rng.fill_bytes(&mut bytes);
 
-    let secret = Secret::random(&mut rng);
+    let secret = SharedSecret::random(&mut rng);
     let group_public = VerifyingKey::from(&secret);
     let secret_shares = generate_secret_shares(&secret, num_signers, threshold, rng)?;
     let mut share_packages: Vec<SharePackage<C>> = Vec::with_capacity(num_signers as usize);
-    let mut signer_pubkeys: HashMap<Identifier<C>, Public<C>> =
+    let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(num_signers as usize);
 
     for secret_share in secret_shares {
@@ -302,9 +356,9 @@ pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant identifier each secret share key package is owned by.
     pub identifier: Identifier<C>,
     /// This participant's secret share.
-    pub secret_share: Secret<C>,
+    pub secret_share: SigningShare<C>,
     /// This participant's public key.
-    pub public: Public<C>,
+    pub public: VerifyingShare<C>,
     /// The public signing key that represents the entire group.
     pub group_public: VerifyingKey<C>,
 }
@@ -318,13 +372,13 @@ where
         &self.identifier
     }
 
-    /// Gets the participant's [`Secret`] share associated with this [`KeyPackage`].
-    pub fn secret_share(&self) -> &Secret<C> {
+    /// Gets the participant's [`SigningShare`] associated with this [`KeyPackage`].
+    pub fn secret_share(&self) -> &SigningShare<C> {
         &self.secret_share
     }
 
-    /// Gets the participant's [`Public`] key  associated with this [`Secret`] share in this [`KeyPackage`].
-    pub fn public(&self) -> &Public<C> {
+    /// Gets the participant's [`VerifyingShare`] associated with the [`SigningShare`] in this [`KeyPackage`].
+    pub fn public(&self) -> &VerifyingShare<C> {
         &self.public
     }
 
@@ -369,7 +423,7 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     /// correct view of participants' public keys to perform verification before
     /// publishing a signature. `signer_pubkeys` represents all signers for a
     /// signing operation.
-    pub signer_pubkeys: HashMap<Identifier<C>, Public<C>>,
+    pub signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
     pub group_public: VerifyingKey<C>,
 }
@@ -394,7 +448,7 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 ///
 /// [`secret_key_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B.1
 pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
-    secret: &Secret<C>,
+    secret: &SharedSecret<C>,
     numshares: u8,
     threshold: u8,
     mut rng: R,
@@ -456,7 +510,7 @@ pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
 
         secret_shares.push(SecretShare {
             identifier: id,
-            value: Secret(value),
+            value: SigningShare(value),
             commitment: commitment.clone(),
         });
     }
@@ -467,7 +521,7 @@ pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Recompute the secret from t-of-n secret shares using Lagrange interpolation.
 pub fn reconstruct_secret<C: Ciphersuite>(
     secret_shares: Vec<SecretShare<C>>,
-) -> Result<Secret<C>, &'static str> {
+) -> Result<SharedSecret<C>, &'static str> {
     if secret_shares.is_empty() {
         return Err("No secret_shares provided");
     }
@@ -512,5 +566,8 @@ pub fn reconstruct_secret<C: Ciphersuite>(
         secret = secret + (lagrange_coefficient * secret_share.value.0);
     }
 
-    Ok(Secret::from_bytes(<<C::Group as Group>::Field as Field>::serialize(&secret)).unwrap())
+    Ok(
+        SharedSecret::from_bytes(<<C::Group as Group>::Field as Field>::serialize(&secret))
+            .unwrap(),
+    )
 }

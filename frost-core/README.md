@@ -17,10 +17,3 @@ scratch. End-users should not use `frost-core` if they want to sign and verify s
 should use the crate specific to their ciphersuite/curve parameters that uses `frost-core` as a
 dependency, such as `frost-ristretto255`.
 
-## Example
-
-```rust
-
-```
-
-
