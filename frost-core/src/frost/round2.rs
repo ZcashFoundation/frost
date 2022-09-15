@@ -11,7 +11,7 @@ use crate::{
 /// A representation of a single signature share used in FROST structures and messages.
 #[derive(Clone, Copy)]
 pub struct SignatureResponse<C: Ciphersuite> {
-    /// The [`Scalar`] contribution to the group signature.
+    /// The scalar contribution to the group signature.
     pub z_share: <<C::Group as Group>::Field as Field>::Scalar,
 }
 
@@ -84,7 +84,7 @@ where
     pub fn verify(
         &self,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
-        public_key: &frost::keys::Public<C>,
+        public_key: &frost::keys::VerifyingShare<C>,
         lambda_i: <<C::Group as Group>::Field as Field>::Scalar,
         challenge: &Challenge<C>,
     ) -> Result<(), &'static str> {

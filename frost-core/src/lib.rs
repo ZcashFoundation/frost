@@ -79,7 +79,7 @@ pub trait Field: Copy + Clone {
     /// A member function of a [`Field`] that attempts to map a byte array `buf` to a [`Scalar`].
     ///
     /// Fails if the input is not a valid byte representation of an [`Scalar`] of the
-    /// [`Field`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
+    /// [`Field`]. This function can raise an [`Error`] if deserialization fails or if the
     /// resulting [`Scalar`] is zero
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.8>
@@ -130,7 +130,8 @@ pub trait Group: Copy + Clone + PartialEq {
 
     /// The fixed generator element of the prime order group.
     ///
-    /// The 'base' of [`ScalarBaseMult()`] from the spec.
+    /// The 'base' of ['ScalarBaseMult()'] from the spec.
+    ///
     /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1
     fn generator() -> Self::Element;
 
@@ -143,7 +144,7 @@ pub trait Group: Copy + Clone + PartialEq {
     /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
     ///
     /// Fails if the input is not a valid byte representation of an [`Element`] of the
-    /// [`Group`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
+    /// [`Group`]. This function can raise an [`Error`] if deserialization fails or if the
     /// resulting [`Element`] is the identity element of the group
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.6>
