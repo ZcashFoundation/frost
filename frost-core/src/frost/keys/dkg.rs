@@ -9,8 +9,8 @@ use crate::{
 };
 
 use super::{
-    evaluate_polynomial, CoefficientCommitment, KeyPackage, PublicKeyPackage, SigningShare,
-    VerifiableSecretSharingCommitment, VerifyingShare,
+    evaluate_polynomial, CoefficientCommitment, KeyPackage, PublicKeyPackage, SecretShare,
+    SigningShare, VerifiableSecretSharingCommitment, VerifyingShare,
 };
 
 /// The package that must be broadcast by each participant to all other participants
@@ -118,7 +118,7 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     // Round 1, Step 3
     //
     // > Every participant P_i computes a public commitment
-    // > C_i = 〈φ_{i0}, ..., φ_{i(t−1)}〉, where φ_{ij} = g^{a_{ij}}, 0 ≤ j ≤ t − 1
+    // > C⃗_i = 〈φ_{i0}, ..., φ_{i(t−1)}〉, where φ_{ij} = g^{a_{ij}}, 0 ≤ j ≤ t − 1
     for c in &coefficients {
         commitment
             .0
@@ -197,7 +197,7 @@ pub fn keygen_part2<C: Ciphersuite>(
         let ell = round1_package.sender_identifier;
         // Round 1, Step 5
         //
-        // > Upon receiving C_ℓ, σ_ℓ from participants 1 ≤ ℓ ≤ n, ℓ ≠ i, participant
+        // > Upon receiving C⃗_ℓ, σ_ℓ from participants 1 ≤ ℓ ≤ n, ℓ ≠ i, participant
         // > P_i verifies σ_ℓ = (R_ℓ, μ_ℓ), aborting on failure, by checking
         // > R_ℓ ? ≟ g^{μ_ℓ} · φ^{-c_ℓ}_{ℓ0}, where c_ℓ = H(ℓ, Φ, φ_{ℓ0}, R_ℓ).
         let R_ell = round1_package.proof_of_knowledge.R;
@@ -286,28 +286,22 @@ pub fn keygen_part3<C: Ciphersuite>(
         let ell = round2_package.sender_identifier;
         let f_ell_i = round2_package.secret_share;
 
-        // TODO: refactor with SecretShare::verify()
-
-        let f_result = <C::Group as Group>::generator() * f_ell_i.0;
-
-        let i = round2_secret_package.identifier.to_scalar()?;
-
-        let commitments = &round1_packages_map
+        let commitment = &round1_packages_map
             .get(&ell)
             .ok_or("commitment package missing")?
             .commitment;
 
-        let (_, result) = commitments.0.iter().fold(
-            (
-                <<C::Group as Group>::Field as Field>::one(),
-                <C::Group as Group>::identity(),
-            ),
-            |(i_to_the_k, sum_so_far), comm_k| (i * i_to_the_k, sum_so_far + comm_k.0 * i_to_the_k),
-        );
+        // The verification is exactly the same as the regular SecretShare verification;
+        // however the required components are in different places.
+        // Build a temporary SecretShare so what we can call verify().
+        let secret_share = SecretShare {
+            identifier: round2_secret_package.identifier,
+            value: f_ell_i,
+            commitment: commitment.clone(),
+        };
 
-        if !(f_result == result) {
-            return Err("SecretShare is invalid.");
-        }
+        // Verify the share. We don't need the result.
+        let _ = secret_share.verify()?;
 
         // Round 2, Step 3
         //
@@ -318,7 +312,7 @@ pub fn keygen_part3<C: Ciphersuite>(
         // Round 2, Step 4
         //
         // > Each P_i calculates [...] the group’s public key Y = ∏^n_{j=1} φ_{j0}.
-        group_public = group_public + commitments.0[0].0;
+        group_public = group_public + commitment.0[0].0;
     }
 
     signing_share = signing_share + round2_secret_package.secret_share;
