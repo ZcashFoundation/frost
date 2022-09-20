@@ -9,9 +9,14 @@ use crate::{
 };
 
 use super::{
-    evaluate_polynomial, evaluate_vss, generate_coefficients, generate_secret_polynomial,
-    KeyPackage, PublicKeyPackage, SecretShare, SharedSecret, SigningShare,
-    VerifiableSecretSharingCommitment, VerifyingShare,
+<<<<<<< HEAD
+    evaluate_polynomial, generate_coefficients, generate_secret_polynomial, KeyPackage,
+    PublicKeyPackage, SecretShare, SharedSecret, SigningShare, VerifiableSecretSharingCommitment,
+    VerifyingShare,
+=======
+    evaluate_polynomial, evaluate_vss, generate_secret_polynomial, KeyPackage, PublicKeyPackage,
+    SecretShare, SharedSecret, SigningShare, VerifiableSecretSharingCommitment, VerifyingShare,
+>>>>>>> 6f81538 (refactor: factor out `evaluate_vss`)
 };
 
 /// The package that must be broadcast by each participant to all other participants

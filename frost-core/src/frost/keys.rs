@@ -277,16 +277,7 @@ where
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
-
-        let x = self.identifier.to_scalar()?;
-
-        let (_, result) = self.commitment.0.iter().fold(
-            (
-                <<C::Group as Group>::Field as Field>::one(),
-                <C::Group as Group>::identity(),
-            ),
-            |(x_to_the_i, sum_so_far), comm_i| (x * x_to_the_i, sum_so_far + comm_i.0 * x_to_the_i),
-        );
+        let result = evaluate_vss(&self.commitment, self.identifier)?;
 
         if !(f_result == result) {
             return Err("SecretShare is invalid.");
@@ -382,6 +373,25 @@ fn evaluate_polynomial<C: Ciphersuite>(
     }
     value = value + secret;
     Ok(value)
+}
+
+/// Evaluates the right-hand side of the VSS verification equation, namely
+/// ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk} using [`identifier`] as `i` and the
+/// [`commitment`] as the commitment vector φ_ℓ
+fn evaluate_vss<C: Ciphersuite>(
+    commitment: &VerifiableSecretSharingCommitment<C>,
+    identifier: Identifier<C>,
+) -> Result<<<C as Ciphersuite>::Group as Group>::Element, &'static str> {
+    let i = identifier.to_scalar()?;
+
+    let (_, result) = commitment.0.iter().fold(
+        (
+            <<C::Group as Group>::Field as Field>::one(),
+            <C::Group as Group>::identity(),
+        ),
+        |(i_to_the_k, sum_so_far), comm_k| (i * i_to_the_k, sum_so_far + comm_k.0 * i_to_the_k),
+    );
+    Ok(result)
 }
 
 /// A FROST keypair, which can be generated either by a trusted dealer or using
