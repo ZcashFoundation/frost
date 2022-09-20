@@ -223,6 +223,49 @@ pub fn keygen_part2<C: Ciphersuite>(
     ))
 }
 
+/// Computes the verifying keys of the other participants for the third step
+/// of the DKG protocol.
+fn compute_verifying_keys<C: Ciphersuite>(
+    round2_packages: &[Round2Package<C>],
+    round1_packages_map: HashMap<Identifier<C>, &Round1Package<C>>,
+    round2_secret_package: &Round2SecretPackage<C>,
+) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, &'static str> {
+    // Round 2, Step 4
+    //
+    // > Any participant can compute the public verification share of any other participant
+    // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
+    let mut others_verifying_keys = HashMap::new();
+
+    // Note that in this loop, "i" refers to the other participant whose public verification share
+    // we are computing, and not the current participant.
+    for i in round2_packages.iter().map(|p| p.sender_identifier) {
+        let mut y_i = <C::Group as Group>::identity();
+
+        // We need to iterate through all commitment vectors, including our own,
+        // so chain it manually
+        for commitments in round2_packages
+            .iter()
+            .map(|p| {
+                // Get the commitment vector for this participant
+                Ok::<&VerifiableSecretSharingCommitment<C>, &'static str>(
+                    &round1_packages_map
+                        .get(&p.sender_identifier)
+                        .ok_or("Round 1 package not found for Round 2 participant")?
+                        .commitment,
+                )
+            })
+            // Chain our own commitment vector
+            .chain(iter::once(Ok(&round2_secret_package.commitment)))
+        {
+            let result = evaluate_vss(commitments?, i)?;
+            y_i = y_i + result;
+        }
+        let y_i = VerifyingShare(y_i);
+        others_verifying_keys.insert(i, y_i);
+    }
+    Ok(others_verifying_keys)
+}
+
 /// Performs the third and final part of the distributed key generation protocol
 /// for the participant holding the given [`Round2SecretPackage`],
 /// given the received [`Round1Package`]s and [`Round2Package`]s received from
@@ -309,34 +352,10 @@ pub fn keygen_part3<C: Ciphersuite>(
 
     // Round 2, Step 4
     //
-    // Any participant can compute the public verification share of any other participant
-    // by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
-
-    let mut others_verifying_keys = HashMap::new();
-
-    // Note that in this loop, "i" refers to the other participant whose public verification share
-    // we are computing, and not the current participant.
-    for i in round2_packages.iter().map(|p| p.sender_identifier) {
-        let mut y_i = <C::Group as Group>::identity();
-
-        for commitments in round2_packages
-            .iter()
-            .map(|p| {
-                Ok::<&VerifiableSecretSharingCommitment<C>, &'static str>(
-                    &round1_packages_map
-                        .get(&p.sender_identifier)
-                        .ok_or("Round 1 package not found for Round 2 participant")?
-                        .commitment,
-                )
-            })
-            .chain(iter::once(Ok(&round2_secret_package.commitment)))
-        {
-            let result = evaluate_vss(commitments?, i)?;
-            y_i = y_i + result;
-        }
-        let y_i = VerifyingShare(y_i);
-        others_verifying_keys.insert(i, y_i);
-    }
+    // > Any participant can compute the public verification share of any other participant
+    // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
+    let others_verifying_keys =
+        compute_verifying_keys(round2_packages, round1_packages_map, round2_secret_package)?;
 
     let key_package = KeyPackage {
         identifier: round2_secret_package.identifier,
