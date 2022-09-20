@@ -9,8 +9,9 @@ use crate::{
 };
 
 use super::{
-    evaluate_polynomial, CoefficientCommitment, KeyPackage, PublicKeyPackage, SecretShare,
-    SigningShare, VerifiableSecretSharingCommitment, VerifyingShare,
+    evaluate_polynomial, generate_coefficients, generate_secret_polynomial, KeyPackage,
+    PublicKeyPackage, SecretShare, SharedSecret, SigningShare, VerifiableSecretSharingCommitment,
+    VerifyingShare,
 };
 
 /// The package that must be broadcast by each participant to all other participants
@@ -90,40 +91,19 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     threshold: u8,
     mut rng: R,
 ) -> Result<(Round1SecretPackage<C>, Round1Package<C>), &'static str> {
-    // TODO: refactor with generate_secret_values?
-    if threshold < 2 {
-        return Err("Threshold cannot be less than 2");
-    }
-
-    if num_signers < 2 {
-        return Err("Number of signers cannot be less than the minimum threshold 2");
-    }
-
-    if threshold > num_signers {
-        return Err("Threshold cannot exceed num_signers");
-    }
-
-    let mut coefficients: Vec<Scalar<C>> = Vec::with_capacity(threshold as usize);
-
-    let mut commitment: VerifiableSecretSharingCommitment<C> =
-        VerifiableSecretSharingCommitment(Vec::with_capacity(threshold as usize));
+    let secret: SharedSecret<C> = SharedSecret::random(&mut rng);
 
     // Round 1, Step 1
     //
     // > Every participant P_i samples t random values (a_{i0}, ..., a_{i(t−1)})) ← Z_q
-    for _ in 0..threshold {
-        coefficients.push(<<C::Group as Group>::Field as Field>::random(&mut rng));
-    }
-
+    //
     // Round 1, Step 3
     //
     // > Every participant P_i computes a public commitment
     // > C⃗_i = 〈φ_{i0}, ..., φ_{i(t−1)}〉, where φ_{ij} = g^{a_{ij}}, 0 ≤ j ≤ t − 1
-    for c in &coefficients {
-        commitment
-            .0
-            .push(CoefficientCommitment(<C::Group as Group>::generator() * *c));
-    }
+    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, &mut rng);
+    let (coefficients, commitment) =
+        generate_secret_polynomial(&secret, num_signers, threshold, coefficients)?;
 
     // Round 1, Step 2
     //

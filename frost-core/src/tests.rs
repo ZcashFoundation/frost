@@ -17,7 +17,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     let numshares = 5;
     let threshold = 3;
 
-    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, rng);
+    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, &mut rng);
 
     let secret_shares =
         frost::keys::generate_secret_shares(&secret, numshares, threshold, coefficients).unwrap();
