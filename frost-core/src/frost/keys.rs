@@ -322,7 +322,14 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let secret = SharedSecret::random(&mut rng);
     let group_public = VerifyingKey::from(&secret);
-    let secret_shares = generate_secret_shares(&secret, num_signers, threshold, rng)?;
+
+    let numcoeffs = threshold - 1;
+    let mut coefficients: Vec<Scalar<C>> = Vec::with_capacity(threshold as usize);
+    for _ in 0..numcoeffs {
+        coefficients.push(<<C::Group as Group>::Field as Field>::random(&mut rng));
+    }
+
+    let secret_shares = generate_secret_shares(&secret, num_signers, threshold, coefficients)?;
     let mut share_packages: Vec<SharePackage<C>> = Vec::with_capacity(num_signers as usize);
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(num_signers as usize);
@@ -449,11 +456,11 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 /// Implements [`secret_key_shard`] from the spec.
 ///
 /// [`secret_key_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B.1
-pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn generate_secret_shares<C: Ciphersuite>(
     secret: &SharedSecret<C>,
     numshares: u8,
     threshold: u8,
-    mut rng: R,
+    coefficients: Vec<Scalar<C>>,
 ) -> Result<Vec<SecretShare<C>>, &'static str> {
     if threshold < 2 {
         return Err("Threshold cannot be less than 2");
@@ -469,16 +476,10 @@ pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let numcoeffs = threshold - 1;
 
-    let mut coefficients: Vec<Scalar<C>> = Vec::with_capacity(threshold as usize);
-
     let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(numshares as usize);
 
     let mut commitment: VerifiableSecretSharingCommitment<C> =
         VerifiableSecretSharingCommitment(Vec::with_capacity(threshold as usize));
-
-    for _ in 0..numcoeffs {
-        coefficients.push(<<C::Group as Group>::Field as Field>::random(&mut rng));
-    }
 
     // Verifiable secret sharing, to make sure that participants can ensure their
     // secret is consistent with every other participant's.

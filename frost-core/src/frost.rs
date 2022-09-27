@@ -244,7 +244,12 @@ where
                 let mut rho_input = vec![];
 
                 rho_input.extend_from_slice(&rho_input_prefix);
-                rho_input.extend_from_slice(&u16::from(c.identifier).to_be_bytes());
+                rho_input.extend_from_slice(
+                    <<C::Group as Group>::Field as Field>::serialize(
+                        &c.identifier.to_scalar().unwrap(),
+                    )
+                    .as_ref(),
+                );
                 (c.identifier, rho_input)
             })
             .collect()

@@ -1,7 +1,10 @@
 //! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use crate::frost::{self, Identifier};
+use crate::{
+    frost::{self, Identifier},
+    Field, Group, Scalar,
+};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -13,7 +16,13 @@ pub mod vectors;
 pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let secret = frost::keys::SharedSecret::<C>::random(&mut rng);
 
-    let secret_shares = frost::keys::generate_secret_shares(&secret, 5, 3, rng).unwrap();
+    let numcoeffs = 2;
+    let mut coefficients: Vec<Scalar<C>> = Vec::with_capacity(2);
+    for _ in 0..numcoeffs {
+        coefficients.push(<<C::Group as Group>::Field as Field>::random(&mut rng));
+    }
+
+    let secret_shares = frost::keys::generate_secret_shares(&secret, 5, 3, coefficients).unwrap();
 
     for secret_share in secret_shares.iter() {
         assert!(secret_share.verify().is_ok());

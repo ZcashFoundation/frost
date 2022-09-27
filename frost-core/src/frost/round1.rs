@@ -274,7 +274,10 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
     let mut bytes = vec![];
 
     for item in sorted_signing_commitments {
-        bytes.extend_from_slice(&u16::from(item.identifier).to_be_bytes()); // TODO: 2-bytes until spec moves off u16
+        bytes.extend_from_slice(
+            <<C::Group as Group>::Field as Field>::serialize(&item.identifier.to_scalar().unwrap())
+                .as_ref(),
+        ); // TODO: 2-bytes until spec moves off u16
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.hiding.0).as_ref());
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.binding.0).as_ref());
     }
