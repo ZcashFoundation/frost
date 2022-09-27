@@ -110,7 +110,7 @@ impl Group for RistrettoGroup {
 /// Context string 'FROST-RISTRETTO255-SHA512-v5' from the ciphersuite in the [spec]
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.2-1
-const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v8";
+const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v10";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite.

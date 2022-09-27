@@ -137,7 +137,7 @@ impl Group for P256Group {
 /// Context string from the ciphersuite in the [spec]
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-1
-const CONTEXT_STRING: &str = "FROST-P256-SHA256-v8";
+const CONTEXT_STRING: &str = "FROST-P256-SHA256-v10";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST ciphersuite FROST(P-256, SHA-256).

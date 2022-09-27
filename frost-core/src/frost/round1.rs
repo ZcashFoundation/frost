@@ -275,9 +275,10 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 
     for item in sorted_signing_commitments {
         bytes.extend_from_slice(
+            // unwrap() is OK because this will become infallible after refactoring (#102)
             <<C::Group as Group>::Field as Field>::serialize(&item.identifier.to_scalar().unwrap())
                 .as_ref(),
-        ); // TODO: 2-bytes until spec moves off u16
+        );
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.hiding.0).as_ref());
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.binding.0).as_ref());
     }

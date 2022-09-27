@@ -5,6 +5,7 @@ use std::{
     convert::TryFrom,
     default::Default,
     fmt::{self, Debug},
+    iter,
 };
 
 use hex::FromHex;
@@ -323,11 +324,10 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let secret = SharedSecret::random(&mut rng);
     let group_public = VerifyingKey::from(&secret);
 
-    let numcoeffs = threshold - 1;
-    let mut coefficients: Vec<Scalar<C>> = Vec::with_capacity(threshold as usize);
-    for _ in 0..numcoeffs {
-        coefficients.push(<<C::Group as Group>::Field as Field>::random(&mut rng));
-    }
+    let coefficients =
+        iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(&mut rng))
+            .take(threshold as usize - 1)
+            .collect();
 
     let secret_shares = generate_secret_shares(&secret, num_signers, threshold, coefficients)?;
     let mut share_packages: Vec<SharePackage<C>> = Vec::with_capacity(num_signers as usize);
@@ -437,10 +437,11 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     pub group_public: VerifyingKey<C>,
 }
 
-/// Creates secret shares for a given secret.
+/// Creates secret shares for a given secret using the given coefficients.
 ///
-/// This function accepts a secret from which shares are generated. While in
-/// FROST this secret should always be generated randomly, we allow this secret
+/// This function accepts a secret from which shares are generated,
+/// and a list of threshold-1 coefficients. While in FROST this secret
+/// and coefficients should always be generated randomly, we allow them
 /// to be specified for this internal function for testability.
 ///
 /// Internally, [`generate_secret_shares`] performs verifiable secret sharing, which
@@ -448,15 +449,14 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 /// commitments to those shares.
 ///
 /// More specifically, [`generate_secret_shares`]:
-/// - Randomly samples of coefficients [a, b, c], this represents a secret
-/// polynomial f
+/// - Interpret [secret, coefficients[0], ...] as a secret polynomial f
 /// - For each participant i, their secret share is f(i)
-/// - The commitment to the secret polynomial f is [g^a, g^b, g^c]
+/// - The commitment to the secret polynomial f is [g^secret, g^coefficients[0], ...]
 ///
-/// Implements [`secret_key_shard`] from the spec.
+/// Implements [`secret_share_shard`] from the spec.
 ///
-/// [`secret_key_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B.1
-pub fn generate_secret_shares<C: Ciphersuite>(
+/// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.1
+pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     secret: &SharedSecret<C>,
     numshares: u8,
     threshold: u8,
@@ -475,6 +475,10 @@ pub fn generate_secret_shares<C: Ciphersuite>(
     }
 
     let numcoeffs = threshold - 1;
+
+    if coefficients.len() != numcoeffs as usize {
+        return Err("Must pass threshold-1 coefficients");
+    }
 
     let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(numshares as usize);
 

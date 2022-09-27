@@ -246,6 +246,7 @@ where
                 rho_input.extend_from_slice(&rho_input_prefix);
                 rho_input.extend_from_slice(
                     <<C::Group as Group>::Field as Field>::serialize(
+                        // unwrap() is OK because this will become infallible after refactoring (#102)
                         &c.identifier.to_scalar().unwrap(),
                     )
                     .as_ref(),

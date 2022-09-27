@@ -190,9 +190,16 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
 
-    let binding =
-        generate_secret_shares(&secret_key, 3, 2, share_polynomials_coefficients).unwrap();
-    let secret_shares: HashMap<_, _> = binding
+    let numshares = key_packages.len();
+    let threshold = share_polynomials_coefficients.len() + 1;
+    let secret_shares = generate_secret_shares(
+        &secret_key,
+        numshares as u8,
+        threshold as u8,
+        share_polynomials_coefficients,
+    )
+    .unwrap();
+    let secret_shares: HashMap<_, _> = secret_shares
         .iter()
         .map(|share| (share.identifier, share))
         .collect();
