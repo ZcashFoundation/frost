@@ -233,9 +233,9 @@ where
     pub fn rho_preimages(&self) -> Vec<(Identifier<C>, Vec<u8>)> {
         let mut rho_input_prefix = vec![];
 
-        rho_input_prefix.extend_from_slice(C::H3(self.message.as_slice()).as_ref());
+        rho_input_prefix.extend_from_slice(C::H4(self.message.as_slice()).as_ref());
         rho_input_prefix.extend_from_slice(
-            C::H3(&round1::encode_group_commitments(self.signing_commitments())[..]).as_ref(),
+            C::H5(&round1::encode_group_commitments(self.signing_commitments())[..]).as_ref(),
         );
 
         self.signing_commitments()
