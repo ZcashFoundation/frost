@@ -89,7 +89,7 @@ where
     //
     // [`binding_factor_for_participant`] in the spec
     //
-    // [`binding_factor_for_participant`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-07.html#section-4.3
+    // [`binding_factor_for_participant`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.3
     // TODO: switch from Vec to BTreeMap, as this can be made more efficient.
     fn index(&self, identifier: Identifier<C>) -> &Self::Output {
         for (i, factor) in self.0.iter() {
@@ -108,7 +108,7 @@ where
 {
     // [`compute_binding_factors`] in the spec
     //
-    // [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-07.html#section-4.4
+    // [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.4
     fn from(signing_package: &SigningPackage<C>) -> BindingFactorList<C> {
         let preimages = signing_package.rho_preimages();
 
@@ -281,7 +281,7 @@ where
     ///
     /// Implements [`compute_group_commitment`] from the spec.
     ///
-    /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.4
+    /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.5
     fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, &'static str> {
         let binding_factor_list: BindingFactorList<C> = signing_package.into();
 
@@ -376,9 +376,9 @@ where
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
     //
-    // Implements [`frost_aggregate`] from the spec.
+    // Implements [`aggregate`] from the spec.
     //
-    // [`frost_aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.3-4
+    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-5.3
     let mut z = <<C::Group as Group>::Field as Field>::zero();
 
     for signature_share in signature_shares {

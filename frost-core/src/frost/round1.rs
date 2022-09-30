@@ -26,7 +26,7 @@ where
     ///
     /// An implementation of `nonce_generate(secret)` from the [spec].
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-nonce-generation
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-nonce-generation
     pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
@@ -209,7 +209,7 @@ where
 {
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
-    /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#name-signature-share-verificatio
+    /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-share-verificatio
     pub(super) fn to_group_commitment_share(
         self,
         binding_factor: &frost::Rho<C>,
@@ -259,13 +259,11 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) <C::Group as Group>::
 /// Outputs:
 /// - A byte string containing the serialized representation of B.
 ///
-/// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.3
+/// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-list-operations
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: Vec<SigningCommitments<C>>,
 ) -> Vec<u8> {
     // B MUST be sorted in ascending order by signer identifier.
-    //
-    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
     //
     // TODO: AtLeastOne or other explicitly Sorted wrapper types?
     let mut sorted_signing_commitments = signing_commitments;
@@ -331,7 +329,7 @@ where
 /// Generates the signing nonces and commitments to be used in the signing
 /// operation.
 ///
-/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-5.1
+/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-round-one-commitment
 pub fn commit<C, R>(
     participant_identifier: Identifier<C>,
     secret: &SigningShare<C>,

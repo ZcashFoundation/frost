@@ -262,7 +262,7 @@ where
     /// This also implements `derive_group_info()` from the [spec] (which is very similar),
     /// but only for this participant.
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#appendix-B.2-5
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
 
@@ -312,7 +312,7 @@ pub struct SharePackage<C: Ciphersuite> {
 ///
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
-/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B
+/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C
 pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     num_signers: u8,
     threshold: u8,
