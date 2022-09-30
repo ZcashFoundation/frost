@@ -6,6 +6,7 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
 
+pub mod batch;
 pub mod proptests;
 pub mod vectors;
 
