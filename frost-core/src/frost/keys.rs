@@ -14,6 +14,16 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
 
+/// Return a vector of randomly generated coefficients (Scalars).
+pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
+    size: usize,
+    mut rng: R,
+) -> Vec<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar> {
+    iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(&mut rng))
+        .take(size)
+        .collect()
+}
+
 /// A group secret to be split between participants.
 ///
 /// This is similar to a [`crate::SigningKey`], but this secret is not intended to be used
@@ -324,10 +334,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let secret = SharedSecret::random(&mut rng);
     let group_public = VerifyingKey::from(&secret);
 
-    let coefficients =
-        iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(&mut rng))
-            .take(threshold as usize - 1)
-            .collect();
+    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, rng);
 
     let secret_shares = generate_secret_shares(&secret, num_signers, threshold, coefficients)?;
     let mut share_packages: Vec<SharePackage<C>> = Vec::with_capacity(num_signers as usize);
