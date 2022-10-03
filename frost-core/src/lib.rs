@@ -190,11 +190,11 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
     /// [H3]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
-    /// H4 for a FROST ciphersuite.
+    /// [H4] for a FROST ciphersuite.
     ///
     /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
     ///
-    /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    /// [H4]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H4(m: &[u8]) -> Self::HashOutput;
 
     /// H5 for a FROST ciphersuite.
