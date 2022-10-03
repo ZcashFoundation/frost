@@ -480,15 +480,16 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 /// Generate a secret polynomial to use in secret sharing, for the given
 /// secret value. Also validates the given parameters.
 ///
-/// Returns the vector of coefficients in little-endian order (including the
+/// Returns the full vector of coefficients in little-endian order (including the
 /// given secret, which is the first element) and a [`VerifiableSecretSharingCommitment`]
-/// which contains commitments to the coefficients.
+/// which contains commitments to those coefficients.
+///
 /// Returns an error if the parameters (num_signers, threshold) are inconsistent.
 pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
     secret: &SharedSecret<C>,
     num_signers: u8,
     threshold: u8,
-    coefficients: Vec<Scalar<C>>,
+    mut coefficients: Vec<Scalar<C>>,
 ) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), &'static str> {
     if threshold < 2 {
         return Err("Threshold cannot be less than 2");
@@ -506,21 +507,16 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
         return Err("Must pass threshold-1 coefficients");
     }
 
-    let mut commitment: VerifiableSecretSharingCommitment<C> =
-        VerifiableSecretSharingCommitment(Vec::with_capacity(threshold as usize));
-
-    // Verifiable secret sharing, to make sure that participants can ensure their
-    // secret is consistent with every other participant's.
-    commitment.0.push(CoefficientCommitment(
-        <C::Group as Group>::generator() * secret.0,
-    ));
+    // Prepend the secret, which is the 0th coefficient
+    coefficients.insert(0, secret.0);
 
     // Create the vector of commitments
-    for c in &coefficients {
-        commitment
-            .0
-            .push(CoefficientCommitment(<C::Group as Group>::generator() * *c));
-    }
+    let commitment: Vec<_> = coefficients
+        .iter()
+        .map(|c| CoefficientCommitment(<C::Group as Group>::generator() * *c))
+        .collect();
+    let commitment: VerifiableSecretSharingCommitment<C> =
+        VerifiableSecretSharingCommitment(commitment);
 
     Ok((coefficients, commitment))
 }
