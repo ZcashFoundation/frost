@@ -20,8 +20,8 @@ pub fn parse_test_vectors<C: Ciphersuite>(
     Vec<u8>,
     HashMap<Identifier<C>, SigningNonces<C>>,
     HashMap<Identifier<C>, SigningCommitments<C>>,
-    Vec<u8>,
-    Rho<C>,
+    HashMap<Identifier<C>, Vec<u8>>,
+    HashMap<Identifier<C>, Rho<C>>,
     HashMap<Identifier<C>, SignatureShare<C>>,
     Vec<u8>, // Signature<C>,
 ) {
@@ -59,18 +59,10 @@ pub fn parse_test_vectors<C: Ciphersuite>(
 
     let round_one_outputs = &json_vectors["round_one_outputs"];
 
-    let group_binding_factor_input = Vec::<u8>::from_hex(
-        round_one_outputs["group_binding_factor_input"]
-            .as_str()
-            .unwrap(),
-    )
-    .unwrap();
-
-    let group_binding_factor =
-        Rho::<C>::from_hex(round_one_outputs["group_binding_factor"].as_str().unwrap()).unwrap();
-
     let mut signer_nonces: HashMap<Identifier<C>, SigningNonces<C>> = HashMap::new();
     let mut signer_commitments: HashMap<Identifier<C>, SigningCommitments<C>> = HashMap::new();
+    let mut binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
+    let mut binding_factors: HashMap<Identifier<C>, Rho<C>> = HashMap::new();
 
     for (i, signer) in round_one_outputs["signers"].as_object().unwrap().iter() {
         let identifier = u16::from_str(i).unwrap().try_into().unwrap();
@@ -93,6 +85,16 @@ pub fn parse_test_vectors<C: Ciphersuite>(
         };
 
         signer_commitments.insert(identifier, signing_commitments);
+
+        let binding_factor_input =
+            Vec::<u8>::from_hex(signer["binding_factor_input"].as_str().unwrap()).unwrap();
+
+        binding_factor_inputs.insert(identifier, binding_factor_input);
+
+        let binding_factor =
+            Rho::<C>::from_hex(signer["binding_factor"].as_str().unwrap()).unwrap();
+
+        binding_factors.insert(identifier, binding_factor);
     }
 
     // Round two outputs
@@ -132,8 +134,8 @@ pub fn parse_test_vectors<C: Ciphersuite>(
         message_bytes,
         signer_nonces,
         signer_commitments,
-        group_binding_factor_input,
-        group_binding_factor,
+        binding_factor_inputs,
+        binding_factors,
         signature_shares,
         signature_bytes,
     )
@@ -147,8 +149,8 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         message_bytes,
         signer_nonces,
         signer_commitments,
-        group_binding_factor_input,
-        group_binding_factor,
+        binding_factor_inputs,
+        binding_factors,
         signature_shares,
         signature_bytes,
     ) = parse_test_vectors(json_vectors);
@@ -195,11 +197,15 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     let signing_package = frost::SigningPackage::new(signer_commitments_vec, message_bytes);
 
-    assert_eq!(signing_package.rho_preimage(), group_binding_factor_input);
+    for (identifier, input) in signing_package.rho_preimages().iter() {
+        assert_eq!(*input, binding_factor_inputs[identifier]);
+    }
 
-    let rho: frost::Rho<C> = (&signing_package).into();
+    let rho_list: frost::BindingFactorList<C> = (&signing_package).into();
 
-    assert_eq!(rho, group_binding_factor);
+    for (identifier, rho) in rho_list.iter() {
+        assert_eq!(*rho, binding_factors[identifier]);
+    }
 
     let mut our_signature_shares: Vec<frost::round2::SignatureShare<C>> = Vec::new();
 

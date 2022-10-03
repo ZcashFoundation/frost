@@ -135,7 +135,8 @@ pub fn sign<C: Ciphersuite>(
 ) -> Result<SignatureShare<C>, &'static str> {
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
     // binding factor.
-    let rho: frost::Rho<C> = signing_package.into();
+    let binding_factor_list: frost::BindingFactorList<C> = signing_package.into();
+    let rho: frost::Rho<C> = binding_factor_list[key_package.identifier].clone();
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
