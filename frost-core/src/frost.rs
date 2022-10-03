@@ -90,6 +90,7 @@ where
     // [`binding_factor_for_participant`] in the spec
     //
     // [`binding_factor_for_participant`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-07.html#section-4.3
+    // TODO: switch from Vec to BTreeMap, as this can be made more efficient.
     fn index(&self, identifier: Identifier<C>) -> &Self::Output {
         for (i, factor) in self.0.iter() {
             if *i == identifier {
