@@ -3,7 +3,7 @@
 //! The documentation for each ciphersuite is very similar, with the only difference being
 //! the ciphersuite name.
 //!
-//! To make it easier to update all ciphersuites documentations when a change is needed,
+//! To make it easier to update all ciphersuite documentation when a change is needed,
 //! this binary allows updating all of them based on a single one. This binary
 //! uses frost-ristretto255 as the "canonical" one, so:
 //!
