@@ -5,6 +5,7 @@ use std::{
     convert::TryFrom,
     default::Default,
     fmt::{self, Debug},
+    iter,
 };
 
 use hex::FromHex;
@@ -12,6 +13,16 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
+
+/// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
+pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
+    size: usize,
+    mut rng: R,
+) -> Vec<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar> {
+    iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(&mut rng))
+        .take(size)
+        .collect()
+}
 
 /// A group secret to be split between participants.
 ///
@@ -261,7 +272,7 @@ where
     /// This also implements `derive_group_info()` from the [spec] (which is very similar),
     /// but only for this participant.
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#appendix-B.2-5
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
 
@@ -311,7 +322,7 @@ pub struct SharePackage<C: Ciphersuite> {
 ///
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
-/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B
+/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C
 pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     num_signers: u8,
     threshold: u8,
@@ -322,7 +333,10 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let secret = SharedSecret::random(&mut rng);
     let group_public = VerifyingKey::from(&secret);
-    let secret_shares = generate_secret_shares(&secret, num_signers, threshold, rng)?;
+
+    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, rng);
+
+    let secret_shares = generate_secret_shares(&secret, num_signers, threshold, coefficients)?;
     let mut share_packages: Vec<SharePackage<C>> = Vec::with_capacity(num_signers as usize);
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(num_signers as usize);
@@ -430,10 +444,11 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     pub group_public: VerifyingKey<C>,
 }
 
-/// Creates secret shares for a given secret.
+/// Creates secret shares for a given secret using the given coefficients.
 ///
-/// This function accepts a secret from which shares are generated. While in
-/// FROST this secret should always be generated randomly, we allow this secret
+/// This function accepts a secret from which shares are generated,
+/// and a list of threshold-1 coefficients. While in FROST this secret
+/// and coefficients should always be generated randomly, we allow them
 /// to be specified for this internal function for testability.
 ///
 /// Internally, [`generate_secret_shares`] performs verifiable secret sharing, which
@@ -441,19 +456,18 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 /// commitments to those shares.
 ///
 /// More specifically, [`generate_secret_shares`]:
-/// - Randomly samples of coefficients [a, b, c], this represents a secret
-/// polynomial f
+/// - Interpret [secret, `coefficients[0]`, ...] as a secret polynomial f
 /// - For each participant i, their secret share is f(i)
-/// - The commitment to the secret polynomial f is [g^a, g^b, g^c]
+/// - The commitment to the secret polynomial f is [g^secret, `g^coefficients[0]`, ...]
 ///
-/// Implements [`secret_key_shard`] from the spec.
+/// Implements [`secret_share_shard`] from the spec.
 ///
-/// [`secret_key_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#appendix-B.1
-pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
+/// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.1
+pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     secret: &SharedSecret<C>,
     numshares: u8,
     threshold: u8,
-    mut rng: R,
+    coefficients: Vec<Scalar<C>>,
 ) -> Result<Vec<SecretShare<C>>, &'static str> {
     if threshold < 2 {
         return Err("Threshold cannot be less than 2");
@@ -469,16 +483,14 @@ pub fn generate_secret_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let numcoeffs = threshold - 1;
 
-    let mut coefficients: Vec<Scalar<C>> = Vec::with_capacity(threshold as usize);
+    if coefficients.len() != numcoeffs as usize {
+        return Err("Must pass threshold-1 coefficients");
+    }
 
     let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(numshares as usize);
 
     let mut commitment: VerifiableSecretSharingCommitment<C> =
         VerifiableSecretSharingCommitment(Vec::with_capacity(threshold as usize));
-
-    for _ in 0..numcoeffs {
-        coefficients.push(<<C::Group as Group>::Field as Field>::random(&mut rng));
-    }
 
     // Verifiable secret sharing, to make sure that participants can ensure their
     // secret is consistent with every other participant's.

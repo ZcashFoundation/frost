@@ -136,8 +136,8 @@ impl Group for P256Group {
 
 /// Context string from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-1
-const CONTEXT_STRING: &str = "FROST-P256-SHA256-v8";
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-1
+const CONTEXT_STRING: &str = "FROST-P256-SHA256-v10";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST ciphersuite FROST(P-256, SHA-256).
@@ -152,7 +152,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H1 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.1
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "rho";
@@ -163,7 +163,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H2 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.2
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "chal";
@@ -174,7 +174,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H3 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.4
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "nonce";
@@ -185,7 +185,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H4 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.3
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
         let h = Sha256::new()
             .chain(CONTEXT_STRING.as_bytes())
@@ -199,7 +199,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H5 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.3
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
         let h = Sha256::new()
             .chain(CONTEXT_STRING.as_bytes())
