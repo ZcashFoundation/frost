@@ -183,19 +183,26 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
     /// [H2]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
-    /// H3 for a FROST ciphersuite.
-    ///
-    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
-    ///
-    /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H3(m: &[u8]) -> Self::HashOutput;
-
-    /// [H4] for a FROST ciphersuite.
+    /// [H3] for a FROST ciphersuite.
     ///
     /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
     ///
+    /// [H3]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
+
+    /// [H4] for a FROST ciphersuite.
+    ///
+    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
+    ///
     /// [H4]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
+    fn H4(m: &[u8]) -> Self::HashOutput;
+
+    /// [H5] for a FROST ciphersuite.
+    ///
+    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
+    ///
+    /// [H5]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    fn H5(m: &[u8]) -> Self::HashOutput;
 
     /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
     /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).

@@ -42,7 +42,7 @@ where
             .cloned()
             .collect();
 
-        Self(C::H4(input.as_slice()))
+        Self(C::H3(input.as_slice()))
     }
 
     /// Deserialize [`Nonce`] from bytes
