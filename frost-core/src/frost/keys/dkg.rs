@@ -195,11 +195,7 @@ pub fn keygen_part2<C: Ciphersuite>(
         // > Each P_i securely sends to each other participant P_ℓ a secret share (ℓ, f_i(ℓ)),
         // > deleting f_i and each share afterward except for (i, f_i(i)),
         // > which they keep for themselves.
-        let value = evaluate_polynomial(
-            ell,
-            secret_package.coefficients[0],
-            &secret_package.coefficients[1..],
-        )?;
+        let value = evaluate_polynomial(ell, &secret_package.coefficients)?;
 
         round2_packages.push(Round2Package {
             sender_identifier: secret_package.identifier,
@@ -207,11 +203,7 @@ pub fn keygen_part2<C: Ciphersuite>(
             secret_share: SigningShare(value),
         });
     }
-    let fii = evaluate_polynomial(
-        secret_package.identifier,
-        secret_package.coefficients[0],
-        &secret_package.coefficients[1..],
-    )?;
+    let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients)?;
     Ok((
         Round2SecretPackage {
             identifier: secret_package.identifier,

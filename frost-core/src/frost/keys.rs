@@ -354,24 +354,24 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     ))
 }
 
-/// Evaluate the polynomial with `secret` as the constant term
-/// and `coefficients` as the other coefficients at the point x=identifier,
-/// using Horner's method.
+/// Evaluate the polynomial with the given coefficients (constant term first)
+/// the point x=identifier using Horner's method.
 ///
 /// Implements [`polynomial_evaluate`] from the spec (but with the first
 /// coefficient being passed separately).
+///
+/// [`polynomial_evaluate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-evaluation-of-a-polynomial
 fn evaluate_polynomial<C: Ciphersuite>(
     identifier: Identifier<C>,
-    secret: Scalar<C>,
     coefficients: &[Scalar<C>],
 ) -> Result<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar, &'static str> {
     let mut value = <<C::Group as Group>::Field as Field>::zero();
     let ell_scalar = identifier.to_scalar()?;
-    for coeff in coefficients.iter().rev() {
+    for coeff in coefficients.iter().skip(1).rev() {
         value = value + *coeff;
         value = ell_scalar * value;
     }
-    value = value + secret;
+    value = value + coefficients[0];
     Ok(value)
 }
 
@@ -552,7 +552,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
         generate_secret_polynomial(secret, numshares, threshold, coefficients)?;
 
     for id in (1..=numshares as u16).map_while(|i| Identifier::<C>::try_from(i).ok()) {
-        let value = evaluate_polynomial(id, secret.0, &coefficients[1..])?;
+        let value = evaluate_polynomial(id, &coefficients)?;
 
         secret_shares.push(SecretShare {
             identifier: id,
