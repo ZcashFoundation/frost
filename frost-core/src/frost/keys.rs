@@ -14,7 +14,7 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
 
-/// Return a vector of randomly generated coefficients (Scalars).
+/// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
 pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     size: usize,
     mut rng: R,
