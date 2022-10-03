@@ -15,7 +15,7 @@ use std::{fs, iter::zip};
 
 use regex::Regex;
 
-/// Read the public documentation of public symbols in the given file.
+/// Read the public documentation of public items (functions, types, etc.) in the given file.
 ///
 /// This identifiers snippets in the given file with the format:
 ///
@@ -25,7 +25,7 @@ use regex::Regex;
 /// ```
 ///
 /// It will return details for each match:
-/// - the symbol "name" ("[rest of the line...]" above, but after replacing
+/// - the item "name" ("[rest of the line...]" above, but after replacing
 ///   any string in `suite_names_code` with "SuiteName")
 /// - the entire documentation string
 /// - the start and end position of the documentation string in the code, which allows
@@ -39,7 +39,7 @@ use regex::Regex;
 ///
 /// # Returns
 ///
-/// A list with data for each symbol, see above.
+/// A list with data for each item, see above.
 fn read_docs(filename: &str, suite_names_code: &[&str]) -> Vec<(String, String, usize, usize)> {
     let mut docs = Vec::new();
     let code = fs::read_to_string(filename).unwrap();
@@ -47,12 +47,12 @@ fn read_docs(filename: &str, suite_names_code: &[&str]) -> Vec<(String, String, 
 
     for m in re.captures_iter(code.as_str()) {
         // Captures: 0 - the whole match; 1: documentation;
-        // 2: internal capture group; 3: the symbol "name" as described above
+        // 2: internal capture group; 3: the item "name" as described above
         let (name, doc) = (m.get(3).unwrap().as_str(), m.get(1).unwrap().as_str());
         let mut name = name.to_string();
         // Replacing ciphersuite-specific names with a fixed string allows
-        // comparing symbol "names" to check later if we're working on the
-        // same symbol.
+        // comparing item "names" to check later if we're working on the
+        // same item.
         for n in suite_names_code.iter() {
             name = name.replace(n, "SuiteName");
         }
