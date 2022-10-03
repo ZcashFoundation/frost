@@ -96,6 +96,7 @@ where
                 return factor;
             }
         }
+        // The protocol should abort here, but can we do something nicer than a panic?
         panic!("invalid identifier passed");
     }
 }
