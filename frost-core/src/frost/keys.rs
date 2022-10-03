@@ -451,7 +451,7 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 /// More specifically, [`generate_secret_shares`]:
 /// - Interpret [secret, `coefficients[0]`, ...] as a secret polynomial f
 /// - For each participant i, their secret share is f(i)
-/// - The commitment to the secret polynomial f is [g^secret, g^coefficients[0], ...]
+/// - The commitment to the secret polynomial f is [g^secret, `g^coefficients[0]`, ...]
 ///
 /// Implements [`secret_share_shard`] from the spec.
 ///
