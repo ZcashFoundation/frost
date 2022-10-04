@@ -227,12 +227,12 @@ pub mod keys {
         num_signers: u8,
         threshold: u8,
         mut rng: RNG,
-    ) -> Result<(Vec<SharePackage>, PublicKeyPackage), &'static str> {
+    ) -> Result<(Vec<SecretShare>, PublicKeyPackage), &'static str> {
         frost::keys::keygen_with_dealer(num_signers, threshold, &mut rng)
     }
 
     ///
-    pub type SharePackage = frost::keys::SharePackage<P>;
+    pub type SecretShare = frost::keys::SecretShare<P>;
 
     ///
     pub type KeyPackage = frost::keys::KeyPackage<P>;

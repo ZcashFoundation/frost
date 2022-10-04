@@ -209,7 +209,7 @@ pub mod keys {
         num_signers: u8,
         threshold: u8,
         mut rng: RNG,
-    ) -> Result<(Vec<SharePackage>, PublicKeyPackage), &'static str> {
+    ) -> Result<(Vec<SecretShare>, PublicKeyPackage), &'static str> {
         frost::keys::keygen_with_dealer(num_signers, threshold, &mut rng)
     }
 
@@ -218,14 +218,14 @@ pub mod keys {
     ///
     /// # Security
     ///
-    /// To derive a FROST(ristretto255, SHA-512) keypair, the receiver of the [`SharePackage`] *must* call
+    /// To derive a FROST(ristretto255, SHA-512) keypair, the receiver of the [`SecretShare`] *must* call
     /// .into(), which under the hood also performs validation.
-    pub type SharePackage = frost::keys::SharePackage<R>;
+    pub type SecretShare = frost::keys::SecretShare<R>;
 
     /// A FROST(ristretto255, SHA-512) keypair, which can be generated either by a trusted dealer or using
     /// a DKG.
     ///
-    /// When using a central dealer, [`SharePackage`]s are distributed to
+    /// When using a central dealer, [`SecretShare`]s are distributed to
     /// participants, who then perform verification, before deriving
     /// [`KeyPackage`]s, which they store to later use during signing.
     pub type KeyPackage = frost::keys::KeyPackage<R>;

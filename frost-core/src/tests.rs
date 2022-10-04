@@ -121,7 +121,7 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
         .is_ok());
 
     // Check that the threshold signature can be verified by the group public
-    // key (the verification key) from SharePackage.group_public
+    // key (the verification key) from KeyPackage.group_public
     for (participant_identifier, _) in nonces.clone() {
         let key_package = key_packages.get(&participant_identifier).unwrap();
 
