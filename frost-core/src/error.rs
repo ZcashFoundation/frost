@@ -30,4 +30,7 @@ pub enum Error {
     /// This scalar MUST NOT be zero.
     #[error("Invalid for this scalar to be zero.")]
     InvalidZeroScalar,
+    /// This element MUST NOT be the identity.
+    #[error("Invalid for this element to be the identity.")]
+    InvalidIdentityElement,
 }

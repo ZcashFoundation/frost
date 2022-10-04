@@ -4,6 +4,7 @@
 
 use p256::{
     elliptic_curve::{
+        group::prime::PrimeCurveAffine,
         hash2curve::{hash_to_field, ExpandMsgXmd},
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
@@ -128,7 +129,16 @@ impl Group for P256Group {
             p256::EncodedPoint::from_bytes(buf).map_err(|_| Error::MalformedElement)?;
 
         match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
-            Some(point) => Ok(ProjectivePoint::from(point)),
+            Some(point) => {
+                if point.is_identity().into() {
+                    // This is actually impossible since the identity is encoded a a single byte
+                    // which will never happen since we receive a 33-byte buffer.
+                    // We leave the check for consistency.
+                    Err(Error::InvalidIdentityElement)
+                } else {
+                    Ok(ProjectivePoint::from(point))
+                }
+            }
             None => Err(Error::MalformedElement),
         }
     }

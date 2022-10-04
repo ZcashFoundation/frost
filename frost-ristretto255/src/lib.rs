@@ -101,7 +101,13 @@ impl Group for RistrettoGroup {
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
         match CompressedRistretto::from_slice(buf.as_ref()).decompress() {
-            Some(point) => Ok(point),
+            Some(point) => {
+                if point == Self::identity() {
+                    Err(Error::InvalidIdentityElement)
+                } else {
+                    Ok(point)
+                }
+            }
             None => Err(Error::MalformedElement),
         }
     }
