@@ -6,7 +6,3 @@ members = [
     "frost-ristretto255",
     "frost-p256",
 ]
-
-# This is a development helper binary.
-# To run it, execute `cargo run --manifest-path gendoc/Cargo.toml`
-exclude = ["gendoc"]
