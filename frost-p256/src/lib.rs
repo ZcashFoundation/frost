@@ -254,7 +254,7 @@ pub mod keys {
     /// A FROST(P-256, SHA-256) keypair, which can be generated either by a trusted dealer or using
     /// a DKG.
     ///
-    /// When using a central dealer, [`SharePackage`]s are distributed to
+    /// When using a central dealer, [`SecretShare`]s are distributed to
     /// participants, who then perform verification, before deriving
     /// [`KeyPackage`]s, which they store to later use during signing.
     pub type KeyPackage = frost::keys::KeyPackage<P>;
