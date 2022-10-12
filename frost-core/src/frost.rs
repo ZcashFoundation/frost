@@ -241,10 +241,7 @@ where
                 let mut rho_input = vec![];
 
                 rho_input.extend_from_slice(&rho_input_prefix);
-                rho_input.extend_from_slice(
-                    <<C::Group as Group>::Field as Field>::serialize(&c.identifier.to_scalar())
-                        .as_ref(),
-                );
+                rho_input.extend_from_slice(c.identifier.serialize().as_ref());
                 (c.identifier, rho_input)
             })
             .collect()

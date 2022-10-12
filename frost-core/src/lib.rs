@@ -46,8 +46,6 @@ pub trait Field: Copy + Clone {
         + Sub<Output = Self::Scalar>;
 
     /// A unique byte array buf of fixed length N.
-    ///
-    /// Little-endian!
     type Serialization: AsRef<[u8]> + Debug + Default + TryFrom<Vec<u8>>;
 
     /// Returns the zero element of the field, the additive identity.
@@ -75,6 +73,12 @@ pub trait Field: Copy + Clone {
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.1-3.8>
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization;
+
+    /// A member function of a [`Field`] that maps a [`Scalar`] to a unique byte array buf of
+    /// fixed length Ne, in little-endian order.
+    ///
+    /// This is used internally.
+    fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization;
 
     /// A member function of a [`Field`] that attempts to map a byte array `buf` to a [`Scalar`].
     ///

@@ -70,6 +70,10 @@ impl Field for RistrettoScalarField {
             None => Err(Error::MalformedScalar),
         }
     }
+
+    fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization {
+        Self::serialize(scalar)
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -205,7 +209,7 @@ type R = Ristretto255Sha512;
 /// A FROST(ristretto255, SHA-512) participant identifier.
 pub type Identifier = frost::Identifier<R>;
 
-///
+/// FROST(ristretto255, SHA-512) keys, key generation, key shares.
 pub mod keys {
     use super::*;
 

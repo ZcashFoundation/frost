@@ -74,6 +74,12 @@ impl Field for P256ScalarField {
             None => Err(Error::MalformedScalar),
         }
     }
+
+    fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization {
+        let mut array = Self::serialize(scalar);
+        array.reverse();
+        array
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -228,7 +234,7 @@ type P = P256Sha256;
 /// A FROST(P-256, SHA-256) participant identifier.
 pub type Identifier = frost::Identifier<P>;
 
-///
+/// FROST(P-256, SHA-256) keys, key generation, key shares.
 pub mod keys {
     use super::*;
 
