@@ -11,7 +11,7 @@ use crate::{
 /// A representation of a single signature share used in FROST structures and messages.
 #[derive(Clone, Copy)]
 pub struct SignatureResponse<C: Ciphersuite> {
-    /// The [`Scalar`] contribution to the group signature.
+    /// The scalar contribution to the group signature.
     pub z_share: <<C::Group as Group>::Field as Field>::Scalar,
 }
 
@@ -80,11 +80,11 @@ where
     ///
     /// This is the final step of [`verify_signature_share`] from the spec.
     ///
-    /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.3
+    /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-share-verificatio
     pub fn verify(
         &self,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
-        public_key: &frost::keys::Public<C>,
+        public_key: &frost::keys::VerifyingShare<C>,
         lambda_i: <<C::Group as Group>::Field as Field>::Scalar,
         challenge: &Challenge<C>,
     ) -> Result<(), &'static str> {
@@ -127,7 +127,7 @@ where
 /// Assumes the participant has already determined which nonce corresponds with
 /// the commitment that was assigned by the coordinator in the SigningPackage.
 ///
-/// [`sign`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.2
+/// [`sign`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-round-two-signature-share-g
 pub fn sign<C: Ciphersuite>(
     signing_package: &SigningPackage<C>,
     signer_nonces: &round1::SigningNonces<C>,
@@ -135,7 +135,8 @@ pub fn sign<C: Ciphersuite>(
 ) -> Result<SignatureShare<C>, &'static str> {
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
     // binding factor.
-    let rho: frost::Rho<C> = signing_package.into();
+    let binding_factor_list: frost::BindingFactorList<C> = signing_package.into();
+    let rho: frost::Rho<C> = binding_factor_list[key_package.identifier].clone();
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;

@@ -1,18 +1,12 @@
-use rand::thread_rng;
+//! Ciphersuite-generic batch test functions.
+use crate::*;
 
-use frost_core::*;
-
-mod common;
-
-use common::ciphersuite::Ristretto255Sha512 as R;
-
-#[test]
-fn batch_verify() {
-    let mut rng = thread_rng();
-    let mut batch = batch::Verifier::<R>::new();
-    for _ in 0..32 {
+/// Test batch verification with a Ciphersuite.
+pub fn batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    let mut batch = batch::Verifier::<C>::new();
+    for _ in 0..1 {
         let sk = SigningKey::new(&mut rng);
-        let vk = VerifyingKey::<R>::from(&sk);
+        let vk = VerifyingKey::<C>::from(&sk);
         let msg = b"BatchVerifyTest";
         let sig = sk.sign(&mut rng, &msg[..]);
         assert!(vk.verify(msg, &sig).is_ok());
@@ -21,17 +15,16 @@ fn batch_verify() {
     assert!(batch.verify(rng).is_ok());
 }
 
-#[test]
-fn bad_batch_verify() {
-    let mut rng = thread_rng();
+/// Test failure case of batch verification with a Ciphersuite.
+pub fn bad_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let bad_index = 4; // must be even
-    let mut batch = batch::Verifier::<R>::new();
+    let mut batch = batch::Verifier::<C>::new();
     let mut items = Vec::new();
     for i in 0..32 {
-        let item: batch::Item<R> = match i % 2 {
+        let item: batch::Item<C> = match i % 2 {
             0 => {
                 let sk = SigningKey::new(&mut rng);
-                let vk = VerifyingKey::<R>::from(&sk);
+                let vk = VerifyingKey::<C>::from(&sk);
                 let msg = b"BatchVerifyTest";
                 let sig = if i != bad_index {
                     sk.sign(&mut rng, &msg[..])
@@ -42,7 +35,7 @@ fn bad_batch_verify() {
             }
             1 => {
                 let sk = SigningKey::new(&mut rng);
-                let vk = VerifyingKey::<R>::from(&sk);
+                let vk = VerifyingKey::<C>::from(&sk);
                 let msg = b"BatchVerifyTest";
                 let sig = sk.sign(&mut rng, &msg[..]);
                 (vk, sig, msg).into()

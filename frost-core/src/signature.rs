@@ -1,8 +1,6 @@
 //! Schnorr signatures over prime order groups (or subgroups)
 
-use std::fmt::Debug;
-
-// use hex::FromHex;
+use debugless_unwrap::DebuglessUnwrap;
 
 use crate::{Ciphersuite, Error, Field, Group};
 
@@ -22,12 +20,8 @@ where
     C::Group: Group,
     <C::Group as Group>::Field: Field,
 {
-    /// Converts bytes as [`C::SignatureSerialization`] into a `Signature<C>`.
-    pub fn from_bytes(bytes: C::SignatureSerialization) -> Result<Self, Error>
-    where
-        <<C::Group as Group>::Serialization as TryFrom<Vec<u8>>>::Error: Debug,
-        <<<C::Group as Group>::Field as Field>::Serialization as TryFrom<Vec<u8>>>::Error: Debug,
-    {
+    /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
+    pub fn from_bytes(bytes: C::SignatureSerialization) -> Result<Self, Error> {
         // To compute the expected length of the encoded point, encode the generator
         // and get its length. Note that we can't use the identity because it can be encoded
         // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
@@ -56,17 +50,14 @@ where
         })
     }
 
-    /// Converts this signature to its [`C::SignatureSerialization`] in bytes.
-    pub fn to_bytes(&self) -> C::SignatureSerialization
-    where
-        <<C as Ciphersuite>::SignatureSerialization as TryFrom<Vec<u8>>>::Error: Debug,
-    {
+    /// Converts this signature to its [`Ciphersuite::SignatureSerialization`] in bytes.
+    pub fn to_bytes(&self) -> C::SignatureSerialization {
         let mut bytes = vec![];
 
         bytes.extend(<C::Group as Group>::serialize(&self.R).as_ref());
         bytes.extend(<<C::Group as Group>::Field as Field>::serialize(&self.z).as_ref());
 
-        bytes.try_into().unwrap()
+        bytes.try_into().debugless_unwrap()
     }
 }
 

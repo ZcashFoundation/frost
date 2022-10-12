@@ -8,27 +8,26 @@ use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Error, Field, Group};
 
-use super::{keys::Secret, Identifier};
+use super::{keys::SigningShare, Identifier};
 
 /// A scalar that is a signing nonce.
-#[derive(Clone, PartialEq, Zeroize)]
+#[derive(Clone, PartialEq, Eq, Zeroize)]
 pub struct Nonce<C: Ciphersuite>(pub(super) <<C::Group as Group>::Field as Field>::Scalar);
 
 impl<C> Nonce<C>
 where
     C: Ciphersuite,
 {
-    /// Generates a new uniformly random signing nonce by sourcing fresh
-    /// randomness and combining with the secret key, to hedge against a bad
-    /// RNG.
+    /// Generates a new uniformly random signing nonce by sourcing fresh randomness and combining
+    /// with the secret signing share, to hedge against a bad RNG.
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
     ///
     /// An implementation of `nonce_generate(secret)` from the [spec].
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-nonce-generation
-    pub fn new<R>(secret: &Secret<C>, rng: &mut R) -> Self
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-nonce-generation
+    pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
@@ -43,7 +42,7 @@ where
             .cloned()
             .collect();
 
-        Self(C::H4(input.as_slice()))
+        Self(C::H3(input.as_slice()))
     }
 
     /// Deserialize [`Nonce`] from bytes
@@ -167,7 +166,7 @@ where
     ///
     /// Each participant generates signing nonces before performing a signing
     /// operation.
-    pub fn new<R>(secret: &Secret<C>, rng: &mut R) -> Self
+    pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
@@ -210,7 +209,7 @@ where
 {
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
-    /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#name-signature-share-verificatio
+    /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-share-verificatio
     pub(super) fn to_group_commitment_share(
         self,
         binding_factor: &frost::Rho<C>,
@@ -260,13 +259,11 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) <C::Group as Group>::
 /// Outputs:
 /// - A byte string containing the serialized representation of B.
 ///
-/// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.3
+/// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-list-operations
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: Vec<SigningCommitments<C>>,
 ) -> Vec<u8> {
     // B MUST be sorted in ascending order by signer identifier.
-    //
-    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
     //
     // TODO: AtLeastOne or other explicitly Sorted wrapper types?
     let mut sorted_signing_commitments = signing_commitments;
@@ -275,7 +272,9 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
     let mut bytes = vec![];
 
     for item in sorted_signing_commitments {
-        bytes.extend_from_slice(&u16::from(item.identifier).to_be_bytes()); // TODO: 2-bytes until spec moves off u16
+        bytes.extend_from_slice(
+            <<C::Group as Group>::Field as Field>::serialize(&item.identifier.to_scalar()).as_ref(),
+        );
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.hiding.0).as_ref());
         bytes.extend_from_slice(<C::Group as Group>::serialize(&item.binding.0).as_ref());
     }
@@ -301,7 +300,7 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 pub fn preprocess<C, R>(
     num_nonces: u8,
     participant_identifier: Identifier<C>,
-    secret: &Secret<C>,
+    secret: &SigningShare<C>,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
 where
@@ -328,10 +327,10 @@ where
 /// Generates the signing nonces and commitments to be used in the signing
 /// operation.
 ///
-/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-5.1
+/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-round-one-commitment
 pub fn commit<C, R>(
     participant_identifier: Identifier<C>,
-    secret: &Secret<C>,
+    secret: &SigningShare<C>,
     rng: &mut R,
 ) -> (SigningNonces<C>, SigningCommitments<C>)
 where

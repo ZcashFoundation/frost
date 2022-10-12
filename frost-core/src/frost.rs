@@ -14,6 +14,7 @@ use std::{
     collections::HashMap,
     convert::TryFrom,
     fmt::{self, Debug},
+    ops::Index,
 };
 
 use hex::FromHex;
@@ -33,7 +34,7 @@ pub use self::identifier::Identifier;
 /// of commitments, and a specific message.
 ///
 /// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md>
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Rho<C: Ciphersuite>(<<C::Group as Group>::Field as Field>::Scalar);
 
 impl<C> Rho<C>
@@ -64,19 +65,62 @@ where
     }
 }
 
-impl<C> From<&SigningPackage<C>> for Rho<C>
+/// A list of binding factors and their associated identifiers.
+#[derive(Clone)]
+pub struct BindingFactorList<C: Ciphersuite>(Vec<(Identifier<C>, Rho<C>)>);
+
+impl<C> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
-    // [`compute_binding_factor`] in the spec
+    /// Return iterator through all factors.
+    pub fn iter(&self) -> impl Iterator<Item = &(Identifier<C>, Rho<C>)> {
+        self.0.iter()
+    }
+}
+
+impl<C> Index<Identifier<C>> for BindingFactorList<C>
+where
+    C: Ciphersuite,
+{
+    type Output = Rho<C>;
+
+    // Get the binding factor of a participant in the list.
     //
-    // [`compute_binding_factor`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.4
-    fn from(signing_package: &SigningPackage<C>) -> Rho<C> {
-        let preimage = signing_package.rho_preimage();
+    // [`binding_factor_for_participant`] in the spec
+    //
+    // [`binding_factor_for_participant`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.3
+    // TODO: switch from Vec to BTreeMap, as this can be made more efficient.
+    fn index(&self, identifier: Identifier<C>) -> &Self::Output {
+        for (i, factor) in self.0.iter() {
+            if *i == identifier {
+                return factor;
+            }
+        }
+        // The protocol should abort here, but can we do something nicer than a panic?
+        panic!("invalid identifier passed");
+    }
+}
 
-        let binding_factor = C::H1(&preimage[..]);
+impl<C> From<&SigningPackage<C>> for BindingFactorList<C>
+where
+    C: Ciphersuite,
+{
+    // [`compute_binding_factors`] in the spec
+    //
+    // [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.4
+    fn from(signing_package: &SigningPackage<C>) -> BindingFactorList<C> {
+        let preimages = signing_package.rho_preimages();
 
-        Rho(binding_factor)
+        BindingFactorList(
+            preimages
+                .iter()
+                .map(|(identifier, preimage)| {
+                    let binding_factor = C::H1(preimage);
+                    (*identifier, Rho(binding_factor))
+                })
+                .collect(),
+        )
     }
 }
 
@@ -181,22 +225,35 @@ where
         &self.message
     }
 
-    /// Compute the preimage to H3 to compute rho
+    /// Compute the preimages to H3 to compute the per-signer rhos
     // We separate this out into its own method so it can be tested
-    pub fn rho_preimage(&self) -> Vec<u8> {
-        let mut preimage = vec![];
+    pub fn rho_preimages(&self) -> Vec<(Identifier<C>, Vec<u8>)> {
+        let mut rho_input_prefix = vec![];
 
-        preimage
-            .extend_from_slice(&round1::encode_group_commitments(self.signing_commitments())[..]);
-        preimage.extend_from_slice(C::H3(self.message.as_slice()).as_ref());
+        rho_input_prefix.extend_from_slice(C::H4(self.message.as_slice()).as_ref());
+        rho_input_prefix.extend_from_slice(
+            C::H5(&round1::encode_group_commitments(self.signing_commitments())[..]).as_ref(),
+        );
 
-        preimage
+        self.signing_commitments()
+            .iter()
+            .map(|c| {
+                let mut rho_input = vec![];
+
+                rho_input.extend_from_slice(&rho_input_prefix);
+                rho_input.extend_from_slice(
+                    <<C::Group as Group>::Field as Field>::serialize(&c.identifier.to_scalar())
+                        .as_ref(),
+                );
+                (c.identifier, rho_input)
+            })
+            .collect()
     }
 }
 
 /// The product of all signers' individual commitments, published as part of the
 /// final signature.
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct GroupCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
 
 // impl<C> Debug for GroupCommitment<C> where C: Ciphersuite {
@@ -218,14 +275,13 @@ where
     ///
     /// Implements [`compute_group_commitment`] from the spec.
     ///
-    /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-4.4
+    /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.5
     fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, &'static str> {
-        let rho: Rho<C> = signing_package.into();
+        let binding_factor_list: BindingFactorList<C> = signing_package.into();
 
         let identity = <C::Group as Group>::identity();
 
-        let mut group_hiding_commitment = <C::Group as Group>::identity();
-        let mut group_binding_commitment = <C::Group as Group>::identity();
+        let mut group_commitment = <C::Group as Group>::identity();
 
         // Ala the sorting of B, just always sort by identifier in ascending order
         //
@@ -236,13 +292,14 @@ where
             if identity == commitment.binding.0 || identity == commitment.hiding.0 {
                 return Err("Commitment equals the identity.");
             }
-            group_hiding_commitment = group_hiding_commitment + commitment.hiding.0;
-            group_binding_commitment = group_binding_commitment + commitment.binding.0;
+
+            let binding_factor = binding_factor_list[commitment.identifier].clone();
+
+            group_commitment = group_commitment
+                + (commitment.hiding.0 + (commitment.binding.0 * binding_factor.0));
         }
 
-        Ok(GroupCommitment(
-            group_hiding_commitment + group_binding_commitment * rho.0,
-        ))
+        Ok(GroupCommitment(group_commitment))
     }
 }
 
@@ -275,7 +332,7 @@ where
 {
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
     // binding factor.
-    let rho: Rho<C> = signing_package.into();
+    let binding_factor_list: BindingFactorList<C> = signing_package.into();
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
@@ -299,6 +356,8 @@ where
         // Compute Lagrange coefficient.
         let lambda_i = derive_lagrange_coeff(&signature_share.identifier, signing_package)?;
 
+        let rho = binding_factor_list[signature_share.identifier].clone();
+
         // Compute the commitment share.
         let R_share = signing_package
             .signing_commitment(&signature_share.identifier)
@@ -311,9 +370,9 @@ where
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
     //
-    // Implements [`frost_aggregate`] from the spec.
+    // Implements [`aggregate`] from the spec.
     //
-    // [`frost_aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-03.html#section-5.3-4
+    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-5.3
     let mut z = <<C::Group as Group>::Field as Field>::zero();
 
     for signature_share in signature_shares {

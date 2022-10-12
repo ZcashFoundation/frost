@@ -4,6 +4,7 @@
 
 use p256::{
     elliptic_curve::{
+        group::prime::PrimeCurveAffine,
         hash2curve::{hash_to_field, ExpandMsgXmd},
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
@@ -21,7 +22,7 @@ mod tests;
 pub use frost_core::Error;
 
 #[derive(Clone, Copy)]
-/// An implementation of the FROST P-256 SHA-256 ciphersuite scalar field.
+/// An implementation of the FROST(P-256, SHA-256) ciphersuite scalar field.
 pub struct P256ScalarField;
 
 impl Field for P256ScalarField {
@@ -76,7 +77,7 @@ impl Field for P256ScalarField {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-/// An implementation of the FROST P-256 ciphersuite group.
+/// An implementation of the FROST(P-256, SHA-256) ciphersuite group.
 pub struct P256Group;
 
 impl Group for P256Group {
@@ -128,7 +129,16 @@ impl Group for P256Group {
             p256::EncodedPoint::from_bytes(buf).map_err(|_| Error::MalformedElement)?;
 
         match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
-            Some(point) => Ok(ProjectivePoint::from(point)),
+            Some(point) => {
+                if point.is_identity().into() {
+                    // This is actually impossible since the identity is encoded a a single byte
+                    // which will never happen since we receive a 33-byte buffer.
+                    // We leave the check for consistency.
+                    Err(Error::InvalidIdentityElement)
+                } else {
+                    Ok(ProjectivePoint::from(point))
+                }
+            }
             None => Err(Error::MalformedElement),
         }
     }
@@ -136,11 +146,11 @@ impl Group for P256Group {
 
 /// Context string from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-1
-const CONTEXT_STRING: &str = "FROST-P256-SHA256-v5";
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-1
+const CONTEXT_STRING: &str = "FROST-P256-SHA256-v10";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-/// An implementation of the FROST ciphersuite FROST(P-256, SHA-256).
+/// An implementation of the FROST(P-256, SHA-256) ciphersuite.
 pub struct P256Sha256;
 
 impl Ciphersuite for P256Sha256 {
@@ -152,7 +162,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H1 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.1
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "rho";
@@ -163,7 +173,7 @@ impl Ciphersuite for P256Sha256 {
 
     /// H2 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.2
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let mut u = [P256ScalarField::zero()];
         let dst = CONTEXT_STRING.to_owned() + "chal";
@@ -174,11 +184,22 @@ impl Ciphersuite for P256Sha256 {
 
     /// H3 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.3
-    fn H3(m: &[u8]) -> Self::HashOutput {
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.3
+    fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        let mut u = [P256ScalarField::zero()];
+        let dst = CONTEXT_STRING.to_owned() + "nonce";
+        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
+            .expect("should never return error according to error cases described in ExpandMsgXmd");
+        u[0]
+    }
+
+    /// H4 for FROST(P-256, SHA-256)
+    ///
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.4
+    fn H4(m: &[u8]) -> Self::HashOutput {
         let h = Sha256::new()
             .chain(CONTEXT_STRING.as_bytes())
-            .chain("digest")
+            .chain("msg")
             .chain(m);
 
         let mut output = [0u8; 32];
@@ -186,62 +207,90 @@ impl Ciphersuite for P256Sha256 {
         output
     }
 
-    /// H4 for FROST(P-256, SHA-256)
+    /// H5 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-6.4-2.2.2.4
-    fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let mut u = [P256ScalarField::zero()];
-        let dst = CONTEXT_STRING.to_owned() + "nonce";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
-            .expect("should never return error according to error cases described in ExpandMsgXmd");
-        u[0]
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.4-2.2.2.5
+    fn H5(m: &[u8]) -> Self::HashOutput {
+        let h = Sha256::new()
+            .chain(CONTEXT_STRING.as_bytes())
+            .chain("com")
+            .chain(m);
+
+        let mut output = [0u8; 32];
+        output.copy_from_slice(h.finalize().as_slice());
+        output
     }
 }
 
 // Shorthand alias for the ciphersuite
 type P = P256Sha256;
 
-///
+/// A FROST(P-256, SHA-256) participant identifier.
 pub type Identifier = frost::Identifier<P>;
 
 ///
 pub mod keys {
     use super::*;
 
-    ///
+    /// Allows all participants' keys to be generated using a central, trusted
+    /// dealer.
     pub fn keygen_with_dealer<RNG: RngCore + CryptoRng>(
         num_signers: u8,
         threshold: u8,
         mut rng: RNG,
-    ) -> Result<(Vec<SharePackage>, PublicKeyPackage), &'static str> {
+    ) -> Result<(Vec<SecretShare>, PublicKeyPackage), &'static str> {
         frost::keys::keygen_with_dealer(num_signers, threshold, &mut rng)
     }
 
+    /// Secret and public key material generated by a dealer performing
+    /// [`keygen_with_dealer`].
     ///
-    pub type SharePackage = frost::keys::SharePackage<P>;
+    /// # Security
+    ///
+    /// To derive a FROST(P-256, SHA-256) keypair, the receiver of the [`SecretShare`] *must* call
+    /// .try_into(), which under the hood also performs validation.
+    pub type SecretShare = frost::keys::SecretShare<P>;
 
+    /// A FROST(P-256, SHA-256) keypair, which can be generated either by a trusted dealer or using
+    /// a DKG.
     ///
+    /// When using a central dealer, [`SecretShare`]s are distributed to
+    /// participants, who then perform verification, before deriving
+    /// [`KeyPackage`]s, which they store to later use during signing.
     pub type KeyPackage = frost::keys::KeyPackage<P>;
 
+    /// Public data that contains all the signers' public keys as well as the
+    /// group public key.
     ///
+    /// Used for verification purposes before publishing a signature.
     pub type PublicKeyPackage = frost::keys::PublicKeyPackage<P>;
 }
 
-///
+/// FROST(P-256, SHA-256) Round 1 functionality and types.
 pub mod round1 {
-    use frost_core::frost::keys::Secret;
+    use frost_core::frost::keys::SigningShare;
 
     use super::*;
+    /// Comprised of FROST(P-256, SHA-256) hiding and binding nonces.
     ///
+    /// Note that [`SigningNonces`] must be used *only once* for a signing
+    /// operation; re-using nonces will result in leakage of a signer's long-lived
+    /// signing key.
     pub type SigningNonces = frost::round1::SigningNonces<P>;
 
+    /// Published by each participant in the first round of the signing protocol.
     ///
+    /// This step can be batched if desired by the implementation. Each
+    /// SigningCommitment can be used for exactly *one* signature.
     pub type SigningCommitments = frost::round1::SigningCommitments<P>;
 
+    /// Performed once by each participant selected for the signing operation.
     ///
+    /// Generates the signing nonces and commitments to be used in the signing
+    /// operation.
     pub fn commit<RNG>(
         participant_identifier: frost::Identifier<P>,
-        secret: &Secret<P>,
+        secret: &SigningShare<P>,
         rng: &mut RNG,
     ) -> (SigningNonces, SigningCommitments)
     where
@@ -251,20 +300,30 @@ pub mod round1 {
     }
 }
 
-///
+/// Generated by the coordinator of the signing operation and distributed to
+/// each signing party.
 pub type SigningPackage = frost::SigningPackage<P>;
 
-///
+/// FROST(P-256, SHA-256) Round 2 functionality and types, for signature share generation.
 pub mod round2 {
     use super::*;
 
-    ///
+    /// A FROST(P-256, SHA-256) participant's signature share, which the Coordinator will aggregate with all other signer's
+    /// shares into the joint signature.
     pub type SignatureShare = frost::round2::SignatureShare<P>;
 
-    ///
+    /// Generated by the coordinator of the signing operation and distributed to
+    /// each signing party
     pub type SigningPackage = frost::SigningPackage<P>;
 
+    /// Performed once by each participant selected for the signing operation.
     ///
+    /// Receives the message to be signed and a set of signing commitments and a set
+    /// of randomizing commitments to be used in that signing operation, including
+    /// that for this participant.
+    ///
+    /// Assumes the participant has already determined which nonce corresponds with
+    /// the commitment that was assigned by the coordinator in the SigningPackage.
     pub fn sign(
         signing_package: &SigningPackage,
         signer_nonces: &round1::SigningNonces,
@@ -274,10 +333,24 @@ pub mod round2 {
     }
 }
 
-///
+/// A Schnorr signature on FROST(P-256, SHA-256).
 pub type Signature = frost_core::Signature<P>;
 
+/// Verifies each FROST(P-256, SHA-256) participant's signature share, and if all are valid,
+/// aggregates the shares into a signature to publish.
 ///
+/// Resulting signature is compatible with verification of a plain Schnorr
+/// signature.
+///
+/// This operation is performed by a coordinator that can communicate with all
+/// the signing participants before publishing the final signature. The
+/// coordinator can be one of the participants or a semi-trusted third party
+/// (who is trusted to not perform denial of service attacks, but does not learn
+/// any secret information). Note that because the coordinator is trusted to
+/// report misbehaving parties in order to avoid publishing an invalid
+/// signature, if the coordinator themselves is a signer and misbehaves, they
+/// can avoid that step. However, at worst, this results in a denial of
+/// service attack due to publishing an invalid signature.
 pub fn aggregate(
     signing_package: &round2::SigningPackage,
     signature_shares: &[round2::SignatureShare],
@@ -286,8 +359,8 @@ pub fn aggregate(
     frost::aggregate(signing_package, signature_shares, pubkeys)
 }
 
-///
+/// A signing key for a Schnorr signature on FROST(P-256, SHA-256).
 pub type SigningKey = frost_core::SigningKey<P>;
 
-///
+/// A valid verifying key for Schnorr signatures on FROST(P-256, SHA-256).
 pub type VerifyingKey = frost_core::VerifyingKey<P>;

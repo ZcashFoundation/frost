@@ -16,6 +16,15 @@ use crate::{Ciphersuite, Error, Field, Group, Scalar};
 #[derive(Copy, Clone)]
 pub struct Identifier<C: Ciphersuite>(pub(crate) Scalar<C>);
 
+impl<C> Identifier<C>
+where
+    C: Ciphersuite,
+{
+    pub(crate) fn to_scalar(self) -> Scalar<C> {
+        self.0
+    }
+}
+
 impl<C> Debug for Identifier<C>
 where
     C: Ciphersuite,

@@ -33,19 +33,12 @@ where
         <C::Group as Group>::serialize(&self.element)
     }
 
-    /// Verify a purported `signature` over `msg` made by this verification key.
-    pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error> {
-        let c = crate::challenge::<C>(&signature.R, &self.element, msg);
-
-        self.verify_prehashed(signature, c)
-    }
-
     /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification
     /// key.
     pub(crate) fn verify_prehashed(
         &self,
-        signature: &Signature<C>,
         challenge: Challenge<C>,
+        signature: &Signature<C>,
     ) -> Result<(), Error> {
         // Verify check is h * ( - z * B + R  + c * A) == 0
         //                 h * ( z * B - c * A - R) == 0
@@ -60,6 +53,11 @@ where
         } else {
             Err(Error::InvalidSignature)
         }
+    }
+
+    /// Verify a purported `signature` over `msg` made by this verification key.
+    pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error> {
+        C::verify_signature(msg, signature, self)
     }
 }
 

@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+// It's emitting false positives; see https://github.com/rust-lang/rust-clippy/issues/9413
+#![allow(clippy::derive_partial_eq_without_eq)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
@@ -17,6 +19,8 @@ pub mod frost;
 mod scalar_mul;
 mod signature;
 mod signing_key;
+#[cfg(any(test, feature = "test-impl"))]
+pub mod tests;
 mod verifying_key;
 
 pub use error::Error;
@@ -58,7 +62,7 @@ pub trait Field: Copy + Clone {
 
     /// Generate a random scalar from the entire space [0, l-1]
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.3>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.1-3.3>
     fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
 
     /// Generate a random scalar from the entire space [1, l-1]
@@ -69,16 +73,16 @@ pub trait Field: Copy + Clone {
     /// A member function of a [`Field`] that maps a [`Scalar`] to a unique byte array buf of
     /// fixed length Ne.
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.7>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.1-3.8>
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization;
 
     /// A member function of a [`Field`] that attempts to map a byte array `buf` to a [`Scalar`].
     ///
     /// Fails if the input is not a valid byte representation of an [`Scalar`] of the
-    /// [`Field`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
+    /// [`Field`]. This function can raise an [`Error`] if deserialization fails or if the
     /// resulting [`Scalar`] is zero
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.8>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.1-3.9>
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error>;
 }
 
@@ -92,7 +96,7 @@ pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Sca
 /// pass-through, implemented for a type just for the ciphersuite, and calls through to another
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
-pub trait Group: Copy + Clone {
+pub trait Group: Copy + Clone + PartialEq {
     /// A prime order finite field GF(q) over which all scalar values for our prime order group can
     /// be multiplied are defined.
     type Field: Field;
@@ -121,28 +125,29 @@ pub trait Group: Copy + Clone {
 
     /// Additive [identity] of the prime order group.
     ///
-    /// [identity]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.2
+    /// [identity]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.1-3.2
     fn identity() -> Self::Element;
 
     /// The fixed generator element of the prime order group.
     ///
-    /// The 'base' of [`ScalarBaseMult()`] from the spec.
-    /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1
+    /// The 'base' of ['ScalarBaseMult()'] from the spec.
+    ///
+    /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.1-3.5
     fn generator() -> Self::Element;
 
     /// A member function of a group _G_ that maps an [`Element`] to a unique byte array buf of
     /// fixed length Ne.
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.5>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.1-3.6>
     fn serialize(element: &Self::Element) -> Self::Serialization;
 
     /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
     ///
     /// Fails if the input is not a valid byte representation of an [`Element`] of the
-    /// [`Group`]. This function can raise a [`DeserializeError`] if deserialization fails or if the
+    /// [`Group`]. This function can raise an [`Error`] if deserialization fails or if the
     /// resulting [`Element`] is the identity element of the group
     ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.6>
+    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.1-3.7>
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error>;
 }
 
@@ -152,8 +157,8 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.
 ///
-/// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-ciphersuites
-pub trait Ciphersuite: Copy + Clone {
+/// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-ciphersuites
+pub trait Ciphersuite: Copy + Clone + PartialEq {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
@@ -168,34 +173,60 @@ pub trait Ciphersuite: Copy + Clone {
     ///
     /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
     ///
-    /// [H1]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    /// [H1]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-cryptographic-hash-function
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
     /// [H2] for a FROST ciphersuite.
     ///
     /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
     ///
-    /// [H2]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    /// [H2]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-cryptographic-hash-function
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
-    /// H3 for a FROST ciphersuite.
-    ///
-    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
-    ///
-    /// [spec]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H3(m: &[u8]) -> Self::HashOutput;
-
-    /// [H4] for a FROST ciphersuite.
+    /// [H3] for a FROST ciphersuite.
     ///
     /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
     ///
-    /// [H4]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
-    fn H4(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
+    /// [H3]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-cryptographic-hash-function
+    fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
+
+    /// [H4] for a FROST ciphersuite.
+    ///
+    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
+    ///
+    /// [H4]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-cryptographic-hash-function
+    fn H4(m: &[u8]) -> Self::HashOutput;
+
+    /// [H5] for a FROST ciphersuite.
+    ///
+    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
+    ///
+    /// [H5]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
+    fn H5(m: &[u8]) -> Self::HashOutput;
+
+    /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
+    /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
+    ///
+    /// # Cryptographic Safety
+    ///
+    /// You may override this to provide a tailored implementation, but if the ciphersuite defines it,
+    /// it must also multiply by the cofactor to comply with the RFC. Note that batch verification
+    /// (see [`crate::batch::Verifier`]) also uses the default implementation regardless whether a
+    /// tailored implementation was provided.
+    fn verify_signature(
+        msg: &[u8],
+        signature: &Signature<Self>,
+        public_key: &VerifyingKey<Self>,
+    ) -> Result<(), Error> {
+        let c = crate::challenge::<Self>(&signature.R, &public_key.element, msg);
+
+        public_key.verify_prehashed(c, signature)
+    }
 }
 
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
 ///
-/// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#name-signature-challenge-computa
+/// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-challenge-computa
 #[derive(Clone)]
 pub struct Challenge<C: Ciphersuite>(
     pub(crate) <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
@@ -221,8 +252,8 @@ where
 ///
 /// This is the only invocation of the H2 hash function from the [RFC].
 ///
-/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-4.7
-/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.2
+/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-challenge-computa
+/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.2
 fn challenge<C>(
     R: &<C::Group as Group>::Element,
     verifying_key: &<C::Group as Group>::Element,
