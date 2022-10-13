@@ -31,12 +31,21 @@ where
     where
         R: CryptoRng + RngCore,
     {
-        let mut k_enc = [0; 32];
-        rng.fill_bytes(&mut k_enc[..]);
+        let mut random_bytes = [0; 32];
+        rng.fill_bytes(&mut random_bytes[..]);
 
+        Self::nonce_generate_from_random_bytes(secret, random_bytes)
+    }
+
+    /// Generates a nonce from the given random bytes.
+    /// This function allows testing and MUST NOT be made public.
+    pub(crate) fn nonce_generate_from_random_bytes(
+        secret: &SigningShare<C>,
+        random_bytes: [u8; 32],
+    ) -> Self {
         let secret_enc = <<C::Group as Group>::Field as Field>::serialize(&secret.0);
 
-        let input: Vec<u8> = k_enc
+        let input: Vec<u8> = random_bytes
             .iter()
             .chain(secret_enc.as_ref().iter())
             .cloned()

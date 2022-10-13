@@ -17,6 +17,8 @@ pub struct TestVectors<C: Ciphersuite> {
     key_packages: HashMap<Identifier<C>, KeyPackage<C>>,
     message_bytes: Vec<u8>,
     share_polynomial_coefficients: Vec<Scalar<C>>,
+    hiding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>>,
+    binding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>>,
     signer_nonces: HashMap<Identifier<C>, SigningNonces<C>>,
     signer_commitments: HashMap<Identifier<C>, SigningCommitments<C>>,
     binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>>,
@@ -79,6 +81,8 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 
     let round_one_outputs = &json_vectors["round_one_outputs"];
 
+    let mut hiding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
+    let mut binding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
     let mut signer_nonces: HashMap<Identifier<C>, SigningNonces<C>> = HashMap::new();
     let mut signer_commitments: HashMap<Identifier<C>, SigningCommitments<C>> = HashMap::new();
     let mut binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
@@ -90,6 +94,14 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         .iter()
     {
         let identifier = u16::from_str(i).unwrap().try_into().unwrap();
+
+        let hiding_nonce_randomness =
+            hex::decode(signer["hiding_nonce_randomness"].as_str().unwrap()).unwrap();
+        hiding_nonces_randomness.insert(identifier, hiding_nonce_randomness);
+
+        let binding_nonce_randomness =
+            hex::decode(signer["binding_nonce_randomness"].as_str().unwrap()).unwrap();
+        binding_nonces_randomness.insert(identifier, binding_nonce_randomness);
 
         let signing_nonces = SigningNonces::<C> {
             hiding: Nonce::<C>::from_hex(signer["hiding_nonce"].as_str().unwrap()).unwrap(),
@@ -162,6 +174,8 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         key_packages,
         message_bytes,
         share_polynomial_coefficients,
+        hiding_nonces_randomness,
+        binding_nonces_randomness,
         signer_nonces,
         signer_commitments,
         binding_factor_inputs,
@@ -179,6 +193,8 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         key_packages,
         message_bytes,
         share_polynomial_coefficients,
+        hiding_nonces_randomness,
+        binding_nonces_randomness,
         signer_nonces,
         signer_commitments,
         binding_factor_inputs,
@@ -221,8 +237,26 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     /////////////////////////////////////////////////////////////////////////////
 
     for (i, _) in signer_commitments.clone() {
-        // compute nonce commitments from nonces
         let nonces = signer_nonces.get(&i).unwrap();
+
+        // compute nonces from secret and randomness
+        let secret = secret_shares[&i].secret();
+
+        let hiding_nonce_randomness = &hiding_nonces_randomness[&i];
+        let hiding_nonce = Nonce::nonce_generate_from_random_bytes(
+            secret,
+            hiding_nonce_randomness.as_slice().try_into().unwrap(),
+        );
+        assert!(nonces.hiding() == &hiding_nonce);
+
+        let binding_nonce_randomness = &binding_nonces_randomness[&i];
+        let binding_nonce = Nonce::nonce_generate_from_random_bytes(
+            secret,
+            binding_nonce_randomness.as_slice().try_into().unwrap(),
+        );
+        assert!(nonces.binding() == &binding_nonce);
+
+        // compute nonce commitments from nonces
         let nonce_commitments = signer_commitments.get(&i).unwrap();
 
         assert_eq!(
