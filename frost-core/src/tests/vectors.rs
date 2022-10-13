@@ -10,23 +10,24 @@ use crate::{
     Ciphersuite, Field, Group, Scalar, VerifyingKey,
 };
 
+/// Test vectors for a ciphersuite.
+pub struct TestVectors<C: Ciphersuite> {
+    secret_key: SharedSecret<C>,
+    group_public: VerifyingKey<C>,
+    key_packages: HashMap<Identifier<C>, KeyPackage<C>>,
+    message_bytes: Vec<u8>,
+    share_polynomial_coefficients: Vec<Scalar<C>>,
+    signer_nonces: HashMap<Identifier<C>, SigningNonces<C>>,
+    signer_commitments: HashMap<Identifier<C>, SigningCommitments<C>>,
+    binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>>,
+    binding_factors: HashMap<Identifier<C>, Rho<C>>,
+    signature_shares: HashMap<Identifier<C>, SignatureShare<C>>,
+    signature_bytes: Vec<u8>,
+}
+
 /// Parse test vectors for a given ciphersuite.
 #[allow(clippy::type_complexity)]
-pub fn parse_test_vectors<C: Ciphersuite>(
-    json_vectors: &Value,
-) -> (
-    SharedSecret<C>,
-    VerifyingKey<C>,
-    HashMap<Identifier<C>, KeyPackage<C>>,
-    Vec<u8>,
-    Vec<Scalar<C>>,
-    HashMap<Identifier<C>, SigningNonces<C>>,
-    HashMap<Identifier<C>, SigningCommitments<C>>,
-    HashMap<Identifier<C>, Vec<u8>>,
-    HashMap<Identifier<C>, Rho<C>>,
-    HashMap<Identifier<C>, SignatureShare<C>>,
-    Vec<u8>, // Signature<C>,
-) {
+pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C> {
     let inputs = &json_vectors["inputs"];
 
     let secret_key_str = inputs["group_secret_key"].as_str().unwrap();
@@ -155,7 +156,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(
 
     let signature_bytes = FromHex::from_hex(final_output["sig"].as_str().unwrap()).unwrap();
 
-    (
+    TestVectors {
         secret_key,
         group_public,
         key_packages,
@@ -167,36 +168,36 @@ pub fn parse_test_vectors<C: Ciphersuite>(
         binding_factors,
         signature_shares,
         signature_bytes,
-    )
+    }
 }
 
 /// Test with the given test vectors for a ciphersuite.
 pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
-    let (
+    let TestVectors {
         secret_key,
         group_public,
         key_packages,
         message_bytes,
-        share_polynomials_coefficients,
+        share_polynomial_coefficients,
         signer_nonces,
         signer_commitments,
         binding_factor_inputs,
         binding_factors,
         signature_shares,
         signature_bytes,
-    ) = parse_test_vectors(json_vectors);
+    } = parse_test_vectors(json_vectors);
 
     ////////////////////////////////////////////////////////////////////////////
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
 
     let numshares = key_packages.len();
-    let threshold = share_polynomials_coefficients.len() + 1;
+    let threshold = share_polynomial_coefficients.len() + 1;
     let secret_shares = generate_secret_shares(
         &secret_key,
         numshares as u8,
         threshold as u8,
-        share_polynomials_coefficients,
+        share_polynomial_coefficients,
     )
     .unwrap();
     let secret_shares: HashMap<_, _> = secret_shares
