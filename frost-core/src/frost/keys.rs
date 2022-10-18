@@ -355,7 +355,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// Evaluate the polynomial with the given coefficients (constant term first)
-/// the point x=identifier using Horner's method.
+/// at the point x=identifier using Horner's method.
 ///
 /// Implements [`polynomial_evaluate`] from the spec.
 ///
