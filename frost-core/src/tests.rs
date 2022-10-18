@@ -265,7 +265,7 @@ where
     // participants. This is used to check if the set is correct for all
     // participants.
     // In practice, if there is a Coordinator, only they need to store the set.
-    // If there is not, them all candidates must store their own sets.
+    // If there is not, then all candidates must store their own sets.
     // The verifying keys are used to verify the signature shares produced
     // for each signature before being aggregated.
     let mut others_verifying_keys_by_participant = HashMap::new();
@@ -276,9 +276,7 @@ where
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
         let (key_package, others_verifying_keys) = frost::keys::dkg::keygen_part3(
             &round2_secret_packages[&participant_identifier],
-            received_round1_packages
-                .get(&participant_identifier)
-                .unwrap(),
+            &received_round1_packages[&participant_identifier],
             &received_round2_packages[&participant_identifier],
         )
         .unwrap();

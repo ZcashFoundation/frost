@@ -95,7 +95,7 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     // Round 1, Step 1
     //
-    // > Every participant P_i samples t random values (a_{i0}, ..., a_{i(t−1)})) ← Z_q
+    // > Every participant P_i samples t random values (a_{i0}, ..., a_{i(t−1)}) ← Z_q
     //
     // Round 1, Step 3
     //
