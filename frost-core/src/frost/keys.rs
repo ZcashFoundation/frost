@@ -375,8 +375,8 @@ fn evaluate_polynomial<C: Ciphersuite>(
 }
 
 /// Evaluates the right-hand side of the VSS verification equation, namely
-/// ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk} using [`identifier`] as `i` and the
-/// [`commitment`] as the commitment vector φ_ℓ
+/// ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk} using `identifier` as `i` and the
+/// `commitment` as the commitment vector φ_ℓ
 fn evaluate_vss<C: Ciphersuite>(
     commitment: &VerifiableSecretSharingCommitment<C>,
     identifier: Identifier<C>,
