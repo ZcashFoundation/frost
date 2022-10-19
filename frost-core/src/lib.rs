@@ -208,6 +208,17 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
     /// [H5]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H5(m: &[u8]) -> Self::HashOutput;
 
+    /// Hash function for a FROST ciphersuite, used for the DKG.
+    ///
+    /// The DKG it not part of the specification, thus this is optional.
+    /// It can return None if DKG is not supported by the Ciphersuite. This is
+    /// the default implementation.
+    ///
+    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    fn HDKG(_m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        None
+    }
+
     /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
     /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
     ///

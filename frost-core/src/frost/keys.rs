@@ -14,12 +14,14 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
 
+pub mod dkg;
+
 /// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
 pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     size: usize,
-    mut rng: R,
+    rng: &mut R,
 ) -> Vec<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar> {
-    iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(&mut rng))
+    iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(rng))
         .take(size)
         .collect()
 }
@@ -279,16 +281,7 @@ where
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
-
-        let x: Identifier<C> = self.identifier;
-
-        let (_, result) = self.commitment.0.iter().fold(
-            (
-                <<C::Group as Group>::Field as Field>::one(),
-                <C::Group as Group>::identity(),
-            ),
-            |(x_to_the_i, sum_so_far), comm_i| (x * x_to_the_i, sum_so_far + comm_i.0 * x_to_the_i),
-        );
+        let result = evaluate_vss(&self.commitment, self.identifier)?;
 
         if !(f_result == result) {
             return Err("SecretShare is invalid.");
@@ -325,7 +318,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let secret = SharedSecret::random(&mut rng);
     let group_public = VerifyingKey::from(&secret);
 
-    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, rng);
+    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, &mut rng);
 
     let secret_shares = generate_secret_shares(&secret, num_signers, threshold, coefficients)?;
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
@@ -343,6 +336,45 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
             group_public,
         },
     ))
+}
+
+/// Evaluate the polynomial with the given coefficients (constant term first)
+/// at the point x=identifier using Horner's method.
+///
+/// Implements [`polynomial_evaluate`] from the spec.
+///
+/// [`polynomial_evaluate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-evaluation-of-a-polynomial
+fn evaluate_polynomial<C: Ciphersuite>(
+    identifier: Identifier<C>,
+    coefficients: &[Scalar<C>],
+) -> Result<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar, &'static str> {
+    let mut value = <<C::Group as Group>::Field as Field>::zero();
+    let ell_scalar = identifier;
+    for coeff in coefficients.iter().skip(1).rev() {
+        value = value + *coeff;
+        value *= ell_scalar;
+    }
+    value = value + coefficients[0];
+    Ok(value)
+}
+
+/// Evaluates the right-hand side of the VSS verification equation, namely
+/// ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk} using `identifier` as `i` and the
+/// `commitment` as the commitment vector φ_ℓ
+fn evaluate_vss<C: Ciphersuite>(
+    commitment: &VerifiableSecretSharingCommitment<C>,
+    identifier: Identifier<C>,
+) -> Result<<<C as Ciphersuite>::Group as Group>::Element, &'static str> {
+    let i = identifier;
+
+    let (_, result) = commitment.0.iter().fold(
+        (
+            <<C::Group as Group>::Field as Field>::one(),
+            <C::Group as Group>::identity(),
+        ),
+        |(i_to_the_k, sum_so_far), comm_k| (i * i_to_the_k, sum_so_far + comm_k.0 * i_to_the_k),
+    );
+    Ok(result)
 }
 
 /// A FROST keypair, which can be generated either by a trusted dealer or using
@@ -428,6 +460,50 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     pub group_public: VerifyingKey<C>,
 }
 
+/// Generate a secret polynomial to use in secret sharing, for the given
+/// secret value. Also validates the given parameters.
+///
+/// Returns the full vector of coefficients in little-endian order (including the
+/// given secret, which is the first element) and a [`VerifiableSecretSharingCommitment`]
+/// which contains commitments to those coefficients.
+///
+/// Returns an error if the parameters (num_signers, threshold) are inconsistent.
+pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
+    secret: &SharedSecret<C>,
+    num_signers: u8,
+    threshold: u8,
+    mut coefficients: Vec<Scalar<C>>,
+) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), &'static str> {
+    if threshold < 2 {
+        return Err("Threshold cannot be less than 2");
+    }
+
+    if num_signers < 2 {
+        return Err("Number of signers cannot be less than the minimum threshold 2");
+    }
+
+    if threshold > num_signers {
+        return Err("Threshold cannot exceed num_signers");
+    }
+
+    if coefficients.len() != threshold as usize - 1 {
+        return Err("Must pass threshold-1 coefficients");
+    }
+
+    // Prepend the secret, which is the 0th coefficient
+    coefficients.insert(0, secret.0);
+
+    // Create the vector of commitments
+    let commitment: Vec<_> = coefficients
+        .iter()
+        .map(|c| CoefficientCommitment(<C::Group as Group>::generator() * *c))
+        .collect();
+    let commitment: VerifiableSecretSharingCommitment<C> =
+        VerifiableSecretSharingCommitment(commitment);
+
+    Ok((coefficients, commitment))
+}
+
 /// Creates secret shares for a given secret using the given coefficients.
 ///
 /// This function accepts a secret from which shares are generated,
@@ -453,59 +529,13 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     threshold: u8,
     coefficients: Vec<Scalar<C>>,
 ) -> Result<Vec<SecretShare<C>>, &'static str> {
-    if threshold < 2 {
-        return Err("Threshold cannot be less than 2");
-    }
-
-    if numshares < 2 {
-        return Err("Number of shares cannot be less than the minimum threshold 2");
-    }
-
-    if threshold > numshares {
-        return Err("Threshold cannot exceed numshares");
-    }
-
-    let numcoeffs = threshold - 1;
-
-    if coefficients.len() != numcoeffs as usize {
-        return Err("Must pass threshold-1 coefficients");
-    }
-
     let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(numshares as usize);
 
-    let mut commitment: VerifiableSecretSharingCommitment<C> =
-        VerifiableSecretSharingCommitment(Vec::with_capacity(threshold as usize));
+    let (coefficients, commitment) =
+        generate_secret_polynomial(secret, numshares, threshold, coefficients)?;
 
-    // Verifiable secret sharing, to make sure that participants can ensure their
-    // secret is consistent with every other participant's.
-    commitment.0.push(CoefficientCommitment(
-        <C::Group as Group>::generator() * secret.0,
-    ));
-
-    for c in &coefficients {
-        commitment
-            .0
-            .push(CoefficientCommitment(<C::Group as Group>::generator() * *c));
-    }
-
-    // Evaluate the polynomial with `secret` as the constant term
-    // and `coeffs` as the other coefficients at the point x=share_identifier,
-    // using Horner's method.
     for id in (1..=numshares as u16).map_while(|i| Identifier::<C>::try_from(i).ok()) {
-        let mut value = <<C::Group as Group>::Field as Field>::zero();
-
-        // Polynomial evaluation, for this identifier
-        //
-        // We rely only on `Add` and `Mul` here so as to not require `AddAssign` and `MulAssign`
-        //
-        // Note that this is from the 'last' coefficient to the 'first'.
-        for i in (0..numcoeffs).rev() {
-            value = value + coefficients[i as usize];
-
-            value *= id;
-        }
-
-        value = value + secret.0;
+        let value = evaluate_polynomial(id, &coefficients)?;
 
         secret_shares.push(SecretShare {
             identifier: id,

@@ -17,7 +17,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     let numshares = 5;
     let threshold = 3;
 
-    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, rng);
+    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, &mut rng);
 
     let secret_shares =
         frost::keys::generate_secret_shares(&secret, numshares, threshold, coefficients).unwrap();
@@ -54,6 +54,15 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
         })
         .collect();
 
+    check_sign(threshold, key_packages, rng, pubkeys);
+}
+
+fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+    threshold: u8,
+    key_packages: HashMap<Identifier<C>, frost::keys::KeyPackage<C>>,
+    mut rng: R,
+    pubkeys: frost::keys::PublicKeyPackage<C>,
+) {
     let mut nonces: HashMap<Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
     let mut commitments: HashMap<Identifier<C>, frost::round1::SigningCommitments<C>> =
         HashMap::new();
@@ -130,4 +139,179 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
             .verify(message, &group_signature)
             .is_ok());
     }
+}
+
+/// Test FROST signing with trusted dealer with a Ciphersuite.
+pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(mut rng: R)
+where
+    <C as Ciphersuite>::Group: std::cmp::PartialEq,
+{
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, Round 1
+    ////////////////////////////////////////////////////////////////////////////
+
+    let numsigners = 5;
+    let threshold = 3;
+
+    // Keep track of each participant's round 1 secret package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut round1_secret_packages: HashMap<
+        frost::Identifier<C>,
+        frost::keys::dkg::Round1SecretPackage<C>,
+    > = HashMap::new();
+
+    // Keep track of all round 1 packages sent to the given participant.
+    // This is used to simulate the broadcast; in practice the packages
+    // will be sent through some communication channel.
+    let mut received_round1_packages: HashMap<
+        frost::Identifier<C>,
+        Vec<frost::keys::dkg::Round1Package<C>>,
+    > = HashMap::new();
+
+    // For each participant, perform the first part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_index in 1..=numsigners {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+        let (secret_package, round1_package) = frost::keys::dkg::keygen_part1(
+            participant_identifier,
+            numsigners as u8,
+            threshold,
+            &mut rng,
+        )
+        .unwrap();
+
+        // Store the participant's secret package for later use.
+        // In practice each participant will store it in their own environment.
+        round1_secret_packages.insert(participant_identifier, secret_package);
+
+        // Send the round 1 package to all other participants. In this
+        // test this is simulated using a HashMap; in practice this will be
+        // sent through some communication channel.
+        for receiver_participant_index in 1..=numsigners {
+            if receiver_participant_index == participant_index {
+                continue;
+            }
+            let receiver_participant_identifier = receiver_participant_index
+                .try_into()
+                .expect("should be nonzero");
+            received_round1_packages
+                .entry(receiver_participant_identifier)
+                .or_insert_with(Vec::new)
+                .push(round1_package.clone());
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, Round 2
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Keep track of each participant's round 2 secret package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut round2_secret_packages = HashMap::new();
+
+    // Keep track of all round 2 packages sent to the given participant.
+    // This is used to simulate the broadcast; in practice the packages
+    // will be sent through some communication channel.
+    let mut received_round2_packages = HashMap::new();
+
+    // For each participant, perform the second part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_index in 1..=numsigners {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+        let (round2_secret_package, round2_packages) = frost::keys::dkg::keygen_part2(
+            round1_secret_packages
+                .remove(&participant_identifier)
+                .unwrap(),
+            received_round1_packages
+                .get(&participant_identifier)
+                .unwrap(),
+        )
+        .expect("should work");
+
+        // Store the participant's secret package for later use.
+        // In practice each participant will store it in their own environment.
+        round2_secret_packages.insert(participant_identifier, round2_secret_package);
+
+        // "Send" the round 2 package to all other participants. In this
+        // test this is simulated using a HashMap; in practice this will be
+        // sent through some communication channel.
+        // Note that, in contrast to the previous part, here each other participant
+        // gets its own specific package.
+        for round2_package in round2_packages {
+            received_round2_packages
+                .entry(round2_package.receiver_identifier)
+                .or_insert_with(Vec::new)
+                .push(round2_package);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, final computation
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Keep track of each participant's long-lived key package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut key_packages = HashMap::new();
+
+    // Map of the verifying key of each participant.
+    // Used by the signing test that follows.
+    let mut verifying_keys = HashMap::new();
+    // The group public key, used by the signing test that follows.
+    let mut group_public = None;
+    // For each participant, store the set of verifying keys of the other
+    // participants. This is used to check if the set is correct for all
+    // participants.
+    // In practice, if there is a Coordinator, only they need to store the set.
+    // If there is not, then all candidates must store their own sets.
+    // The verifying keys are used to verify the signature shares produced
+    // for each signature before being aggregated.
+    let mut others_verifying_keys_by_participant = HashMap::new();
+
+    // For each participant, perform the third part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_index in 1..=numsigners {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+        let (key_package, others_verifying_keys) = frost::keys::dkg::keygen_part3(
+            &round2_secret_packages[&participant_identifier],
+            &received_round1_packages[&participant_identifier],
+            &received_round2_packages[&participant_identifier],
+        )
+        .unwrap();
+        verifying_keys.insert(participant_identifier, key_package.public);
+        // Test if all group_public are equal
+        if let Some(previous_group_public) = group_public {
+            assert_eq!(previous_group_public, key_package.group_public)
+        }
+        group_public = Some(key_package.group_public);
+        key_packages.insert(participant_identifier, key_package);
+        others_verifying_keys_by_participant.insert(participant_identifier, others_verifying_keys);
+    }
+
+    // Test if the set of verifying keys is correct for all participants.
+    for participant_index in 1..=numsigners {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+        let public_key_package = others_verifying_keys_by_participant
+            .get(&participant_identifier)
+            .unwrap();
+        for (identifier, verifying_key) in &public_key_package.signer_pubkeys {
+            assert_eq!(
+                verifying_keys.get(identifier).unwrap(),
+                verifying_key,
+                "the verifying key that participant {:?} computed for participant {:?} is not correct",
+                participant_identifier,
+                identifier
+            );
+        }
+    }
+
+    let pubkeys = frost::keys::PublicKeyPackage {
+        signer_pubkeys: verifying_keys,
+        group_public: group_public.unwrap(),
+    };
+
+    // Proceed with the signing test.
+    check_sign(threshold, key_packages, rng, pubkeys);
 }
