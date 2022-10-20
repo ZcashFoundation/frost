@@ -280,11 +280,12 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     let signing_package = frost::SigningPackage::new(signer_commitments_vec, message_bytes);
 
-    for (identifier, input) in signing_package.binding_factor_preimages().iter() {
+    for (identifier, input) in signing_package.binding_factor_preimages(&[]).iter() {
         assert_eq!(*input, binding_factor_inputs[identifier]);
     }
 
-    let binding_factor_list: frost::BindingFactorList<C> = (&signing_package).into();
+    let binding_factor_list: frost::BindingFactorList<C> =
+        compute_binding_factor_list(&signing_package, &[]);
 
     for (identifier, binding_factor) in binding_factor_list.iter() {
         assert_eq!(*binding_factor, binding_factors[identifier]);

@@ -121,12 +121,6 @@ impl<C> SigningShare<C>
 where
     C: Ciphersuite,
 {
-    /// Return the underlying scalar.
-    #[cfg(feature = "internals")]
-    pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
-        self.0
-    }
-
     /// Deserialize from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,

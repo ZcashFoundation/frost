@@ -40,18 +40,6 @@ impl<C> BindingFactor<C>
 where
     C: Ciphersuite,
 {
-    /// Create a new [`Rho`] from the given scalar.
-    #[cfg(feature = "internals")]
-    pub fn new(scalar: <<C::Group as Group>::Field as Field>::Scalar) -> Self {
-        Self(scalar)
-    }
-
-    /// Return the underlying scalar.
-    #[cfg(feature = "internals")]
-    pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
-        self.0
-    }
-
     /// Deserializes [`BindingFactor`] from bytes.
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
@@ -112,26 +100,28 @@ where
     }
 }
 
-impl<C> From<&SigningPackage<C>> for BindingFactorList<C>
+/// [`compute_binding_factors`] in the spec
+///
+/// [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.4
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn compute_binding_factor_list<C>(
+    signing_package: &SigningPackage<C>,
+    additional_prefix: &[u8],
+) -> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
-    // [`compute_binding_factors`] in the spec
-    //
-    // [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.4
-    fn from(signing_package: &SigningPackage<C>) -> BindingFactorList<C> {
-        let preimages = signing_package.binding_factor_preimages();
+    let preimages = signing_package.binding_factor_preimages(additional_prefix);
 
-        BindingFactorList(
-            preimages
-                .iter()
-                .map(|(identifier, preimage)| {
-                    let binding_factor = C::H1(preimage);
-                    (*identifier, BindingFactor(binding_factor))
-                })
-                .collect(),
-        )
-    }
+    BindingFactorList(
+        preimages
+            .iter()
+            .map(|(identifier, preimage)| {
+                let binding_factor = C::H1(preimage);
+                (*identifier, BindingFactor(binding_factor))
+            })
+            .collect(),
+    )
 }
 
 #[cfg(any(test, feature = "test-impl"))]
@@ -203,7 +193,7 @@ impl<C> SigningPackage<C>
 where
     C: Ciphersuite,
 {
-    /// Create a new `SigningPackage`
+    /// Create a new `SigingPackage`
     ///
     /// The `signing_commitments` are sorted by participant `identifier`.
     pub fn new(
@@ -239,13 +229,18 @@ where
 
     /// Compute the preimages to H3 to compute the per-signer binding factors
     // We separate this out into its own method so it can be tested
-    pub fn binding_factor_preimages(&self) -> Vec<(Identifier<C>, Vec<u8>)> {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub fn binding_factor_preimages(
+        &self,
+        additional_prefix: &[u8],
+    ) -> Vec<(Identifier<C>, Vec<u8>)> {
         let mut binding_factor_input_prefix = vec![];
 
         binding_factor_input_prefix.extend_from_slice(C::H4(self.message.as_slice()).as_ref());
         binding_factor_input_prefix.extend_from_slice(
             C::H5(&round1::encode_group_commitments(self.signing_commitments())[..]).as_ref(),
         );
+        binding_factor_input_prefix.extend_from_slice(additional_prefix);
 
         self.signing_commitments()
             .iter()
@@ -269,11 +264,6 @@ impl<C> GroupCommitment<C>
 where
     C: Ciphersuite,
 {
-    /// Create a new `GroupCommitment`
-    pub fn new(element: <C::Group as Group>::Element) -> Self {
-        Self(element)
-    }
-
     /// Return the underlying element.
     #[cfg(feature = "internals")]
     pub fn to_element(self) -> <C::Group as Group>::Element {
@@ -323,7 +313,7 @@ where
             group_commitment + (commitment.hiding.0 + (commitment.binding.0 * binding_factor.0));
     }
 
-    Ok(GroupCommitment::new(group_commitment))
+    Ok(GroupCommitment(group_commitment))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -355,7 +345,8 @@ where
 {
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
-    let binding_factor_list: BindingFactorList<C> = signing_package.into();
+    let binding_factor_list: BindingFactorList<C> =
+        compute_binding_factor_list(signing_package, &[]);
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
