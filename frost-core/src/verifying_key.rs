@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use hex::FromHex;
 
-use crate::{Challenge, Ciphersuite, Error, Group, Signature};
+use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq)]
@@ -10,7 +10,7 @@ pub struct VerifyingKey<C>
 where
     C: Ciphersuite,
 {
-    pub(crate) element: <C::Group as Group>::Element,
+    pub(crate) element: Element<C>,
 }
 
 impl<C> VerifyingKey<C>

@@ -6,7 +6,7 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{frost, Ciphersuite, Error, Field, Group, Scalar};
+use crate::{frost, Ciphersuite, Element, Error, Field, Group, Scalar};
 
 use super::{keys::SigningShare, Identifier};
 
@@ -84,7 +84,7 @@ where
 
 /// A Ristretto point that is a commitment to a signing nonce share.
 #[derive(Clone, Copy, PartialEq)]
-pub struct NonceCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
+pub struct NonceCommitment<C: Ciphersuite>(pub(super) Element<C>);
 
 impl<C> NonceCommitment<C>
 where
@@ -244,7 +244,7 @@ where
 /// One signer's share of the group commitment, derived from their individual signing commitments
 /// and the binding factor _rho_.
 #[derive(Clone, Copy, PartialEq)]
-pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
+pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 
 /// Encode the list of group signing commitments.
 ///

@@ -24,7 +24,7 @@ pub mod keys;
 pub mod round1;
 pub mod round2;
 
-use crate::{Ciphersuite, Error, Field, Group, Scalar, Signature};
+use crate::{Ciphersuite, Element, Error, Field, Group, Scalar, Signature};
 
 pub use self::identifier::Identifier;
 
@@ -251,7 +251,7 @@ where
 /// The product of all signers' individual commitments, published as part of the
 /// final signature.
 #[derive(PartialEq, Eq)]
-pub struct GroupCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
+pub struct GroupCommitment<C: Ciphersuite>(pub(super) Element<C>);
 
 // impl<C> Debug for GroupCommitment<C> where C: Ciphersuite {
 //     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

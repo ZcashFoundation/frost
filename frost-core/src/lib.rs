@@ -269,11 +269,7 @@ where
 ///
 /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-challenge-computa
 /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.2
-fn challenge<C>(
-    R: &<C::Group as Group>::Element,
-    verifying_key: &<C::Group as Group>::Element,
-    msg: &[u8],
-) -> Challenge<C>
+fn challenge<C>(R: &Element<C>, verifying_key: &Element<C>, msg: &[u8]) -> Challenge<C>
 where
     C: Ciphersuite,
 {

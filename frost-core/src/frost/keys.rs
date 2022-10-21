@@ -12,7 +12,7 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
-use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
+use crate::{frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, VerifyingKey};
 
 pub mod dkg;
 
@@ -172,7 +172,7 @@ where
 
 /// A public group element that represents a single signer's public verification share.
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub struct VerifyingShare<C>(pub(super) <C::Group as Group>::Element)
+pub struct VerifyingShare<C>(pub(super) Element<C>)
 where
     C: Ciphersuite;
 
@@ -216,7 +216,7 @@ where
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
 #[derive(Clone, Copy, PartialEq)]
-pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
+pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) Element<C>);
 
 /// Contains the commitments to the coefficients for our secret polynomial _f_,
 /// used to generate participants' key shares.
@@ -364,7 +364,7 @@ fn evaluate_polynomial<C: Ciphersuite>(
 fn evaluate_vss<C: Ciphersuite>(
     commitment: &VerifiableSecretSharingCommitment<C>,
     identifier: Identifier<C>,
-) -> Result<<<C as Ciphersuite>::Group as Group>::Element, &'static str> {
+) -> Result<Element<C>, &'static str> {
     let i = identifier;
 
     let (_, result) = commitment.0.iter().fold(

@@ -5,7 +5,8 @@ use std::{collections::HashMap, iter};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    frost::Identifier, Challenge, Ciphersuite, Field, Group, Scalar, Signature, VerifyingKey,
+    frost::Identifier, Challenge, Ciphersuite, Element, Field, Group, Scalar, Signature,
+    VerifyingKey,
 };
 
 use super::{
@@ -136,8 +137,8 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Generates the challenge for the proof of knowledge to a secret for the DKG.
 fn challenge<C>(
     identifier: Identifier<C>,
-    R: &<C::Group as Group>::Element,
-    verifying_key: &<C::Group as Group>::Element,
+    R: &Element<C>,
+    verifying_key: &Element<C>,
 ) -> Option<Challenge<C>>
 where
     C: Ciphersuite,
@@ -274,8 +275,8 @@ pub fn keygen_part3<C: Ciphersuite>(
         return Err("inconsistent number of packages");
     }
 
-    let mut signing_share: Scalar<C> = <<C::Group as Group>::Field as Field>::zero();
-    let mut group_public: <C::Group as Group>::Element = <C::Group>::identity();
+    let mut signing_share = <<C::Group as Group>::Field as Field>::zero();
+    let mut group_public = <C::Group>::identity();
 
     let round1_packages_map: HashMap<Identifier<C>, &Round1Package<C>> = round1_packages
         .iter()
