@@ -206,12 +206,12 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
 
-    let numshares = key_packages.len();
-    let threshold = share_polynomial_coefficients.len() + 1;
+    let max_signers = key_packages.len();
+    let min_signers = share_polynomial_coefficients.len() + 1;
     let secret_shares = generate_secret_shares(
         &secret_key,
-        numshares as u16,
-        threshold as u16,
+        max_signers as u16,
+        min_signers as u16,
         share_polynomial_coefficients,
     )
     .unwrap();
