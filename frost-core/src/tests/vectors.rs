@@ -23,7 +23,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(
     HashMap<Identifier<C>, SigningNonces<C>>,
     HashMap<Identifier<C>, SigningCommitments<C>>,
     HashMap<Identifier<C>, Vec<u8>>,
-    HashMap<Identifier<C>, Rho<C>>,
+    HashMap<Identifier<C>, BindingFactor<C>>,
     HashMap<Identifier<C>, SignatureShare<C>>,
     Vec<u8>, // Signature<C>,
 ) {
@@ -81,7 +81,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(
     let mut signer_nonces: HashMap<Identifier<C>, SigningNonces<C>> = HashMap::new();
     let mut signer_commitments: HashMap<Identifier<C>, SigningCommitments<C>> = HashMap::new();
     let mut binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
-    let mut binding_factors: HashMap<Identifier<C>, Rho<C>> = HashMap::new();
+    let mut binding_factors: HashMap<Identifier<C>, BindingFactor<C>> = HashMap::new();
 
     for (i, signer) in round_one_outputs["participants"]
         .as_object()
@@ -115,7 +115,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(
         binding_factor_inputs.insert(identifier, binding_factor_input);
 
         let binding_factor =
-            Rho::<C>::from_hex(signer["binding_factor"].as_str().unwrap()).unwrap();
+            BindingFactor::<C>::from_hex(signer["binding_factor"].as_str().unwrap()).unwrap();
 
         binding_factors.insert(identifier, binding_factor);
     }
@@ -246,14 +246,14 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     let signing_package = frost::SigningPackage::new(signer_commitments_vec, message_bytes);
 
-    for (identifier, input) in signing_package.rho_preimages().iter() {
+    for (identifier, input) in signing_package.binding_factor_preimages().iter() {
         assert_eq!(*input, binding_factor_inputs[identifier]);
     }
 
-    let rho_list: frost::BindingFactorList<C> = (&signing_package).into();
+    let binding_factor_list: frost::BindingFactorList<C> = (&signing_package).into();
 
-    for (identifier, rho) in rho_list.iter() {
-        assert_eq!(*rho, binding_factors[identifier]);
+    for (identifier, binding_factor) in binding_factor_list.iter() {
+        assert_eq!(*binding_factor, binding_factors[identifier]);
     }
 
     let mut our_signature_shares: Vec<frost::round2::SignatureShare<C>> = Vec::new();

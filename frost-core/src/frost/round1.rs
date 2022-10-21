@@ -212,7 +212,7 @@ where
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-share-verificatio
     pub(super) fn to_group_commitment_share(
         self,
-        binding_factor: &frost::Rho<C>,
+        binding_factor: &frost::BindingFactor<C>,
     ) -> GroupCommitmentShare<C> {
         GroupCommitmentShare::<C>(self.hiding.0 + (self.binding.0 * binding_factor.0))
     }
