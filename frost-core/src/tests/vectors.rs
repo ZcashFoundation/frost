@@ -194,8 +194,8 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     let threshold = share_polynomials_coefficients.len() + 1;
     let secret_shares = generate_secret_shares(
         &secret_key,
-        numshares as u8,
-        threshold as u8,
+        numshares as u16,
+        threshold as u16,
         share_polynomials_coefficients,
     )
     .unwrap();

@@ -42,7 +42,7 @@ pub struct Round1SecretPackage<C: Ciphersuite> {
     /// The public commitment for the participant (C_i)
     pub commitment: VerifiableSecretSharingCommitment<C>,
     /// The total number of signers.
-    pub num_signers: u8,
+    pub num_signers: u16,
 }
 
 /// A package that must be sent by each participant to some other participants
@@ -76,7 +76,7 @@ pub struct Round2SecretPackage<C: Ciphersuite> {
     /// The participant's own secret share (f_i(i)).
     pub secret_share: Scalar<C>,
     /// The total number of signers.
-    pub num_signers: u8,
+    pub num_signers: u16,
 }
 
 /// Performs the first part of the distributed key generation protocol
@@ -87,8 +87,8 @@ pub struct Round2SecretPackage<C: Ciphersuite> {
 /// must be sent to other participants.
 pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifier: Identifier<C>,
-    num_signers: u8,
-    threshold: u8,
+    num_signers: u16,
+    threshold: u16,
     mut rng: R,
 ) -> Result<(Round1SecretPackage<C>, Round1Package<C>), &'static str> {
     let secret: SharedSecret<C> = SharedSecret::random(&mut rng);
