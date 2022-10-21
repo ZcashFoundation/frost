@@ -26,7 +26,7 @@ where
         // and get its length. Note that we can't use the identity because it can be encoded
         // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
         let generator = <C::Group>::generator();
-        let mut R_bytes = Vec::from(<C::Group as Group>::serialize(&generator).as_ref());
+        let mut R_bytes = Vec::from(<C::Group>::serialize(&generator).as_ref());
 
         let R_bytes_len = R_bytes.len();
 
@@ -46,7 +46,7 @@ where
 
         Ok(Self {
             R: <C::Group>::deserialize(R_serialization)?,
-            z: <<C::Group as Group>::Field as Field>::deserialize(z_serialization)?,
+            z: <<C::Group as Group>::Field>::deserialize(z_serialization)?,
         })
     }
 
@@ -55,7 +55,7 @@ where
         let mut bytes = vec![];
 
         bytes.extend(<C::Group>::serialize(&self.R).as_ref());
-        bytes.extend(<<C::Group as Group>::Field as Field>::serialize(&self.z).as_ref());
+        bytes.extend(<<C::Group as Group>::Field>::serialize(&self.z).as_ref());
 
         bytes.try_into().debugless_unwrap()
     }
@@ -67,7 +67,7 @@ impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
             .field("R", &hex::encode(<C::Group>::serialize(&self.R).as_ref()))
             .field(
                 "z",
-                &hex::encode(<<C::Group as Group>::Field as Field>::serialize(&self.z).as_ref()),
+                &hex::encode(<<C::Group as Group>::Field>::serialize(&self.z).as_ref()),
             )
             .finish()
     }

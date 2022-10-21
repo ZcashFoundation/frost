@@ -45,12 +45,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
     /// Serializes [`Rho`] to bytes.
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
     }
 }
 
@@ -146,10 +146,10 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
 ) -> Result<Scalar<C>, &'static str> {
-    let zero = <<C::Group as Group>::Field as Field>::zero();
+    let zero = <<C::Group as Group>::Field>::zero();
 
-    let mut num = <<C::Group as Group>::Field as Field>::one();
-    let mut den = <<C::Group as Group>::Field as Field>::one();
+    let mut num = <<C::Group as Group>::Field>::one();
+    let mut den = <<C::Group as Group>::Field>::one();
 
     // Ala the sorting of B, just always sort by identifier in ascending order
     //
@@ -169,7 +169,7 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
     }
 
     // TODO(dconnolly): return this error if the inversion result == zero
-    let lagrange_coeff = num * <<C::Group as Group>::Field as Field>::invert(&den).unwrap();
+    let lagrange_coeff = num * <<C::Group as Group>::Field>::invert(&den).unwrap();
 
     Ok(lagrange_coeff)
 }
@@ -370,7 +370,7 @@ where
     // Implements [`aggregate`] from the spec.
     //
     // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-5.3
-    let mut z = <<C::Group as Group>::Field as Field>::zero();
+    let mut z = <<C::Group as Group>::Field>::zero();
 
     for signature_share in signature_shares {
         z = z + signature_share.signature.z_share;

@@ -23,13 +23,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes)
-            .map(|scalar| Self { z_share: scalar })
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self { z_share: scalar })
     }
 
     /// Serialize [`SignatureResponse`] to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.z_share)
+        <<C::Group as Group>::Field>::serialize(&self.z_share)
     }
 }
 

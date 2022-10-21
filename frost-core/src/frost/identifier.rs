@@ -21,7 +21,7 @@ where
 {
     // Serialize the underlying scalar.
     pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
     }
 }
 
@@ -33,7 +33,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("Identifier")
-            .field(&<<C::Group as Group>::Field as Field>::serialize(&self.0).as_ref())
+            .field(&<<C::Group as Group>::Field>::serialize(&self.0).as_ref())
             .finish()
     }
 }
@@ -44,7 +44,7 @@ where
     C: Ciphersuite,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
             .as_ref()
             .hash(state)
     }
@@ -55,10 +55,8 @@ where
     C: Ciphersuite,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let serialized_self =
-            <<C::Group as Group>::Field as Field>::little_endian_serialize(&self.0);
-        let serialized_other =
-            <<C::Group as Group>::Field as Field>::little_endian_serialize(&other.0);
+        let serialized_self = <<C::Group as Group>::Field>::little_endian_serialize(&self.0);
+        let serialized_other = <<C::Group as Group>::Field>::little_endian_serialize(&other.0);
         serialized_self.as_ref().cmp(serialized_other.as_ref())
     }
 }
@@ -68,10 +66,8 @@ where
     C: Ciphersuite,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let serialized_self =
-            <<C::Group as Group>::Field as Field>::little_endian_serialize(&self.0);
-        let serialized_other =
-            <<C::Group as Group>::Field as Field>::little_endian_serialize(&other.0);
+        let serialized_self = <<C::Group as Group>::Field>::little_endian_serialize(&self.0);
+        let serialized_other = <<C::Group as Group>::Field>::little_endian_serialize(&other.0);
         serialized_self
             .as_ref()
             .partial_cmp(serialized_other.as_ref())
@@ -121,8 +117,8 @@ where
         } else {
             // Classic left-to-right double-and-add algorithm that skips the first bit 1 (since
             // identifiers are never zero, there is always a bit 1), thus `sum` starts with 1 too.
-            let one = <<C::Group as Group>::Field as Field>::one();
-            let mut sum = <<C::Group as Group>::Field as Field>::one();
+            let one = <<C::Group as Group>::Field>::one();
+            let mut sum = <<C::Group as Group>::Field>::one();
 
             let bits = (n.to_be_bytes().len() as u32) * 8;
             for i in (0..(bits - n.leading_zeros() - 1)).rev() {

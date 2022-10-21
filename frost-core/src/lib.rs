@@ -254,7 +254,7 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Secret")
             .field(&hex::encode(
-                <<<C as Ciphersuite>::Group as Group>::Field as Field>::serialize(&self.0),
+                <<<C as Ciphersuite>::Group as Group>::Field>::serialize(&self.0),
             ))
             .finish()
     }

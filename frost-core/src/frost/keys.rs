@@ -21,7 +21,7 @@ pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     size: usize,
     rng: &mut R,
 ) -> Vec<Scalar<C>> {
-    iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(rng))
+    iter::repeat_with(|| <<C::Group as Group>::Field>::random(rng))
         .take(size)
         .collect()
 }
@@ -42,12 +42,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
     /// Serialize to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
     }
 
     /// Generates a new uniformly random secret value using the provided RNG.
@@ -56,9 +56,7 @@ where
     where
         R: CryptoRng + RngCore,
     {
-        Self(<<C::Group as Group>::Field as Field>::random_nonzero(
-            &mut rng,
-        ))
+        Self(<<C::Group as Group>::Field>::random_nonzero(&mut rng))
     }
 }
 
@@ -78,7 +76,7 @@ where
     C: Ciphersuite,
 {
     fn default() -> Self {
-        Self(<<C::Group as Group>::Field as Field>::zero())
+        Self(<<C::Group as Group>::Field>::zero())
     }
 }
 
@@ -123,12 +121,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
     /// Serialize to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
     }
 }
 
@@ -148,7 +146,7 @@ where
     C: Ciphersuite,
 {
     fn default() -> Self {
-        Self(<<C::Group as Group>::Field as Field>::zero())
+        Self(<<C::Group as Group>::Field>::zero())
     }
 }
 
@@ -348,7 +346,7 @@ fn evaluate_polynomial<C: Ciphersuite>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
 ) -> Result<Scalar<C>, &'static str> {
-    let mut value = <<C::Group as Group>::Field as Field>::zero();
+    let mut value = <<C::Group as Group>::Field>::zero();
     let ell_scalar = identifier;
     for coeff in coefficients.iter().skip(1).rev() {
         value = value + *coeff;
@@ -368,10 +366,7 @@ fn evaluate_vss<C: Ciphersuite>(
     let i = identifier;
 
     let (_, result) = commitment.0.iter().fold(
-        (
-            <<C::Group as Group>::Field as Field>::one(),
-            <C::Group>::identity(),
-        ),
+        (<<C::Group as Group>::Field>::one(), <C::Group>::identity()),
         |(i_to_the_k, sum_so_far), comm_k| (i * i_to_the_k, sum_so_far + comm_k.0 * i_to_the_k),
     );
     Ok(result)
@@ -560,12 +555,12 @@ pub fn reconstruct_secret<C: Ciphersuite>(
         .map(|share| (share.identifier, share))
         .collect();
 
-    let mut secret = <<C::Group as Group>::Field as Field>::zero();
+    let mut secret = <<C::Group as Group>::Field>::zero();
 
     // Compute the Lagrange coefficients
     for (i, secret_share) in secret_share_map.clone() {
-        let mut num = <<C::Group as Group>::Field as Field>::one();
-        let mut den = <<C::Group as Group>::Field as Field>::one();
+        let mut num = <<C::Group as Group>::Field>::one();
+        let mut den = <<C::Group as Group>::Field>::one();
 
         for j in secret_share_map.clone().into_keys() {
             if j == i {
@@ -581,20 +576,16 @@ pub fn reconstruct_secret<C: Ciphersuite>(
 
         // If at this step, the denominator is zero in the scalar field, there must be a duplicate
         // secret share.
-        if den == <<C::Group as Group>::Field as Field>::zero() {
+        if den == <<C::Group as Group>::Field>::zero() {
             return Err("Duplicate shares provided");
         }
 
         // Save numerator * 1/denomintor in the scalar field
-        let lagrange_coefficient =
-            num * <<C::Group as Group>::Field as Field>::invert(&den).unwrap();
+        let lagrange_coefficient = num * <<C::Group as Group>::Field>::invert(&den).unwrap();
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
         secret = secret + (lagrange_coefficient * secret_share.value.0);
     }
 
-    Ok(
-        SharedSecret::from_bytes(<<C::Group as Group>::Field as Field>::serialize(&secret))
-            .unwrap(),
-    )
+    Ok(SharedSecret::from_bytes(<<C::Group as Group>::Field>::serialize(&secret)).unwrap())
 }

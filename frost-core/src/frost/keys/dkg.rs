@@ -113,7 +113,7 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     // > c_i = H(i, Φ, g^{a_{i0}} , R_i), μ_i = k + a_{i0} · c_i, with Φ being
     // > a context string to prevent replay attacks.
 
-    let k = <<C::Group as Group>::Field as Field>::random(&mut rng);
+    let k = <<C::Group as Group>::Field>::random(&mut rng);
     let R_i = <C::Group>::generator() * k;
     let c_i = challenge::<C>(identifier, &R_i, &commitment.0[0].0)
         .ok_or("DKG not supported by ciphersuite")?;
@@ -275,7 +275,7 @@ pub fn keygen_part3<C: Ciphersuite>(
         return Err("inconsistent number of packages");
     }
 
-    let mut signing_share = <<C::Group as Group>::Field as Field>::zero();
+    let mut signing_share = <<C::Group as Group>::Field>::zero();
     let mut group_public = <C::Group>::identity();
 
     let round1_packages_map: HashMap<Identifier<C>, &Round1Package<C>> = round1_packages

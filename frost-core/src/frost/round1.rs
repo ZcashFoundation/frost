@@ -34,7 +34,7 @@ where
         let mut k_enc = [0; 32];
         rng.fill_bytes(&mut k_enc[..]);
 
-        let secret_enc = <<C::Group as Group>::Field as Field>::serialize(&secret.0);
+        let secret_enc = <<C::Group as Group>::Field>::serialize(&secret.0);
 
         let input: Vec<u8> = k_enc
             .iter()
@@ -49,12 +49,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
     /// Serialize [`Nonce`] to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
     }
 }
 

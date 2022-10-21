@@ -110,13 +110,13 @@ where
         let mut VKs = Vec::with_capacity(n);
         let mut R_coeffs = Vec::with_capacity(self.signatures.len());
         let mut Rs = Vec::with_capacity(self.signatures.len());
-        let mut P_coeff_acc = <<C::Group as Group>::Field as Field>::zero();
+        let mut P_coeff_acc = <<C::Group as Group>::Field>::zero();
 
         for item in self.signatures.iter() {
             let z = item.sig.z;
             let R = item.sig.R;
 
-            let blind = <<C::Group as Group>::Field as Field>::random(&mut rng);
+            let blind = <<C::Group as Group>::Field>::random(&mut rng);
 
             let P_coeff = blind * z;
             P_coeff_acc = P_coeff_acc - P_coeff;
@@ -124,7 +124,7 @@ where
             R_coeffs.push(blind);
             Rs.push(R);
 
-            VK_coeffs.push(<<C::Group as Group>::Field as Field>::zero() + (blind * item.c.0));
+            VK_coeffs.push(<<C::Group as Group>::Field>::zero() + (blind * item.c.0));
             VKs.push(item.vk.element);
         }
 
