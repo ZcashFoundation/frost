@@ -276,9 +276,9 @@ where
     fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, &'static str> {
         let binding_factor_list: BindingFactorList<C> = signing_package.into();
 
-        let identity = <C::Group as Group>::identity();
+        let identity = <C::Group>::identity();
 
-        let mut group_commitment = <C::Group as Group>::identity();
+        let mut group_commitment = <C::Group>::identity();
 
         // Ala the sorting of B, just always sort by identifier in ascending order
         //

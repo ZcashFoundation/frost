@@ -90,7 +90,7 @@ where
     C: Ciphersuite,
 {
     fn from(secret: &SharedSecret<C>) -> Self {
-        let element = <C::Group as Group>::generator() * secret.0;
+        let element = <C::Group>::generator() * secret.0;
 
         VerifyingKey { element }
     }
@@ -207,7 +207,7 @@ where
     C: Ciphersuite,
 {
     fn from(secret: SigningShare<C>) -> VerifyingShare<C> {
-        VerifyingShare(<C::Group as Group>::generator() * secret.0 as Scalar<C>)
+        VerifyingShare(<C::Group>::generator() * secret.0 as Scalar<C>)
     }
 }
 
@@ -280,7 +280,7 @@ where
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), &'static str> {
-        let f_result = <C::Group as Group>::generator() * self.value.0;
+        let f_result = <C::Group>::generator() * self.value.0;
         let result = evaluate_vss(&self.commitment, self.identifier)?;
 
         if !(f_result == result) {
@@ -370,7 +370,7 @@ fn evaluate_vss<C: Ciphersuite>(
     let (_, result) = commitment.0.iter().fold(
         (
             <<C::Group as Group>::Field as Field>::one(),
-            <C::Group as Group>::identity(),
+            <C::Group>::identity(),
         ),
         |(i_to_the_k, sum_so_far), comm_k| (i * i_to_the_k, sum_so_far + comm_k.0 * i_to_the_k),
     );

@@ -92,12 +92,12 @@ where
 {
     /// Deserialize [`NonceCommitment`] from bytes
     pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error> {
-        <C::Group as Group>::deserialize(&bytes).map(|element| Self(element))
+        <C::Group>::deserialize(&bytes).map(|element| Self(element))
     }
 
     /// Serialize [`NonceCommitment`] to bytes
     pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
-        <C::Group as Group>::serialize(&self.0)
+        <C::Group>::serialize(&self.0)
     }
 }
 
@@ -126,7 +126,7 @@ where
     C: Ciphersuite,
 {
     fn from(nonce: &Nonce<C>) -> Self {
-        Self(<C::Group as Group>::generator() * nonce.0)
+        Self(<C::Group>::generator() * nonce.0)
     }
 }
 
@@ -273,8 +273,8 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 
     for item in sorted_signing_commitments {
         bytes.extend_from_slice(item.identifier.serialize().as_ref());
-        bytes.extend_from_slice(<C::Group as Group>::serialize(&item.hiding.0).as_ref());
-        bytes.extend_from_slice(<C::Group as Group>::serialize(&item.binding.0).as_ref());
+        bytes.extend_from_slice(<C::Group>::serialize(&item.hiding.0).as_ref());
+        bytes.extend_from_slice(<C::Group>::serialize(&item.binding.0).as_ref());
     }
 
     bytes

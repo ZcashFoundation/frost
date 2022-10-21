@@ -147,7 +147,7 @@ where
             .map(|P_opt| P_opt.map(|P| LookupTable5::<C, Element<C>>::from(&P)))
             .collect::<Option<Vec<_>>>()?;
 
-        let mut r = <C::Group as Group>::identity();
+        let mut r = <C::Group>::identity();
 
         for i in (0..256).rev() {
             let mut t = r + r;

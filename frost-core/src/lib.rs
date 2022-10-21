@@ -279,8 +279,8 @@ where
 {
     let mut preimage = vec![];
 
-    preimage.extend_from_slice(<C::Group as Group>::serialize(R).as_ref());
-    preimage.extend_from_slice(<C::Group as Group>::serialize(verifying_key).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(verifying_key).as_ref());
     preimage.extend_from_slice(msg);
 
     Challenge(C::H2(&preimage[..]))

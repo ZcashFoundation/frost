@@ -88,7 +88,7 @@ where
         lambda_i: <<C::Group as Group>::Field as Field>::Scalar,
         challenge: &Challenge<C>,
     ) -> Result<(), &'static str> {
-        if (<C::Group as Group>::generator() * self.signature.z_share)
+        if (<C::Group>::generator() * self.signature.z_share)
             != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
             return Err("Invalid signature share");

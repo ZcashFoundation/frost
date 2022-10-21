@@ -25,12 +25,12 @@ where
 
     /// Deserialize from bytes
     pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<VerifyingKey<C>, Error> {
-        <C::Group as Group>::deserialize(&bytes).map(|element| VerifyingKey { element })
+        <C::Group>::deserialize(&bytes).map(|element| VerifyingKey { element })
     }
 
     /// Serialize `VerifyingKey` to bytes
     pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
-        <C::Group as Group>::serialize(&self.element)
+        <C::Group>::serialize(&self.element)
     }
 
     /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification

@@ -41,7 +41,7 @@ where
     pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<C> {
         let k = <<C::Group as Group>::Field as Field>::random_nonzero(&mut rng);
 
-        let R = <C::Group as Group>::generator() * k;
+        let R = <C::Group>::generator() * k;
 
         // Generate Schnorr challenge
         let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self).element, msg);

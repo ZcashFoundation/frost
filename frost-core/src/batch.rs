@@ -132,13 +132,13 @@ where
             .chain(VK_coeffs.iter())
             .chain(R_coeffs.iter());
 
-        let basepoints = [<C::Group as Group>::generator()];
+        let basepoints = [C::Group::generator()];
         let points = basepoints.iter().chain(VKs.iter()).chain(Rs.iter());
 
         let check: Element<C> =
             VartimeMultiscalarMul::<C>::vartime_multiscalar_mul(scalars, points);
 
-        if (check * <C::Group as Group>::cofactor()) == <C::Group as Group>::identity() {
+        if (check * <C::Group>::cofactor()) == <C::Group>::identity() {
             Ok(())
         } else {
             Err(Error::InvalidSignature)
