@@ -2,7 +2,7 @@
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{Ciphersuite, Error, Field, Group, Signature, VerifyingKey};
+use crate::{Ciphersuite, Error, Field, Group, Scalar, Signature, VerifyingKey};
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone)]
@@ -10,7 +10,7 @@ pub struct SigningKey<C>
 where
     C: Ciphersuite,
 {
-    pub(crate) scalar: <<C::Group as Group>::Field as Field>::Scalar,
+    pub(crate) scalar: Scalar<C>,
 }
 
 impl<C> SigningKey<C>

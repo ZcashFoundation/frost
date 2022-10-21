@@ -6,13 +6,13 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{frost, Ciphersuite, Error, Field, Group};
+use crate::{frost, Ciphersuite, Error, Field, Group, Scalar};
 
 use super::{keys::SigningShare, Identifier};
 
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Eq, Zeroize)]
-pub struct Nonce<C: Ciphersuite>(pub(super) <<C::Group as Group>::Field as Field>::Scalar);
+pub struct Nonce<C: Ciphersuite>(pub(super) Scalar<C>);
 
 impl<C> Nonce<C>
 where

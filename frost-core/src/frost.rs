@@ -24,7 +24,7 @@ pub mod keys;
 pub mod round1;
 pub mod round2;
 
-use crate::{Ciphersuite, Error, Field, Group, Signature};
+use crate::{Ciphersuite, Error, Field, Group, Scalar, Signature};
 
 pub use self::identifier::Identifier;
 
@@ -35,7 +35,7 @@ pub use self::identifier::Identifier;
 ///
 /// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md>
 #[derive(Clone, PartialEq, Eq)]
-pub struct Rho<C: Ciphersuite>(<<C::Group as Group>::Field as Field>::Scalar);
+pub struct Rho<C: Ciphersuite>(Scalar<C>);
 
 impl<C> Rho<C>
 where
@@ -145,7 +145,7 @@ where
 fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
-) -> Result<<<C::Group as Group>::Field as Field>::Scalar, &'static str> {
+) -> Result<Scalar<C>, &'static str> {
     let zero = <<C::Group as Group>::Field as Field>::zero();
 
     let mut num = <<C::Group as Group>::Field as Field>::one();

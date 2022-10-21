@@ -2,7 +2,7 @@
 
 use debugless_unwrap::DebuglessUnwrap;
 
-use crate::{Ciphersuite, Error, Field, Group};
+use crate::{Ciphersuite, Error, Field, Group, Scalar};
 
 /// A Schnorr signature over some prime order group (or subgroup).
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -11,7 +11,7 @@ pub struct Signature<C: Ciphersuite> {
     pub(crate) R: <C::Group as Group>::Element,
     /// The response `z` to the challenge computed from the commitment `R`, the verifying key, and
     /// the message.
-    pub(crate) z: <<C::Group as Group>::Field as Field>::Scalar,
+    pub(crate) z: Scalar<C>,
 }
 
 impl<C> Signature<C>

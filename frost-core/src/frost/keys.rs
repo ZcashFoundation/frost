@@ -20,7 +20,7 @@ pub mod dkg;
 pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     size: usize,
     rng: &mut R,
-) -> Vec<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar> {
+) -> Vec<Scalar<C>> {
     iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(rng))
         .take(size)
         .collect()
@@ -347,7 +347,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 fn evaluate_polynomial<C: Ciphersuite>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
-) -> Result<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar, &'static str> {
+) -> Result<Scalar<C>, &'static str> {
     let mut value = <<C::Group as Group>::Field as Field>::zero();
     let ell_scalar = identifier;
     for coeff in coefficients.iter().skip(1).rev() {
