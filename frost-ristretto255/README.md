@@ -3,30 +3,98 @@ of signers (FROST).
 
 ## Examples
 
-Creating a `Signature` with a single signer, serializing and deserializing it, and verifying the
-signature:
+### Trusted Dealer
+
+Creating a key with a trusted dealer and splitting into shares; then signing a message
+and aggregating the signature. Note that the example just simulates a distributed
+scenario in a single thread and it abstracts away any communication between peers.
+
 
 ```rust
+use std::{collections::HashMap, convert::TryFrom};
 use rand::thread_rng;
-use frost_ristretto255::*;
+use frost_ristretto255 as frost;
 
-let msg = b"Hello!";
+let mut rng = thread_rng();
+let max_signers = 5;
+let min_signers = 3;
+let (shares, pubkeys) =
+    frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
-// Generate a secret key and sign the message
-let sk = SigningKey::new(thread_rng());
-let sig = sk.sign(thread_rng(), msg);
+// Verifies the secret shares from the dealer
+let key_packages: HashMap<frost::Identifier, frost::keys::KeyPackage> = shares
+    .into_iter()
+    .map(|share| {
+        (
+            share.identifier,
+            frost::keys::KeyPackage::try_from(share).unwrap(),
+        )
+    })
+    .collect();
 
-// Types can be converted to raw byte arrays using `from_bytes`/`to_bytes`
-let sig_bytes = sig.to_bytes();
-let pk_bytes = VerifyingKey::from(&sk).to_bytes();
+let mut nonces: HashMap<frost::Identifier, frost::round1::SigningNonces> = HashMap::new();
+let mut commitments: HashMap<frost::Identifier, frost::round1::SigningCommitments> =
+    HashMap::new();
 
-// Deserialize and verify the signature.
-let sig = Signature::from_bytes(sig_bytes)?;
+////////////////////////////////////////////////////////////////////////////
+// Round 1: generating nonces and signing commitments for each participant
+////////////////////////////////////////////////////////////////////////////
 
-assert!(
-    VerifyingKey::from_bytes(pk_bytes)
-        .and_then(|pk| pk.verify(msg, &sig))
-        .is_ok()
-);
-# Ok::<(), Error>(())
+for participant_index in 1..(threshold as u16 + 1) {
+    let participant_identifier = participant_index.try_into().expect("should be nonzero");
+    // Generate one (1) nonce and one SigningCommitments instance for each
+    // participant, up to _threshold_.
+    let (nonce, commitment) = frost::round1::commit(
+        participant_identifier,
+        key_packages
+            .get(&participant_identifier)
+            .unwrap()
+            .secret_share(),
+        &mut rng,
+    );
+    nonces.insert(participant_identifier, nonce);
+    commitments.insert(participant_identifier, commitment);
+}
+
+// This is what the signature aggregator / coordinator needs to do:
+// - decide what message to sign
+// - take one (unused) commitment per signing participant
+let mut signature_shares = Vec::new();
+let message = "message to sign".as_bytes();
+let comms = commitments.clone().into_values().collect();
+let signing_package = frost::SigningPackage::new(comms, message.to_vec());
+
+////////////////////////////////////////////////////////////////////////////
+// Round 2: each participant generates their signature share
+////////////////////////////////////////////////////////////////////////////
+
+for participant_identifier in nonces.keys() {
+    let key_package = key_packages.get(participant_identifier).unwrap();
+
+    let nonces_to_use = &nonces.get(participant_identifier).unwrap();
+
+    // Each participant generates their signature share.
+    let signature_share =
+        frost::round2::sign(&signing_package, nonces_to_use, key_package).unwrap();
+    signature_shares.push(signature_share);
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Aggregation: collects the signing shares from all participants,
+// generates the final signature.
+////////////////////////////////////////////////////////////////////////////
+
+// Aggregate (also verifies the signature shares)
+let group_signature_res = frost::aggregate(&signing_package, &signature_shares[..], &pubkeys);
+
+assert!(group_signature_res.is_ok());
+
+let group_signature = group_signature_res.unwrap();
+
+// Check that the threshold signature can be verified by the group public
+// key (the verification key).
+assert!(pubkeys
+    .group_public
+    .verify(message, &group_signature)
+    .is_ok());
 ```

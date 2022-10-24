@@ -92,7 +92,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // This is what the signature aggregator / coordinator needs to do:
     // - decide what message to sign
     // - take one (unused) commitment per signing participant
-    let mut signature_shares: Vec<frost::round2::SignatureShare<C>> = Vec::new();
+    let mut signature_shares = Vec::new();
     let message = "message to sign".as_bytes();
     let comms = commitments.clone().into_values().collect();
     let signing_package = frost::SigningPackage::new(comms, message.to_vec());
