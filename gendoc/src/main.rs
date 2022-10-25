@@ -79,7 +79,7 @@ fn read_docs(filename: &str, suite_names_code: &[&str]) -> Vec<(String, String, 
 /// new_suite_names_doc: replacements to use in the documentation of the given file
 ///     for each reference in `old_suite_names_doc`.
 fn write_docs(
-    docs: Vec<(String, String, usize, usize)>,
+    docs: &Vec<(String, String, usize, usize)>,
     filename: &str,
     suite_names_code: &[&str],
     old_suite_names_doc: &[&str],
@@ -90,10 +90,14 @@ fn write_docs(
 
     // To be able to replace the documentation properly, start from the end, which
     // will keep the string positions consistent
-    for ((old_name, _, old_start, old_end), (new_name, new_doc, _, _)) in
+    for ((_old_name, _, old_start, old_end), (_new_name, new_doc, _, _)) in
         zip(old_docs.iter().rev(), docs.iter().rev())
     {
-        assert_eq!(old_name, new_name, "source code does not match");
+        // This is a sanity check to test if we're replacing the right comment.
+        // It was commented out due to an exception (Ed25519 scalar is defined
+        // as the Ristretto25519 scalar instead of its own struct)
+        // assert_eq!(old_name, new_name, "source code does not match");
+
         // Replaces ciphersuite-references in documentation
         let mut new_doc = new_doc.to_string();
         for (old_n, new_n) in zip(old_suite_names_doc.iter(), new_suite_names_doc.iter()) {
@@ -114,10 +118,18 @@ fn main() {
     // To add a new ciphersuite, just copy this call and replace the required strings.
 
     write_docs(
-        docs,
+        &docs,
         "frost-p256/src/lib.rs",
         &["P256Sha256", "P256", "<P>"],
         old_suite_names_doc,
         &["FROST(P-256, SHA-256)"],
-    )
+    );
+
+    write_docs(
+        &docs,
+        "frost-ed25519/src/lib.rs",
+        &["Ed25519Sha512", "Ed25519", "<E>"],
+        old_suite_names_doc,
+        &["FROST(Ed25519, SHA-512)"],
+    );
 }

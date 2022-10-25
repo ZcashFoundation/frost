@@ -263,7 +263,7 @@ pub mod keys {
     /// # Security
     ///
     /// To derive a FROST(P-256, SHA-256) keypair, the receiver of the [`SecretShare`] *must* call
-    /// .try_into(), which under the hood also performs validation.
+    /// .into(), which under the hood also performs validation.
     pub type SecretShare = frost::keys::SecretShare<P>;
 
     /// A FROST(P-256, SHA-256) keypair, which can be generated either by a trusted dealer or using
