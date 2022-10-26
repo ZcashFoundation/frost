@@ -213,7 +213,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         &secret_key,
         numshares as u16,
         threshold as u16,
-        share_polynomials_coefficients,
+        share_polynomial_coefficients,
     )
     .unwrap();
     let secret_shares: HashMap<_, _> = secret_shares
