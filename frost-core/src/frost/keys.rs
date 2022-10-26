@@ -278,7 +278,7 @@ where
     /// This also implements `derive_group_info()` from the [spec] (which is very similar),
     /// but only for this participant.
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.2-4
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), &'static str> {
         let f_result = <C::Group as Group>::generator() * self.value.0;
         let result = evaluate_vss(&self.commitment, self.identifier)?;
@@ -306,7 +306,7 @@ where
 ///
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
-/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C
+/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C
 pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     num_signers: u8,
     threshold: u8,
@@ -522,7 +522,7 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
 ///
 /// Implements [`secret_share_shard`] from the spec.
 ///
-/// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#appendix-C.1
+/// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.1
 pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     secret: &SharedSecret<C>,
     numshares: u8,

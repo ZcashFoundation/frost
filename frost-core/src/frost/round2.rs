@@ -80,7 +80,7 @@ where
     ///
     /// This is the final step of [`verify_signature_share`] from the spec.
     ///
-    /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-share-verificatio
+    /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
     pub fn verify(
         &self,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
@@ -127,7 +127,7 @@ where
 /// Assumes the participant has already determined which nonce corresponds with
 /// the commitment that was assigned by the coordinator in the SigningPackage.
 ///
-/// [`sign`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-round-two-signature-share-g
+/// [`sign`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-round-two-signature-share-g
 pub fn sign<C: Ciphersuite>(
     signing_package: &SigningPackage<C>,
     signer_nonces: &round1::SigningNonces<C>,
