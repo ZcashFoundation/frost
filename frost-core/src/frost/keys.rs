@@ -364,7 +364,6 @@ fn evaluate_vss<C: Ciphersuite>(
     commitment: &VerifiableSecretSharingCommitment<C>,
     identifier: Identifier<C>,
 ) -> Result<Element<C>, &'static str> {
-
     let i = identifier;
 
     let (_, result) = commitment.0.iter().fold(
