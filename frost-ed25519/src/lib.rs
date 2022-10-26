@@ -53,12 +53,10 @@ impl Group for Ed25519Group {
             Some(point) => {
                 if point == Self::identity() {
                     Err(Error::InvalidIdentityElement)
+                } else if point.is_torsion_free() {
+                    Ok(point)
                 } else {
-                    if point.is_torsion_free() {
-                        Ok(point)
-                    } else {
-                        Err(Error::InvalidNonPrimeOrderElement)
-                    }
+                    Err(Error::InvalidNonPrimeOrderElement)
                 }
             }
             None => Err(Error::MalformedElement),

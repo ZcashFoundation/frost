@@ -79,7 +79,7 @@ fn read_docs(filename: &str, suite_names_code: &[&str]) -> Vec<(String, String, 
 /// new_suite_names_doc: replacements to use in the documentation of the given file
 ///     for each reference in `old_suite_names_doc`.
 fn write_docs(
-    docs: &Vec<(String, String, usize, usize)>,
+    docs: &[(String, String, usize, usize)],
     filename: &str,
     suite_names_code: &[&str],
     old_suite_names_doc: &[&str],
