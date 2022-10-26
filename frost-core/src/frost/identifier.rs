@@ -3,7 +3,6 @@
 use std::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    marker::PhantomData,
 };
 
 use crate::{Ciphersuite, Error, Field, Group, Scalar};
@@ -13,83 +12,100 @@ use crate::{Ciphersuite, Error, Field, Group, Scalar};
 /// The identifier is a field element in the scalar field that the secret polynomial is defined
 /// over, corresponding to some x-coordinate for a polynomial f(x) = y.  MUST NOT be zero in the
 /// field, as f(0) = the shared secret.
-#[derive(Copy, Clone)]
-pub struct Identifier<C>(u16, PhantomData<C>);
+#[derive(Copy, Clone, PartialEq)]
+pub struct Identifier<C: Ciphersuite>(Scalar<C>);
 
 impl<C> Identifier<C>
 where
     C: Ciphersuite,
 {
-    // Convert the identifier to a Scalar.
-    //
-    // Ideally this would be a From<Identifier<C>> for Scalar<C> impl, but rustc
-    // doesn't like that
-    pub(crate) fn to_scalar(self) -> Result<Scalar<C>, &'static str> {
-        // This should never happen since we check it when building Identifier,
-        // but we check again out of abundance of caution.
-        if self.0 == 0 {
-            return Err("Identifier must not be zero");
-        }
-        // Classic left-to-right double-and-add algorithm that skips the first bit 1 (since
-        // identifiers are never zero, there is always a bit 1), thus `sum` starts with 1 too.
-        let one = <<C::Group as Group>::Field as Field>::one();
-        let mut sum = <<C::Group as Group>::Field as Field>::one();
-
-        let bits = (self.0.to_be_bytes().len() as u32) * 8;
-        for i in (0..(bits - self.0.leading_zeros() - 1)).rev() {
-            sum = sum + sum;
-            if self.0 & (1 << i) != 0 {
-                sum = sum + one;
-            }
-        }
-        Ok(sum)
+    // Serialize the underlying scalar.
+    pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+        <<C::Group as Group>::Field as Field>::serialize(&self.0)
     }
 }
 
-impl<C> PartialEq for Identifier<C> {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-
-impl<C> Eq for Identifier<C> {}
-
-impl<C> PartialOrd for Identifier<C> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl<C> Ord for Identifier<C> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.0.cmp(&other.0)
-    }
-}
+impl<C> Eq for Identifier<C> where C: Ciphersuite {}
 
 impl<C> Debug for Identifier<C>
 where
     C: Ciphersuite,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Identifier").field(&self.0).finish()
+        f.debug_tuple("Identifier")
+            .field(&<<C::Group as Group>::Field as Field>::serialize(&self.0).as_ref())
+            .finish()
     }
 }
 
+#[allow(clippy::derive_hash_xor_eq)]
 impl<C> Hash for Identifier<C>
 where
     C: Ciphersuite,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
+        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+            .as_ref()
+            .hash(state)
     }
 }
 
-impl<C> From<Identifier<C>> for u16
+impl<C> Ord for Identifier<C>
 where
     C: Ciphersuite,
 {
-    fn from(identifier: Identifier<C>) -> Self {
-        identifier.0
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let serialized_self =
+            <<C::Group as Group>::Field as Field>::little_endian_serialize(&self.0);
+        let serialized_other =
+            <<C::Group as Group>::Field as Field>::little_endian_serialize(&other.0);
+        serialized_self.as_ref().cmp(serialized_other.as_ref())
+    }
+}
+
+impl<C> PartialOrd for Identifier<C>
+where
+    C: Ciphersuite,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let serialized_self =
+            <<C::Group as Group>::Field as Field>::little_endian_serialize(&self.0);
+        let serialized_other =
+            <<C::Group as Group>::Field as Field>::little_endian_serialize(&other.0);
+        serialized_self
+            .as_ref()
+            .partial_cmp(serialized_other.as_ref())
+    }
+}
+
+impl<C> std::ops::Mul<Scalar<C>> for Identifier<C>
+where
+    C: Ciphersuite,
+{
+    type Output = Scalar<C>;
+
+    fn mul(self, scalar: Scalar<C>) -> Scalar<C> {
+        self.0 * scalar
+    }
+}
+
+impl<C> std::ops::MulAssign<Identifier<C>> for Scalar<C>
+where
+    C: Ciphersuite,
+{
+    fn mul_assign(&mut self, identifier: Identifier<C>) {
+        *self = *self * identifier.0
+    }
+}
+
+impl<C> std::ops::Sub for Identifier<C>
+where
+    C: Ciphersuite,
+{
+    type Output = Self;
+
+    fn sub(self, rhs: Identifier<C>) -> Self::Output {
+        Self(self.0 - rhs.0)
     }
 }
 
@@ -103,7 +119,19 @@ where
         if n == 0 {
             Err(Self::Error::InvalidZeroScalar)
         } else {
-            Ok(Self(n, Default::default()))
+            // Classic left-to-right double-and-add algorithm that skips the first bit 1 (since
+            // identifiers are never zero, there is always a bit 1), thus `sum` starts with 1 too.
+            let one = <<C::Group as Group>::Field as Field>::one();
+            let mut sum = <<C::Group as Group>::Field as Field>::one();
+
+            let bits = (n.to_be_bytes().len() as u32) * 8;
+            for i in (0..(bits - n.leading_zeros() - 1)).rev() {
+                sum = sum + sum;
+                if n & (1 << i) != 0 {
+                    sum = sum + one;
+                }
+            }
+            Ok(Self(sum))
         }
     }
 }

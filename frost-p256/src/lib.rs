@@ -74,6 +74,12 @@ impl Field for P256ScalarField {
             None => Err(Error::MalformedScalar),
         }
     }
+
+    fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization {
+        let mut array = Self::serialize(scalar);
+        array.reverse();
+        array
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

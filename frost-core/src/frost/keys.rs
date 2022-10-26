@@ -349,10 +349,10 @@ fn evaluate_polynomial<C: Ciphersuite>(
     coefficients: &[Scalar<C>],
 ) -> Result<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar, &'static str> {
     let mut value = <<C::Group as Group>::Field as Field>::zero();
-    let ell_scalar = identifier.to_scalar()?;
+    let ell_scalar = identifier;
     for coeff in coefficients.iter().skip(1).rev() {
         value = value + *coeff;
-        value = ell_scalar * value;
+        value *= ell_scalar;
     }
     value = value + coefficients[0];
     Ok(value)
@@ -365,7 +365,7 @@ fn evaluate_vss<C: Ciphersuite>(
     commitment: &VerifiableSecretSharingCommitment<C>,
     identifier: Identifier<C>,
 ) -> Result<<<C as Ciphersuite>::Group as Group>::Element, &'static str> {
-    let i = identifier.to_scalar()?;
+    let i = identifier;
 
     let (_, result) = commitment.0.iter().fold(
         (
@@ -566,19 +566,17 @@ pub fn reconstruct_secret<C: Ciphersuite>(
     for (i, secret_share) in secret_share_map.clone() {
         let mut num = <<C::Group as Group>::Field as Field>::one();
         let mut den = <<C::Group as Group>::Field as Field>::one();
-        let i_scalar = i.to_scalar()?;
 
         for j in secret_share_map.clone().into_keys() {
             if j == i {
                 continue;
             }
-            let j_scalar = j.to_scalar()?;
 
             // numerator *= j
-            num = num * j_scalar;
+            num *= j;
 
             // denominator *= j - i
-            den = den * (j_scalar - i_scalar);
+            den *= j - i;
         }
 
         // If at this step, the denominator is zero in the scalar field, there must be a duplicate

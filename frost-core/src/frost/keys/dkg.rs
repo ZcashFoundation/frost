@@ -144,12 +144,7 @@ where
 {
     let mut preimage = vec![];
 
-    let i_scalar = identifier
-        .to_scalar()
-        .expect("this will never fail after identifier is defined as scalar");
-
-    preimage
-        .extend_from_slice(<<C::Group as Group>::Field as Field>::serialize(&i_scalar).as_ref());
+    preimage.extend_from_slice(identifier.serialize().as_ref());
     preimage.extend_from_slice(<C::Group as Group>::serialize(R).as_ref());
     preimage.extend_from_slice(<C::Group as Group>::serialize(verifying_key).as_ref());
 

@@ -146,8 +146,6 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
 ) -> Result<<<C::Group as Group>::Field as Field>::Scalar, &'static str> {
-    let signer_id_scalar = signer_id.to_scalar()?;
-
     let zero = <<C::Group as Group>::Field as Field>::zero();
 
     let mut num = <<C::Group as Group>::Field as Field>::one();
@@ -161,10 +159,9 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
             continue;
         }
 
-        let commitment_id_scalar = commitment.identifier.to_scalar()?;
+        num *= commitment.identifier;
 
-        num = num * commitment_id_scalar;
-        den = den * (commitment_id_scalar - signer_id_scalar);
+        den *= commitment.identifier - *signer_id;
     }
 
     if den == zero {
@@ -244,13 +241,7 @@ where
                 let mut rho_input = vec![];
 
                 rho_input.extend_from_slice(&rho_input_prefix);
-                rho_input.extend_from_slice(
-                    <<C::Group as Group>::Field as Field>::serialize(
-                        // unwrap() is OK because this will become infallible after refactoring (#102)
-                        &c.identifier.to_scalar().unwrap(),
-                    )
-                    .as_ref(),
-                );
+                rho_input.extend_from_slice(c.identifier.serialize().as_ref());
                 (c.identifier, rho_input)
             })
             .collect()

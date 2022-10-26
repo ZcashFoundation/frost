@@ -70,6 +70,10 @@ impl Field for RistrettoScalarField {
             None => Err(Error::MalformedScalar),
         }
     }
+
+    fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization {
+        Self::serialize(scalar)
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
