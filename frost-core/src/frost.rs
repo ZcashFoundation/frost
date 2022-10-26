@@ -11,7 +11,7 @@
 //! Sharing, where shares are generated using Shamir Secret Sharing.
 
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     convert::TryFrom,
     fmt::{self, Debug},
     ops::Index,
@@ -67,14 +67,14 @@ where
 
 /// A list of binding factors and their associated identifiers.
 #[derive(Clone)]
-pub struct BindingFactorList<C: Ciphersuite>(Vec<(Identifier<C>, BindingFactor<C>)>);
+pub struct BindingFactorList<C: Ciphersuite>(BTreeMap<Identifier<C>, BindingFactor<C>>);
 
 impl<C> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
     /// Return iterator through all factors.
-    pub fn iter(&self) -> impl Iterator<Item = &(Identifier<C>, BindingFactor<C>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Identifier<C>, &BindingFactor<C>)> {
         self.0.iter()
     }
 }
@@ -90,15 +90,8 @@ where
     // [`binding_factor_for_participant`] in the spec
     //
     // [`binding_factor_for_participant`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.3
-    // TODO: switch from Vec to BTreeMap, as this can be made more efficient.
     fn index(&self, identifier: Identifier<C>) -> &Self::Output {
-        for (i, factor) in self.0.iter() {
-            if *i == identifier {
-                return factor;
-            }
-        }
-        // The protocol should abort here, but can we do something nicer than a panic?
-        panic!("invalid identifier passed");
+        &self.0[&identifier]
     }
 }
 
