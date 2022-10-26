@@ -26,17 +26,26 @@ where
     ///
     /// An implementation of `nonce_generate(secret)` from the [spec].
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-nonce-generation
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-nonce-generation
     pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
-        let mut k_enc = [0; 32];
-        rng.fill_bytes(&mut k_enc[..]);
+        let mut random_bytes = [0; 32];
+        rng.fill_bytes(&mut random_bytes[..]);
 
+        Self::nonce_generate_from_random_bytes(secret, random_bytes)
+    }
+
+    /// Generates a nonce from the given random bytes.
+    /// This function allows testing and MUST NOT be made public.
+    pub(crate) fn nonce_generate_from_random_bytes(
+        secret: &SigningShare<C>,
+        random_bytes: [u8; 32],
+    ) -> Self {
         let secret_enc = <<C::Group as Group>::Field as Field>::serialize(&secret.0);
 
-        let input: Vec<u8> = k_enc
+        let input: Vec<u8> = random_bytes
             .iter()
             .chain(secret_enc.as_ref().iter())
             .cloned()
@@ -209,7 +218,7 @@ where
 {
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
-    /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-share-verificatio
+    /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
     pub(super) fn to_group_commitment_share(
         self,
         binding_factor: &frost::Rho<C>,
@@ -259,7 +268,7 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) <C::Group as Group>::
 /// Outputs:
 /// - A byte string containing the serialized representation of B.
 ///
-/// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-list-operations
+/// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-list-operations
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: Vec<SigningCommitments<C>>,
 ) -> Vec<u8> {
@@ -325,7 +334,7 @@ where
 /// Generates the signing nonces and commitments to be used in the signing
 /// operation.
 ///
-/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-round-one-commitment
+/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-round-one-commitment
 pub fn commit<C, R>(
     participant_identifier: Identifier<C>,
     secret: &SigningShare<C>,

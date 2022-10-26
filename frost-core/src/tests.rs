@@ -1,7 +1,7 @@
 //! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use crate::frost::{self, keys::generate_coefficients, Identifier};
+use crate::frost;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -17,7 +17,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     let numshares = 5;
     let threshold = 3;
 
-    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, &mut rng);
+    let coefficients = frost::keys::generate_coefficients::<C, _>(threshold as usize - 1, &mut rng);
 
     let secret_shares =
         frost::keys::generate_secret_shares(&secret, numshares, threshold, coefficients).unwrap();
@@ -59,12 +59,12 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
 
 fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     threshold: u16,
-    key_packages: HashMap<Identifier<C>, frost::keys::KeyPackage<C>>,
+    key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
     pubkeys: frost::keys::PublicKeyPackage<C>,
 ) {
-    let mut nonces: HashMap<Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
-    let mut commitments: HashMap<Identifier<C>, frost::round1::SigningCommitments<C>> =
+    let mut nonces: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
+    let mut commitments: HashMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         HashMap::new();
 
     ////////////////////////////////////////////////////////////////////////////
