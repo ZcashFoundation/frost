@@ -22,7 +22,7 @@ pub struct TestVectors<C: Ciphersuite> {
     signer_nonces: HashMap<Identifier<C>, SigningNonces<C>>,
     signer_commitments: HashMap<Identifier<C>, SigningCommitments<C>>,
     binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>>,
-    binding_factors: HashMap<Identifier<C>, Rho<C>>,
+    binding_factors: HashMap<Identifier<C>, BindingFactor<C>>,
     signature_shares: HashMap<Identifier<C>, SignatureShare<C>>,
     signature_bytes: Vec<u8>,
 }
