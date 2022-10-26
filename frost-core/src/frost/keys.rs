@@ -306,8 +306,8 @@ where
 ///
 /// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C
 pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
-    num_signers: u8,
-    threshold: u8,
+    num_signers: u16,
+    threshold: u16,
     mut rng: R,
 ) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), &'static str> {
     let mut bytes = [0; 64];
@@ -466,8 +466,8 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 /// Returns an error if the parameters (num_signers, threshold) are inconsistent.
 pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
     secret: &SharedSecret<C>,
-    num_signers: u8,
-    threshold: u8,
+    num_signers: u16,
+    threshold: u16,
     mut coefficients: Vec<Scalar<C>>,
 ) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), &'static str> {
     if threshold < 2 {
@@ -521,8 +521,8 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
 /// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.1
 pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     secret: &SharedSecret<C>,
-    numshares: u8,
-    threshold: u8,
+    numshares: u16,
+    threshold: u16,
     coefficients: Vec<Scalar<C>>,
 ) -> Result<Vec<SecretShare<C>>, &'static str> {
     let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(numshares as usize);

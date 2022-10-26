@@ -228,8 +228,8 @@ pub mod keys {
     /// Allows all participants' keys to be generated using a central, trusted
     /// dealer.
     pub fn keygen_with_dealer<RNG: RngCore + CryptoRng>(
-        num_signers: u8,
-        threshold: u8,
+        num_signers: u16,
+        threshold: u16,
         mut rng: RNG,
     ) -> Result<(Vec<SecretShare>, PublicKeyPackage), &'static str> {
         frost::keys::keygen_with_dealer(num_signers, threshold, &mut rng)

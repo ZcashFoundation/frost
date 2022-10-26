@@ -58,7 +58,7 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
 }
 
 fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
-    threshold: u8,
+    threshold: u16,
     key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
     pubkeys: frost::keys::PublicKeyPackage<C>,
@@ -173,13 +173,9 @@ where
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=numsigners {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let (secret_package, round1_package) = frost::keys::dkg::keygen_part1(
-            participant_identifier,
-            numsigners as u8,
-            threshold,
-            &mut rng,
-        )
-        .unwrap();
+        let (secret_package, round1_package) =
+            frost::keys::dkg::keygen_part1(participant_identifier, numsigners, threshold, &mut rng)
+                .unwrap();
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
