@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use hex::FromHex;
 
-use crate::{Challenge, Ciphersuite, Error, Group, Signature};
+use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq)]
@@ -10,7 +10,7 @@ pub struct VerifyingKey<C>
 where
     C: Ciphersuite,
 {
-    pub(crate) element: <C::Group as Group>::Element,
+    pub(crate) element: Element<C>,
 }
 
 impl<C> VerifyingKey<C>
@@ -25,12 +25,12 @@ where
 
     /// Deserialize from bytes
     pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<VerifyingKey<C>, Error> {
-        <C::Group as Group>::deserialize(&bytes).map(|element| VerifyingKey { element })
+        <C::Group>::deserialize(&bytes).map(|element| VerifyingKey { element })
     }
 
     /// Serialize `VerifyingKey` to bytes
     pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
-        <C::Group as Group>::serialize(&self.element)
+        <C::Group>::serialize(&self.element)
     }
 
     /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification

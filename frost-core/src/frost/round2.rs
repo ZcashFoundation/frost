@@ -12,7 +12,7 @@ use crate::{
 #[derive(Clone, Copy)]
 pub struct SignatureResponse<C: Ciphersuite> {
     /// The scalar contribution to the group signature.
-    pub z_share: <<C::Group as Group>::Field as Field>::Scalar,
+    pub z_share: Scalar<C>,
 }
 
 impl<C> SignatureResponse<C>
@@ -23,13 +23,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes)
-            .map(|scalar| Self { z_share: scalar })
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self { z_share: scalar })
     }
 
     /// Serialize [`SignatureResponse`] to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.z_share)
+        <<C::Group as Group>::Field>::serialize(&self.z_share)
     }
 }
 
@@ -85,10 +84,10 @@ where
         &self,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
         public_key: &frost::keys::VerifyingShare<C>,
-        lambda_i: <<C::Group as Group>::Field as Field>::Scalar,
+        lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
     ) -> Result<(), &'static str> {
-        if (<C::Group as Group>::generator() * self.signature.z_share)
+        if (<C::Group>::generator() * self.signature.z_share)
             != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
             return Err("Invalid signature share");
@@ -153,7 +152,7 @@ pub fn sign<C: Ciphersuite>(
     );
 
     // Compute the Schnorr signature share.
-    let z_share: <<C::Group as Group>::Field as Field>::Scalar = signer_nonces.hiding.0
+    let z_share = signer_nonces.hiding.0
         + (signer_nonces.binding.0 * binding_factor.0)
         + (lambda_i * key_package.secret_share.0 * challenge.0);
 

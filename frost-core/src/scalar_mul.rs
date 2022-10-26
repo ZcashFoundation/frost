@@ -38,7 +38,7 @@ where
 
         let mut x_u64 = [0u64; 5];
         LittleEndian::read_u64_into(
-            <<C::Group as Group>::Field as Field>::serialize(self).as_ref(),
+            <<C::Group as Group>::Field>::serialize(self).as_ref(),
             &mut x_u64[0..4],
         );
 
@@ -147,7 +147,7 @@ where
             .map(|P_opt| P_opt.map(|P| LookupTable5::<C, Element<C>>::from(&P)))
             .collect::<Option<Vec<_>>>()?;
 
-        let mut r = <C::Group as Group>::identity();
+        let mut r = <C::Group>::identity();
 
         for i in (0..256).rev() {
             let mut t = r + r;

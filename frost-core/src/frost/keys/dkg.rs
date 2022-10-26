@@ -5,7 +5,8 @@ use std::{collections::HashMap, iter};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    frost::Identifier, Challenge, Ciphersuite, Field, Group, Scalar, Signature, VerifyingKey,
+    frost::Identifier, Challenge, Ciphersuite, Element, Field, Group, Scalar, Signature,
+    VerifyingKey,
 };
 
 use super::{
@@ -112,8 +113,8 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     // > c_i = H(i, Φ, g^{a_{i0}} , R_i), μ_i = k + a_{i0} · c_i, with Φ being
     // > a context string to prevent replay attacks.
 
-    let k = <<C::Group as Group>::Field as Field>::random(&mut rng);
-    let R_i = <C::Group as Group>::generator() * k;
+    let k = <<C::Group as Group>::Field>::random(&mut rng);
+    let R_i = <C::Group>::generator() * k;
     let c_i = challenge::<C>(identifier, &R_i, &commitment.0[0].0)
         .ok_or("DKG not supported by ciphersuite")?;
     let mu_i = k + coefficients[0] * c_i.0;
@@ -136,8 +137,8 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Generates the challenge for the proof of knowledge to a secret for the DKG.
 fn challenge<C>(
     identifier: Identifier<C>,
-    R: &<C::Group as Group>::Element,
-    verifying_key: &<C::Group as Group>::Element,
+    R: &Element<C>,
+    verifying_key: &Element<C>,
 ) -> Option<Challenge<C>>
 where
     C: Ciphersuite,
@@ -145,8 +146,8 @@ where
     let mut preimage = vec![];
 
     preimage.extend_from_slice(identifier.serialize().as_ref());
-    preimage.extend_from_slice(<C::Group as Group>::serialize(R).as_ref());
-    preimage.extend_from_slice(<C::Group as Group>::serialize(verifying_key).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(verifying_key).as_ref());
 
     Some(Challenge(C::HDKG(&preimage[..])?))
 }
@@ -181,7 +182,7 @@ pub fn keygen_part2<C: Ciphersuite>(
         let c_ell =
             challenge::<C>(ell, &R_ell, &phi_ell0).ok_or("DKG not supported by ciphersuite")?;
 
-        if R_ell != <C::Group as Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
+        if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
             return Err("Invalid proof of knowledge");
         }
 
@@ -226,7 +227,7 @@ fn compute_verifying_keys<C: Ciphersuite>(
     // Note that in this loop, "i" refers to the other participant whose public verification share
     // we are computing, and not the current participant.
     for i in round2_packages.iter().map(|p| p.sender_identifier) {
-        let mut y_i = <C::Group as Group>::identity();
+        let mut y_i = <C::Group>::identity();
 
         // We need to iterate through all commitment vectors, including our own,
         // so chain it manually
@@ -274,8 +275,8 @@ pub fn keygen_part3<C: Ciphersuite>(
         return Err("inconsistent number of packages");
     }
 
-    let mut signing_share: Scalar<C> = <<C::Group as Group>::Field as Field>::zero();
-    let mut group_public: <C::Group as Group>::Element = <C::Group as Group>::identity();
+    let mut signing_share = <<C::Group as Group>::Field>::zero();
+    let mut group_public = <C::Group>::identity();
 
     let round1_packages_map: HashMap<Identifier<C>, &Round1Package<C>> = round1_packages
         .iter()

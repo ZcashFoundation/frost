@@ -2,16 +2,16 @@
 
 use debugless_unwrap::DebuglessUnwrap;
 
-use crate::{Ciphersuite, Error, Field, Group};
+use crate::{Ciphersuite, Element, Error, Field, Group, Scalar};
 
 /// A Schnorr signature over some prime order group (or subgroup).
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Signature<C: Ciphersuite> {
     /// The commitment `R` to the signature nonce.
-    pub(crate) R: <C::Group as Group>::Element,
+    pub(crate) R: Element<C>,
     /// The response `z` to the challenge computed from the commitment `R`, the verifying key, and
     /// the message.
-    pub(crate) z: <<C::Group as Group>::Field as Field>::Scalar,
+    pub(crate) z: Scalar<C>,
 }
 
 impl<C> Signature<C>
@@ -25,8 +25,8 @@ where
         // To compute the expected length of the encoded point, encode the generator
         // and get its length. Note that we can't use the identity because it can be encoded
         // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
-        let generator = <C::Group as Group>::generator();
-        let mut R_bytes = Vec::from(<C::Group as Group>::serialize(&generator).as_ref());
+        let generator = <C::Group>::generator();
+        let mut R_bytes = Vec::from(<C::Group>::serialize(&generator).as_ref());
 
         let R_bytes_len = R_bytes.len();
 
@@ -45,8 +45,8 @@ where
         let z_serialization = &z_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 
         Ok(Self {
-            R: <C::Group as Group>::deserialize(R_serialization)?,
-            z: <<C::Group as Group>::Field as Field>::deserialize(z_serialization)?,
+            R: <C::Group>::deserialize(R_serialization)?,
+            z: <<C::Group as Group>::Field>::deserialize(z_serialization)?,
         })
     }
 
@@ -54,8 +54,8 @@ where
     pub fn to_bytes(&self) -> C::SignatureSerialization {
         let mut bytes = vec![];
 
-        bytes.extend(<C::Group as Group>::serialize(&self.R).as_ref());
-        bytes.extend(<<C::Group as Group>::Field as Field>::serialize(&self.z).as_ref());
+        bytes.extend(<C::Group>::serialize(&self.R).as_ref());
+        bytes.extend(<<C::Group as Group>::Field>::serialize(&self.z).as_ref());
 
         bytes.try_into().debugless_unwrap()
     }
@@ -64,13 +64,10 @@ where
 impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Signature")
-            .field(
-                "R",
-                &hex::encode(<C::Group as Group>::serialize(&self.R).as_ref()),
-            )
+            .field("R", &hex::encode(<C::Group>::serialize(&self.R).as_ref()))
             .field(
                 "z",
-                &hex::encode(<<C::Group as Group>::Field as Field>::serialize(&self.z).as_ref()),
+                &hex::encode(<<C::Group as Group>::Field>::serialize(&self.z).as_ref()),
             )
             .finish()
     }

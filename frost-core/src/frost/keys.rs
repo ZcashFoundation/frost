@@ -12,7 +12,7 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
-use crate::{frost::Identifier, Ciphersuite, Error, Field, Group, Scalar, VerifyingKey};
+use crate::{frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, VerifyingKey};
 
 pub mod dkg;
 
@@ -20,8 +20,8 @@ pub mod dkg;
 pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     size: usize,
     rng: &mut R,
-) -> Vec<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar> {
-    iter::repeat_with(|| <<C::Group as Group>::Field as Field>::random(rng))
+) -> Vec<Scalar<C>> {
+    iter::repeat_with(|| <<C::Group as Group>::Field>::random(rng))
         .take(size)
         .collect()
 }
@@ -42,12 +42,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
     /// Serialize to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
     }
 
     /// Generates a new uniformly random secret value using the provided RNG.
@@ -56,9 +56,7 @@ where
     where
         R: CryptoRng + RngCore,
     {
-        Self(<<C::Group as Group>::Field as Field>::random_nonzero(
-            &mut rng,
-        ))
+        Self(<<C::Group as Group>::Field>::random_nonzero(&mut rng))
     }
 }
 
@@ -78,7 +76,7 @@ where
     C: Ciphersuite,
 {
     fn default() -> Self {
-        Self(<<C::Group as Group>::Field as Field>::zero())
+        Self(<<C::Group as Group>::Field>::zero())
     }
 }
 
@@ -90,7 +88,7 @@ where
     C: Ciphersuite,
 {
     fn from(secret: &SharedSecret<C>) -> Self {
-        let element = <C::Group as Group>::generator() * secret.0;
+        let element = <C::Group>::generator() * secret.0;
 
         VerifyingKey { element }
     }
@@ -123,12 +121,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
     /// Serialize to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
     }
 }
 
@@ -148,7 +146,7 @@ where
     C: Ciphersuite,
 {
     fn default() -> Self {
-        Self(<<C::Group as Group>::Field as Field>::zero())
+        Self(<<C::Group as Group>::Field>::zero())
     }
 }
 
@@ -172,7 +170,7 @@ where
 
 /// A public group element that represents a single signer's public verification share.
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub struct VerifyingShare<C>(pub(super) <C::Group as Group>::Element)
+pub struct VerifyingShare<C>(pub(super) Element<C>)
 where
     C: Ciphersuite;
 
@@ -207,7 +205,7 @@ where
     C: Ciphersuite,
 {
     fn from(secret: SigningShare<C>) -> VerifyingShare<C> {
-        VerifyingShare(<C::Group as Group>::generator() * secret.0 as Scalar<C>)
+        VerifyingShare(<C::Group>::generator() * secret.0 as Scalar<C>)
     }
 }
 
@@ -216,7 +214,7 @@ where
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
 #[derive(Clone, Copy, PartialEq)]
-pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
+pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) Element<C>);
 
 /// Contains the commitments to the coefficients for our secret polynomial _f_,
 /// used to generate participants' key shares.
@@ -280,7 +278,7 @@ where
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), &'static str> {
-        let f_result = <C::Group as Group>::generator() * self.value.0;
+        let f_result = <C::Group>::generator() * self.value.0;
         let result = evaluate_vss(&self.commitment, self.identifier)?;
 
         if !(f_result == result) {
@@ -347,8 +345,9 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 fn evaluate_polynomial<C: Ciphersuite>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
-) -> Result<<<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar, &'static str> {
-    let mut value = <<C::Group as Group>::Field as Field>::zero();
+) -> Result<Scalar<C>, &'static str> {
+    let mut value = <<C::Group as Group>::Field>::zero();
+
     let ell_scalar = identifier;
     for coeff in coefficients.iter().skip(1).rev() {
         value = value + *coeff;
@@ -364,14 +363,11 @@ fn evaluate_polynomial<C: Ciphersuite>(
 fn evaluate_vss<C: Ciphersuite>(
     commitment: &VerifiableSecretSharingCommitment<C>,
     identifier: Identifier<C>,
-) -> Result<<<C as Ciphersuite>::Group as Group>::Element, &'static str> {
+) -> Result<Element<C>, &'static str> {
     let i = identifier;
 
     let (_, result) = commitment.0.iter().fold(
-        (
-            <<C::Group as Group>::Field as Field>::one(),
-            <C::Group as Group>::identity(),
-        ),
+        (<<C::Group as Group>::Field>::one(), <C::Group>::identity()),
         |(i_to_the_k, sum_so_far), comm_k| (i * i_to_the_k, sum_so_far + comm_k.0 * i_to_the_k),
     );
     Ok(result)
@@ -560,12 +556,12 @@ pub fn reconstruct_secret<C: Ciphersuite>(
         .map(|share| (share.identifier, share))
         .collect();
 
-    let mut secret = <<C::Group as Group>::Field as Field>::zero();
+    let mut secret = <<C::Group as Group>::Field>::zero();
 
     // Compute the Lagrange coefficients
     for (i, secret_share) in secret_share_map.clone() {
-        let mut num = <<C::Group as Group>::Field as Field>::one();
-        let mut den = <<C::Group as Group>::Field as Field>::one();
+        let mut num = <<C::Group as Group>::Field>::one();
+        let mut den = <<C::Group as Group>::Field>::one();
 
         for j in secret_share_map.clone().into_keys() {
             if j == i {
@@ -581,20 +577,16 @@ pub fn reconstruct_secret<C: Ciphersuite>(
 
         // If at this step, the denominator is zero in the scalar field, there must be a duplicate
         // secret share.
-        if den == <<C::Group as Group>::Field as Field>::zero() {
+        if den == <<C::Group as Group>::Field>::zero() {
             return Err("Duplicate shares provided");
         }
 
         // Save numerator * 1/denomintor in the scalar field
-        let lagrange_coefficient =
-            num * <<C::Group as Group>::Field as Field>::invert(&den).unwrap();
+        let lagrange_coefficient = num * <<C::Group as Group>::Field>::invert(&den).unwrap();
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
         secret = secret + (lagrange_coefficient * secret_share.value.0);
     }
 
-    Ok(
-        SharedSecret::from_bytes(<<C::Group as Group>::Field as Field>::serialize(&secret))
-            .unwrap(),
-    )
+    Ok(SharedSecret::from_bytes(<<C::Group as Group>::Field>::serialize(&secret)).unwrap())
 }

@@ -2,7 +2,7 @@
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{Ciphersuite, Error, Field, Group, Signature, VerifyingKey};
+use crate::{Ciphersuite, Error, Field, Group, Scalar, Signature, VerifyingKey};
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone)]
@@ -10,7 +10,7 @@ pub struct SigningKey<C>
 where
     C: Ciphersuite,
 {
-    pub(crate) scalar: <<C::Group as Group>::Field as Field>::Scalar,
+    pub(crate) scalar: Scalar<C>,
 }
 
 impl<C> SigningKey<C>
@@ -19,7 +19,7 @@ where
 {
     /// Generate a new signing key.
     pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> SigningKey<C> {
-        let scalar = <<C::Group as Group>::Field as Field>::random_nonzero(&mut rng);
+        let scalar = <<C::Group as Group>::Field>::random_nonzero(&mut rng);
 
         SigningKey { scalar }
     }
@@ -39,9 +39,9 @@ where
 
     /// Create a signature `msg` using this `SigningKey`.
     pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<C> {
-        let k = <<C::Group as Group>::Field as Field>::random_nonzero(&mut rng);
+        let k = <<C::Group as Group>::Field>::random_nonzero(&mut rng);
 
-        let R = <C::Group as Group>::generator() * k;
+        let R = <C::Group>::generator() * k;
 
         // Generate Schnorr challenge
         let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self).element, msg);

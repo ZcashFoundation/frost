@@ -6,13 +6,13 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{frost, Ciphersuite, Error, Field, Group};
+use crate::{frost, Ciphersuite, Element, Error, Field, Group, Scalar};
 
 use super::{keys::SigningShare, Identifier};
 
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Eq, Zeroize)]
-pub struct Nonce<C: Ciphersuite>(pub(super) <<C::Group as Group>::Field as Field>::Scalar);
+pub struct Nonce<C: Ciphersuite>(pub(super) Scalar<C>);
 
 impl<C> Nonce<C>
 where
@@ -43,7 +43,7 @@ where
         secret: &SigningShare<C>,
         random_bytes: [u8; 32],
     ) -> Self {
-        let secret_enc = <<C::Group as Group>::Field as Field>::serialize(&secret.0);
+        let secret_enc = <<C::Group as Group>::Field>::serialize(&secret.0);
 
         let input: Vec<u8> = random_bytes
             .iter()
@@ -58,12 +58,12 @@ where
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
     /// Serialize [`Nonce`] to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.0)
+        <<C::Group as Group>::Field>::serialize(&self.0)
     }
 }
 
@@ -93,7 +93,7 @@ where
 
 /// A Ristretto point that is a commitment to a signing nonce share.
 #[derive(Clone, Copy, PartialEq)]
-pub struct NonceCommitment<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
+pub struct NonceCommitment<C: Ciphersuite>(pub(super) Element<C>);
 
 impl<C> NonceCommitment<C>
 where
@@ -101,12 +101,12 @@ where
 {
     /// Deserialize [`NonceCommitment`] from bytes
     pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error> {
-        <C::Group as Group>::deserialize(&bytes).map(|element| Self(element))
+        <C::Group>::deserialize(&bytes).map(|element| Self(element))
     }
 
     /// Serialize [`NonceCommitment`] to bytes
     pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
-        <C::Group as Group>::serialize(&self.0)
+        <C::Group>::serialize(&self.0)
     }
 }
 
@@ -135,7 +135,7 @@ where
     C: Ciphersuite,
 {
     fn from(nonce: &Nonce<C>) -> Self {
-        Self(<C::Group as Group>::generator() * nonce.0)
+        Self(<C::Group>::generator() * nonce.0)
     }
 }
 
@@ -253,7 +253,7 @@ where
 /// One signer's share of the group commitment, derived from their individual signing commitments
 /// and the binding factor _rho_.
 #[derive(Clone, Copy, PartialEq)]
-pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) <C::Group as Group>::Element);
+pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 
 /// Encode the list of group signing commitments.
 ///
@@ -282,8 +282,8 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 
     for item in sorted_signing_commitments {
         bytes.extend_from_slice(item.identifier.serialize().as_ref());
-        bytes.extend_from_slice(<C::Group as Group>::serialize(&item.hiding.0).as_ref());
-        bytes.extend_from_slice(<C::Group as Group>::serialize(&item.binding.0).as_ref());
+        bytes.extend_from_slice(<C::Group>::serialize(&item.hiding.0).as_ref());
+        bytes.extend_from_slice(<C::Group>::serialize(&item.binding.0).as_ref());
     }
 
     bytes

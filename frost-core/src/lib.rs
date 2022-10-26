@@ -254,7 +254,7 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Secret")
             .field(&hex::encode(
-                <<<C as Ciphersuite>::Group as Group>::Field as Field>::serialize(&self.0),
+                <<<C as Ciphersuite>::Group as Group>::Field>::serialize(&self.0),
             ))
             .finish()
     }
@@ -267,20 +267,16 @@ where
 ///
 /// This is the only invocation of the H2 hash function from the [RFC].
 ///
-/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-challenge-computa
-/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.2
-fn challenge<C>(
-    R: &<C::Group as Group>::Element,
-    verifying_key: &<C::Group as Group>::Element,
-    msg: &[u8],
-) -> Challenge<C>
+/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-challenge-computa
+/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.2
+fn challenge<C>(R: &Element<C>, verifying_key: &Element<C>, msg: &[u8]) -> Challenge<C>
 where
     C: Ciphersuite,
 {
     let mut preimage = vec![];
 
-    preimage.extend_from_slice(<C::Group as Group>::serialize(R).as_ref());
-    preimage.extend_from_slice(<C::Group as Group>::serialize(verifying_key).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(verifying_key).as_ref());
     preimage.extend_from_slice(msg);
 
     Challenge(C::H2(&preimage[..]))
