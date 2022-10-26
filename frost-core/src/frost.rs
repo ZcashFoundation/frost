@@ -35,31 +35,31 @@ pub use self::identifier::Identifier;
 ///
 /// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md>
 #[derive(Clone, PartialEq, Eq)]
-pub struct Rho<C: Ciphersuite>(<<C::Group as Group>::Field as Field>::Scalar);
+pub struct BindingFactor<C: Ciphersuite>(<<C::Group as Group>::Field as Field>::Scalar);
 
-impl<C> Rho<C>
+impl<C> BindingFactor<C>
 where
     C: Ciphersuite,
 {
-    /// Deserializes [`Rho`] from bytes.
+    /// Deserializes [`BindingFactor`] from bytes.
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error> {
         <<C::Group as Group>::Field as Field>::deserialize(&bytes).map(|scalar| Self(scalar))
     }
 
-    /// Serializes [`Rho`] to bytes.
+    /// Serializes [`BindingFactor`] to bytes.
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field as Field>::serialize(&self.0)
     }
 }
 
-impl<C> Debug for Rho<C>
+impl<C> Debug for BindingFactor<C>
 where
     C: Ciphersuite,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Rho")
+        f.debug_tuple("BindingFactor")
             .field(&hex::encode(self.to_bytes()))
             .finish()
     }
@@ -67,14 +67,14 @@ where
 
 /// A list of binding factors and their associated identifiers.
 #[derive(Clone)]
-pub struct BindingFactorList<C: Ciphersuite>(Vec<(Identifier<C>, Rho<C>)>);
+pub struct BindingFactorList<C: Ciphersuite>(Vec<(Identifier<C>, BindingFactor<C>)>);
 
 impl<C> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
     /// Return iterator through all factors.
-    pub fn iter(&self) -> impl Iterator<Item = &(Identifier<C>, Rho<C>)> {
+    pub fn iter(&self) -> impl Iterator<Item = &(Identifier<C>, BindingFactor<C>)> {
         self.0.iter()
     }
 }
@@ -83,7 +83,7 @@ impl<C> Index<Identifier<C>> for BindingFactorList<C>
 where
     C: Ciphersuite,
 {
-    type Output = Rho<C>;
+    type Output = BindingFactor<C>;
 
     // Get the binding factor of a participant in the list.
     //
@@ -110,21 +110,21 @@ where
     //
     // [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.4
     fn from(signing_package: &SigningPackage<C>) -> BindingFactorList<C> {
-        let preimages = signing_package.rho_preimages();
+        let preimages = signing_package.binding_factor_preimages();
 
         BindingFactorList(
             preimages
                 .iter()
                 .map(|(identifier, preimage)| {
                     let binding_factor = C::H1(preimage);
-                    (*identifier, Rho(binding_factor))
+                    (*identifier, BindingFactor(binding_factor))
                 })
                 .collect(),
         )
     }
 }
 
-impl<C> FromHex for Rho<C>
+impl<C> FromHex for BindingFactor<C>
 where
     C: Ciphersuite,
 {
@@ -225,24 +225,24 @@ where
         &self.message
     }
 
-    /// Compute the preimages to H3 to compute the per-signer rhos
+    /// Compute the preimages to H3 to compute the per-signer binding factors
     // We separate this out into its own method so it can be tested
-    pub fn rho_preimages(&self) -> Vec<(Identifier<C>, Vec<u8>)> {
-        let mut rho_input_prefix = vec![];
+    pub fn binding_factor_preimages(&self) -> Vec<(Identifier<C>, Vec<u8>)> {
+        let mut binding_factor_input_prefix = vec![];
 
-        rho_input_prefix.extend_from_slice(C::H4(self.message.as_slice()).as_ref());
-        rho_input_prefix.extend_from_slice(
+        binding_factor_input_prefix.extend_from_slice(C::H4(self.message.as_slice()).as_ref());
+        binding_factor_input_prefix.extend_from_slice(
             C::H5(&round1::encode_group_commitments(self.signing_commitments())[..]).as_ref(),
         );
 
         self.signing_commitments()
             .iter()
             .map(|c| {
-                let mut rho_input = vec![];
+                let mut binding_factor_input = vec![];
 
-                rho_input.extend_from_slice(&rho_input_prefix);
-                rho_input.extend_from_slice(c.identifier.serialize().as_ref());
-                (c.identifier, rho_input)
+                binding_factor_input.extend_from_slice(&binding_factor_input_prefix);
+                binding_factor_input.extend_from_slice(c.identifier.serialize().as_ref());
+                (c.identifier, binding_factor_input)
             })
             .collect()
     }
@@ -327,7 +327,7 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
-    // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
+    // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> = signing_package.into();
 
@@ -353,12 +353,12 @@ where
         // Compute Lagrange coefficient.
         let lambda_i = derive_lagrange_coeff(&signature_share.identifier, signing_package)?;
 
-        let rho = binding_factor_list[signature_share.identifier].clone();
+        let binding_factor = binding_factor_list[signature_share.identifier].clone();
 
         // Compute the commitment share.
         let R_share = signing_package
             .signing_commitment(&signature_share.identifier)
-            .to_group_commitment_share(&rho);
+            .to_group_commitment_share(&binding_factor);
 
         // Compute relation values to verify this signature share.
         signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
