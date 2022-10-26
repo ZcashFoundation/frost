@@ -243,9 +243,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
 ///
 /// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-challenge-computa
 #[derive(Clone)]
-pub struct Challenge<C: Ciphersuite>(
-    pub(crate) <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
-);
+pub struct Challenge<C: Ciphersuite>(pub(crate) <<C::Group as Group>::Field as Field>::Scalar);
 
 impl<C> Debug for Challenge<C>
 where
@@ -253,9 +251,9 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Secret")
-            .field(&hex::encode(
-                <<<C as Ciphersuite>::Group as Group>::Field>::serialize(&self.0),
-            ))
+            .field(&hex::encode(<<C::Group as Group>::Field>::serialize(
+                &self.0,
+            )))
             .finish()
     }
 }

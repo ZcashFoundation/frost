@@ -144,7 +144,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
 /// Test FROST signing with trusted dealer with a Ciphersuite.
 pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(mut rng: R)
 where
-    <C as Ciphersuite>::Group: std::cmp::PartialEq,
+    C::Group: std::cmp::PartialEq,
 {
     ////////////////////////////////////////////////////////////////////////////
     // Key generation, Round 1
