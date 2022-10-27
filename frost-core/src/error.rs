@@ -33,4 +33,7 @@ pub enum Error {
     /// This element MUST NOT be the identity.
     #[error("Invalid for this element to be the identity.")]
     InvalidIdentityElement,
+    /// This element MUST have (large) prime order.
+    #[error("Invalid for this element to not have large prime order.")]
+    InvalidNonPrimeOrderElement,
 }
