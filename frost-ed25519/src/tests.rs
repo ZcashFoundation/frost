@@ -13,7 +13,7 @@ lazy_static! {
 /// This is testing that Shamir's secret sharing to compute and arbitrary
 /// value is working.
 #[test]
-fn check_share_generation_ristretto255_sha512() {
+fn check_share_generation_ed25519_sha512() {
     let rng = thread_rng();
     frost_core::tests::check_share_generation::<Ed25519Sha512, _>(rng);
 }
