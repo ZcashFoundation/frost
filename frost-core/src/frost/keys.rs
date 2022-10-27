@@ -306,8 +306,8 @@ where
 ///
 /// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C
 pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
-    num_signers: u16,
-    threshold: u16,
+    max_signers: u16,
+    min_signers: u16,
     mut rng: R,
 ) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), &'static str> {
     let mut bytes = [0; 64];
@@ -316,11 +316,11 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let secret = SharedSecret::random(&mut rng);
     let group_public = VerifyingKey::from(&secret);
 
-    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, &mut rng);
+    let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, &mut rng);
 
-    let secret_shares = generate_secret_shares(&secret, num_signers, threshold, coefficients)?;
+    let secret_shares = generate_secret_shares(&secret, max_signers, min_signers, coefficients)?;
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
-        HashMap::with_capacity(num_signers as usize);
+        HashMap::with_capacity(max_signers as usize);
 
     for secret_share in &secret_shares {
         let signer_public = secret_share.value.into();
@@ -463,27 +463,27 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 /// given secret, which is the first element) and a [`VerifiableSecretSharingCommitment`]
 /// which contains commitments to those coefficients.
 ///
-/// Returns an error if the parameters (num_signers, threshold) are inconsistent.
+/// Returns an error if the parameters (max_signers, min_signers) are inconsistent.
 pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
     secret: &SharedSecret<C>,
-    num_signers: u16,
-    threshold: u16,
+    max_signers: u16,
+    min_signers: u16,
     mut coefficients: Vec<Scalar<C>>,
 ) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), &'static str> {
-    if threshold < 2 {
-        return Err("Threshold cannot be less than 2");
+    if min_signers < 2 {
+        return Err("min_signers cannot be less than 2");
     }
 
-    if num_signers < 2 {
+    if max_signers < 2 {
         return Err("Number of signers cannot be less than the minimum threshold 2");
     }
 
-    if threshold > num_signers {
-        return Err("Threshold cannot exceed num_signers");
+    if min_signers > max_signers {
+        return Err("min_signers cannot exceed max_signers");
     }
 
-    if coefficients.len() != threshold as usize - 1 {
-        return Err("Must pass threshold-1 coefficients");
+    if coefficients.len() != min_signers as usize - 1 {
+        return Err("Must pass min_signers-1 coefficients");
     }
 
     // Prepend the secret, which is the 0th coefficient
@@ -521,16 +521,16 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
 /// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.1
 pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     secret: &SharedSecret<C>,
-    numshares: u16,
-    threshold: u16,
+    max_signers: u16,
+    min_signers: u16,
     coefficients: Vec<Scalar<C>>,
 ) -> Result<Vec<SecretShare<C>>, &'static str> {
-    let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(numshares as usize);
+    let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(max_signers as usize);
 
     let (coefficients, commitment) =
-        generate_secret_polynomial(secret, numshares, threshold, coefficients)?;
+        generate_secret_polynomial(secret, max_signers, min_signers, coefficients)?;
 
-    for id in (1..=numshares as u16).map_while(|i| Identifier::<C>::try_from(i).ok()) {
+    for id in (1..=max_signers as u16).map_while(|i| Identifier::<C>::try_from(i).ok()) {
         let value = evaluate_polynomial(id, &coefficients)?;
 
         secret_shares.push(SecretShare {

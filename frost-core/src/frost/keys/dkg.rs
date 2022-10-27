@@ -43,7 +43,7 @@ pub struct Round1SecretPackage<C: Ciphersuite> {
     /// The public commitment for the participant (C_i)
     pub commitment: VerifiableSecretSharingCommitment<C>,
     /// The total number of signers.
-    pub num_signers: u16,
+    pub max_signers: u16,
 }
 
 /// A package that must be sent by each participant to some other participants
@@ -77,7 +77,7 @@ pub struct Round2SecretPackage<C: Ciphersuite> {
     /// The participant's own secret share (f_i(i)).
     pub secret_share: Scalar<C>,
     /// The total number of signers.
-    pub num_signers: u16,
+    pub max_signers: u16,
 }
 
 /// Performs the first part of the distributed key generation protocol
@@ -88,8 +88,8 @@ pub struct Round2SecretPackage<C: Ciphersuite> {
 /// must be sent to other participants.
 pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifier: Identifier<C>,
-    num_signers: u16,
-    threshold: u16,
+    max_signers: u16,
+    min_signers: u16,
     mut rng: R,
 ) -> Result<(Round1SecretPackage<C>, Round1Package<C>), &'static str> {
     let secret: SharedSecret<C> = SharedSecret::random(&mut rng);
@@ -102,9 +102,9 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     //
     // > Every participant P_i computes a public commitment
     // > C⃗_i = 〈φ_{i0}, ..., φ_{i(t−1)}〉, where φ_{ij} = g^{a_{ij}}, 0 ≤ j ≤ t − 1
-    let coefficients = generate_coefficients::<C, R>(threshold as usize - 1, &mut rng);
+    let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, &mut rng);
     let (coefficients, commitment) =
-        generate_secret_polynomial(&secret, num_signers, threshold, coefficients)?;
+        generate_secret_polynomial(&secret, max_signers, min_signers, coefficients)?;
 
     // Round 1, Step 2
     //
@@ -123,7 +123,7 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
         identifier,
         coefficients,
         commitment: commitment.clone(),
-        num_signers,
+        max_signers,
     };
     let package = Round1Package {
         sender_identifier: identifier,
@@ -163,7 +163,7 @@ pub fn keygen_part2<C: Ciphersuite>(
     secret_package: Round1SecretPackage<C>,
     round1_packages: &[Round1Package<C>],
 ) -> Result<(Round2SecretPackage<C>, Vec<Round2Package<C>>), &'static str> {
-    if round1_packages.len() != (secret_package.num_signers - 1) as usize {
+    if round1_packages.len() != (secret_package.max_signers - 1) as usize {
         return Err("incorrect number of packages");
     }
 
@@ -205,7 +205,7 @@ pub fn keygen_part2<C: Ciphersuite>(
             identifier: secret_package.identifier,
             commitment: secret_package.commitment,
             secret_share: fii,
-            num_signers: secret_package.num_signers,
+            max_signers: secret_package.max_signers,
         },
         round2_packages,
     ))
@@ -268,7 +268,7 @@ pub fn keygen_part3<C: Ciphersuite>(
     round1_packages: &[Round1Package<C>],
     round2_packages: &[Round2Package<C>],
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), &'static str> {
-    if round1_packages.len() != (round2_secret_package.num_signers - 1) as usize {
+    if round1_packages.len() != (round2_secret_package.max_signers - 1) as usize {
         return Err("incorrect number of packages");
     }
     if round1_packages.len() != round2_packages.len() {
