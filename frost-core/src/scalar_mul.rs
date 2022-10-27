@@ -10,7 +10,7 @@ use crate::{Ciphersuite, Element, Field, Group, Scalar};
 
 /// A trait for transforming a scalar generic over a ciphersuite to a non-adjacent form (NAF).
 pub trait NonAdjacentForm<C: Ciphersuite> {
-    fn non_adjacent_form(&self, w: usize) -> [i8; 256];
+    fn non_adjacent_form(&self, w: usize) -> [i8; 257];
 }
 
 impl<C> NonAdjacentForm<C> for Scalar<C>
@@ -24,8 +24,7 @@ where
     /// # Safety
     ///
     /// The full scalar field MUST fit in 256 bits in this implementation.
-    /// Assumes that a little-endian representations of the scalar in NAF work.
-    fn non_adjacent_form(&self, w: usize) -> [i8; 256] {
+    fn non_adjacent_form(&self, w: usize) -> [i8; 257] {
         // required by the NAF definition
         debug_assert!(w >= 2);
         // required so that the NAF digits fit in i8
@@ -34,11 +33,12 @@ where
         use byteorder::{ByteOrder, LittleEndian};
 
         // Safety: assumes a scalar that fits in 256 bits.
-        let mut naf = [0i8; 256];
+        // The length of the NAF is at most one more than the bit length.
+        let mut naf = [0i8; 257];
 
         let mut x_u64 = [0u64; 5];
         LittleEndian::read_u64_into(
-            <<C::Group as Group>::Field>::serialize(self).as_ref(),
+            <<C::Group as Group>::Field>::little_endian_serialize(self).as_ref(),
             &mut x_u64[0..4],
         );
 
@@ -47,7 +47,7 @@ where
 
         let mut pos = 0;
         let mut carry = 0;
-        while pos < 256 {
+        while pos < 257 {
             // Construct a buffer of bits of the scalar, starting at bit `pos`
             let u64_idx = pos / 64;
             let bit_idx = pos % 64;
@@ -149,7 +149,7 @@ where
 
         let mut r = <C::Group>::identity();
 
-        for i in (0..256).rev() {
+        for i in (0..257).rev() {
             let mut t = r + r;
 
             for (naf, lookup_table) in nafs.iter().zip(lookup_tables.iter()) {
