@@ -14,13 +14,15 @@ pub mod vectors;
 pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let secret = frost::keys::SharedSecret::<C>::random(&mut rng);
 
-    let numshares = 5;
-    let threshold = 3;
+    let max_signers = 5;
+    let min_signers = 3;
 
-    let coefficients = frost::keys::generate_coefficients::<C, _>(threshold as usize - 1, &mut rng);
+    let coefficients =
+        frost::keys::generate_coefficients::<C, _>(min_signers as usize - 1, &mut rng);
 
     let secret_shares =
-        frost::keys::generate_secret_shares(&secret, numshares, threshold, coefficients).unwrap();
+        frost::keys::generate_secret_shares(&secret, max_signers, min_signers, coefficients)
+            .unwrap();
 
     for secret_share in secret_shares.iter() {
         assert!(secret_share.verify().is_ok());
@@ -38,10 +40,10 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
 
-    let numsigners = 5;
-    let threshold = 3;
+    let max_signers = 5;
+    let min_signers = 3;
     let (shares, pubkeys) =
-        frost::keys::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
+        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Verifies the secret shares from the dealer
     let key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> = shares
@@ -54,11 +56,11 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
         })
         .collect();
 
-    check_sign(threshold, key_packages, rng, pubkeys);
+    check_sign(min_signers, key_packages, rng, pubkeys);
 }
 
 fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
-    threshold: u16,
+    min_signers: u16,
     key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
     pubkeys: frost::keys::PublicKeyPackage<C>,
@@ -71,10 +73,10 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Round 1: generating nonces and signing commitments for each participant
     ////////////////////////////////////////////////////////////////////////////
 
-    for participant_index in 1..(threshold as u16 + 1) {
+    for participant_index in 1..(min_signers as u16 + 1) {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
         // Generate one (1) nonce and one SigningCommitments instance for each
-        // participant, up to _threshold_.
+        // participant, up to _min_signers_.
         let (nonce, commitment) = frost::round1::commit(
             participant_identifier,
             key_packages
@@ -150,8 +152,8 @@ where
     // Key generation, Round 1
     ////////////////////////////////////////////////////////////////////////////
 
-    let numsigners = 5;
-    let threshold = 3;
+    let max_signers = 5;
+    let min_signers = 3;
 
     // Keep track of each participant's round 1 secret package.
     // In practice each participant will keep its copy; no one
@@ -171,11 +173,15 @@ where
 
     // For each participant, perform the first part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
-    for participant_index in 1..=numsigners {
+    for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let (secret_package, round1_package) =
-            frost::keys::dkg::keygen_part1(participant_identifier, numsigners, threshold, &mut rng)
-                .unwrap();
+        let (secret_package, round1_package) = frost::keys::dkg::keygen_part1(
+            participant_identifier,
+            max_signers,
+            min_signers,
+            &mut rng,
+        )
+        .unwrap();
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
@@ -184,7 +190,7 @@ where
         // Send the round 1 package to all other participants. In this
         // test this is simulated using a HashMap; in practice this will be
         // sent through some communication channel.
-        for receiver_participant_index in 1..=numsigners {
+        for receiver_participant_index in 1..=max_signers {
             if receiver_participant_index == participant_index {
                 continue;
             }
@@ -214,7 +220,7 @@ where
 
     // For each participant, perform the second part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
-    for participant_index in 1..=numsigners {
+    for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
         let (round2_secret_package, round2_packages) = frost::keys::dkg::keygen_part2(
             round1_secret_packages
@@ -268,7 +274,7 @@ where
 
     // For each participant, perform the third part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
-    for participant_index in 1..=numsigners {
+    for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
         let (key_package, others_verifying_keys) = frost::keys::dkg::keygen_part3(
             &round2_secret_packages[&participant_identifier],
@@ -287,7 +293,7 @@ where
     }
 
     // Test if the set of verifying keys is correct for all participants.
-    for participant_index in 1..=numsigners {
+    for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
         let public_key_package = others_verifying_keys_by_participant
             .get(&participant_identifier)
@@ -309,5 +315,5 @@ where
     };
 
     // Proceed with the signing test.
-    check_sign(threshold, key_packages, rng, pubkeys);
+    check_sign(min_signers, key_packages, rng, pubkeys);
 }
