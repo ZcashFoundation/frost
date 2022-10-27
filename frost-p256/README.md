@@ -16,13 +16,13 @@ use rand::thread_rng;
 use frost_p256 as frost;
 
 let mut rng = thread_rng();
-let numsigners = 5;
-let threshold = 3;
+let max_signers = 5;
+let min_signers = 3;
 let (shares, pubkeys) =
-    frost::keys::keygen_with_dealer(numsigners, threshold, &mut rng).unwrap();
+    frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
 // Verifies the secret shares from the dealer
-let key_packages: HashMap<frost::Identifier, frost::keys::KeyPackage> = shares
+let key_packages: HashMap<_, _> = shares
     .into_iter()
     .map(|share| {
         (
@@ -32,15 +32,14 @@ let key_packages: HashMap<frost::Identifier, frost::keys::KeyPackage> = shares
     })
     .collect();
 
-let mut nonces: HashMap<frost::Identifier, frost::round1::SigningNonces> = HashMap::new();
-let mut commitments: HashMap<frost::Identifier, frost::round1::SigningCommitments> =
-    HashMap::new();
+let mut nonces = HashMap::new();
+let mut commitments = HashMap::new();
 
 ////////////////////////////////////////////////////////////////////////////
 // Round 1: generating nonces and signing commitments for each participant
 ////////////////////////////////////////////////////////////////////////////
 
-for participant_index in 1..(threshold as u16 + 1) {
+for participant_index in 1..(min_signers as u16 + 1) {
     let participant_identifier = participant_index.try_into().expect("should be nonzero");
     // Generate one (1) nonce and one SigningCommitments instance for each
     // participant, up to _threshold_.
