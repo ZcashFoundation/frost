@@ -175,7 +175,7 @@ pub mod keys {
         max_signers: u16,
         min_signers: u16,
         mut rng: RNG,
-    ) -> Result<(Vec<SecretShare>, PublicKeyPackage), &'static str> {
+    ) -> Result<(Vec<SecretShare>, PublicKeyPackage), Error> {
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng)
     }
 
@@ -266,7 +266,7 @@ pub mod round2 {
         signing_package: &SigningPackage,
         signer_nonces: &round1::SigningNonces,
         key_package: &keys::KeyPackage,
-    ) -> Result<SignatureShare, &'static str> {
+    ) -> Result<SignatureShare, Error> {
         frost::round2::sign(signing_package, signer_nonces, key_package)
     }
 }
@@ -293,7 +293,7 @@ pub fn aggregate(
     signing_package: &round2::SigningPackage,
     signature_shares: &[round2::SignatureShare],
     pubkeys: &keys::PublicKeyPackage,
-) -> Result<Signature, &'static str> {
+) -> Result<Signature, Error> {
     frost::aggregate(signing_package, signature_shares, pubkeys)
 }
 

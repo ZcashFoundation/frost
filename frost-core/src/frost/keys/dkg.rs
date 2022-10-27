@@ -5,7 +5,7 @@ use std::{collections::HashMap, iter};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    frost::Identifier, Challenge, Ciphersuite, Element, Field, Group, Scalar, Signature,
+    frost::Identifier, Challenge, Ciphersuite, Element, Error, Field, Group, Scalar, Signature,
     VerifyingKey,
 };
 
@@ -91,7 +91,7 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
     mut rng: R,
-) -> Result<(Round1SecretPackage<C>, Round1Package<C>), &'static str> {
+) -> Result<(Round1SecretPackage<C>, Round1Package<C>), Error> {
     let secret: SharedSecret<C> = SharedSecret::random(&mut rng);
 
     // Round 1, Step 1
@@ -115,8 +115,7 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let k = <<C::Group as Group>::Field>::random(&mut rng);
     let R_i = <C::Group>::generator() * k;
-    let c_i = challenge::<C>(identifier, &R_i, &commitment.0[0].0)
-        .ok_or("DKG not supported by ciphersuite")?;
+    let c_i = challenge::<C>(identifier, &R_i, &commitment.0[0].0).ok_or(Error::DKGNotSupported)?;
     let mu_i = k + coefficients[0] * c_i.0;
 
     let secret_package = Round1SecretPackage {
@@ -162,9 +161,9 @@ where
 pub fn keygen_part2<C: Ciphersuite>(
     secret_package: Round1SecretPackage<C>,
     round1_packages: &[Round1Package<C>],
-) -> Result<(Round2SecretPackage<C>, Vec<Round2Package<C>>), &'static str> {
+) -> Result<(Round2SecretPackage<C>, Vec<Round2Package<C>>), Error> {
     if round1_packages.len() != (secret_package.max_signers - 1) as usize {
-        return Err("incorrect number of packages");
+        return Err(Error::IncorrectNumberOfPackages);
     }
 
     let mut round2_packages = Vec::new();
@@ -179,11 +178,10 @@ pub fn keygen_part2<C: Ciphersuite>(
         let R_ell = round1_package.proof_of_knowledge.R;
         let mu_ell = round1_package.proof_of_knowledge.z;
         let phi_ell0 = round1_package.commitment.0[0].0;
-        let c_ell =
-            challenge::<C>(ell, &R_ell, &phi_ell0).ok_or("DKG not supported by ciphersuite")?;
+        let c_ell = challenge::<C>(ell, &R_ell, &phi_ell0).ok_or(Error::DKGNotSupported)?;
 
         if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
-            return Err("Invalid proof of knowledge");
+            return Err(Error::InvalidProofOfKnowledge);
         }
 
         // Round 2, Step 1
@@ -191,7 +189,7 @@ pub fn keygen_part2<C: Ciphersuite>(
         // > Each P_i securely sends to each other participant P_ℓ a secret share (ℓ, f_i(ℓ)),
         // > deleting f_i and each share afterward except for (i, f_i(i)),
         // > which they keep for themselves.
-        let value = evaluate_polynomial(ell, &secret_package.coefficients)?;
+        let value = evaluate_polynomial(ell, &secret_package.coefficients);
 
         round2_packages.push(Round2Package {
             sender_identifier: secret_package.identifier,
@@ -199,7 +197,7 @@ pub fn keygen_part2<C: Ciphersuite>(
             secret_share: SigningShare(value),
         });
     }
-    let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients)?;
+    let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients);
     Ok((
         Round2SecretPackage {
             identifier: secret_package.identifier,
@@ -217,7 +215,7 @@ fn compute_verifying_keys<C: Ciphersuite>(
     round2_packages: &[Round2Package<C>],
     round1_packages_map: HashMap<Identifier<C>, &Round1Package<C>>,
     round2_secret_package: &Round2SecretPackage<C>,
-) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, &'static str> {
+) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, Error> {
     // Round 2, Step 4
     //
     // > Any participant can compute the public verification share of any other participant
@@ -235,17 +233,17 @@ fn compute_verifying_keys<C: Ciphersuite>(
             .iter()
             .map(|p| {
                 // Get the commitment vector for this participant
-                Ok::<&VerifiableSecretSharingCommitment<C>, &'static str>(
+                Ok::<&VerifiableSecretSharingCommitment<C>, Error>(
                     &round1_packages_map
                         .get(&p.sender_identifier)
-                        .ok_or("Round 1 package not found for Round 2 participant")?
+                        .ok_or(Error::PackageNotFound)?
                         .commitment,
                 )
             })
             // Chain our own commitment vector
             .chain(iter::once(Ok(&round2_secret_package.commitment)))
         {
-            let result = evaluate_vss(commitments?, i)?;
+            let result = evaluate_vss(commitments?, i);
             y_i = y_i + result;
         }
         let y_i = VerifyingShare(y_i);
@@ -267,12 +265,12 @@ pub fn keygen_part3<C: Ciphersuite>(
     round2_secret_package: &Round2SecretPackage<C>,
     round1_packages: &[Round1Package<C>],
     round2_packages: &[Round2Package<C>],
-) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), &'static str> {
+) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error> {
     if round1_packages.len() != (round2_secret_package.max_signers - 1) as usize {
-        return Err("incorrect number of packages");
+        return Err(Error::IncorrectNumberOfPackages);
     }
     if round1_packages.len() != round2_packages.len() {
-        return Err("inconsistent number of packages");
+        return Err(Error::IncorrectNumberOfPackages);
     }
 
     let mut signing_share = <<C::Group as Group>::Field>::zero();
@@ -286,7 +284,7 @@ pub fn keygen_part3<C: Ciphersuite>(
     for round2_package in round2_packages {
         // Sanity check; was the package really meant to us?
         if round2_package.receiver_identifier != round2_secret_package.identifier {
-            return Err("Round 2 package receiver is not the current participant");
+            return Err(Error::IncorrectPackage);
         }
 
         // Round 2, Step 2
@@ -299,7 +297,7 @@ pub fn keygen_part3<C: Ciphersuite>(
 
         let commitment = &round1_packages_map
             .get(&ell)
-            .ok_or("commitment package missing")?
+            .ok_or(Error::PackageNotFound)?
             .commitment;
 
         // The verification is exactly the same as the regular SecretShare verification;

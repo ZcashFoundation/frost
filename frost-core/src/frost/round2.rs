@@ -86,11 +86,11 @@ where
         public_key: &frost::keys::VerifyingShare<C>,
         lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
-    ) -> Result<(), &'static str> {
+    ) -> Result<(), Error> {
         if (<C::Group>::generator() * self.signature.z_share)
             != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
-            return Err("Invalid signature share");
+            return Err(Error::InvalidSignatureShare);
         }
 
         Ok(())
@@ -131,7 +131,7 @@ pub fn sign<C: Ciphersuite>(
     signing_package: &SigningPackage<C>,
     signer_nonces: &round1::SigningNonces<C>,
     key_package: &frost::keys::KeyPackage<C>,
-) -> Result<SignatureShare<C>, &'static str> {
+) -> Result<SignatureShare<C>, Error> {
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: frost::BindingFactorList<C> = signing_package.into();

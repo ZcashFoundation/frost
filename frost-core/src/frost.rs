@@ -117,6 +117,7 @@ where
     }
 }
 
+#[cfg(any(test, feature = "test-impl"))]
 impl<C> FromHex for BindingFactor<C>
 where
     C: Ciphersuite,
@@ -138,7 +139,7 @@ where
 fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
-) -> Result<Scalar<C>, &'static str> {
+) -> Result<Scalar<C>, Error> {
     let zero = <<C::Group as Group>::Field>::zero();
 
     let mut num = <<C::Group as Group>::Field>::one();
@@ -158,7 +159,7 @@ fn derive_lagrange_coeff<C: Ciphersuite>(
     }
 
     if den == zero {
-        return Err("Duplicate shares provided");
+        return Err(Error::DuplicatedShares);
     }
 
     // TODO(dconnolly): return this error if the inversion result == zero
@@ -258,7 +259,7 @@ impl<C> TryFrom<&SigningPackage<C>> for GroupCommitment<C>
 where
     C: Ciphersuite,
 {
-    type Error = &'static str;
+    type Error = Error;
 
     /// Generates the group commitment which is published as part of the joint
     /// Schnorr signature.
@@ -266,7 +267,7 @@ where
     /// Implements [`compute_group_commitment`] from the spec.
     ///
     /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.5
-    fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, &'static str> {
+    fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, Error> {
         let binding_factor_list: BindingFactorList<C> = signing_package.into();
 
         let identity = <C::Group>::identity();
@@ -280,7 +281,7 @@ where
             // The following check prevents a party from accidentally revealing their share.
             // Note that the '&&' operator would be sufficient.
             if identity == commitment.binding.0 || identity == commitment.hiding.0 {
-                return Err("Commitment equals the identity.");
+                return Err(Error::IdentityCommitment);
             }
 
             let binding_factor = binding_factor_list[commitment.identifier].clone();
@@ -316,7 +317,7 @@ pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
     signature_shares: &[round2::SignatureShare<C>],
     pubkeys: &keys::PublicKeyPackage<C>,
-) -> Result<Signature<C>, &'static str>
+) -> Result<Signature<C>, Error>
 where
     C: Ciphersuite,
 {

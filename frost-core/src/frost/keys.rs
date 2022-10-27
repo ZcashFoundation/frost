@@ -94,6 +94,7 @@ where
     }
 }
 
+#[cfg(any(test, feature = "test-impl"))]
 impl<C> FromHex for SharedSecret<C>
 where
     C: Ciphersuite,
@@ -153,6 +154,7 @@ where
 // Implements [`Zeroize`] by overwriting a value with the [`Default::default()`] value
 impl<C> DefaultIsZeroes for SigningShare<C> where C: Ciphersuite {}
 
+#[cfg(any(test, feature = "test-impl"))]
 impl<C> FromHex for SigningShare<C>
 where
     C: Ciphersuite,
@@ -277,12 +279,12 @@ where
     /// but only for this participant.
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.2-4
-    pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), &'static str> {
+    pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error> {
         let f_result = <C::Group>::generator() * self.value.0;
-        let result = evaluate_vss(&self.commitment, self.identifier)?;
+        let result = evaluate_vss(&self.commitment, self.identifier);
 
         if !(f_result == result) {
-            return Err("SecretShare is invalid.");
+            return Err(Error::InvalidSecretShare);
         }
 
         let group_public = VerifyingKey {
@@ -309,7 +311,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
     mut rng: R,
-) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), &'static str> {
+) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error> {
     let mut bytes = [0; 64];
     rng.fill_bytes(&mut bytes);
 
@@ -345,7 +347,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 fn evaluate_polynomial<C: Ciphersuite>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
-) -> Result<Scalar<C>, &'static str> {
+) -> Scalar<C> {
     let mut value = <<C::Group as Group>::Field>::zero();
 
     let ell_scalar = identifier;
@@ -354,7 +356,7 @@ fn evaluate_polynomial<C: Ciphersuite>(
         value *= ell_scalar;
     }
     value = value + coefficients[0];
-    Ok(value)
+    value
 }
 
 /// Evaluates the right-hand side of the VSS verification equation, namely
@@ -363,14 +365,14 @@ fn evaluate_polynomial<C: Ciphersuite>(
 fn evaluate_vss<C: Ciphersuite>(
     commitment: &VerifiableSecretSharingCommitment<C>,
     identifier: Identifier<C>,
-) -> Result<Element<C>, &'static str> {
+) -> Element<C> {
     let i = identifier;
 
     let (_, result) = commitment.0.iter().fold(
         (<<C::Group as Group>::Field>::one(), <C::Group>::identity()),
         |(i_to_the_k, sum_so_far), comm_k| (i * i_to_the_k, sum_so_far + comm_k.0 * i_to_the_k),
     );
-    Ok(result)
+    result
 }
 
 /// A FROST keypair, which can be generated either by a trusted dealer or using
@@ -420,7 +422,7 @@ impl<C> TryFrom<SecretShare<C>> for KeyPackage<C>
 where
     C: Ciphersuite,
 {
-    type Error = &'static str;
+    type Error = Error;
 
     /// Tries to verify a share and construct a [`KeyPackage`] from it.
     ///
@@ -430,7 +432,7 @@ where
     /// every participant has the same view of the commitment issued by the
     /// dealer, but implementations *MUST* make sure that all participants have
     /// a consistent view of this commitment in practice.
-    fn try_from(secret_share: SecretShare<C>) -> Result<Self, &'static str> {
+    fn try_from(secret_share: SecretShare<C>) -> Result<Self, Error> {
         let (public, group_public) = secret_share.verify()?;
 
         Ok(KeyPackage {
@@ -469,21 +471,21 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
     max_signers: u16,
     min_signers: u16,
     mut coefficients: Vec<Scalar<C>>,
-) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), &'static str> {
+) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), Error> {
     if min_signers < 2 {
-        return Err("min_signers cannot be less than 2");
+        return Err(Error::InvalidMinSigners);
     }
 
     if max_signers < 2 {
-        return Err("Number of signers cannot be less than the minimum threshold 2");
+        return Err(Error::InvalidMaxSigners);
     }
 
     if min_signers > max_signers {
-        return Err("min_signers cannot exceed max_signers");
+        return Err(Error::InvalidMinSigners);
     }
 
     if coefficients.len() != min_signers as usize - 1 {
-        return Err("Must pass min_signers-1 coefficients");
+        return Err(Error::InvalidCoefficients);
     }
 
     // Prepend the secret, which is the 0th coefficient
@@ -524,14 +526,14 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     max_signers: u16,
     min_signers: u16,
     coefficients: Vec<Scalar<C>>,
-) -> Result<Vec<SecretShare<C>>, &'static str> {
+) -> Result<Vec<SecretShare<C>>, Error> {
     let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(max_signers as usize);
 
     let (coefficients, commitment) =
         generate_secret_polynomial(secret, max_signers, min_signers, coefficients)?;
 
     for id in (1..=max_signers as u16).map_while(|i| Identifier::<C>::try_from(i).ok()) {
-        let value = evaluate_polynomial(id, &coefficients)?;
+        let value = evaluate_polynomial(id, &coefficients);
 
         secret_shares.push(SecretShare {
             identifier: id,
