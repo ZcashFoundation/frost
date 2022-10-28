@@ -76,6 +76,7 @@ where
 //     }
 // }
 
+#[cfg(any(test, feature = "test-impl"))]
 impl<C> FromHex for Nonce<C>
 where
     C: Ciphersuite,
@@ -139,6 +140,7 @@ where
     }
 }
 
+#[cfg(any(test, feature = "test-impl"))]
 impl<C> FromHex for NonceCommitment<C>
 where
     C: Ciphersuite,

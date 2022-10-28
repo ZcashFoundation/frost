@@ -72,6 +72,7 @@ where
     }
 }
 
+#[cfg(any(test, feature = "test-impl"))]
 impl<C> FromHex for VerifyingKey<C>
 where
     C: Ciphersuite,
