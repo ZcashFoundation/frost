@@ -1,4 +1,10 @@
 //! Distributed Key Generation functions and structures.
+//!
+//! The DKG module supports generating FROST key shares in a distributed manner,
+//! without a trusted dealer.
+//!
+//! For more details and an example, see the ciphersuite-specific crates, e.g.
+//! [`frost_ristretto255::keys::dkg`](../../../../frost_ristretto255/keys/dkg).
 
 use std::{collections::HashMap, iter};
 
