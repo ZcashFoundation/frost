@@ -6,13 +6,13 @@ use thiserror::Error;
 #[non_exhaustive]
 #[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Error {
-    /// min_signers it invalid
+    /// min_signers is invalid
     #[error("min_signers must be at least 2 and not larger than max_signers")]
     InvalidMinSigners,
-    /// max_signers it invalid
+    /// max_signers is invalid
     #[error("max_signers must be at least 2")]
     InvalidMaxSigners,
-    /// max_signers it invalid
+    /// max_signers is invalid
     #[error("coefficients must have min_signers-1 elements")]
     InvalidCoefficients,
     /// This identifier is unserializable.
