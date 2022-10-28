@@ -243,8 +243,7 @@ fn compute_verifying_keys<C: Ciphersuite>(
             // Chain our own commitment vector
             .chain(iter::once(Ok(&round2_secret_package.commitment)))
         {
-            let result = evaluate_vss(commitments?, i);
-            y_i = y_i + result;
+            y_i = y_i + evaluate_vss(commitments?, i);
         }
         let y_i = VerifyingShare(y_i);
         others_verifying_keys.insert(i, y_i);
