@@ -108,12 +108,32 @@ fn write_docs(
     fs::write(filename, code).unwrap();
 }
 
+/// Copy a file into a new one, replacing the strings in `original_strings`
+/// by the respective one in `replacement_strings` in the process.
+fn copy_and_replace(
+    origin_filename: &str,
+    destination_filename: &str,
+    original_strings: &[&str],
+    replacement_strings: &[&str],
+) {
+    let mut text = fs::read_to_string(origin_filename).unwrap();
+
+    for (from, to) in std::iter::zip(original_strings, replacement_strings) {
+        text = text.replace(from, to)
+    }
+
+    fs::write(destination_filename, text).unwrap();
+}
+
 fn main() {
     let docs = read_docs(
         "frost-ristretto255/src/lib.rs",
         &["Ristretto255Sha512", "Ristretto", "<R>"],
     );
     let old_suite_names_doc = &["FROST(ristretto255, SHA-512)"];
+
+    let readme_filename = "frost-ristretto255/README.md";
+    let original_strings = &["frost_ristretto255", "Ristretto group"];
 
     // To add a new ciphersuite, just copy this call and replace the required strings.
 
@@ -124,6 +144,12 @@ fn main() {
         old_suite_names_doc,
         &["FROST(P-256, SHA-256)"],
     );
+    copy_and_replace(
+        readme_filename,
+        "frost-p256/README.md",
+        original_strings,
+        &["frost_p256", "P-256 curve"],
+    );
 
     write_docs(
         &docs,
@@ -131,5 +157,11 @@ fn main() {
         &["Ed25519Sha512", "Ed25519", "<E>"],
         old_suite_names_doc,
         &["FROST(Ed25519, SHA-512)"],
+    );
+    copy_and_replace(
+        readme_filename,
+        "frost-ed25519/README.md",
+        original_strings,
+        &["frost_ed25519", "Ed25519 curve"],
     );
 }

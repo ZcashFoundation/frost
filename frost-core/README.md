@@ -15,5 +15,8 @@ released. The APIs and types in `frost-core` are subject to change.
 implementations for different ciphersuites / curves without having to implement all of FROST from
 scratch. End-users should not use `frost-core` if they want to sign and verify signatures, they
 should use the crate specific to their ciphersuite/curve parameters that uses `frost-core` as a
-dependency, such as `frost-ristretto255`.
+dependency, such as [`frost_ristretto255`](../frost_ristretto255).
 
+## Example
+
+See ciphersuite-specific crates, e.g. [`frost_ristretto255`](../frost_ristretto255).
