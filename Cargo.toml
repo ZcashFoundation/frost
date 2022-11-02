@@ -3,8 +3,9 @@ resolver = "2"
 members = [
     "frost-core",
     #"frost-redjubjub",
-    "frost-ristretto255",
-    "frost-p256",
     "frost-ed25519",
+    "frost-p256",
+    "frost-ristretto255",
+    "frost-secp256k1",
     "gendoc"
 ]
