@@ -53,17 +53,6 @@ impl Field for Secp256K1ScalarField {
         Scalar::random(rng)
     }
 
-    fn random_nonzero<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
-        loop {
-            let scalar = Scalar::random(&mut *rng);
-
-            // This impl of `Eq` calls to `ConstantTimeEq` under the hood
-            if scalar != Scalar::zero() {
-                return scalar;
-            }
-        }
-    }
-
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
         scalar.to_bytes().into()
     }
