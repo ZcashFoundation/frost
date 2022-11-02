@@ -95,7 +95,7 @@ impl Group for Secp256K1Group {
     /// [SEC 1][1] serialization of a compressed point in secp256k1 takes 33 bytes
     /// (1-byte prefix and 32 bytes for the coordinate).
     ///
-    /// Note that, in the spec, the identity is encoded as a single null byte;
+    /// Note that, in the SEC 1 spec, the identity is encoded as a single null byte;
     /// but here we pad with zeroes. This is acceptable as the identity _should_ never
     /// be serialized in FROST, else we error.
     ///
@@ -120,6 +120,7 @@ impl Group for Secp256K1Group {
         let serialized = serialized_point.as_bytes();
         // Sanity check; either it takes all bytes or a single byte (identity).
         assert!(serialized.len() == fixed_serialized.len() || serialized.len() == 1);
+
         // Copy to the left of the buffer (i.e. pad the identity with zeroes).
         // TODO: Note that identity elements shouldn't be serialized in FROST. This will likely become
         // part of the API and when that happens, we should return an error instead of
@@ -151,9 +152,9 @@ impl Group for Secp256K1Group {
     }
 }
 
-// hash2field implementation from <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-11#section-5.3>
-//
-// From https://github.com/serai-dex/serai/blob/5df74ac9e28f9299e674e98d08e64c99c34e579c/crypto/ciphersuite/src/kp256.rs#L45-L62
+/// hash2field implementation from <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-11#section-5.3>
+///
+/// From https://github.com/serai-dex/serai/blob/5df74ac9e28f9299e674e98d08e64c99c34e579c/crypto/ciphersuite/src/kp256.rs#L45-L62
 //
 // After https://github.com/RustCrypto/elliptic-curves/pull/673/ merges this should
 // be removed, and a similar implementation to p256 should be used.
