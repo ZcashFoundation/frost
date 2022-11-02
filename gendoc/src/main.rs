@@ -170,7 +170,7 @@ fn main() {
         "frost-secp256k1/src/lib.rs",
         &["Secp256K1Sha556", "Secp256K1", "<E>"],
         old_suite_names_doc,
-        &["FROST(Ed25519, SHA-512)"],
+        &["FROST(secp256k1, SHA-256)"],
     );
     copy_and_replace(
         readme_filename,

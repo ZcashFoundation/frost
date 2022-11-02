@@ -24,7 +24,7 @@ mod tests;
 pub use frost_core::Error;
 
 #[derive(Clone, Copy)]
-/// An implementation of the FROST(Ed25519, SHA-512) ciphersuite scalar field.
+/// An implementation of the FROST(secp256k1, SHA-256) ciphersuite scalar field.
 pub struct Secp256K1ScalarField;
 
 impl Field for Secp256K1ScalarField {
@@ -84,7 +84,7 @@ impl Field for Secp256K1ScalarField {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-/// An implementation of the FROST(Ed25519, SHA-512) ciphersuite group.
+/// An implementation of the FROST(secp256k1, SHA-256) ciphersuite group.
 pub struct Secp256K1Group;
 
 impl Group for Secp256K1Group {
@@ -183,7 +183,7 @@ fn hash_to_field(msg: &[u8], dst: &[u8]) -> Scalar {
 const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-v11";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-/// An implementation of the FROST(Ed25519, SHA-512) ciphersuite.
+/// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
 pub struct Secp256K1Sha256;
 
 impl Ciphersuite for Secp256K1Sha256 {
@@ -254,10 +254,10 @@ impl Ciphersuite for Secp256K1Sha256 {
 
 type R = Secp256K1Sha256;
 
-/// A FROST(Ed25519, SHA-512) participant identifier.
+/// A FROST(secp256k1, SHA-256) participant identifier.
 pub type Identifier = frost::Identifier<R>;
 
-/// FROST(Ed25519, SHA-512) keys, key generation, key shares.
+/// FROST(secp256k1, SHA-256) keys, key generation, key shares.
 pub mod keys {
     use super::*;
 
@@ -276,11 +276,11 @@ pub mod keys {
     ///
     /// # Security
     ///
-    /// To derive a FROST(Ed25519, SHA-512) keypair, the receiver of the [`SecretShare`] *must* call
+    /// To derive a FROST(secp256k1, SHA-256) keypair, the receiver of the [`SecretShare`] *must* call
     /// .into(), which under the hood also performs validation.
     pub type SecretShare = frost::keys::SecretShare<R>;
 
-    /// A FROST(Ed25519, SHA-512) keypair, which can be generated either by a trusted dealer or using
+    /// A FROST(secp256k1, SHA-256) keypair, which can be generated either by a trusted dealer or using
     /// a DKG.
     ///
     /// When using a central dealer, [`SecretShare`]s are distributed to
@@ -295,13 +295,13 @@ pub mod keys {
     pub type PublicKeyPackage = frost::keys::PublicKeyPackage<R>;
 }
 
-/// FROST(Ed25519, SHA-512) Round 1 functionality and types.
+/// FROST(secp256k1, SHA-256) Round 1 functionality and types.
 pub mod round1 {
     use frost_core::frost::keys::SigningShare;
 
     use super::*;
 
-    /// Comprised of FROST(Ed25519, SHA-512) hiding and binding nonces.
+    /// Comprised of FROST(secp256k1, SHA-256) hiding and binding nonces.
     ///
     /// Note that [`SigningNonces`] must be used *only once* for a signing
     /// operation; re-using nonces will result in leakage of a signer's long-lived
@@ -334,11 +334,11 @@ pub mod round1 {
 /// each signing party.
 pub type SigningPackage = frost::SigningPackage<R>;
 
-/// FROST(Ed25519, SHA-512) Round 2 functionality and types, for signature share generation.
+/// FROST(secp256k1, SHA-256) Round 2 functionality and types, for signature share generation.
 pub mod round2 {
     use super::*;
 
-    /// A FROST(Ed25519, SHA-512) participant's signature share, which the Coordinator will aggregate with all other signer's
+    /// A FROST(secp256k1, SHA-256) participant's signature share, which the Coordinator will aggregate with all other signer's
     /// shares into the joint signature.
     pub type SignatureShare = frost::round2::SignatureShare<R>;
 
@@ -363,10 +363,10 @@ pub mod round2 {
     }
 }
 
-/// A Schnorr signature on FROST(Ed25519, SHA-512).
+/// A Schnorr signature on FROST(secp256k1, SHA-256).
 pub type Signature = frost_core::Signature<R>;
 
-/// Verifies each FROST(Ed25519, SHA-512) participant's signature share, and if all are valid,
+/// Verifies each FROST(secp256k1, SHA-256) participant's signature share, and if all are valid,
 /// aggregates the shares into a signature to publish.
 ///
 /// Resulting signature is compatible with verification of a plain Schnorr
@@ -389,8 +389,8 @@ pub fn aggregate(
     frost::aggregate(signing_package, signature_shares, pubkeys)
 }
 
-/// A signing key for a Schnorr signature on FROST(Ed25519, SHA-512).
+/// A signing key for a Schnorr signature on FROST(secp256k1, SHA-256).
 pub type SigningKey = frost_core::SigningKey<R>;
 
-/// A valid verifying key for Schnorr signatures on FROST(Ed25519, SHA-512).
+/// A valid verifying key for Schnorr signatures on FROST(secp256k1, SHA-256).
 pub type VerifyingKey = frost_core::VerifyingKey<R>;
