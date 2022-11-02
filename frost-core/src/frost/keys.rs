@@ -12,7 +12,10 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
-use crate::{frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, VerifyingKey};
+use crate::{
+    frost::Identifier, random_nonzero, Ciphersuite, Element, Error, Field, Group, Scalar,
+    VerifyingKey,
+};
 
 pub mod dkg;
 
@@ -56,7 +59,7 @@ where
     where
         R: CryptoRng + RngCore,
     {
-        Self(<<C::Group as Group>::Field>::random_nonzero(&mut rng))
+        Self(random_nonzero::<C, R>(&mut rng))
     }
 }
 
