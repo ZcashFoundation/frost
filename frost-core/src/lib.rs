@@ -37,6 +37,7 @@ pub use verifying_key::VerifyingKey;
 /// don't own.
 pub trait Field: Copy + Clone {
     /// An element of the scalar field GF(p).
+    /// The Eq/PartialEq implementation MUST be constant-time.
     type Scalar: Add<Output = Self::Scalar>
         + Copy
         + Clone
@@ -62,11 +63,6 @@ pub trait Field: Copy + Clone {
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.1-3.3>
     fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
-
-    /// Generate a random scalar from the entire space [1, l-1]
-    ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-05.html#section-3.1-3.4>
-    fn random_nonzero<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
 
     /// A member function of a [`Field`] that maps a [`Scalar`] to a unique byte array buf of
     /// fixed length Ne.
@@ -278,4 +274,17 @@ where
     preimage.extend_from_slice(msg);
 
     Challenge(C::H2(&preimage[..]))
+}
+
+/// Generates a random nonzero scalar.
+///
+/// It assumes that the Scalar Eq/PartialEq implementation is constant-time.
+pub(crate) fn random_nonzero<C: Ciphersuite, R: RngCore + CryptoRng>(rng: &mut R) -> Scalar<C> {
+    loop {
+        let scalar = <<C::Group as Group>::Field>::random(rng);
+
+        if scalar != <<C::Group as Group>::Field>::zero() {
+            return scalar;
+        }
+    }
 }
