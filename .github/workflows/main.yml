@@ -78,7 +78,7 @@ jobs:
           components: rustfmt
           override: true
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
 
       - uses: actions-rs/cargo@v1.0.3
         with:
@@ -110,7 +110,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v3.1.0
-      - uses: reviewdog/action-actionlint@v1.33.1
+      - uses: reviewdog/action-actionlint@v1.34.1
         with:
           level: warning
           fail_on_error: false

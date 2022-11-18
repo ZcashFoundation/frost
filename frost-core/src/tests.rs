@@ -187,7 +187,7 @@ where
         // In practice each participant will store it in their own environment.
         round1_secret_packages.insert(participant_identifier, secret_package);
 
-        // Send the round 1 package to all other participants. In this
+        // "Send" the round 1 package to all other participants. In this
         // test this is simulated using a HashMap; in practice this will be
         // sent through some communication channel.
         for receiver_participant_index in 1..=max_signers {
@@ -263,20 +263,19 @@ where
     let mut verifying_keys = HashMap::new();
     // The group public key, used by the signing test that follows.
     let mut group_public = None;
-    // For each participant, store the set of verifying keys of the other
-    // participants. This is used to check if the set is correct for all
-    // participants.
+    // For each participant, store the set of verifying keys they have computed.
+    // This is used to check if the set is correct (the same) for all participants.
     // In practice, if there is a Coordinator, only they need to store the set.
     // If there is not, then all candidates must store their own sets.
     // The verifying keys are used to verify the signature shares produced
     // for each signature before being aggregated.
-    let mut others_verifying_keys_by_participant = HashMap::new();
+    let mut pubkey_packages_by_participant = HashMap::new();
 
     // For each participant, perform the third part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let (key_package, others_verifying_keys) = frost::keys::dkg::keygen_part3(
+        let (key_package, pubkey_package_for_participant) = frost::keys::dkg::keygen_part3(
             &round2_secret_packages[&participant_identifier],
             &received_round1_packages[&participant_identifier],
             &received_round2_packages[&participant_identifier],
@@ -289,24 +288,13 @@ where
         }
         group_public = Some(key_package.group_public);
         key_packages.insert(participant_identifier, key_package);
-        others_verifying_keys_by_participant.insert(participant_identifier, others_verifying_keys);
+        pubkey_packages_by_participant
+            .insert(participant_identifier, pubkey_package_for_participant);
     }
 
     // Test if the set of verifying keys is correct for all participants.
-    for participant_index in 1..=max_signers {
-        let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let public_key_package = others_verifying_keys_by_participant
-            .get(&participant_identifier)
-            .unwrap();
-        for (identifier, verifying_key) in &public_key_package.signer_pubkeys {
-            assert_eq!(
-                verifying_keys.get(identifier).unwrap(),
-                verifying_key,
-                "the verifying key that participant {:?} computed for participant {:?} is not correct",
-                participant_identifier,
-                identifier
-            );
-        }
+    for verifying_keys_for_participant in pubkey_packages_by_participant.values() {
+        assert!(verifying_keys_for_participant.signer_pubkeys == verifying_keys);
     }
 
     let pubkeys = frost::keys::PublicKeyPackage {
