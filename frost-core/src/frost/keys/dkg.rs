@@ -1,4 +1,10 @@
 //! Distributed Key Generation functions and structures.
+//!
+//! The DKG module supports generating FROST key shares in a distributed manner,
+//! without a trusted dealer.
+//!
+//! For more details and an example, see the ciphersuite-specific crates, e.g.
+//! [`frost_ristretto255::keys::dkg`](../../../../frost_ristretto255/keys/dkg).
 
 use std::{collections::HashMap, iter};
 
@@ -258,7 +264,7 @@ fn compute_verifying_keys<C: Ciphersuite>(
 ///
 /// It returns the [`KeyPackage`] that has the long-lived key share for the
 /// participant, and the [`PublicKeyPackage`]s that has public information
-/// about other participants; both of which are required to compute FROST
+/// about all participants; both of which are required to compute FROST
 /// signatures.
 pub fn keygen_part3<C: Ciphersuite>(
     round2_secret_package: &Round2SecretPackage<C>,
@@ -339,8 +345,11 @@ pub fn keygen_part3<C: Ciphersuite>(
     //
     // > Any participant can compute the public verification share of any other participant
     // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
-    let others_verifying_keys =
+    let mut all_verifying_keys =
         compute_verifying_keys(round2_packages, round1_packages_map, round2_secret_package)?;
+
+    // Add the participant's own public verification share for consistency
+    all_verifying_keys.insert(round2_secret_package.identifier, verifying_key);
 
     let key_package = KeyPackage {
         identifier: round2_secret_package.identifier,
@@ -349,7 +358,7 @@ pub fn keygen_part3<C: Ciphersuite>(
         group_public,
     };
     let public_key_package = PublicKeyPackage {
-        signer_pubkeys: others_verifying_keys,
+        signer_pubkeys: all_verifying_keys,
         group_public,
     };
 
