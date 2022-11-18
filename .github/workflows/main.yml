@@ -78,7 +78,7 @@ jobs:
           components: rustfmt
           override: true
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
 
       - uses: actions-rs/cargo@v1.0.3
         with:
