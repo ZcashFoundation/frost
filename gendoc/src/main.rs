@@ -178,7 +178,7 @@ fn main() {
     );
     for filename in ["README.md", "dkg.md"] {
         copy_and_replace(
-            readme_filename,
+            filename,
             "frost-secp256k1/README.md",
             original_strings,
             &["frost_secp256k1", "secp256k1 curve"],
