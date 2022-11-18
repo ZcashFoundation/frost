@@ -132,7 +132,7 @@ fn main() {
     );
     let old_suite_names_doc = &["FROST(ristretto255, SHA-512)"];
 
-    let readme_filename = "frost-ristretto255/README.md";
+    let original_basename = "frost-ristretto255/";
     let original_strings = &["frost_ristretto255", "Ristretto group"];
 
     // To add a new ciphersuite, just copy this call and replace the required strings.
@@ -144,12 +144,14 @@ fn main() {
         old_suite_names_doc,
         &["FROST(P-256, SHA-256)"],
     );
-    copy_and_replace(
-        readme_filename,
-        "frost-p256/README.md",
-        original_strings,
-        &["frost_p256", "P-256 curve"],
-    );
+    for filename in ["README.md", "dkg.md"] {
+        copy_and_replace(
+            format!("{}/{}", original_basename, filename).as_str(),
+            format!("frost-p256/{}", filename).as_str(),
+            original_strings,
+            &["frost_p256", "P-256 curve"],
+        );
+    }
 
     write_docs(
         &docs,
@@ -158,10 +160,12 @@ fn main() {
         old_suite_names_doc,
         &["FROST(Ed25519, SHA-512)"],
     );
-    copy_and_replace(
-        readme_filename,
-        "frost-ed25519/README.md",
-        original_strings,
-        &["frost_ed25519", "Ed25519 curve"],
-    );
+    for filename in ["README.md", "dkg.md"] {
+        copy_and_replace(
+            format!("{}/{}", original_basename, filename).as_str(),
+            format!("frost-ed25519/{}", filename).as_str(),
+            original_strings,
+            &["frost_ed25519", "Ed25519 curve"],
+        );
+    }
 }
