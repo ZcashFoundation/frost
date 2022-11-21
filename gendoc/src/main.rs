@@ -168,7 +168,7 @@ fn main() {
             &["frost_ed25519", "Ed25519 curve"],
         );
     }
-    
+
     write_docs(
         &docs,
         "frost-secp256k1/src/lib.rs",
