@@ -143,7 +143,7 @@ impl Group for Secp256K1Group {
 
 /// hash2field implementation from <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-11#section-5.3>
 ///
-/// From https://github.com/serai-dex/serai/blob/5df74ac9e28f9299e674e98d08e64c99c34e579c/crypto/ciphersuite/src/kp256.rs#L45-L62
+/// From <https://github.com/serai-dex/serai/blob/5df74ac9e28f9299e674e98d08e64c99c34e579c/crypto/ciphersuite/src/kp256.rs#L45-L62>
 //
 // After https://github.com/RustCrypto/elliptic-curves/pull/673/ merges this should
 // be removed, and a similar implementation to p256 should be used.
