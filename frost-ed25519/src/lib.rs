@@ -11,12 +11,13 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha512};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<Ed25519Sha512>;
 
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite scalar field.
 pub type Ed25519ScalarField = frost_ristretto255::RistrettoScalarField;
@@ -48,18 +49,18 @@ impl Group for Ed25519Group {
         element.compress().to_bytes()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         match CompressedEdwardsY::from_slice(buf.as_ref()).decompress() {
             Some(point) => {
                 if point == Self::identity() {
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else if point.is_torsion_free() {
                     Ok(point)
                 } else {
-                    Err(Error::InvalidNonPrimeOrderElement)
+                    Err(GroupError::InvalidNonPrimeOrderElement)
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
 }
@@ -69,7 +70,7 @@ impl Group for Ed25519Group {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-1
 const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite.
 pub struct Ed25519Sha512;
 

@@ -2,10 +2,12 @@
 
 use thiserror::Error;
 
+use crate::{frost::Identifier, Ciphersuite};
+
 /// An error related to FROST.
 #[non_exhaustive]
 #[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Error {
+pub enum Error<C: Ciphersuite> {
     /// min_signers is invalid
     #[error("min_signers must be at least 2 and not larger than max_signers")]
     InvalidMinSigners,
@@ -18,12 +20,6 @@ pub enum Error {
     /// This identifier is unserializable.
     #[error("Malformed identifier is unserializable.")]
     MalformedIdentifier,
-    /// The encoding of a group scalar was malformed.
-    #[error("Malformed scalar encoding.")]
-    MalformedScalar,
-    /// The encoding of a group element was malformed.
-    #[error("Malformed group element encoding.")]
-    MalformedElement,
     /// The encoding of a signing key was malformed.
     #[error("Malformed signing key encoding.")]
     MalformedSigningKey,
@@ -36,15 +32,6 @@ pub enum Error {
     /// Signature verification failed.
     #[error("Invalid signature.")]
     InvalidSignature,
-    /// This scalar MUST NOT be zero.
-    #[error("Invalid for this scalar to be zero.")]
-    InvalidZeroScalar,
-    /// This element MUST NOT be the identity.
-    #[error("Invalid for this element to be the identity.")]
-    InvalidIdentityElement,
-    /// This element MUST have (large) prime order.
-    #[error("Invalid for this element to not have large prime order.")]
-    InvalidNonPrimeOrderElement,
     /// Duplicated shares provided
     #[error("Duplicated shares provided.")]
     DuplicatedShares,
@@ -53,7 +40,10 @@ pub enum Error {
     IdentityCommitment,
     /// Signature share verification failed.
     #[error("Invalid signature share.")]
-    InvalidSignatureShare,
+    InvalidSignatureShare {
+        /// The identifier of the signer whose share validation failed.
+        signer: Identifier<C>,
+    },
     /// Secret share verification failed.
     #[error("Invalid secret share.")]
     InvalidSecretShare,
@@ -72,4 +62,37 @@ pub enum Error {
     /// The proof of knowledge is not valid.
     #[error("The proof of knowledge is not valid.")]
     InvalidProofOfKnowledge,
+    /// Error in scalar Field.
+    #[error("Error in scalar Field.")]
+    FieldError(#[from] FieldError),
+    /// Error in elliptic curve Group.
+    #[error("Error in elliptic curve Group.")]
+    GroupError(#[from] GroupError),
+}
+
+/// An error related to a scalar Field.
+#[non_exhaustive]
+#[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
+pub enum FieldError {
+    /// The encoding of a group scalar was malformed.
+    #[error("Malformed scalar encoding.")]
+    MalformedScalar,
+    /// This scalar MUST NOT be zero.
+    #[error("Invalid for this scalar to be zero.")]
+    InvalidZeroScalar,
+}
+
+/// An error related to an elliptic curve Group.
+#[non_exhaustive]
+#[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
+pub enum GroupError {
+    /// The encoding of a group element was malformed.
+    #[error("Malformed group element encoding.")]
+    MalformedElement,
+    /// This element MUST NOT be the identity.
+    #[error("Invalid for this element to be the identity.")]
+    InvalidIdentityElement,
+    /// This element MUST have (large) prime order.
+    #[error("Invalid for this element to not have large prime order.")]
+    InvalidNonPrimeOrderElement,
 }

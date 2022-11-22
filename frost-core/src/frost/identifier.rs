@@ -5,7 +5,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::{Ciphersuite, Error, Field, Group, Scalar};
+use crate::{Ciphersuite, Error, Field, FieldError, Group, Scalar};
 
 /// A FROST participant identifier.
 ///
@@ -109,11 +109,11 @@ impl<C> TryFrom<u16> for Identifier<C>
 where
     C: Ciphersuite,
 {
-    type Error = Error;
+    type Error = Error<C>;
 
     fn try_from(n: u16) -> Result<Identifier<C>, Self::Error> {
         if n == 0 {
-            Err(Self::Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar.into())
         } else {
             // Classic left-to-right double-and-add algorithm that skips the first bit 1 (since
             // identifiers are never zero, there is always a bit 1), thus `sum` starts with 1 too.

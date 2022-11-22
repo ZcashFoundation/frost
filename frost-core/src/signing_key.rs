@@ -27,9 +27,10 @@ where
     /// Deserialize from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<SigningKey<C>, Error> {
+    ) -> Result<SigningKey<C>, Error<C>> {
         <<C::Group as Group>::Field as Field>::deserialize(&bytes)
             .map(|scalar| SigningKey { scalar })
+            .map_err(|e| e.into())
     }
 
     /// Serialize `SigningKey` to bytes

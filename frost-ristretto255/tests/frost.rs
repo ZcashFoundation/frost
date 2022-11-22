@@ -1,5 +1,5 @@
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
-use frost_core::{Ciphersuite, Group};
+use frost_core::{Ciphersuite, Group, GroupError};
 use frost_ristretto255::*;
 use rand::thread_rng;
 
@@ -36,5 +36,5 @@ fn check_deserialize_identity() {
     let encoded_identity = RistrettoPoint::identity().compress().to_bytes();
 
     let r = <<Ristretto255Sha512 as Ciphersuite>::Group as Group>::deserialize(&encoded_identity);
-    assert_eq!(r, Err(Error::InvalidIdentityElement));
+    assert_eq!(r, Err(GroupError::InvalidIdentityElement));
 }

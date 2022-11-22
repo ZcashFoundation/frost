@@ -49,7 +49,7 @@ where
     /// [`VerifyingKey::verify`](crate::VerifyingKey::verify), which
     /// requires borrowing the message data, the `Item` type is unlinked
     /// from the lifetime of the message.
-    pub fn verify_single(self) -> Result<(), Error> {
+    pub fn verify_single(self) -> Result<(), Error<C>> {
         self.vk.verify_prehashed(self.c, &self.sig)
     }
 }
@@ -103,7 +103,7 @@ where
     /// notation in the [protocol specification §B.1][ps].
     ///
     /// [ps]: https://zips.z.cash/protocol/protocol.pdf#reddsabatchverify
-    pub fn verify<R: RngCore + CryptoRng>(self, mut rng: R) -> Result<(), Error> {
+    pub fn verify<R: RngCore + CryptoRng>(self, mut rng: R) -> Result<(), Error<C>> {
         let n = self.signatures.len();
 
         let mut VK_coeffs = Vec::with_capacity(n);
