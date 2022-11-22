@@ -85,6 +85,11 @@ jobs:
           command: fmt
           args: --all -- --check
 
+      - uses: actions-rs/cargo@v1.0.3
+        with:
+          command: run
+          args: --bin gendoc -- --check
+
   docs:
     name: Check Rust doc
     runs-on: ubuntu-latest
