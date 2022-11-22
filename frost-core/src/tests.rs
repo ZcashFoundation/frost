@@ -1,7 +1,7 @@
 //! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use crate::frost;
+use crate::{frost, Error, Field, Group};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -57,6 +57,36 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
         .collect();
 
     check_sign(min_signers, key_packages, rng, pubkeys);
+}
+
+/// Check if corrupting a signature share makes aggregation fail.
+/// Part of [`check_sign`].
+fn check_corrupted_share<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+    signature_shares: &[frost::round2::SignatureShare<C>],
+    mut rng: R,
+    signing_package: &frost::SigningPackage<C>,
+    pubkeys: &frost::keys::PublicKeyPackage<C>,
+) {
+    let identifier_one = 1u16.try_into().expect("should be nonzero");
+    let mut corrupted_signature_shares = signature_shares.to_owned();
+    let random_share = <<C::Group as Group>::Field>::random(&mut rng);
+    corrupted_signature_shares
+        .iter_mut()
+        .find(|share| share.identifier == identifier_one)
+        .unwrap()
+        .signature
+        .z_share = random_share;
+    let group_signature_res =
+        frost::aggregate(signing_package, &corrupted_signature_shares[..], pubkeys);
+    match group_signature_res {
+        Ok(_) => panic!("should fail"),
+        Err(Error::InvalidSignatureShare { signer }) => {
+            // starts_with is used instead of equality so that this works even with larger scalar fields
+            assert!(signer
+                .starts_with("0100000000000000000000000000000000000000000000000000000000000000"));
+        }
+        Err(_) => panic!("should fail with InvalidSignatureShare"),
+    }
 }
 
 fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
@@ -116,6 +146,8 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Aggregation: collects the signing shares from all participants,
     // generates the final signature.
     ////////////////////////////////////////////////////////////////////////////
+
+    check_corrupted_share(&signature_shares, rng, &signing_package, &pubkeys);
 
     // Aggregate (also verifies the signature shares)
     let group_signature_res = frost::aggregate(&signing_package, &signature_shares[..], &pubkeys);

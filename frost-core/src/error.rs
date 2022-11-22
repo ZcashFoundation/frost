@@ -4,7 +4,7 @@ use thiserror::Error;
 
 /// An error related to FROST.
 #[non_exhaustive]
-#[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Error, Debug, Clone, Eq, PartialEq)]
 pub enum Error {
     /// min_signers is invalid
     #[error("min_signers must be at least 2 and not larger than max_signers")]
@@ -53,7 +53,11 @@ pub enum Error {
     IdentityCommitment,
     /// Signature share verification failed.
     #[error("Invalid signature share.")]
-    InvalidSignatureShare,
+    InvalidSignatureShare {
+        /// The identifier of the signer whose share validation failed,
+        /// encoded as a little-endian byte string in hex format.
+        signer: String,
+    },
     /// Secret share verification failed.
     #[error("Invalid secret share.")]
     InvalidSecretShare,

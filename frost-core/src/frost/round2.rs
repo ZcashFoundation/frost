@@ -90,7 +90,9 @@ where
         if (<C::Group>::generator() * self.signature.z_share)
             != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
-            return Err(Error::InvalidSignatureShare);
+            return Err(Error::InvalidSignatureShare {
+                signer: self.identifier.to_string(),
+            });
         }
 
         Ok(())

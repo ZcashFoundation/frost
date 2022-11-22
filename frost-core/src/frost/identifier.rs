@@ -1,7 +1,7 @@
 //! FROST participant identifiers
 
 use std::{
-    fmt::{self, Debug},
+    fmt::{self, Debug, Display},
     hash::{Hash, Hasher},
 };
 
@@ -22,6 +22,23 @@ where
     // Serialize the underlying scalar.
     pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
+    }
+}
+
+impl<C> Display for Identifier<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            hex::encode(
+                <<<C as Ciphersuite>::Group as Group>::Field as Field>::little_endian_serialize(
+                    &self.0
+                )
+            )
+        )
     }
 }
 
