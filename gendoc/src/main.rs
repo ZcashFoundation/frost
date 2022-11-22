@@ -168,4 +168,20 @@ fn main() {
             &["frost_ed25519", "Ed25519 curve"],
         );
     }
+
+    write_docs(
+        &docs,
+        "frost-secp256k1/src/lib.rs",
+        &["Secp256K1Sha556", "Secp256K1", "<E>"],
+        old_suite_names_doc,
+        &["FROST(secp256k1, SHA-256)"],
+    );
+    for filename in ["README.md", "dkg.md"] {
+        copy_and_replace(
+            filename,
+            "frost-secp256k1/README.md",
+            original_strings,
+            &["frost_secp256k1", "secp256k1 curve"],
+        );
+    }
 }
