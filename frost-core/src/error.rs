@@ -56,7 +56,7 @@ pub enum Error {
     InvalidSignatureShare {
         /// The identifier of the signer whose share validation failed,
         /// encoded as a byte vector with ciphersuite-dependent endianness
-        /// (can be decoded with [`Identifier::deserialize`]).
+        /// (can be decoded with [`crate::frost::Identifier::deserialize`]).
         signer: Vec<u8>,
     },
     /// Secret share verification failed.
