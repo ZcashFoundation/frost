@@ -1,7 +1,11 @@
 //! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use crate::{frost, Error, Field, Group};
+use crate::{
+    frost::{self, Identifier},
+    Error, Field, Group,
+};
+use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -84,9 +88,9 @@ fn check_corrupted_share<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     match group_signature_res {
         Ok(_) => panic!("should fail"),
         Err(Error::InvalidSignatureShare { signer }) => {
-            // starts_with is used instead of equality so that this works even with larger scalar fields
-            assert!(signer
-                .starts_with("0100000000000000000000000000000000000000000000000000000000000000"));
+            let decoded_identifier =
+                Identifier::deserialize(&signer.try_into().debugless_unwrap()).unwrap();
+            assert_eq!(identifier_one, decoded_identifier);
         }
         Err(_) => panic!("should fail with InvalidSignatureShare"),
     }

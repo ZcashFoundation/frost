@@ -55,8 +55,9 @@ pub enum Error {
     #[error("Invalid signature share.")]
     InvalidSignatureShare {
         /// The identifier of the signer whose share validation failed,
-        /// encoded as a little-endian byte string in hex format.
-        signer: String,
+        /// encoded as a byte vector with ciphersuite-dependent endianness
+        /// (can be decoded with [`Identifier::deserialize`]).
+        signer: Vec<u8>,
     },
     /// Secret share verification failed.
     #[error("Invalid secret share.")]
