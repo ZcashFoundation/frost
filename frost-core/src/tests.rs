@@ -70,14 +70,17 @@ fn check_corrupted_share<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     let identifier_one = 1u16.try_into().expect("should be nonzero");
     let mut corrupted_signature_shares = signature_shares.to_owned();
     let random_share = <<C::Group as Group>::Field>::random(&mut rng);
+
     corrupted_signature_shares
         .iter_mut()
         .find(|share| share.identifier == identifier_one)
         .unwrap()
         .signature
         .z_share = random_share;
+
     let group_signature_res =
         frost::aggregate(signing_package, &corrupted_signature_shares[..], pubkeys);
+
     match group_signature_res {
         Ok(_) => panic!("should fail"),
         Err(Error::InvalidSignatureShare { signer }) => {
