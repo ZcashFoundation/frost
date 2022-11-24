@@ -58,8 +58,7 @@ for participant_index in 1..=max_signers {
         max_signers,
         min_signers,
         &mut rng,
-    )
-    .unwrap();
+    )?;
 
     // Store the participant's secret package for later use.
     // In practice each participant will store it in their own environment.
@@ -104,11 +103,8 @@ for participant_index in 1..=max_signers {
         round1_secret_packages
             .remove(&participant_identifier)
             .unwrap(),
-        received_round1_packages
-            .get(&participant_identifier)
-            .unwrap(),
-    )
-    .expect("should work");
+        &received_round1_packages[&participant_identifier],
+    )?;
 
     // Store the participant's secret package for later use.
     // In practice each participant will store it in their own environment.
@@ -150,12 +146,12 @@ for participant_index in 1..=max_signers {
         &round2_secret_packages[&participant_identifier],
         &received_round1_packages[&participant_identifier],
         &received_round2_packages[&participant_identifier],
-    )
-    .unwrap();
+    )?;
     key_packages.insert(participant_identifier, key_package);
     pubkey_packages.insert(participant_identifier, pubkey_package_for_participant);
 }
 
 // With its own key package and the pubkey package, each participant can now proceed
 // to sign with FROST.
+# Ok::<(), frost::Error>(())
 ```
