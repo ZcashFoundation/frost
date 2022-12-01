@@ -82,7 +82,7 @@ pub enum FieldError {
     InvalidZeroScalar,
 }
 
-/// An error related to an elliptic curve Group.
+/// An error related to a Group (usually an elliptic curve or constructed from one) or one of its Elements.
 #[non_exhaustive]
 #[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum GroupError {
