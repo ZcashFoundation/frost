@@ -4,6 +4,7 @@ members = [
     "frost-core",
     #"frost-redjubjub",
     "frost-ed25519",
+    "frost-ed448",
     "frost-p256",
     "frost-ristretto255",
     "frost-secp256k1",
