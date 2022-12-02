@@ -16,12 +16,13 @@ use k256::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha256};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<Secp256K1Sha256>;
 
 #[derive(Clone, Copy)]
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite scalar field.
@@ -40,10 +41,10 @@ impl Field for Secp256K1ScalarField {
         Scalar::ONE
     }
 
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
         // [`Scalar`]'s Eq/PartialEq does a constant-time comparison
         if *scalar == <Self as Field>::zero() {
-            Err(Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar)
         } else {
             Ok(scalar.invert().unwrap())
         }
@@ -57,11 +58,11 @@ impl Field for Secp256K1ScalarField {
         scalar.to_bytes().into()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         let field_bytes: &k256::FieldBytes = buf.into();
         match Scalar::from_repr(*field_bytes).into() {
             Some(s) => Ok(s),
-            None => Err(Error::MalformedScalar),
+            None => Err(FieldError::MalformedScalar),
         }
     }
 
@@ -121,9 +122,9 @@ impl Group for Secp256K1Group {
         fixed_serialized
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let encoded_point =
-            k256::EncodedPoint::from_bytes(buf).map_err(|_| Error::MalformedElement)?;
+            k256::EncodedPoint::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
 
         match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
             Some(point) => {
@@ -131,12 +132,12 @@ impl Group for Secp256K1Group {
                     // This is actually impossible since the identity is encoded a a single byte
                     // which will never happen since we receive a 33-byte buffer.
                     // We leave the check for consistency.
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else {
                     Ok(ProjectivePoint::from(point))
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
 }
@@ -172,7 +173,7 @@ fn hash_to_field(msg: &[u8], dst: &[u8]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-1
 const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
 pub struct Secp256K1Sha256;
 
