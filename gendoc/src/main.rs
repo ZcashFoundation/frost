@@ -180,6 +180,22 @@ fn main() -> ExitCode {
 
     replaced |= write_docs(
         &docs,
+        "frost-ed448/src/lib.rs",
+        &["Ed448Shake256", "Ed448", "<E>"],
+        old_suite_names_doc,
+        &["FROST(Ed448, SHAKE256)"],
+    );
+    for filename in ["README.md", "dkg.md"] {
+        replaced |= copy_and_replace(
+            format!("{}/{}", original_basename, filename).as_str(),
+            format!("frost-ed448/{}", filename).as_str(),
+            original_strings,
+            &["frost_ed448", "Ed448 curve"],
+        );
+    }
+
+    replaced |= write_docs(
+        &docs,
         "frost-secp256k1/src/lib.rs",
         &["Secp256K1Sha556", "Secp256K1", "<S>"],
         old_suite_names_doc,
