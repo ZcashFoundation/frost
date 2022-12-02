@@ -121,11 +121,11 @@ fn compute_signature_share<C: Ciphersuite>(
     let z_share: <<C::Group as Group>::Field as Field>::Scalar = signer_nonces.hiding.0
         + (signer_nonces.binding.0 * binding_factor.0)
         + (lambda_i * key_package.secret_share.0 * challenge.0);
-    let signature_share = SignatureShare::<C> {
+
+    SignatureShare::<C> {
         identifier: *key_package.identifier(),
         signature: SignatureResponse::<C> { z_share },
-    };
-    signature_share
+    }
 }
 
 // // Zeroizes `SignatureShare` to be the `Default` value on drop (when it goes out
