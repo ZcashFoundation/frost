@@ -1,0 +1,48 @@
+[package]
+name = "frost-secp256k1"
+edition = "2021"
+# When releasing to crates.io:
+# - Update html_root_url
+# - Update CHANGELOG.md
+# - Create git tag.
+version = "0.1.0"
+authors = ["Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>",
+    "Conrado Gouvea <conradoplg@gmail.com>"]
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ZcashFoundation/frost"
+categories = ["cryptography"]
+keywords = ["cryptography", "crypto", "ristretto", "threshold", "signature"]
+description = "A Schnorr signature scheme over the prime-order Ristretto group that supports FROST ."
+
+[package.metadata.docs.rs]
+features = ["nightly"]
+
+[dependencies]
+byteorder = "1.4"
+digest = "0.10"
+frost-core = { path = "../frost-core", features = ["test-impl"] }
+hex = { version = "0.4.3", features = ["serde"] }
+# k256 = { version = "0.11.6", features = ["arithmetic", "hash2curve"] }
+k256 = { git = "https://github.com/RustCrypto/elliptic-curves", rev = "42a18e9e13f3bacba89af00d15ef732dbfd03d01", features = ["arithmetic", "hash2curve"] }
+rand_core = "0.6"
+serde = { version = "1", optional = true, features = ["derive"] }
+sha2 = "0.10.2"
+thiserror = "1.0"
+zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
+
+[dev-dependencies]
+bincode = "1"
+criterion = "0.4"
+ed25519-dalek = "1.0.1"
+ed25519-zebra = "3.0.0"
+lazy_static = "1.4"
+proptest = "1.0"
+proptest-derive = "0.3"
+rand = "0.8"
+rand_chacha = "0.3"
+serde_json = "1.0"
+
+[features]
+nightly = []
+default = ["serde"]
