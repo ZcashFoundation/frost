@@ -34,7 +34,7 @@ where
 
         let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 
-        let one = <<C::Group as Group>::Field as Field>::one();
+        let one = <<C::Group as Group>::Field as Field>::zero();
         let mut z_bytes =
             Vec::from(<<C::Group as Group>::Field as Field>::serialize(&one).as_ref());
 
