@@ -20,9 +20,9 @@ features = ["nightly"]
 
 [dependencies]
 byteorder = "1.4"
-# TODO: pointing to `frost-changes` branch; point to upstream after merged or merge
-# in the fork and point to its `main`
-ed448-goldilocks = { git = "https://github.com/ZcashFoundation/Ed448-Goldilocks.git", rev = "c16d9fda7eca1e5a990a989b8c9461f75b74c21e" }
+# Pointing to a commit after 0.8.3 with the required functions for FROST.
+# TODO: update after a release is made
+ed448-goldilocks = { git = "https://github.com/crate-crypto/Ed448-Goldilocks.git", rev = "54ffc6b8f14030688996da50a1bfb7bb713eb172" }
 digest = "0.10"
 frost-core = { path = "../frost-core", features = ["test-impl"] }
 hex = { version = "0.4.3", features = ["serde"] }
