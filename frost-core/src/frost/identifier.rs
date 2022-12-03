@@ -19,9 +19,22 @@ impl<C> Identifier<C>
 where
     C: Ciphersuite,
 {
-    // Serialize the underlying scalar.
-    pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    /// Serialize the identifier using the ciphersuite encoding.
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
+    }
+
+    /// Deserialize an Identifier from a serialized buffer.
+    /// Returns an error if it attempts to deserialize zero.
+    pub fn deserialize(
+        buf: &<<C::Group as Group>::Field as Field>::Serialization,
+    ) -> Result<Self, Error<C>> {
+        let scalar = <<C::Group as Group>::Field>::deserialize(buf)?;
+        if scalar == <<C::Group as Group>::Field>::zero() {
+            Err(FieldError::InvalidZeroScalar.into())
+        } else {
+            Ok(Self(scalar))
+        }
     }
 }
 
