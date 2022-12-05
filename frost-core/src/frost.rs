@@ -16,6 +16,7 @@ use std::{
     ops::Index,
 };
 
+#[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
 mod identifier;

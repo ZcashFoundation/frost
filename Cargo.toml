@@ -6,5 +6,6 @@ members = [
     "frost-ristretto255",
     "frost-p256",
     "frost-ed25519",
+    "frost-rerandomized",
     "gendoc"
 ]

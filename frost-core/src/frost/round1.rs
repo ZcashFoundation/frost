@@ -2,7 +2,9 @@
 
 use std::fmt::{self, Debug};
 
+#[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
+
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 

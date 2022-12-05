@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug};
 
+#[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
 use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
