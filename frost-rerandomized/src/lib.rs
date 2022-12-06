@@ -2,6 +2,9 @@
 //!
 #![allow(non_snake_case)]
 
+#[cfg(any(test, feature = "test-impl"))]
+pub mod tests;
+
 pub use frost_core;
 
 use frost_core::{
@@ -182,6 +185,14 @@ where
         }
     }
 
+    /// Return the randomizer.
+    ///
+    /// It can be useful to the coordinator, e.g. to generate the ZK proof
+    /// in Zcash. It MUST NOT be sent to other parties.
+    pub fn randomizer(&self) -> &frost_core::Scalar<C> {
+        &self.randomizer
+    }
+
     /// Return the randomizer point.
     ///
     /// It must be sent by the coordinator to each participant when signing.
@@ -189,9 +200,9 @@ where
         &self.randomizer_point
     }
 
-    /// Return the randomizer point.
+    /// Return the randomized group public key.
     ///
-    /// It must be sent by the coordinator to each participant when signing.
+    /// It can be used to verify the final signature.
     pub fn randomized_group_public_key(&self) -> &frost_core::VerifyingKey<C> {
         &self.randomized_group_public_key
     }
