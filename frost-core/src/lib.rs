@@ -47,7 +47,7 @@ pub trait Field: Copy + Clone {
         + Sub<Output = Self::Scalar>;
 
     /// A unique byte array buf of fixed length N.
-    type Serialization: AsRef<[u8]> + Debug + Default + TryFrom<Vec<u8>>;
+    type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>>;
 
     /// Returns the zero element of the field, the additive identity.
     fn zero() -> Self::Scalar;

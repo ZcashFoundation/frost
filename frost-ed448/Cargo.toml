@@ -1,8 +1,7 @@
 [package]
-name = "frost-ed25519"
+name = "frost-ed448"
 edition = "2021"
 # When releasing to crates.io:
-# - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
 version = "0.1.0"
@@ -23,22 +22,21 @@ features = ["nightly"]
 
 [dependencies]
 byteorder = "1.4"
-curve25519-dalek = { version = "4.0.0-pre.1", features = ["serde"] }
+# Pointing to a commit after 0.8.3 with the required functions for FROST.
+# TODO: update after a release is made
+ed448-goldilocks = { git = "https://github.com/crate-crypto/Ed448-Goldilocks.git", rev = "54ffc6b8f14030688996da50a1bfb7bb713eb172" }
 digest = "0.10"
 frost-core = { path = "../frost-core", features = ["test-impl"] }
-frost-ristretto255 = { path = "../frost-ristretto255" }
 hex = { version = "0.4.3", features = ["serde"] }
 rand_core = "0.6"
 serde = { version = "1", optional = true, features = ["derive"] }
-sha2 = "0.10.2"
+sha3 = "0.10.6"
 thiserror = "1.0"
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 
 [dev-dependencies]
 bincode = "1"
 criterion = "0.4"
-ed25519-dalek = "1.0.1"
-ed25519-zebra = "3.0.0"
 lazy_static = "1.4"
 proptest = "1.0"
 proptest-derive = "0.3"

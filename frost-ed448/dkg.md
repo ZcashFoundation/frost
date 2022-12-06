@@ -28,7 +28,7 @@ they can proceed to sign messages with FROST.
 use rand::thread_rng;
 use std::collections::HashMap;
 
-use frost_p256 as frost;
+use frost_ed448 as frost;
 
 let mut rng = thread_rng();
 

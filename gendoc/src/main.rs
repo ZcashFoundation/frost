@@ -11,7 +11,7 @@
 //! - Run `cargo run --manifest-path gendoc/Cargo.toml` to update the documentation
 //!   of the other ciphersuites.
 
-use std::{fs, iter::zip};
+use std::{env, fs, iter::zip, process::ExitCode};
 
 use regex::Regex;
 
@@ -68,6 +68,7 @@ fn read_docs(filename: &str, suite_names_code: &[&str]) -> Vec<(String, String, 
 
 /// Write the documentation for the given file, using a previously-read documentation
 /// from another file as a base, replacing ciphersuite-specific references as needed.
+/// Returns 1 if the file was modified or 0 otherwise.
 ///
 /// # Parameters
 ///
@@ -84,9 +85,10 @@ fn write_docs(
     suite_names_code: &[&str],
     old_suite_names_doc: &[&str],
     new_suite_names_doc: &[&str],
-) {
+) -> u8 {
     let old_docs = read_docs(filename, suite_names_code);
     let mut code = fs::read_to_string(filename).unwrap();
+    let original_code = code.clone();
 
     // To be able to replace the documentation properly, start from the end, which
     // will keep the string positions consistent
@@ -105,7 +107,8 @@ fn write_docs(
         }
         code.replace_range(old_start..old_end, &new_doc);
     }
-    fs::write(filename, code).unwrap();
+    fs::write(filename, &code).unwrap();
+    u8::from(original_code != code)
 }
 
 /// Copy a file into a new one, replacing the strings in `original_strings`
@@ -115,17 +118,23 @@ fn copy_and_replace(
     destination_filename: &str,
     original_strings: &[&str],
     replacement_strings: &[&str],
-) {
+) -> u8 {
     let mut text = fs::read_to_string(origin_filename).unwrap();
+    let original_text = fs::read_to_string(destination_filename).unwrap_or_else(|_| "".to_string());
 
     for (from, to) in std::iter::zip(original_strings, replacement_strings) {
         text = text.replace(from, to)
     }
 
-    fs::write(destination_filename, text).unwrap();
+    fs::write(destination_filename, &text).unwrap();
+    u8::from(original_text != text)
 }
 
-fn main() {
+fn main() -> ExitCode {
+    let args: Vec<String> = env::args().collect();
+    let mut replaced = 0;
+    let check = args.len() == 2 && args[1] == "--check";
+
     let docs = read_docs(
         "frost-ristretto255/src/lib.rs",
         &["Ristretto255Sha512", "Ristretto", "<R>"],
@@ -137,7 +146,7 @@ fn main() {
 
     // To add a new ciphersuite, just copy this call and replace the required strings.
 
-    write_docs(
+    replaced |= write_docs(
         &docs,
         "frost-p256/src/lib.rs",
         &["P256Sha256", "P256", "<P>"],
@@ -145,7 +154,7 @@ fn main() {
         &["FROST(P-256, SHA-256)"],
     );
     for filename in ["README.md", "dkg.md"] {
-        copy_and_replace(
+        replaced |= copy_and_replace(
             format!("{}/{}", original_basename, filename).as_str(),
             format!("frost-p256/{}", filename).as_str(),
             original_strings,
@@ -153,7 +162,7 @@ fn main() {
         );
     }
 
-    write_docs(
+    replaced |= write_docs(
         &docs,
         "frost-ed25519/src/lib.rs",
         &["Ed25519Sha512", "Ed25519", "<E>"],
@@ -161,11 +170,49 @@ fn main() {
         &["FROST(Ed25519, SHA-512)"],
     );
     for filename in ["README.md", "dkg.md"] {
-        copy_and_replace(
+        replaced |= copy_and_replace(
             format!("{}/{}", original_basename, filename).as_str(),
             format!("frost-ed25519/{}", filename).as_str(),
             original_strings,
             &["frost_ed25519", "Ed25519 curve"],
         );
+    }
+
+    replaced |= write_docs(
+        &docs,
+        "frost-ed448/src/lib.rs",
+        &["Ed448Shake256", "Ed448", "<E>"],
+        old_suite_names_doc,
+        &["FROST(Ed448, SHAKE256)"],
+    );
+    for filename in ["README.md", "dkg.md"] {
+        replaced |= copy_and_replace(
+            format!("{}/{}", original_basename, filename).as_str(),
+            format!("frost-ed448/{}", filename).as_str(),
+            original_strings,
+            &["frost_ed448", "Ed448 curve"],
+        );
+    }
+
+    replaced |= write_docs(
+        &docs,
+        "frost-secp256k1/src/lib.rs",
+        &["Secp256K1Sha556", "Secp256K1", "<S>"],
+        old_suite_names_doc,
+        &["FROST(secp256k1, SHA-256)"],
+    );
+    for filename in ["README.md", "dkg.md"] {
+        replaced |= copy_and_replace(
+            format!("{}/{}", original_basename, filename).as_str(),
+            format!("frost-secp256k1/{}", filename).as_str(),
+            original_strings,
+            &["frost_secp256k1", "secp256k1 curve"],
+        );
+    }
+
+    if check {
+        ExitCode::from(replaced)
+    } else {
+        ExitCode::SUCCESS
     }
 }
