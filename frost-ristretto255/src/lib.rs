@@ -11,7 +11,7 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha512};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, ConstantTimeEq, Field, Group};
 
 #[cfg(test)]
 mod tests;
@@ -36,9 +36,7 @@ impl Field for RistrettoScalarField {
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
-        // [`curve25519_dalek::scalar::Scalar`]'s Eq/PartialEq does a constant-time comparison using
-        // `ConstantTimeEq`
-        if *scalar == <Self as Field>::zero() {
+        if scalar.ct_eq(&<Self as Field>::zero()).into() {
             Err(Error::InvalidZeroScalar)
         } else {
             Ok(scalar.invert())

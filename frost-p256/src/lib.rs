@@ -14,7 +14,7 @@ use p256::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha256};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, ConstantTimeEq, Field, Group};
 
 #[cfg(test)]
 mod tests;
@@ -39,9 +39,7 @@ impl Field for P256ScalarField {
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
-        // [`p256::Scalar`]'s Eq/PartialEq does a constant-time comparison using
-        // `ConstantTimeEq`
-        if *scalar == <Self as Field>::zero() {
+        if scalar.ct_eq(&<Self as Field>::zero()).into() {
             Err(Error::InvalidZeroScalar)
         } else {
             Ok(scalar.invert().unwrap())

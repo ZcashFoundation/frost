@@ -26,6 +26,7 @@ mod verifying_key;
 pub use error::Error;
 pub use signature::Signature;
 pub use signing_key::SigningKey;
+pub use subtle::ConstantTimeEq;
 pub use verifying_key::VerifyingKey;
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
@@ -41,6 +42,7 @@ pub trait Field: Copy + Clone {
     type Scalar: Add<Output = Self::Scalar>
         + Copy
         + Clone
+        + ConstantTimeEq
         + Eq
         + Mul<Output = Self::Scalar>
         + PartialEq
@@ -277,13 +279,12 @@ where
 }
 
 /// Generates a random nonzero scalar.
-///
-/// It assumes that the Scalar Eq/PartialEq implementation is constant-time.
 pub(crate) fn random_nonzero<C: Ciphersuite, R: RngCore + CryptoRng>(rng: &mut R) -> Scalar<C> {
+    let zero = <<C::Group as Group>::Field>::zero();
     loop {
         let scalar = <<C::Group as Group>::Field>::random(rng);
 
-        if scalar != <<C::Group as Group>::Field>::zero() {
+        if scalar.ct_eq(&zero).into() {
             return scalar;
         }
     }
