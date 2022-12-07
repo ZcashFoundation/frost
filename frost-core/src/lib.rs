@@ -119,8 +119,6 @@ pub trait Group: Copy + Clone + PartialEq {
     /// full curve group.
     ///
     /// If using a prime order elliptic curve, the cofactor should be 1 in the scalar field.
-    ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-4.1-3>
     fn cofactor() -> <Self::Field as Field>::Scalar;
 
     /// Additive [identity] of the prime order group.
@@ -171,21 +169,21 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
 
     /// [H1] for a FROST ciphersuite.
     ///
-    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    /// Maps arbitrary inputs to `Self::Scalar` elements of the prime-order group scalar field.
     ///
     /// [H1]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-cryptographic-hash-function
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
     /// [H2] for a FROST ciphersuite.
     ///
-    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    /// Maps arbitrary inputs to `Self::Scalar` elements of the prime-order group scalar field.
     ///
     /// [H2]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-cryptographic-hash-function
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
     /// [H3] for a FROST ciphersuite.
     ///
-    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    /// Maps arbitrary inputs to `Self::Scalar` elements of the prime-order group scalar field.
     ///
     /// [H3]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-cryptographic-hash-function
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
@@ -261,8 +259,8 @@ where
 ///
 /// This is the only invocation of the H2 hash function from the [RFC].
 ///
-/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-challenge-computa
-/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.2
+/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-challenge-computa
+/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.2
 fn challenge<C>(R: &Element<C>, verifying_key: &Element<C>, msg: &[u8]) -> Challenge<C>
 where
     C: Ciphersuite,
