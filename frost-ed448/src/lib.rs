@@ -93,12 +93,19 @@ impl Group for Ed448Group {
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
-        match CompressedEdwardsY(*buf).decompress() {
+        let compressed = CompressedEdwardsY(*buf);
+        match compressed.decompress() {
             Some(point) => {
                 if point == Self::identity() {
                     Err(Error::InvalidIdentityElement)
                 } else if point.is_torsion_free() {
-                    Ok(point)
+                    // decompress() does not check for canonicality, so we
+                    // check by recompressing and comparing
+                    if point.compress().0 != compressed.0 {
+                        Err(Error::MalformedElement)
+                    } else {
+                        Ok(point)
+                    }
                 } else {
                     Err(Error::InvalidNonPrimeOrderElement)
                 }

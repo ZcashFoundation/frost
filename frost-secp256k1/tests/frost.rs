@@ -39,3 +39,29 @@ fn check_deserialize_identity() {
     let r = <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::deserialize(&encoded_identity);
     assert_eq!(r, Err(Error::MalformedElement));
 }
+
+#[test]
+fn check_deserialize_non_canonical() {
+    let mut encoded_generator = <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::serialize(
+        &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::generator(),
+    );
+
+    let r = <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::deserialize(&encoded_generator);
+    assert!(r.is_ok());
+
+    // The first byte should be 0x02 or 0x03. Set other value to
+    // create a non-canonical encoding.
+    encoded_generator[0] = 0xFF;
+    let r = <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::deserialize(&encoded_generator);
+    assert_eq!(r, Err(Error::MalformedElement));
+
+    // Besides the first byte, it is still possible to get non-canonical encodings.
+    // This is x = p + 2 which is non-canonical and maps to a valid prime-order point.
+    let encoded_point =
+        hex::decode("02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc31")
+            .unwrap()
+            .try_into()
+            .unwrap();
+    let r = <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::deserialize(&encoded_point);
+    assert_eq!(r, Err(Error::MalformedElement));
+}

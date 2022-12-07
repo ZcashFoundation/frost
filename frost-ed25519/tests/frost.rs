@@ -38,3 +38,14 @@ fn check_deserialize_identity() {
     let r = <<Ed25519Sha512 as Ciphersuite>::Group as Group>::deserialize(&encoded_identity);
     assert_eq!(r, Err(Error::InvalidIdentityElement));
 }
+
+#[test]
+fn check_deserialize_non_prime_order() {
+    let encoded_point =
+        hex::decode("0300000000000000000000000000000000000000000000000000000000000000")
+            .unwrap()
+            .try_into()
+            .unwrap();
+    let r = <<Ed25519Sha512 as Ciphersuite>::Group as Group>::deserialize(&encoded_point);
+    assert_eq!(r, Err(Error::InvalidNonPrimeOrderElement));
+}
