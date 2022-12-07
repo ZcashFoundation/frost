@@ -2,10 +2,10 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use digest::generic_array::GenericArray;
 use k256::{
     elliptic_curve::{
         bigint::{Encoding, U384},
+        generic_array::GenericArray,
         group::prime::PrimeCurveAffine,
         hash2curve::{ExpandMsg, ExpandMsgXmd, Expander},
         sec1::{FromEncodedPoint, ToEncodedPoint},
