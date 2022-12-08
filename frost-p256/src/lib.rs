@@ -12,7 +12,7 @@ use p256::{
     AffinePoint, ProjectivePoint, Scalar,
 };
 use rand_core::{CryptoRng, RngCore};
-use sha2::{digest::Update, Digest, Sha256};
+use sha2::{Digest, Sha256};
 
 use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
@@ -140,6 +140,23 @@ impl Group for P256Group {
     }
 }
 
+fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
+    let mut h = Sha256::new();
+    for i in inputs {
+        h.update(i);
+    }
+    let mut output = [0u8; 32];
+    output.copy_from_slice(h.finalize().as_slice());
+    output
+}
+
+fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
+    let mut u = [P256ScalarField::zero()];
+    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], domain, &mut u)
+        .expect("should never return error according to error cases described in ExpandMsgXmd");
+    u[0]
+}
+
 /// Context string from the ciphersuite in the [spec]
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-1
@@ -160,70 +177,43 @@ impl Ciphersuite for P256Sha256 {
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let mut u = [P256ScalarField::zero()];
-        let dst = CONTEXT_STRING.to_owned() + "rho";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
-            .expect("should never return error according to error cases described in ExpandMsgXmd");
-        u[0]
+        hash_to_scalar((CONTEXT_STRING.to_owned() + "rho").as_bytes(), m)
     }
 
     /// H2 for FROST(P-256, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let mut u = [P256ScalarField::zero()];
-        let dst = CONTEXT_STRING.to_owned() + "chal";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
-            .expect("should never return error according to error cases described in ExpandMsgXmd");
-        u[0]
+        hash_to_scalar((CONTEXT_STRING.to_owned() + "chal").as_bytes(), m)
     }
 
     /// H3 for FROST(P-256, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let mut u = [P256ScalarField::zero()];
-        let dst = CONTEXT_STRING.to_owned() + "nonce";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
-            .expect("should never return error according to error cases described in ExpandMsgXmd");
-        u[0]
+        hash_to_scalar((CONTEXT_STRING.to_owned() + "nonce").as_bytes(), m)
     }
 
     /// H4 for FROST(P-256, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
-        let h = Sha256::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("msg")
-            .chain(m);
-
-        let mut output = [0u8; 32];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"msg", m])
     }
 
     /// H5 for FROST(P-256, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
-        let h = Sha256::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("com")
-            .chain(m);
-
-        let mut output = [0u8; 32];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"com", m])
     }
 
     /// HDKG for FROST(P-256, SHA-256)
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
-        let mut u = [P256ScalarField::zero()];
-        let dst = CONTEXT_STRING.to_owned() + "dkg";
-        hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], dst.as_bytes(), &mut u)
-            .expect("should never return error according to error cases described in ExpandMsgXmd");
-        Some(u[0])
+        Some(hash_to_scalar(
+            (CONTEXT_STRING.to_owned() + "dkg").as_bytes(),
+            m,
+        ))
     }
 }
 
