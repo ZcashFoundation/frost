@@ -66,7 +66,7 @@ impl Group for Ed25519Group {
 
 /// Context string 'FROST-RISTRETTO255-SHA512-v5' from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-1
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-1
 const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v11";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -82,7 +82,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H1 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.1
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
@@ -96,7 +96,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H2 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.2
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let h = Sha512::new().chain(m);
 
@@ -107,7 +107,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H3 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.3
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
@@ -121,7 +121,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H4 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.4
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
@@ -135,7 +135,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H5 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.5
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
