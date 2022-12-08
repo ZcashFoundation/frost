@@ -14,7 +14,7 @@ use k256::{
     AffinePoint, ProjectivePoint, Scalar,
 };
 use rand_core::{CryptoRng, RngCore};
-use sha2::{digest::Update, Digest, Sha256};
+use sha2::{Digest, Sha256};
 
 use frost_core::{frost, Ciphersuite, Field, Group};
 
@@ -141,6 +141,16 @@ impl Group for Secp256K1Group {
     }
 }
 
+fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
+    let mut h = Sha256::new();
+    for i in inputs {
+        h.update(i);
+    }
+    let mut output = [0u8; 32];
+    output.copy_from_slice(h.finalize().as_slice());
+    output
+}
+
 /// hash2field implementation from <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-11#section-5.3>
 ///
 /// From <https://github.com/serai-dex/serai/blob/5df74ac9e28f9299e674e98d08e64c99c34e579c/crypto/ciphersuite/src/kp256.rs#L45-L62>
@@ -211,28 +221,14 @@ impl Ciphersuite for Secp256K1Sha256 {
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
-        let h = Sha256::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("msg")
-            .chain(m);
-
-        let mut output = [0u8; 32];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"msg", m])
     }
 
     /// H5 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
-        let h = Sha256::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("com")
-            .chain(m);
-
-        let mut output = [0u8; 32];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"com", m])
     }
 
     /// HDKG for FROST(secp256k1, SHA-256)
