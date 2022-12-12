@@ -1,4 +1,4 @@
-use frost_core::{Ciphersuite, Group};
+use frost_core::{Ciphersuite, Group, GroupError};
 use frost_p256::*;
 use rand::thread_rng;
 
@@ -37,5 +37,5 @@ fn check_deserialize_identity() {
     let encoded_identity = [0u8; 33];
 
     let r = <<P256Sha256 as Ciphersuite>::Group as Group>::deserialize(&encoded_identity);
-    assert_eq!(r, Err(Error::MalformedElement));
+    assert_eq!(r, Err(GroupError::MalformedElement));
 }

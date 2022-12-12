@@ -23,7 +23,7 @@ mod signing_key;
 pub mod tests;
 mod verifying_key;
 
-pub use error::Error;
+pub use error::{Error, FieldError, GroupError};
 pub use signature::Signature;
 pub use signing_key::SigningKey;
 pub use verifying_key::VerifyingKey;
@@ -57,7 +57,7 @@ pub trait Field: Copy + Clone {
 
     /// Computes the multiplicative inverse of an element of the scalar field, failing if the
     /// element is zero.
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error>;
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError>;
 
     /// Generate a random scalar from the entire space [0, l-1]
     ///
@@ -83,7 +83,7 @@ pub trait Field: Copy + Clone {
     /// resulting [`Scalar`] is zero
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.1-3.9>
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error>;
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError>;
 }
 
 /// An element of the [`Ciphersuite`] `C`'s [`Group`]'s scalar [`Field`].
@@ -146,7 +146,7 @@ pub trait Group: Copy + Clone + PartialEq {
     /// resulting [`Element`] is the identity element of the group
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.1-3.7>
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error>;
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError>;
 }
 
 /// An element of the [`Ciphersuite`] `C`'s [`Group`].
@@ -156,7 +156,7 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 /// function.
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-ciphersuites
-pub trait Ciphersuite: Copy + Clone + PartialEq {
+pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
@@ -226,7 +226,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
         msg: &[u8],
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<Self>> {
         let c = crate::challenge::<Self>(&signature.R, &public_key.element, msg);
 
         public_key.verify_prehashed(c, signature)

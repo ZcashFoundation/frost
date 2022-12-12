@@ -97,7 +97,7 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
     mut rng: R,
-) -> Result<(Round1SecretPackage<C>, Round1Package<C>), Error> {
+) -> Result<(Round1SecretPackage<C>, Round1Package<C>), Error<C>> {
     let secret: SharedSecret<C> = SharedSecret::random(&mut rng);
 
     // Round 1, Step 1
@@ -167,7 +167,7 @@ where
 pub fn keygen_part2<C: Ciphersuite>(
     secret_package: Round1SecretPackage<C>,
     round1_packages: &[Round1Package<C>],
-) -> Result<(Round2SecretPackage<C>, Vec<Round2Package<C>>), Error> {
+) -> Result<(Round2SecretPackage<C>, Vec<Round2Package<C>>), Error<C>> {
     if round1_packages.len() != (secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
     }
@@ -221,7 +221,7 @@ fn compute_verifying_keys<C: Ciphersuite>(
     round2_packages: &[Round2Package<C>],
     round1_packages_map: HashMap<Identifier<C>, &Round1Package<C>>,
     round2_secret_package: &Round2SecretPackage<C>,
-) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, Error> {
+) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, Error<C>> {
     // Round 2, Step 4
     //
     // > Any participant can compute the public verification share of any other participant
@@ -239,7 +239,7 @@ fn compute_verifying_keys<C: Ciphersuite>(
             .iter()
             .map(|p| {
                 // Get the commitment vector for this participant
-                Ok::<&VerifiableSecretSharingCommitment<C>, Error>(
+                Ok::<&VerifiableSecretSharingCommitment<C>, Error<C>>(
                     &round1_packages_map
                         .get(&p.sender_identifier)
                         .ok_or(Error::PackageNotFound)?
@@ -270,7 +270,7 @@ pub fn keygen_part3<C: Ciphersuite>(
     round2_secret_package: &Round2SecretPackage<C>,
     round1_packages: &[Round1Package<C>],
     round2_packages: &[Round2Package<C>],
-) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error> {
+) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
     if round1_packages.len() != (round2_secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
     }

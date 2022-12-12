@@ -1,5 +1,5 @@
 use curve25519_dalek::{edwards::EdwardsPoint, traits::Identity};
-use frost_core::{Ciphersuite, Group};
+use frost_core::{Ciphersuite, Group, GroupError};
 use frost_ed25519::*;
 use rand::thread_rng;
 
@@ -36,5 +36,5 @@ fn check_deserialize_identity() {
     let encoded_identity = EdwardsPoint::identity().compress().to_bytes();
 
     let r = <<Ed25519Sha512 as Ciphersuite>::Group as Group>::deserialize(&encoded_identity);
-    assert_eq!(r, Err(Error::InvalidIdentityElement));
+    assert_eq!(r, Err(GroupError::InvalidIdentityElement));
 }

@@ -44,8 +44,10 @@ where
     /// Deserializes [`BindingFactor`] from bytes.
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+    ) -> Result<Self, Error<C>> {
+        <<C::Group as Group>::Field>::deserialize(&bytes)
+            .map(|scalar| Self(scalar))
+            .map_err(|e| e.into())
     }
 
     /// Serializes [`BindingFactor`] to bytes.
@@ -139,7 +141,7 @@ where
 fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
-) -> Result<Scalar<C>, Error> {
+) -> Result<Scalar<C>, Error<C>> {
     let zero = <<C::Group as Group>::Field>::zero();
 
     let mut num = <<C::Group as Group>::Field>::one();
@@ -259,7 +261,7 @@ impl<C> TryFrom<&SigningPackage<C>> for GroupCommitment<C>
 where
     C: Ciphersuite,
 {
-    type Error = Error;
+    type Error = Error<C>;
 
     /// Generates the group commitment which is published as part of the joint
     /// Schnorr signature.
@@ -267,7 +269,7 @@ where
     /// Implements [`compute_group_commitment`] from the spec.
     ///
     /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.5
-    fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, Error> {
+    fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, Error<C>> {
         let binding_factor_list: BindingFactorList<C> = signing_package.into();
 
         let identity = <C::Group>::identity();
@@ -317,7 +319,7 @@ pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
     signature_shares: &[round2::SignatureShare<C>],
     pubkeys: &keys::PublicKeyPackage<C>,
-) -> Result<Signature<C>, Error>
+) -> Result<Signature<C>, Error<C>>
 where
     C: Ciphersuite,
 {
