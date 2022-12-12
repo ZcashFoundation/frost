@@ -29,8 +29,8 @@ where
     pub fn deserialize(
         buf: &<<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error<C>> {
-
         let scalar = <<C::Group as Group>::Field>::deserialize(buf)?;
+        
         if scalar == <<C::Group as Group>::Field>::zero() {
             Err(FieldError::InvalidZeroScalar.into())
         } else {
