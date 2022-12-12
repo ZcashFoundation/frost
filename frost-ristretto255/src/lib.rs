@@ -11,12 +11,13 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha512};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<Ristretto255Sha512>;
 
 #[derive(Clone, Copy)]
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite scalar field.
@@ -35,11 +36,11 @@ impl Field for RistrettoScalarField {
         Scalar::one()
     }
 
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
         // [`curve25519_dalek::scalar::Scalar`]'s Eq/PartialEq does a constant-time comparison using
         // `ConstantTimeEq`
         if *scalar == <Self as Field>::zero() {
-            Err(Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar)
         } else {
             Ok(scalar.invert())
         }
@@ -53,10 +54,10 @@ impl Field for RistrettoScalarField {
         scalar.to_bytes()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         match Scalar::from_canonical_bytes(*buf) {
             Some(s) => Ok(s),
-            None => Err(Error::MalformedScalar),
+            None => Err(FieldError::MalformedScalar),
         }
     }
 
@@ -92,16 +93,16 @@ impl Group for RistrettoGroup {
         element.compress().to_bytes()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         match CompressedRistretto::from_slice(buf.as_ref()).decompress() {
             Some(point) => {
                 if point == Self::identity() {
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else {
                     Ok(point)
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
 }
@@ -111,7 +112,7 @@ impl Group for RistrettoGroup {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-1
 const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite.
 pub struct Ristretto255Sha512;
 

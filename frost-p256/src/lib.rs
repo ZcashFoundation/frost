@@ -14,12 +14,13 @@ use p256::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha256};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<P256Sha256>;
 
 #[derive(Clone, Copy)]
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite scalar field.
@@ -38,11 +39,11 @@ impl Field for P256ScalarField {
         Scalar::ONE
     }
 
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
         // [`p256::Scalar`]'s Eq/PartialEq does a constant-time comparison using
         // `ConstantTimeEq`
         if *scalar == <Self as Field>::zero() {
-            Err(Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar)
         } else {
             Ok(scalar.invert().unwrap())
         }
@@ -56,11 +57,11 @@ impl Field for P256ScalarField {
         scalar.to_bytes().into()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         let field_bytes: &p256::FieldBytes = buf.into();
         match Scalar::from_repr(*field_bytes).into() {
             Some(s) => Ok(s),
-            None => Err(Error::MalformedScalar),
+            None => Err(FieldError::MalformedScalar),
         }
     }
 
@@ -119,9 +120,9 @@ impl Group for P256Group {
         fixed_serialized
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let encoded_point =
-            p256::EncodedPoint::from_bytes(buf).map_err(|_| Error::MalformedElement)?;
+            p256::EncodedPoint::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
 
         match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
             Some(point) => {
@@ -129,12 +130,12 @@ impl Group for P256Group {
                     // This is actually impossible since the identity is encoded a a single byte
                     // which will never happen since we receive a 33-byte buffer.
                     // We leave the check for consistency.
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else {
                     Ok(ProjectivePoint::from(point))
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
 }
@@ -144,7 +145,7 @@ impl Group for P256Group {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-1
 const CONTEXT_STRING: &str = "FROST-P256-SHA256-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite.
 pub struct P256Sha256;
 

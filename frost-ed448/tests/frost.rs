@@ -1,5 +1,5 @@
 use ed448_goldilocks::curve::ExtendedPoint;
-use frost_core::{Ciphersuite, Group};
+use frost_core::{Ciphersuite, Group, GroupError};
 use frost_ed448::*;
 use rand::thread_rng;
 
@@ -40,5 +40,5 @@ fn check_deserialize_identity() {
     let encoded_identity = ExtendedPoint::identity().compress().0;
 
     let r = <<Ed448Shake256 as Ciphersuite>::Group as Group>::deserialize(&encoded_identity);
-    assert_eq!(r, Err(Error::InvalidIdentityElement));
+    assert_eq!(r, Err(GroupError::InvalidIdentityElement));
 }
