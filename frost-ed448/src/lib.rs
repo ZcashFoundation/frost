@@ -93,7 +93,7 @@ impl Group for Ed448Group {
         element.compress().0
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let compressed = CompressedEdwardsY(*buf);
         match compressed.decompress() {
             Some(point) => {
@@ -103,7 +103,7 @@ impl Group for Ed448Group {
                     // decompress() does not check for canonicality, so we
                     // check by recompressing and comparing
                     if point.compress().0 != compressed.0 {
-                        Err(Error::MalformedElement)
+                        Err(GroupError::MalformedElement)
                     } else {
                         Ok(point)
                     }
