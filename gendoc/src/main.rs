@@ -135,79 +135,71 @@ fn main() -> ExitCode {
     let mut replaced = 0;
     let check = args.len() == 2 && args[1] == "--check";
 
-    let docs = read_docs(
-        "frost-ristretto255/src/lib.rs",
-        &["Ristretto255Sha512", "Ristretto", "<R>"],
-    );
-    let old_suite_names_doc = &["FROST(ristretto255, SHA-512)"];
-
-    let original_basename = "frost-ristretto255/";
+    let original_folder = "frost-ristretto255";
+    let original_suite_names_code = &["Ristretto255Sha512", "Ristretto", "<R>"];
+    let original_suite_names_doc = &["FROST(ristretto255, SHA-512)"];
     let original_strings = &["frost_ristretto255", "Ristretto group"];
 
-    // To add a new ciphersuite, just copy this call and replace the required strings.
-
-    replaced |= write_docs(
-        &docs,
-        "frost-p256/src/lib.rs",
-        &["P256Sha256", "P256", "<P>"],
-        old_suite_names_doc,
-        &["FROST(P-256, SHA-256)"],
+    let docs = read_docs("frost-ristretto255/src/lib.rs", original_suite_names_code);
+    let dkg_docs = read_docs(
+        "frost-ristretto255/src/keys/dkg.rs",
+        original_suite_names_code,
     );
-    for filename in ["README.md", "dkg.md"] {
-        replaced |= copy_and_replace(
-            format!("{}/{}", original_basename, filename).as_str(),
-            format!("frost-p256/{}", filename).as_str(),
-            original_strings,
+
+    // To add a new ciphersuite, just copy a tuple and replace the required strings.
+    for (folder, suite_names_code, suite_names_doc, replacement_strings) in [
+        (
+            // The folder where the ciphersuite crate is
+            "frost-p256",
+            // String replacements for the strings in `original_suite_names_code`
+            &["P256Sha256", "P256", "<P>"],
+            // String replacements for the strings in `original_suite_names_doc`
+            &["FROST(P-256, SHA-256)"],
+            // String replacements for the strings in `original_strings`
             &["frost_p256", "P-256 curve"],
-        );
-    }
-
-    replaced |= write_docs(
-        &docs,
-        "frost-ed25519/src/lib.rs",
-        &["Ed25519Sha512", "Ed25519", "<E>"],
-        old_suite_names_doc,
-        &["FROST(Ed25519, SHA-512)"],
-    );
-    for filename in ["README.md", "dkg.md"] {
-        replaced |= copy_and_replace(
-            format!("{}/{}", original_basename, filename).as_str(),
-            format!("frost-ed25519/{}", filename).as_str(),
-            original_strings,
+        ),
+        (
+            "frost-ed25519",
+            &["Ed25519Sha512", "Ed25519", "<E>"],
+            &["FROST(Ed25519, SHA-512)"],
             &["frost_ed25519", "Ed25519 curve"],
-        );
-    }
-
-    replaced |= write_docs(
-        &docs,
-        "frost-ed448/src/lib.rs",
-        &["Ed448Shake256", "Ed448", "<E>"],
-        old_suite_names_doc,
-        &["FROST(Ed448, SHAKE256)"],
-    );
-    for filename in ["README.md", "dkg.md"] {
-        replaced |= copy_and_replace(
-            format!("{}/{}", original_basename, filename).as_str(),
-            format!("frost-ed448/{}", filename).as_str(),
-            original_strings,
+        ),
+        (
+            "frost-ed448",
+            &["Ed448Shake256", "Ed448", "<E>"],
+            &["FROST(Ed448, SHAKE256)"],
             &["frost_ed448", "Ed448 curve"],
-        );
-    }
-
-    replaced |= write_docs(
-        &docs,
-        "frost-secp256k1/src/lib.rs",
-        &["Secp256K1Sha556", "Secp256K1", "<S>"],
-        old_suite_names_doc,
-        &["FROST(secp256k1, SHA-256)"],
-    );
-    for filename in ["README.md", "dkg.md"] {
-        replaced |= copy_and_replace(
-            format!("{}/{}", original_basename, filename).as_str(),
-            format!("frost-secp256k1/{}", filename).as_str(),
-            original_strings,
+        ),
+        (
+            "frost-secp256k1",
+            &["Secp256K1Sha556", "Secp256K1", "<S>"],
+            &["FROST(secp256k1, SHA-256)"],
             &["frost_secp256k1", "secp256k1 curve"],
-        );
+        ),
+    ] {
+        let lib_filename = format!("{}/src/lib.rs", folder);
+        let dkg_filename = format!("{}/src/keys/dkg.rs", folder);
+        // Copy the documentation of public items in Rust code, replacing ciphersuite-specific strings inside
+        // them in the process.
+        for (docs, filename) in [(&docs, lib_filename), (&dkg_docs, dkg_filename)] {
+            replaced |= write_docs(
+                docs,
+                &filename,
+                suite_names_code,
+                original_suite_names_doc,
+                suite_names_doc,
+            );
+        }
+        // Copy Markdown documentation, replacing ciphersuite-specific strings inside
+        // them in the process.
+        for filename in ["README.md", "dkg.md"] {
+            replaced |= copy_and_replace(
+                format!("{}/{}", original_folder, filename).as_str(),
+                format!("{}/{}", folder, filename).as_str(),
+                original_strings,
+                replacement_strings,
+            );
+        }
     }
 
     if check {
