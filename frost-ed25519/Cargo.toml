@@ -22,7 +22,7 @@ description = "A Schnorr signature scheme over the prime-order Ristretto group t
 features = ["nightly"]
 
 [dependencies]
-curve25519-dalek = { version = "4.0.0-pre.1", features = ["serde"] }
+curve25519-dalek = { version = "=4.0.0-pre.1", features = ["serde"] }
 frost-core = { path = "../frost-core", features = ["test-impl"] }
 frost-ristretto255 = { path = "../frost-ristretto255" }
 rand_core = "0.6"
