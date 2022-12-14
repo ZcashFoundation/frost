@@ -9,7 +9,7 @@ use curve25519_dalek::{
     traits::Identity,
 };
 use rand_core::{CryptoRng, RngCore};
-use sha2::{digest::Update, Digest, Sha512};
+use sha2::{Digest, Sha512};
 
 use frost_core::{frost, Ciphersuite, Field, Group, GroupError};
 
@@ -74,6 +74,21 @@ impl Group for Ed25519Group {
     }
 }
 
+fn hash_to_array(inputs: &[&[u8]]) -> [u8; 64] {
+    let mut h = Sha512::new();
+    for i in inputs {
+        h.update(i);
+    }
+    let mut output = [0u8; 64];
+    output.copy_from_slice(h.finalize().as_slice());
+    output
+}
+
+fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
+    let output = hash_to_array(inputs);
+    Scalar::from_bytes_mod_order_wide(&output)
+}
+
 /// Context string 'FROST-RISTRETTO255-SHA512-v5' from the ciphersuite in the [spec]
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-1
@@ -94,79 +109,40 @@ impl Ciphersuite for Ed25519Sha512 {
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("rho")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"rho", m])
     }
 
     /// H2 for FROST(Ed25519, SHA-512)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let h = Sha512::new().chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+        hash_to_scalar(&[m])
     }
 
     /// H3 for FROST(Ed25519, SHA-512)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("nonce")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"nonce", m])
     }
 
     /// H4 for FROST(Ed25519, SHA-512)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("msg")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"msg", m])
     }
 
     /// H5 for FROST(Ed25519, SHA-512)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("com")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"com", m])
     }
 
     /// HDKG for FROST(Ed25519, SHA-512)
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("dkg")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        Some(<<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output))
+        Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"dkg", m]))
     }
 }
 
