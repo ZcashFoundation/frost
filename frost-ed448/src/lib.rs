@@ -12,12 +12,13 @@ use sha3::{
     Shake256,
 };
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<Ed448Shake256>;
 
 #[derive(Clone, Copy)]
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite scalar field.
@@ -36,9 +37,9 @@ impl Field for Ed448ScalarField {
         Scalar::one()
     }
 
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
         if *scalar == <Self as Field>::zero() {
-            Err(Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar)
         } else {
             Ok(scalar.invert())
         }
@@ -53,10 +54,10 @@ impl Field for Ed448ScalarField {
         std::array::from_fn(|i| if i < 56 { bytes[i] } else { 0 })
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         match Scalar::from_canonical_bytes(*buf) {
             Some(s) => Ok(s),
-            None => Err(Error::MalformedScalar),
+            None => Err(FieldError::MalformedScalar),
         }
     }
 
@@ -97,7 +98,7 @@ impl Group for Ed448Group {
         match compressed.decompress() {
             Some(point) => {
                 if point == Self::identity() {
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else if point.is_torsion_free() {
                     // decompress() does not check for canonicality, so we
                     // check by recompressing and comparing
@@ -107,10 +108,10 @@ impl Group for Ed448Group {
                         Ok(point)
                     }
                 } else {
-                    Err(Error::InvalidNonPrimeOrderElement)
+                    Err(GroupError::InvalidNonPrimeOrderElement)
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
 }
@@ -136,7 +137,7 @@ fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.3-1
 const CONTEXT_STRING: &str = "FROST-ED448-SHAKE256-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite.
 pub struct Ed448Shake256;
 

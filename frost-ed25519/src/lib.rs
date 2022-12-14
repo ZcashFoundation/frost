@@ -11,12 +11,13 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::Update, Digest, Sha512};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<Ed25519Sha512>;
 
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite scalar field.
 pub type Ed25519ScalarField = frost_ristretto255::RistrettoScalarField;
@@ -48,11 +49,11 @@ impl Group for Ed25519Group {
         element.compress().to_bytes()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         match CompressedEdwardsY::from_slice(buf.as_ref()).decompress() {
             Some(point) => {
                 if point == Self::identity() {
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else if point.is_torsion_free() {
                     // At this point we should reject points which were not
                     // encoded canonically (i.e. Y coordinate >= p).
@@ -65,20 +66,20 @@ impl Group for Ed25519Group {
                     // > remaining 17 y-coordinates only 10 decode to valid curve points all of mixed order.
                     Ok(point)
                 } else {
-                    Err(Error::InvalidNonPrimeOrderElement)
+                    Err(GroupError::InvalidNonPrimeOrderElement)
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
 }
 
 /// Context string 'FROST-RISTRETTO255-SHA512-v5' from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-1
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-1
 const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite.
 pub struct Ed25519Sha512;
 
@@ -91,7 +92,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H1 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.1
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
@@ -105,7 +106,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H2 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.2
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let h = Sha512::new().chain(m);
 
@@ -116,7 +117,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H3 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.3
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
@@ -130,7 +131,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H4 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.4
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())
@@ -144,7 +145,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     /// H5 for FROST(Ed25519, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-6.1-2.2.2.5
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
         let h = Sha512::new()
             .chain(CONTEXT_STRING.as_bytes())

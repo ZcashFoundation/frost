@@ -1,4 +1,4 @@
-use frost_core::{Ciphersuite, Group};
+use frost_core::{Ciphersuite, Group, GroupError};
 use frost_p256::*;
 use rand::thread_rng;
 

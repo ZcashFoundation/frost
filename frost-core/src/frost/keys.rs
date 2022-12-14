@@ -1,4 +1,5 @@
 //! FROST keys, keygen, key shares
+#![allow(clippy::type_complexity)]
 
 use std::{
     collections::HashMap,
@@ -44,8 +45,10 @@ where
     /// Deserialize from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+    ) -> Result<Self, Error<C>> {
+        <<C::Group as Group>::Field>::deserialize(&bytes)
+            .map(|scalar| Self(scalar))
+            .map_err(|e| e.into())
     }
 
     /// Serialize to bytes
@@ -124,8 +127,10 @@ where
     /// Deserialize from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+    ) -> Result<Self, Error<C>> {
+        <<C::Group as Group>::Field>::deserialize(&bytes)
+            .map(|scalar| Self(scalar))
+            .map_err(|e| e.into())
     }
 
     /// Serialize to bytes
@@ -184,8 +189,10 @@ where
     C: Ciphersuite,
 {
     /// Deserialize from bytes
-    pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error> {
-        <C::Group as Group>::deserialize(&bytes).map(|element| Self(element))
+    pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
+        <C::Group as Group>::deserialize(&bytes)
+            .map(|element| Self(element))
+            .map_err(|e| e.into())
     }
 
     /// Serialize to bytes
@@ -282,7 +289,7 @@ where
     /// but only for this participant.
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.2-4
-    pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error> {
+    pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error<C>> {
         let f_result = <C::Group>::generator() * self.value.0;
         let result = evaluate_vss(&self.commitment, self.identifier);
 
@@ -314,7 +321,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
     mut rng: R,
-) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error> {
+) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     let mut bytes = [0; 64];
     rng.fill_bytes(&mut bytes);
 
@@ -346,7 +353,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 ///
 /// Implements [`polynomial_evaluate`] from the spec.
 ///
-/// [`polynomial_evaluate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-evaluation-of-a-polynomial
+/// [`polynomial_evaluate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-evaluation-of-a-polynomial
 fn evaluate_polynomial<C: Ciphersuite>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
@@ -425,7 +432,7 @@ impl<C> TryFrom<SecretShare<C>> for KeyPackage<C>
 where
     C: Ciphersuite,
 {
-    type Error = Error;
+    type Error = Error<C>;
 
     /// Tries to verify a share and construct a [`KeyPackage`] from it.
     ///
@@ -435,7 +442,7 @@ where
     /// every participant has the same view of the commitment issued by the
     /// dealer, but implementations *MUST* make sure that all participants have
     /// a consistent view of this commitment in practice.
-    fn try_from(secret_share: SecretShare<C>) -> Result<Self, Error> {
+    fn try_from(secret_share: SecretShare<C>) -> Result<Self, Error<C>> {
         let (public, group_public) = secret_share.verify()?;
 
         Ok(KeyPackage {
@@ -474,7 +481,7 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
     max_signers: u16,
     min_signers: u16,
     mut coefficients: Vec<Scalar<C>>,
-) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), Error> {
+) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), Error<C>> {
     if min_signers < 2 {
         return Err(Error::InvalidMinSigners);
     }
@@ -529,7 +536,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     max_signers: u16,
     min_signers: u16,
     coefficients: Vec<Scalar<C>>,
-) -> Result<Vec<SecretShare<C>>, Error> {
+) -> Result<Vec<SecretShare<C>>, Error<C>> {
     let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(max_signers as usize);
 
     let (coefficients, commitment) =
