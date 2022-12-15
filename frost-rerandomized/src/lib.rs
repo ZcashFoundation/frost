@@ -31,7 +31,7 @@ pub fn sign<C: Ciphersuite>(
     signer_nonces: &frost::round1::SigningNonces<C>,
     key_package: &frost::keys::KeyPackage<C>,
     randomizer_point: &<C::Group as Group>::Element,
-) -> Result<frost::round2::SignatureShare<C>, Error> {
+) -> Result<frost::round2::SignatureShare<C>, Error<C>> {
     let public_key = key_package.group_public.to_element() + *randomizer_point;
 
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
@@ -88,7 +88,7 @@ pub fn aggregate<C>(
     signature_shares: &[frost::round2::SignatureShare<C>],
     pubkeys: &frost::keys::PublicKeyPackage<C>,
     randomized_params: &RandomizedParams<C>,
-) -> Result<frost_core::Signature<C>, Error>
+) -> Result<frost_core::Signature<C>, Error<C>>
 where
     C: Ciphersuite,
 {

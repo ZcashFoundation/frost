@@ -12,12 +12,13 @@ use sha3::{
     Shake256,
 };
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<Ed448Shake256>;
 
 #[derive(Clone, Copy)]
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite scalar field.
@@ -36,9 +37,9 @@ impl Field for Ed448ScalarField {
         Scalar::one()
     }
 
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
         if *scalar == <Self as Field>::zero() {
-            Err(Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar)
         } else {
             Ok(scalar.invert())
         }
@@ -53,10 +54,10 @@ impl Field for Ed448ScalarField {
         std::array::from_fn(|i| if i < 56 { bytes[i] } else { 0 })
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         match Scalar::from_canonical_bytes(*buf) {
             Some(s) => Ok(s),
-            None => Err(Error::MalformedScalar),
+            None => Err(FieldError::MalformedScalar),
         }
     }
 
@@ -92,18 +93,25 @@ impl Group for Ed448Group {
         element.compress().0
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
-        match CompressedEdwardsY(*buf).decompress() {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
+        let compressed = CompressedEdwardsY(*buf);
+        match compressed.decompress() {
             Some(point) => {
                 if point == Self::identity() {
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else if point.is_torsion_free() {
-                    Ok(point)
+                    // decompress() does not check for canonicality, so we
+                    // check by recompressing and comparing
+                    if point.compress().0 != compressed.0 {
+                        Err(GroupError::MalformedElement)
+                    } else {
+                        Ok(point)
+                    }
                 } else {
-                    Err(Error::InvalidNonPrimeOrderElement)
+                    Err(GroupError::InvalidNonPrimeOrderElement)
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
 }
@@ -129,7 +137,7 @@ fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.3-1
 const CONTEXT_STRING: &str = "FROST-ED448-SHAKE256-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite.
 pub struct Ed448Shake256;
 
@@ -223,85 +231,7 @@ pub mod keys {
     /// Used for verification purposes before publishing a signature.
     pub type PublicKeyPackage = frost::keys::PublicKeyPackage<E>;
 
-    pub mod dkg {
-        #![doc = include_str!("../dkg.md")]
-        use super::*;
-
-        /// The secret package that must be kept in memory by the participant
-        /// between the first and second parts of the DKG protocol (round 1).
-        ///
-        /// # Security
-        ///
-        /// This package MUST NOT be sent to other participants!
-        pub type Round1SecretPackage = frost::keys::dkg::Round1SecretPackage<E>;
-
-        /// The package that must be broadcast by each participant to all other participants
-        /// between the first and second parts of the DKG protocol (round 1).
-        pub type Round1Package = frost::keys::dkg::Round1Package<E>;
-
-        /// The secret package that must be kept in memory by the participant
-        /// between the second and third parts of the DKG protocol (round 2).
-        ///
-        /// # Security
-        ///
-        /// This package MUST NOT be sent to other participants!
-        pub type Round2SecretPackage = frost::keys::dkg::Round2SecretPackage<E>;
-
-        /// A package that must be sent by each participant to some other participants
-        /// in Round 2 of the DKG protocol. Note that there is one specific package
-        /// for each specific recipient, in contrast to Round 1.
-        ///
-        /// # Security
-        ///
-        /// The package must be sent on an *confidential* and *authenticated* channel.
-        pub type Round2Package = frost::keys::dkg::Round2Package<E>;
-
-        /// Performs the first part of the distributed key generation protocol
-        /// for the given participant.
-        ///
-        /// It returns the [`Round1SecretPackage`] that must be kept in memory
-        /// by the participant for the other steps, and the [`Round1Package`] that
-        /// must be sent to other participants.
-        pub fn keygen_part1<R: RngCore + CryptoRng>(
-            identifier: Identifier,
-            max_signers: u16,
-            min_signers: u16,
-            mut rng: R,
-        ) -> Result<(Round1SecretPackage, Round1Package), Error> {
-            frost::keys::dkg::keygen_part1(identifier, max_signers, min_signers, &mut rng)
-        }
-
-        /// Performs the second part of the distributed key generation protocol
-        /// for the participant holding the given [`Round1SecretPackage`],
-        /// given the received [`Round1Package`]s received from the other participants.
-        ///
-        /// It returns the [`Round2SecretPackage`] that must be kept in memory
-        /// by the participant for the final step, and the [`Round2Package`]s that
-        /// must be sent to other participants.
-        pub fn keygen_part2(
-            secret_package: Round1SecretPackage,
-            round1_packages: &[Round1Package],
-        ) -> Result<(Round2SecretPackage, Vec<Round2Package>), Error> {
-            frost::keys::dkg::keygen_part2(secret_package, round1_packages)
-        }
-
-        /// Performs the third and final part of the distributed key generation protocol
-        /// for the participant holding the given [`Round2SecretPackage`],
-        /// given the received [`Round1Package`]s and [`Round2Package`]s received from
-        /// the other participants.
-        ///
-        /// It returns the [`KeyPackage`] that has the long-lived key share for the
-        /// participant, and the [`PublicKeyPackage`]s that has public information
-        /// about all participants; both of which are required to compute FROST
-        /// signatures.
-        pub fn keygen_part3(
-            round2_secret_package: &Round2SecretPackage,
-            round1_packages: &[Round1Package],
-            round2_packages: &[Round2Package],
-        ) -> Result<(KeyPackage, PublicKeyPackage), Error> {
-            frost::keys::dkg::keygen_part3(round2_secret_package, round1_packages, round2_packages)
-        }
-    }
+    pub mod dkg;
 }
 
 /// FROST(Ed448, SHAKE256) Round 1 functionality and types.

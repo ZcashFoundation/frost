@@ -23,7 +23,7 @@ mod signing_key;
 pub mod tests;
 mod verifying_key;
 
-pub use error::Error;
+pub use error::{Error, FieldError, GroupError};
 pub use signature::Signature;
 pub use signing_key::SigningKey;
 pub use verifying_key::VerifyingKey;
@@ -57,7 +57,7 @@ pub trait Field: Copy + Clone {
 
     /// Computes the multiplicative inverse of an element of the scalar field, failing if the
     /// element is zero.
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error>;
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError>;
 
     /// Generate a random scalar from the entire space [0, l-1]
     ///
@@ -83,7 +83,7 @@ pub trait Field: Copy + Clone {
     /// resulting [`Scalar`] is zero
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.1-3.9>
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error>;
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError>;
 }
 
 /// An element of the [`Ciphersuite`] `C`'s [`Group`]'s scalar [`Field`].
@@ -119,8 +119,6 @@ pub trait Group: Copy + Clone + PartialEq {
     /// full curve group.
     ///
     /// If using a prime order elliptic curve, the cofactor should be 1 in the scalar field.
-    ///
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-04.html#section-4.1-3>
     fn cofactor() -> <Self::Field as Field>::Scalar;
 
     /// Additive [identity] of the prime order group.
@@ -148,7 +146,7 @@ pub trait Group: Copy + Clone + PartialEq {
     /// resulting [`Element`] is the identity element of the group
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.1-3.7>
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error>;
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError>;
 }
 
 /// An element of the [`Ciphersuite`] `C`'s [`Group`].
@@ -158,7 +156,7 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 /// function.
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-ciphersuites
-pub trait Ciphersuite: Copy + Clone + PartialEq {
+pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
@@ -171,21 +169,21 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
 
     /// [H1] for a FROST ciphersuite.
     ///
-    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    /// Maps arbitrary inputs to `Self::Scalar` elements of the prime-order group scalar field.
     ///
     /// [H1]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-cryptographic-hash-function
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
     /// [H2] for a FROST ciphersuite.
     ///
-    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    /// Maps arbitrary inputs to `Self::Scalar` elements of the prime-order group scalar field.
     ///
     /// [H2]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-cryptographic-hash-function
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
 
     /// [H3] for a FROST ciphersuite.
     ///
-    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    /// Maps arbitrary inputs to `Self::Scalar` elements of the prime-order group scalar field.
     ///
     /// [H3]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-cryptographic-hash-function
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar;
@@ -228,7 +226,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq {
         msg: &[u8],
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<Self>> {
         let c = crate::challenge::<Self>(&signature.R, &public_key.element, msg);
 
         public_key.verify_prehashed(c, signature)
@@ -272,8 +270,8 @@ where
 ///
 /// This is the only invocation of the H2 hash function from the [RFC].
 ///
-/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#name-signature-challenge-computa
-/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-3.2
+/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-challenge-computa
+/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.2
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 fn challenge<C>(R: &Element<C>, verifying_key: &Element<C>, msg: &[u8]) -> Challenge<C>
 where

@@ -37,8 +37,12 @@ where
     }
 
     /// Deserialize from bytes
-    pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<VerifyingKey<C>, Error> {
-        <C::Group>::deserialize(&bytes).map(|element| VerifyingKey { element })
+    pub fn from_bytes(
+        bytes: <C::Group as Group>::Serialization,
+    ) -> Result<VerifyingKey<C>, Error<C>> {
+        <C::Group>::deserialize(&bytes)
+            .map(|element| VerifyingKey { element })
+            .map_err(|e| e.into())
     }
 
     /// Serialize `VerifyingKey` to bytes
@@ -52,7 +56,7 @@ where
         &self,
         challenge: Challenge<C>,
         signature: &Signature<C>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<C>> {
         // Verify check is h * ( - z * B + R  + c * A) == 0
         //                 h * ( z * B - c * A - R) == 0
         //
@@ -69,7 +73,7 @@ where
     }
 
     /// Verify a purported `signature` over `msg` made by this verification key.
-    pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error> {
+    pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error<C>> {
         C::verify_signature(msg, signature, self)
     }
 }

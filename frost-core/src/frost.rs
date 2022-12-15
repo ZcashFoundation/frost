@@ -44,8 +44,10 @@ where
     /// Deserializes [`BindingFactor`] from bytes.
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+    ) -> Result<Self, Error<C>> {
+        <<C::Group as Group>::Field>::deserialize(&bytes)
+            .map(|scalar| Self(scalar))
+            .map_err(|e| e.into())
     }
 
     /// Serializes [`BindingFactor`] to bytes.
@@ -148,7 +150,7 @@ where
 fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
-) -> Result<Scalar<C>, Error> {
+) -> Result<Scalar<C>, Error<C>> {
     let zero = <<C::Group as Group>::Field>::zero();
 
     let mut num = <<C::Group as Group>::Field>::one();
@@ -290,7 +292,7 @@ where
 fn compute_group_commitment<C>(
     signing_package: &SigningPackage<C>,
     binding_factor_list: &BindingFactorList<C>,
-) -> Result<GroupCommitment<C>, Error>
+) -> Result<GroupCommitment<C>, Error<C>>
 where
     C: Ciphersuite,
 {
@@ -340,7 +342,7 @@ pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
     signature_shares: &[round2::SignatureShare<C>],
     pubkeys: &keys::PublicKeyPackage<C>,
-) -> Result<Signature<C>, Error>
+) -> Result<Signature<C>, Error<C>>
 where
     C: Ciphersuite,
 {
@@ -387,7 +389,7 @@ where
     //
     // Implements [`aggregate`] from the spec.
     //
-    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-5.3
+    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-5.3
     let mut z = <<C::Group as Group>::Field>::zero();
 
     for signature_share in signature_shares {

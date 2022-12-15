@@ -22,8 +22,10 @@ where
     /// Deserialize [`SignatureResponse`] from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self { z_share: scalar })
+    ) -> Result<Self, Error<C>> {
+        <<C::Group as Group>::Field>::deserialize(&bytes)
+            .map(|scalar| Self { z_share: scalar })
+            .map_err(|e| e.into())
     }
 
     /// Serialize [`SignatureResponse`] to bytes
@@ -86,11 +88,13 @@ where
         public_key: &frost::keys::VerifyingShare<C>,
         lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<C>> {
         if (<C::Group>::generator() * self.signature.z_share)
             != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
-            return Err(Error::InvalidSignatureShare);
+            return Err(Error::InvalidSignatureShare {
+                signer: self.identifier,
+            });
         }
 
         Ok(())
@@ -150,7 +154,7 @@ pub fn sign<C: Ciphersuite>(
     signing_package: &SigningPackage<C>,
     signer_nonces: &round1::SigningNonces<C>,
     key_package: &frost::keys::KeyPackage<C>,
-) -> Result<SignatureShare<C>, Error> {
+) -> Result<SignatureShare<C>, Error<C>> {
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =

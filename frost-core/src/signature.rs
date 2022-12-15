@@ -30,7 +30,7 @@ where
     }
 
     /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
-    pub fn from_bytes(bytes: C::SignatureSerialization) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: C::SignatureSerialization) -> Result<Self, Error<C>> {
         // To compute the expected length of the encoded point, encode the generator
         // and get its length. Note that we can't use the identity because it can be encoded
         // shorter in some cases (e.g. P-256, which uses SEC1 encoding).

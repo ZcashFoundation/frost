@@ -5,7 +5,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::{Ciphersuite, Error, Field, Group, Scalar};
+use crate::{Ciphersuite, Error, Field, FieldError, Group, Scalar};
 
 /// A FROST participant identifier.
 ///
@@ -19,10 +19,23 @@ impl<C> Identifier<C>
 where
     C: Ciphersuite,
 {
-    /// Serialize the underlying scalar.
+    /// Serialize the identifier using the ciphersuite encoding.
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
+    }
+
+    /// Deserialize an Identifier from a serialized buffer.
+    /// Returns an error if it attempts to deserialize zero.
+    pub fn deserialize(
+        buf: &<<C::Group as Group>::Field as Field>::Serialization,
+    ) -> Result<Self, Error<C>> {
+        let scalar = <<C::Group as Group>::Field>::deserialize(buf)?;
+        if scalar == <<C::Group as Group>::Field>::zero() {
+            Err(FieldError::InvalidZeroScalar.into())
+        } else {
+            Ok(Self(scalar))
+        }
     }
 }
 
@@ -110,11 +123,11 @@ impl<C> TryFrom<u16> for Identifier<C>
 where
     C: Ciphersuite,
 {
-    type Error = Error;
+    type Error = Error<C>;
 
     fn try_from(n: u16) -> Result<Identifier<C>, Self::Error> {
         if n == 0 {
-            Err(Self::Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar.into())
         } else {
             // Classic left-to-right double-and-add algorithm that skips the first bit 1 (since
             // identifiers are never zero, there is always a bit 1), thus `sum` starts with 1 too.

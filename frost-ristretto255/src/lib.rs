@@ -9,14 +9,15 @@ use curve25519_dalek::{
     traits::Identity,
 };
 use rand_core::{CryptoRng, RngCore};
-use sha2::{digest::Update, Digest, Sha512};
+use sha2::{Digest, Sha512};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<Ristretto255Sha512>;
 
 #[derive(Clone, Copy)]
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite scalar field.
@@ -35,11 +36,11 @@ impl Field for RistrettoScalarField {
         Scalar::one()
     }
 
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
         // [`curve25519_dalek::scalar::Scalar`]'s Eq/PartialEq does a constant-time comparison using
         // `ConstantTimeEq`
         if *scalar == <Self as Field>::zero() {
-            Err(Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar)
         } else {
             Ok(scalar.invert())
         }
@@ -53,10 +54,10 @@ impl Field for RistrettoScalarField {
         scalar.to_bytes()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         match Scalar::from_canonical_bytes(*buf) {
             Some(s) => Ok(s),
-            None => Err(Error::MalformedScalar),
+            None => Err(FieldError::MalformedScalar),
         }
     }
 
@@ -92,18 +93,33 @@ impl Group for RistrettoGroup {
         element.compress().to_bytes()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         match CompressedRistretto::from_slice(buf.as_ref()).decompress() {
             Some(point) => {
                 if point == Self::identity() {
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else {
                     Ok(point)
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
+}
+
+fn hash_to_array(inputs: &[&[u8]]) -> [u8; 64] {
+    let mut h = Sha512::new();
+    for i in inputs {
+        h.update(i);
+    }
+    let mut output = [0u8; 64];
+    output.copy_from_slice(h.finalize().as_slice());
+    output
+}
+
+fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
+    let output = hash_to_array(inputs);
+    Scalar::from_bytes_mod_order_wide(&output)
 }
 
 /// Context string from the ciphersuite in the [spec].
@@ -111,7 +127,7 @@ impl Group for RistrettoGroup {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-1
 const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite.
 pub struct Ristretto255Sha512;
 
@@ -126,82 +142,40 @@ impl Ciphersuite for Ristretto255Sha512 {
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("rho")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"rho", m])
     }
 
     /// H2 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("chal")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"chal", m])
     }
 
     /// H3 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("nonce")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        <<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output)
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"nonce", m])
     }
 
     /// H4 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("msg")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"msg", m])
     }
 
     /// H5 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("com")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"com", m])
     }
 
     /// HDKG for FROST(ristretto255, SHA-512)
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
-        let h = Sha512::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("dkg")
-            .chain(m);
-
-        let mut output = [0u8; 64];
-        output.copy_from_slice(h.finalize().as_slice());
-        Some(<<Self::Group as Group>::Field as Field>::Scalar::from_bytes_mod_order_wide(&output))
+        Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"dkg", m]))
     }
 }
 
@@ -247,85 +221,7 @@ pub mod keys {
     /// Used for verification purposes before publishing a signature.
     pub type PublicKeyPackage = frost::keys::PublicKeyPackage<R>;
 
-    pub mod dkg {
-        #![doc = include_str!("../dkg.md")]
-        use super::*;
-
-        /// The secret package that must be kept in memory by the participant
-        /// between the first and second parts of the DKG protocol (round 1).
-        ///
-        /// # Security
-        ///
-        /// This package MUST NOT be sent to other participants!
-        pub type Round1SecretPackage = frost::keys::dkg::Round1SecretPackage<R>;
-
-        /// The package that must be broadcast by each participant to all other participants
-        /// between the first and second parts of the DKG protocol (round 1).
-        pub type Round1Package = frost::keys::dkg::Round1Package<R>;
-
-        /// The secret package that must be kept in memory by the participant
-        /// between the second and third parts of the DKG protocol (round 2).
-        ///
-        /// # Security
-        ///
-        /// This package MUST NOT be sent to other participants!
-        pub type Round2SecretPackage = frost::keys::dkg::Round2SecretPackage<R>;
-
-        /// A package that must be sent by each participant to some other participants
-        /// in Round 2 of the DKG protocol. Note that there is one specific package
-        /// for each specific recipient, in contrast to Round 1.
-        ///
-        /// # Security
-        ///
-        /// The package must be sent on an *confidential* and *authenticated* channel.
-        pub type Round2Package = frost::keys::dkg::Round2Package<R>;
-
-        /// Performs the first part of the distributed key generation protocol
-        /// for the given participant.
-        ///
-        /// It returns the [`Round1SecretPackage`] that must be kept in memory
-        /// by the participant for the other steps, and the [`Round1Package`] that
-        /// must be sent to other participants.
-        pub fn keygen_part1<R: RngCore + CryptoRng>(
-            identifier: Identifier,
-            max_signers: u16,
-            min_signers: u16,
-            mut rng: R,
-        ) -> Result<(Round1SecretPackage, Round1Package), Error> {
-            frost::keys::dkg::keygen_part1(identifier, max_signers, min_signers, &mut rng)
-        }
-
-        /// Performs the second part of the distributed key generation protocol
-        /// for the participant holding the given [`Round1SecretPackage`],
-        /// given the received [`Round1Package`]s received from the other participants.
-        ///
-        /// It returns the [`Round2SecretPackage`] that must be kept in memory
-        /// by the participant for the final step, and the [`Round2Package`]s that
-        /// must be sent to other participants.
-        pub fn keygen_part2(
-            secret_package: Round1SecretPackage,
-            round1_packages: &[Round1Package],
-        ) -> Result<(Round2SecretPackage, Vec<Round2Package>), Error> {
-            frost::keys::dkg::keygen_part2(secret_package, round1_packages)
-        }
-
-        /// Performs the third and final part of the distributed key generation protocol
-        /// for the participant holding the given [`Round2SecretPackage`],
-        /// given the received [`Round1Package`]s and [`Round2Package`]s received from
-        /// the other participants.
-        ///
-        /// It returns the [`KeyPackage`] that has the long-lived key share for the
-        /// participant, and the [`PublicKeyPackage`]s that has public information
-        /// about all participants; both of which are required to compute FROST
-        /// signatures.
-        pub fn keygen_part3(
-            round2_secret_package: &Round2SecretPackage,
-            round1_packages: &[Round1Package],
-            round2_packages: &[Round2Package],
-        ) -> Result<(KeyPackage, PublicKeyPackage), Error> {
-            frost::keys::dkg::keygen_part3(round2_secret_package, round1_packages, round2_packages)
-        }
-    }
+    pub mod dkg;
 }
 
 /// FROST(ristretto255, SHA-512) Round 1 functionality and types.

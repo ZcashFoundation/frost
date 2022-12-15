@@ -2,10 +2,10 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use digest::generic_array::GenericArray;
 use k256::{
     elliptic_curve::{
         bigint::{Encoding, U384},
+        generic_array::GenericArray,
         group::prime::PrimeCurveAffine,
         hash2curve::{ExpandMsg, ExpandMsgXmd, Expander},
         sec1::{FromEncodedPoint, ToEncodedPoint},
@@ -14,14 +14,15 @@ use k256::{
     AffinePoint, ProjectivePoint, Scalar,
 };
 use rand_core::{CryptoRng, RngCore};
-use sha2::{digest::Update, Digest, Sha256};
+use sha2::{Digest, Sha256};
 
-use frost_core::{frost, Ciphersuite, Field, Group};
+use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
 
-pub use frost_core::Error;
+/// An error.
+pub type Error = frost_core::Error<Secp256K1Sha256>;
 
 #[derive(Clone, Copy)]
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite scalar field.
@@ -40,10 +41,10 @@ impl Field for Secp256K1ScalarField {
         Scalar::ONE
     }
 
-    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, Error> {
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
         // [`Scalar`]'s Eq/PartialEq does a constant-time comparison
         if *scalar == <Self as Field>::zero() {
-            Err(Error::InvalidZeroScalar)
+            Err(FieldError::InvalidZeroScalar)
         } else {
             Ok(scalar.invert().unwrap())
         }
@@ -57,11 +58,11 @@ impl Field for Secp256K1ScalarField {
         scalar.to_bytes().into()
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         let field_bytes: &k256::FieldBytes = buf.into();
         match Scalar::from_repr(*field_bytes).into() {
             Some(s) => Ok(s),
-            None => Err(Error::MalformedScalar),
+            None => Err(FieldError::MalformedScalar),
         }
     }
 
@@ -121,9 +122,9 @@ impl Group for Secp256K1Group {
         fixed_serialized
     }
 
-    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, Error> {
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let encoded_point =
-            k256::EncodedPoint::from_bytes(buf).map_err(|_| Error::MalformedElement)?;
+            k256::EncodedPoint::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
 
         match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
             Some(point) => {
@@ -131,14 +132,24 @@ impl Group for Secp256K1Group {
                     // This is actually impossible since the identity is encoded a a single byte
                     // which will never happen since we receive a 33-byte buffer.
                     // We leave the check for consistency.
-                    Err(Error::InvalidIdentityElement)
+                    Err(GroupError::InvalidIdentityElement)
                 } else {
                     Ok(ProjectivePoint::from(point))
                 }
             }
-            None => Err(Error::MalformedElement),
+            None => Err(GroupError::MalformedElement),
         }
     }
+}
+
+fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
+    let mut h = Sha256::new();
+    for i in inputs {
+        h.update(i);
+    }
+    let mut output = [0u8; 32];
+    output.copy_from_slice(h.finalize().as_slice());
+    output
 }
 
 /// hash2field implementation from <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-11#section-5.3>
@@ -172,7 +183,7 @@ fn hash_to_field(msg: &[u8], dst: &[u8]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-1
 const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
 pub struct Secp256K1Sha256;
 
@@ -211,28 +222,14 @@ impl Ciphersuite for Secp256K1Sha256 {
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
-        let h = Sha256::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("msg")
-            .chain(m);
-
-        let mut output = [0u8; 32];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"msg", m])
     }
 
     /// H5 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
-        let h = Sha256::new()
-            .chain(CONTEXT_STRING.as_bytes())
-            .chain("com")
-            .chain(m);
-
-        let mut output = [0u8; 32];
-        output.copy_from_slice(h.finalize().as_slice());
-        output
+        hash_to_array(&[CONTEXT_STRING.as_bytes(), b"com", m])
     }
 
     /// HDKG for FROST(secp256k1, SHA-256)
@@ -284,85 +281,7 @@ pub mod keys {
     /// Used for verification purposes before publishing a signature.
     pub type PublicKeyPackage = frost::keys::PublicKeyPackage<S>;
 
-    pub mod dkg {
-        #![doc = include_str!("../dkg.md")]
-        use super::*;
-
-        /// The secret package that must be kept in memory by the participant
-        /// between the first and second parts of the DKG protocol (round 1).
-        ///
-        /// # Security
-        ///
-        /// This package MUST NOT be sent to other participants!
-        pub type Round1SecretPackage = frost::keys::dkg::Round1SecretPackage<S>;
-
-        /// The package that must be broadcast by each participant to all other participants
-        /// between the first and second parts of the DKG protocol (round 1).
-        pub type Round1Package = frost::keys::dkg::Round1Package<S>;
-
-        /// The secret package that must be kept in memory by the participant
-        /// between the second and third parts of the DKG protocol (round 2).
-        ///
-        /// # Security
-        ///
-        /// This package MUST NOT be sent to other participants!
-        pub type Round2SecretPackage = frost::keys::dkg::Round2SecretPackage<S>;
-
-        /// A package that must be sent by each participant to some other participants
-        /// in Round 2 of the DKG protocol. Note that there is one specific package
-        /// for each specific recipient, in contrast to Round 1.
-        ///
-        /// # Security
-        ///
-        /// The package must be sent on an *confidential* and *authenticated* channel.
-        pub type Round2Package = frost::keys::dkg::Round2Package<S>;
-
-        /// Performs the first part of the distributed key generation protocol
-        /// for the given participant.
-        ///
-        /// It returns the [`Round1SecretPackage`] that must be kept in memory
-        /// by the participant for the other steps, and the [`Round1Package`] that
-        /// must be sent to other participants.
-        pub fn keygen_part1<R: RngCore + CryptoRng>(
-            identifier: Identifier,
-            max_signers: u16,
-            min_signers: u16,
-            mut rng: R,
-        ) -> Result<(Round1SecretPackage, Round1Package), Error> {
-            frost::keys::dkg::keygen_part1(identifier, max_signers, min_signers, &mut rng)
-        }
-
-        /// Performs the second part of the distributed key generation protocol
-        /// for the participant holding the given [`Round1SecretPackage`],
-        /// given the received [`Round1Package`]s received from the other participants.
-        ///
-        /// It returns the [`Round2SecretPackage`] that must be kept in memory
-        /// by the participant for the final step, and the [`Round2Package`]s that
-        /// must be sent to other participants.
-        pub fn keygen_part2(
-            secret_package: Round1SecretPackage,
-            round1_packages: &[Round1Package],
-        ) -> Result<(Round2SecretPackage, Vec<Round2Package>), Error> {
-            frost::keys::dkg::keygen_part2(secret_package, round1_packages)
-        }
-
-        /// Performs the third and final part of the distributed key generation protocol
-        /// for the participant holding the given [`Round2SecretPackage`],
-        /// given the received [`Round1Package`]s and [`Round2Package`]s received from
-        /// the other participants.
-        ///
-        /// It returns the [`KeyPackage`] that has the long-lived key share for the
-        /// participant, and the [`PublicKeyPackage`]s that has public information
-        /// about all participants; both of which are required to compute FROST
-        /// signatures.
-        pub fn keygen_part3(
-            round2_secret_package: &Round2SecretPackage,
-            round1_packages: &[Round1Package],
-            round2_packages: &[Round2Package],
-        ) -> Result<(KeyPackage, PublicKeyPackage), Error> {
-            frost::keys::dkg::keygen_part3(round2_secret_package, round1_packages, round2_packages)
-        }
-    }
+    pub mod dkg;
 }
 
 /// FROST(secp256k1, SHA-256) Round 1 functionality and types.

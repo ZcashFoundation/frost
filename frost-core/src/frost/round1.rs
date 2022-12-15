@@ -59,8 +59,10 @@ where
     /// Deserialize [`Nonce`] from bytes
     pub fn from_bytes(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error> {
-        <<C::Group as Group>::Field>::deserialize(&bytes).map(|scalar| Self(scalar))
+    ) -> Result<Self, Error<C>> {
+        <<C::Group as Group>::Field>::deserialize(&bytes)
+            .map(|scalar| Self(scalar))
+            .map_err(|e| e.into())
     }
 
     /// Serialize [`Nonce`] to bytes
@@ -103,8 +105,10 @@ where
     C: Ciphersuite,
 {
     /// Deserialize [`NonceCommitment`] from bytes
-    pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error> {
-        <C::Group>::deserialize(&bytes).map(|element| Self(element))
+    pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
+        <C::Group>::deserialize(&bytes)
+            .map(|element| Self(element))
+            .map_err(|e| e.into())
     }
 
     /// Serialize [`NonceCommitment`] to bytes
