@@ -55,6 +55,15 @@ impl Group for Ed25519Group {
                 if point == Self::identity() {
                     Err(GroupError::InvalidIdentityElement)
                 } else if point.is_torsion_free() {
+                    // At this point we should reject points which were not
+                    // encoded canonically (i.e. Y coordinate >= p).
+                    // However, we don't allow non-prime order elements,
+                    // and that suffices to also reject non-canonical encodings
+                    // per https://eprint.iacr.org/2020/1244.pdf:
+                    //
+                    // > There are 19 elliptic curve points that can be encoded in a non-canonical form.
+                    // > (...) Among these points there are 2 points of small order and from the
+                    // > remaining 17 y-coordinates only 10 decode to valid curve points all of mixed order.
                     Ok(point)
                 } else {
                     Err(GroupError::InvalidNonPrimeOrderElement)
