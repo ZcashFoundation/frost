@@ -26,7 +26,7 @@ use regex::Regex;
 ///
 /// It will return details for each match:
 /// - the item "name" ("[rest of the line...]" above, but after replacing
-///   any string in `suite_names_code` with "SuiteName")
+///   any string in `suite_strings` with "SuiteName")
 /// - the entire documentation string
 /// - the start and end position of the documentation string in the code, which allows
 ///   replacing it later
@@ -34,13 +34,13 @@ use regex::Regex;
 /// # Parameters
 ///
 /// filename: the name of the file to read.
-/// suite_names_code: strings that reference the specific suite in code
+/// suite_strings: strings that reference the specific suite in code
 ///     inside `fn` and should be ignore when using for replacements.
 ///
 /// # Returns
 ///
 /// A list with data for each item, see above.
-fn read_docs(filename: &str, suite_names_code: &[&str]) -> Vec<(String, String, usize, usize)> {
+fn read_docs(filename: &str, suite_strings: &[&str]) -> Vec<(String, String, usize, usize)> {
     let mut docs = Vec::new();
     let code = fs::read_to_string(filename).unwrap();
     let re = Regex::new(r"(?m)((^[ ]*///.*\n)+)\s*pub (.*)").unwrap();
@@ -53,7 +53,7 @@ fn read_docs(filename: &str, suite_names_code: &[&str]) -> Vec<(String, String, 
         // Replacing ciphersuite-specific names with a fixed string allows
         // comparing item "names" to check later if we're working on the
         // same item.
-        for n in suite_names_code.iter() {
+        for n in suite_strings.iter() {
             name = name.replace(n, "SuiteName");
         }
         docs.push((
@@ -74,19 +74,16 @@ fn read_docs(filename: &str, suite_names_code: &[&str]) -> Vec<(String, String, 
 ///
 /// docs: the documentation from another file which will be used as a base.
 /// filename: the name of the file to write documentation for.
-/// suite_names_code: ciphersuite-specific references for code in `fn`, see read_docs
-/// old_suite_names_doc: ciphersuite-specific references in the documentation of
-///     the base file
-/// new_suite_names_doc: replacements to use in the documentation of the given file
-///     for each reference in `old_suite_names_doc`.
+/// original_suite_strings: ciphersuite-specific references in the base file
+/// new_suite_strings: replacements to use in the documentation of the given file
+///     for each reference in `original_suite_strings`.
 fn write_docs(
     docs: &[(String, String, usize, usize)],
     filename: &str,
-    suite_names_code: &[&str],
-    old_suite_names_doc: &[&str],
-    new_suite_names_doc: &[&str],
+    original_suite_strings: &[&str],
+    new_suite_strings: &[&str],
 ) -> u8 {
-    let old_docs = read_docs(filename, suite_names_code);
+    let old_docs = read_docs(filename, new_suite_strings);
     let mut code = fs::read_to_string(filename).unwrap();
     let original_code = code.clone();
 
@@ -102,7 +99,7 @@ fn write_docs(
 
         // Replaces ciphersuite-references in documentation
         let mut new_doc = new_doc.to_string();
-        for (old_n, new_n) in zip(old_suite_names_doc.iter(), new_suite_names_doc.iter()) {
+        for (old_n, new_n) in zip(original_suite_strings.iter(), new_suite_strings.iter()) {
             new_doc = new_doc.replace(old_n, new_n)
         }
         code.replace_range(old_start..old_end, &new_doc);
@@ -126,6 +123,8 @@ fn copy_and_replace(
         text = text.replace(from, to)
     }
 
+    let folder = std::path::Path::new(destination_filename).parent().unwrap();
+    let _ = fs::create_dir_all(folder);
     fs::write(destination_filename, &text).unwrap();
     u8::from(original_text != text)
 }
@@ -136,45 +135,65 @@ fn main() -> ExitCode {
     let check = args.len() == 2 && args[1] == "--check";
 
     let original_folder = "frost-ristretto255";
-    let original_suite_names_code = &["Ristretto255Sha512", "Ristretto", "<R>"];
-    let original_suite_names_doc = &["FROST(ristretto255, SHA-512)"];
-    let original_strings = &["frost_ristretto255", "Ristretto group"];
+    let original_strings = &[
+        "Ristretto255Sha512",
+        "Ristretto group",
+        "Ristretto",
+        "FROST(ristretto255, SHA-512)",
+        "ristretto255",
+        "<R>",
+    ];
 
-    let docs = read_docs("frost-ristretto255/src/lib.rs", original_suite_names_code);
-    let dkg_docs = read_docs(
-        "frost-ristretto255/src/keys/dkg.rs",
-        original_suite_names_code,
-    );
+    let docs = read_docs("frost-ristretto255/src/lib.rs", original_strings);
+    let dkg_docs = read_docs("frost-ristretto255/src/keys/dkg.rs", original_strings);
 
     // To add a new ciphersuite, just copy a tuple and replace the required strings.
-    for (folder, suite_names_code, suite_names_doc, replacement_strings) in [
+    for (folder, replacement_strings) in [
         (
             // The folder where the ciphersuite crate is
             "frost-p256",
-            // String replacements for the strings in `original_suite_names_code`
-            &["P256Sha256", "P256", "<P>"],
-            // String replacements for the strings in `original_suite_names_doc`
-            &["FROST(P-256, SHA-256)"],
             // String replacements for the strings in `original_strings`
-            &["frost_p256", "P-256 curve"],
+            &[
+                "P256Sha256",
+                "P-256 curve",
+                "P256",
+                "FROST(P-256, SHA-256)",
+                "p256",
+                "<P>",
+            ],
         ),
         (
             "frost-ed25519",
-            &["Ed25519Sha512", "Ed25519", "<E>"],
-            &["FROST(Ed25519, SHA-512)"],
-            &["frost_ed25519", "Ed25519 curve"],
+            &[
+                "Ed25519Sha512",
+                "Ed25519 curve",
+                "Ed25519",
+                "FROST(Ed25519, SHA-512)",
+                "ed25519",
+                "<E>",
+            ],
         ),
         (
             "frost-ed448",
-            &["Ed448Shake256", "Ed448", "<E>"],
-            &["FROST(Ed448, SHAKE256)"],
-            &["frost_ed448", "Ed448 curve"],
+            &[
+                "Ed448Shake256",
+                "Ed448 curve",
+                "Ed448",
+                "FROST(Ed448, SHAKE256)",
+                "ed448",
+                "<E>",
+            ],
         ),
         (
             "frost-secp256k1",
-            &["Secp256K1Sha556", "Secp256K1", "<S>"],
-            &["FROST(secp256k1, SHA-256)"],
-            &["frost_secp256k1", "secp256k1 curve"],
+            &[
+                "Secp256K1Sha256",
+                "secp256k1 curve",
+                "Secp256K1",
+                "FROST(secp256k1, SHA-256)",
+                "secp256k1",
+                "<S>",
+            ],
         ),
     ] {
         let lib_filename = format!("{}/src/lib.rs", folder);
@@ -182,13 +201,7 @@ fn main() -> ExitCode {
         // Copy the documentation of public items in Rust code, replacing ciphersuite-specific strings inside
         // them in the process.
         for (docs, filename) in [(&docs, lib_filename), (&dkg_docs, dkg_filename)] {
-            replaced |= write_docs(
-                docs,
-                &filename,
-                suite_names_code,
-                original_suite_names_doc,
-                suite_names_doc,
-            );
+            replaced |= write_docs(docs, &filename, original_strings, replacement_strings);
         }
         // Copy Markdown documentation, replacing ciphersuite-specific strings inside
         // them in the process.
