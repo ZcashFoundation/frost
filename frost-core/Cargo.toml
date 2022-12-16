@@ -30,6 +30,7 @@ zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
 proptest = { version = "1.0", optional = true }
 proptest-derive = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
+criterion = { version = "0.4", optional = true }
 
 [dev-dependencies]
 curve25519-dalek = { version = "=4.0.0-pre.1", features = ["serde"] }
@@ -43,6 +44,9 @@ sha2 = "0.10.2"
 [features]
 nightly = []
 default = []
-# Exposes ciphersuite-generic tests for other crates to use
-test-impl = ["proptest", "proptest-derive", "serde_json"]
 internals = []
+# Exposes ciphersuite-generic tests for other crates to use
+test-impl = ["proptest", "proptest-derive", "serde_json", "criterion"]
+
+[lib]
+bench = false
