@@ -323,42 +323,8 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
-    // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
-    // binding factor.
-    let binding_factor_list: BindingFactorList<C> = signing_package.into();
-
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
-
-    // Compute the per-message challenge.
-    let challenge = crate::challenge::<C>(
-        &group_commitment.0,
-        &pubkeys.group_public.element,
-        signing_package.message().as_slice(),
-    );
-
-    // Verify the signature shares.
-    for signature_share in signature_shares {
-        // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
-        // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
-        let signer_pubkey = pubkeys
-            .signer_pubkeys
-            .get(&signature_share.identifier)
-            .unwrap();
-
-        // Compute Lagrange coefficient.
-        let lambda_i = derive_lagrange_coeff(&signature_share.identifier, signing_package)?;
-
-        let binding_factor = binding_factor_list[signature_share.identifier].clone();
-
-        // Compute the commitment share.
-        let R_share = signing_package
-            .signing_commitment(&signature_share.identifier)
-            .to_group_commitment_share(&binding_factor);
-
-        // Compute relation values to verify this signature share.
-        signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
-    }
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
@@ -372,8 +338,57 @@ where
         z = z + signature_share.signature.z_share;
     }
 
-    Ok(Signature {
+    let signature = Signature {
         R: group_commitment.0,
         z,
-    })
+    };
+
+    // Verify the aggregate signature
+    let verification_result = pubkeys
+        .group_public
+        .verify(signing_package.message(), &signature);
+
+    // If verification failed; verify each share to find the cheater.
+    // This approach is more efficient since we don't need to verificate all shares
+    // if the aggregate signature is valid (which should be the common case).
+    if let Err(err) = verification_result {
+        // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
+        // binding factor.
+        let binding_factor_list: BindingFactorList<C> = signing_package.into();
+
+        // Compute the per-message challenge.
+        let challenge = crate::challenge::<C>(
+            &group_commitment.0,
+            &pubkeys.group_public.element,
+            signing_package.message().as_slice(),
+        );
+
+        // Verify the signature shares.
+        for signature_share in signature_shares {
+            // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
+            // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
+            let signer_pubkey = pubkeys
+                .signer_pubkeys
+                .get(&signature_share.identifier)
+                .unwrap();
+
+            // Compute Lagrange coefficient.
+            let lambda_i = derive_lagrange_coeff(&signature_share.identifier, signing_package)?;
+
+            let binding_factor = binding_factor_list[signature_share.identifier].clone();
+
+            // Compute the commitment share.
+            let R_share = signing_package
+                .signing_commitment(&signature_share.identifier)
+                .to_group_commitment_share(&binding_factor);
+
+            // Compute relation values to verify this signature share.
+            signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
+        }
+
+        // We should never reach here; but we return the verification error to be safe.
+        return Err(err);
+    }
+
+    Ok(signature)
 }
