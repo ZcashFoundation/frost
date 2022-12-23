@@ -104,9 +104,33 @@ def verify_aggregated_vs_all_shares(data_aggregated, data_all_shares, ciphersuit
     plot(title, filename, get_group_value, group_lst, series_lst, fmt, (8, 6))
 
 
+def generate_table(f, data, ciphersuite_lst, fn_lst, size_lst):
+    for ciphersuite in ciphersuite_lst:
+        print(f'### {ciphersuite}\n', file=f)
+        print('|' + '|'.join([''] + fn_lst) + '|', file=f)
+        print('|' + '|'.join([':---'] + ['---:'] * len(fn_lst)) + '|', file=f)
+        for size in size_lst:
+            min_signers = int((size * 2 + 2) / 3)
+            print('|' + '|'.join([f'{min_signers}-of-{size}'] + ['{:.2f}'.format(data[ciphersuite][fn][size]) for fn in fn_lst]) + '|', file=f)
+        print('', file=f)
+    print('', file=f)
+
+
 if __name__ == '__main__':
     ciphersuite_lst, fn_lst, size_lst, data_aggregated = load_data('benchmark-verify-aggregate.txt')
     _, _, _, data_all_shares = load_data('benchmark-verify-all-shares.txt')
+
+    import io
+    import re
+    with io.StringIO() as f:
+        generate_table(f, data_aggregated, ciphersuite_lst, fn_lst, size_lst)
+        f.seek(0)
+        table = f.read()
+    with open('performance.md') as f:
+        md = f.read()
+        md = re.sub('<!-- Benchmarks -->[^<]*<!-- Benchmarks -->', '<!-- Benchmarks -->\n' + table + '<!-- Benchmarks -->', md, count=1, flags=re.DOTALL)
+    with open('performance.md', 'w') as f:
+        f.write(md)
 
     size_lst = [10, 100, 1000]
     times_by_size_and_function(data_all_shares, 'ristretto255', fn_lst, size_lst, '%.2f', 'all-shares')

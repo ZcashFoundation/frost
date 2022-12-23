@@ -38,7 +38,8 @@ during Key Generation, they produce a signature share which is sent to the
 Coordinator. Finally, the Coordinator carries out the final step, Aggregate,
 which produces the final signatures from all the signatures shares received.
 
-The benchmark for the Ristretto255 suite looked like the following:
+The benchmark for the Ristretto255 suite looked like the following. (Benchmarks
+were run on an AMD Ryzen 9 5900X 3.7GHZ, Ubuntu 22.04, Rust 1.66.0.)
 
 ![](times-by-size-and-function-ristretto255-all-shares.png)
 
@@ -98,6 +99,52 @@ all use the optimization described above.
 The same data in table format:
 
 <!-- Benchmarks -->
+### ed448
+
+|             | Key Generation with Dealer | Round 1 | Round 2 | Aggregate |
+| :---------- | -------------------------: | ------: | ------: | --------: |
+| 2-of-3      |                       1.56 |    0.51 |    0.75 |      1.39 |
+| 7-of-10     |                       4.65 |    0.53 |    2.36 |      2.88 |
+| 67-of-100   |                      46.05 |    0.52 |   21.04 |     20.37 |
+| 667-of-1000 |                     693.45 |    0.53 |  211.68 |    197.00 |
+
+### ristretto255
+
+|             | Key Generation with Dealer | Round 1 | Round 2 | Aggregate |
+| :---------- | -------------------------: | ------: | ------: | --------: |
+| 2-of-3      |                       0.24 |    0.08 |    0.13 |      0.22 |
+| 7-of-10     |                       0.71 |    0.08 |    0.42 |      0.47 |
+| 67-of-100   |                       7.61 |    0.08 |    3.77 |      3.40 |
+| 667-of-1000 |                     179.43 |    0.08 |   38.32 |     32.54 |
+
+### p256
+
+|             | Key Generation with Dealer | Round 1 | Round 2 | Aggregate |
+| :---------- | -------------------------: | ------: | ------: | --------: |
+| 2-of-3      |                       0.56 |    0.18 |    0.33 |      0.58 |
+| 7-of-10     |                       1.71 |    0.19 |    1.08 |      1.24 |
+| 67-of-100   |                      16.51 |    0.18 |   10.03 |      9.38 |
+| 667-of-1000 |                     206.85 |    0.19 |   97.49 |     90.82 |
+
+### secp256k1
+
+|             | Key Generation with Dealer | Round 1 | Round 2 | Aggregate |
+| :---------- | -------------------------: | ------: | ------: | --------: |
+| 2-of-3      |                       0.26 |    0.09 |    0.15 |      0.25 |
+| 7-of-10     |                       0.78 |    0.09 |    0.48 |      0.52 |
+| 67-of-100   |                       7.50 |    0.09 |    4.41 |      3.82 |
+| 667-of-1000 |                     123.74 |    0.09 |   46.11 |     37.48 |
+
+### ed25519
+
+|             | Key Generation with Dealer | Round 1 | Round 2 | Aggregate |
+| :---------- | -------------------------: | ------: | ------: | --------: |
+| 2-of-3      |                       0.24 |    0.08 |    0.12 |      0.22 |
+| 7-of-10     |                       0.73 |    0.08 |    0.39 |      0.45 |
+| 67-of-100   |                       7.70 |    0.08 |    3.64 |      3.28 |
+| 667-of-1000 |                     181.45 |    0.08 |   36.92 |     31.88 |
+
+
 <!-- Benchmarks -->
 
 The time-consuming part of each step is elliptic curve point multiplication.
