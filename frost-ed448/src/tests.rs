@@ -5,8 +5,10 @@ use serde_json::Value;
 use crate::*;
 
 lazy_static! {
-    pub static ref ED448_SHAKE256: Value =
-        serde_json::from_str(include_str!("tests/vectors.json").trim())
+    pub static ref VECTORS: Value = serde_json::from_str(include_str!("tests/vectors.json").trim())
+        .expect("Test vector is valid JSON");
+    pub static ref VECTORS_BIG_IDENTIFIER: Value =
+        serde_json::from_str(include_str!("tests/vectors-big-identifier.json").trim())
             .expect("Test vector is valid JSON");
 }
 
@@ -20,5 +22,8 @@ fn check_share_generation_ed448_shake256() {
 
 #[test]
 fn check_sign_with_test_vectors() {
-    frost_core::tests::vectors::check_sign_with_test_vectors::<Ed448Shake256>(&ED448_SHAKE256)
+    frost_core::tests::vectors::check_sign_with_test_vectors::<Ed448Shake256>(&VECTORS);
+    frost_core::tests::vectors::check_sign_with_test_vectors::<Ed448Shake256>(
+        &VECTORS_BIG_IDENTIFIER,
+    );
 }
