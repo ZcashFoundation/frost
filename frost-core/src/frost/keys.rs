@@ -9,7 +9,9 @@ use std::{
     iter,
 };
 
+#[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
+
 use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
@@ -542,7 +544,8 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     let (coefficients, commitment) =
         generate_secret_polynomial(secret, max_signers, min_signers, coefficients)?;
 
-    for id in (1..=max_signers as u16).map_while(|i| Identifier::<C>::try_from(i).ok()) {
+    for idx in 1..=max_signers as u16 {
+        let id = Identifier::<C>::try_from(idx)?;
         let value = evaluate_polynomial(id, &coefficients);
 
         secret_shares.push(SecretShare {
