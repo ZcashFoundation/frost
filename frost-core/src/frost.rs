@@ -230,7 +230,7 @@ where
         &self.message
     }
 
-    /// Compute the preimages to H3 to compute the per-signer binding factors
+    /// Compute the preimages to H1 to compute the per-signer binding factors
     // We separate this out into its own method so it can be tested
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub fn binding_factor_preimages(
