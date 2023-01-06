@@ -20,7 +20,8 @@ where
     C: Ciphersuite,
 {
     /// Serialize the identifier using the ciphersuite encoding.
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
     }
 

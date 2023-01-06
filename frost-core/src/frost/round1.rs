@@ -2,7 +2,9 @@
 
 use std::fmt::{self, Debug};
 
+#[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
+
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
@@ -225,6 +227,7 @@ where
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(super) fn to_group_commitment_share(
         self,
         binding_factor: &frost::BindingFactor<C>,
