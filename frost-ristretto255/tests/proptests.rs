@@ -15,11 +15,11 @@ proptest! {
         // Use a deterministic RNG so that test failures can be reproduced.
         // Seeding with 64 bits of entropy is INSECURE and this code should
         // not be copied outside of this test!
-        let mut rng = ChaChaRng::from_seed(rng_seed);
+        let rng = ChaChaRng::from_seed(rng_seed);
 
         // Create a test case for each signature type.
         let msg = b"test message for proptests";
-        let mut sig = SignatureCase::<Ristretto255Sha512>::new(&mut rng, msg.to_vec());
+        let mut sig = SignatureCase::<Ristretto255Sha512>::new(rng, msg.to_vec());
 
         // Apply tweaks to each case.
         for t in &tweaks {

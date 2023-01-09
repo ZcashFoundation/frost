@@ -544,7 +544,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     let (coefficients, commitment) =
         generate_secret_polynomial(secret, max_signers, min_signers, coefficients)?;
 
-    for idx in 1..=max_signers as u16 {
+    for idx in 1..=max_signers {
         let id = Identifier::<C>::try_from(idx)?;
         let value = evaluate_polynomial(id, &coefficients);
 

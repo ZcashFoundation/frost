@@ -42,7 +42,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     // Round 1: generating nonces and signing commitments for each participant
     ////////////////////////////////////////////////////////////////////////////
 
-    for participant_index in 1..(min_signers as u16 + 1) {
+    for participant_index in 1..(min_signers + 1) {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _min_signers_.
