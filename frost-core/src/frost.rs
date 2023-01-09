@@ -380,10 +380,6 @@ where
     // This approach is more efficient since we don't need to verificate all shares
     // if the aggregate signature is valid (which should be the common case).
     if let Err(err) = verification_result {
-        // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
-        // binding factor.
-        let binding_factor_list: BindingFactorList<C> = signing_package.into();
-
         // Compute the per-message challenge.
         let challenge = crate::challenge::<C>(
             &group_commitment.0,
