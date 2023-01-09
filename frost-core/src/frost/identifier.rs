@@ -20,7 +20,8 @@ where
     C: Ciphersuite,
 {
     /// Serialize the identifier using the ciphersuite encoding.
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
     }
 
@@ -70,7 +71,12 @@ where
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let serialized_self = <<C::Group as Group>::Field>::little_endian_serialize(&self.0);
         let serialized_other = <<C::Group as Group>::Field>::little_endian_serialize(&other.0);
-        serialized_self.as_ref().cmp(serialized_other.as_ref())
+        // The default cmp uses lexicographic order; so we need the elements in big endian
+        serialized_self
+            .as_ref()
+            .iter()
+            .rev()
+            .cmp(serialized_other.as_ref().iter().rev())
     }
 }
 
@@ -81,9 +87,12 @@ where
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let serialized_self = <<C::Group as Group>::Field>::little_endian_serialize(&self.0);
         let serialized_other = <<C::Group as Group>::Field>::little_endian_serialize(&other.0);
+        // The default cmp uses lexicographic order; so we need the elements in big endian
         serialized_self
             .as_ref()
-            .partial_cmp(serialized_other.as_ref())
+            .iter()
+            .rev()
+            .partial_cmp(serialized_other.as_ref().iter().rev())
     }
 }
 

@@ -113,6 +113,25 @@ where
     }
 }
 
+/// Compute the signature share for a signing operation.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+fn compute_signature_share<C: Ciphersuite>(
+    signer_nonces: &round1::SigningNonces<C>,
+    binding_factor: BindingFactor<C>,
+    lambda_i: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
+    key_package: &keys::KeyPackage<C>,
+    challenge: Challenge<C>,
+) -> SignatureShare<C> {
+    let z_share: <<C::Group as Group>::Field as Field>::Scalar = signer_nonces.hiding.0
+        + (signer_nonces.binding.0 * binding_factor.0)
+        + (lambda_i * key_package.secret_share.0 * challenge.0);
+
+    SignatureShare::<C> {
+        identifier: *key_package.identifier(),
+        signature: SignatureResponse::<C> { z_share },
+    }
+}
+
 // // Zeroizes `SignatureShare` to be the `Default` value on drop (when it goes out
 // // of scope).  Luckily the derived `Default` includes the `Default` impl of
 // // Scalar, which is four 0u64's under the hood, and u16, which is
@@ -138,12 +157,13 @@ pub fn sign<C: Ciphersuite>(
 ) -> Result<SignatureShare<C>, Error<C>> {
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
-    let binding_factor_list: frost::BindingFactorList<C> = signing_package.into();
+    let binding_factor_list: BindingFactorList<C> =
+        compute_binding_factor_list(signing_package, &[]);
     let binding_factor: frost::BindingFactor<C> =
         binding_factor_list[key_package.identifier].clone();
 
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
+    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
 
     // Compute Lagrange coefficient.
     let lambda_i = frost::derive_lagrange_coeff(key_package.identifier(), signing_package)?;
@@ -156,14 +176,13 @@ pub fn sign<C: Ciphersuite>(
     );
 
     // Compute the Schnorr signature share.
-    let z_share = signer_nonces.hiding.0
-        + (signer_nonces.binding.0 * binding_factor.0)
-        + (lambda_i * key_package.secret_share.0 * challenge.0);
-
-    let signature_share = SignatureShare::<C> {
-        identifier: *key_package.identifier(),
-        signature: SignatureResponse::<C> { z_share },
-    };
+    let signature_share = compute_signature_share(
+        signer_nonces,
+        binding_factor,
+        lambda_i,
+        key_package,
+        challenge,
+    );
 
     Ok(signature_share)
 }

@@ -12,11 +12,11 @@
 
 use std::{
     collections::{BTreeMap, HashMap},
-    convert::TryFrom,
     fmt::{self, Debug},
     ops::Index,
 };
 
+#[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
 mod identifier;
@@ -75,6 +75,12 @@ impl<C> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`BindingFactorList`] from a vector of binding factors.
+    #[cfg(feature = "internals")]
+    pub fn new(binding_factors: BTreeMap<Identifier<C>, BindingFactor<C>>) -> Self {
+        Self(binding_factors)
+    }
+
     /// Return iterator through all factors.
     pub fn iter(&self) -> impl Iterator<Item = (&Identifier<C>, &BindingFactor<C>)> {
         self.0.iter()
@@ -97,26 +103,28 @@ where
     }
 }
 
-impl<C> From<&SigningPackage<C>> for BindingFactorList<C>
+/// [`compute_binding_factors`] in the spec
+///
+/// [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.4
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn compute_binding_factor_list<C>(
+    signing_package: &SigningPackage<C>,
+    additional_prefix: &[u8],
+) -> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
-    // [`compute_binding_factors`] in the spec
-    //
-    // [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.4
-    fn from(signing_package: &SigningPackage<C>) -> BindingFactorList<C> {
-        let preimages = signing_package.binding_factor_preimages();
+    let preimages = signing_package.binding_factor_preimages(additional_prefix);
 
-        BindingFactorList(
-            preimages
-                .iter()
-                .map(|(identifier, preimage)| {
-                    let binding_factor = C::H1(preimage);
-                    (*identifier, BindingFactor(binding_factor))
-                })
-                .collect(),
-        )
-    }
+    BindingFactorList(
+        preimages
+            .iter()
+            .map(|(identifier, preimage)| {
+                let binding_factor = C::H1(preimage);
+                (*identifier, BindingFactor(binding_factor))
+            })
+            .collect(),
+    )
 }
 
 #[cfg(any(test, feature = "test-impl"))]
@@ -138,6 +146,7 @@ where
 // TODO: pub struct Lagrange<C: Ciphersuite>(Scalar);
 
 /// Generates the lagrange coefficient for the i'th participant.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
 fn derive_lagrange_coeff<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
@@ -221,15 +230,20 @@ where
         &self.message
     }
 
-    /// Compute the preimages to H3 to compute the per-signer binding factors
+    /// Compute the preimages to H1 to compute the per-signer binding factors
     // We separate this out into its own method so it can be tested
-    pub fn binding_factor_preimages(&self) -> Vec<(Identifier<C>, Vec<u8>)> {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub fn binding_factor_preimages(
+        &self,
+        additional_prefix: &[u8],
+    ) -> Vec<(Identifier<C>, Vec<u8>)> {
         let mut binding_factor_input_prefix = vec![];
 
         binding_factor_input_prefix.extend_from_slice(C::H4(self.message.as_slice()).as_ref());
         binding_factor_input_prefix.extend_from_slice(
             C::H5(&round1::encode_group_commitments(self.signing_commitments())[..]).as_ref(),
         );
+        binding_factor_input_prefix.extend_from_slice(additional_prefix);
 
         self.signing_commitments()
             .iter()
@@ -246,8 +260,19 @@ where
 
 /// The product of all signers' individual commitments, published as part of the
 /// final signature.
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct GroupCommitment<C: Ciphersuite>(pub(super) Element<C>);
+
+impl<C> GroupCommitment<C>
+where
+    C: Ciphersuite,
+{
+    /// Return the underlying element.
+    #[cfg(feature = "internals")]
+    pub fn to_element(self) -> <C::Group as Group>::Element {
+        self.0
+    }
+}
 
 // impl<C> Debug for GroupCommitment<C> where C: Ciphersuite {
 //     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -257,43 +282,41 @@ pub struct GroupCommitment<C: Ciphersuite>(pub(super) Element<C>);
 //     }
 // }
 
-impl<C> TryFrom<&SigningPackage<C>> for GroupCommitment<C>
+/// Generates the group commitment which is published as part of the joint
+/// Schnorr signature.
+///
+/// Implements [`compute_group_commitment`] from the spec.
+///
+/// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.5
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+fn compute_group_commitment<C>(
+    signing_package: &SigningPackage<C>,
+    binding_factor_list: &BindingFactorList<C>,
+) -> Result<GroupCommitment<C>, Error<C>>
 where
     C: Ciphersuite,
 {
-    type Error = Error<C>;
+    let identity = <C::Group as Group>::identity();
 
-    /// Generates the group commitment which is published as part of the joint
-    /// Schnorr signature.
-    ///
-    /// Implements [`compute_group_commitment`] from the spec.
-    ///
-    /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.5
-    fn try_from(signing_package: &SigningPackage<C>) -> Result<GroupCommitment<C>, Error<C>> {
-        let binding_factor_list: BindingFactorList<C> = signing_package.into();
+    let mut group_commitment = <C::Group as Group>::identity();
 
-        let identity = <C::Group>::identity();
-
-        let mut group_commitment = <C::Group>::identity();
-
-        // Ala the sorting of B, just always sort by identifier in ascending order
-        //
-        // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
-        for commitment in signing_package.signing_commitments() {
-            // The following check prevents a party from accidentally revealing their share.
-            // Note that the '&&' operator would be sufficient.
-            if identity == commitment.binding.0 || identity == commitment.hiding.0 {
-                return Err(Error::IdentityCommitment);
-            }
-
-            let binding_factor = binding_factor_list[commitment.identifier].clone();
-
-            group_commitment = group_commitment
-                + (commitment.hiding.0 + (commitment.binding.0 * binding_factor.0));
+    // Ala the sorting of B, just always sort by identifier in ascending order
+    //
+    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
+    for commitment in signing_package.signing_commitments() {
+        // The following check prevents a party from accidentally revealing their share.
+        // Note that the '&&' operator would be sufficient.
+        if identity == commitment.binding.0 || identity == commitment.hiding.0 {
+            return Err(Error::IdentityCommitment);
         }
 
-        Ok(GroupCommitment(group_commitment))
+        let binding_factor = binding_factor_list[commitment.identifier].clone();
+
+        group_commitment =
+            group_commitment + (commitment.hiding.0 + (commitment.binding.0 * binding_factor.0));
     }
+
+    Ok(GroupCommitment(group_commitment))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -323,8 +346,13 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
+    // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
+    // binding factor.
+    let binding_factor_list: BindingFactorList<C> =
+        compute_binding_factor_list(signing_package, &[]);
+
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment = GroupCommitment::<C>::try_from(signing_package)?;
+    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.

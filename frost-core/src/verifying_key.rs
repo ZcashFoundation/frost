@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug};
 
+#[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
 use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
@@ -22,6 +23,18 @@ where
 
     //     VerifyingKey { element }
     // }
+
+    /// Create a new VerifyingKey from the given element.
+    #[cfg(feature = "internals")]
+    pub fn new(element: <C::Group as Group>::Element) -> Self {
+        Self { element }
+    }
+
+    /// Return the underlying element.
+    #[cfg(feature = "internals")]
+    pub fn to_element(self) -> <C::Group as Group>::Element {
+        self.element
+    }
 
     /// Deserialize from bytes
     pub fn from_bytes(
