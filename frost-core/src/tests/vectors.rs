@@ -273,10 +273,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     // Round 2: each participant generates their signature share
     /////////////////////////////////////////////////////////////////////////////
 
-    let signer_commitments_vec = signer_commitments
-        .into_iter()
-        .map(|(_, signing_commitments)| signing_commitments)
-        .collect();
+    let signer_commitments_vec = signer_commitments.into_values().collect();
 
     let signing_package = frost::SigningPackage::new(signer_commitments_vec, message_bytes);
 
