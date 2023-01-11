@@ -323,11 +323,8 @@ where
 // Aggregation
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Verifies each participant's signature share, and if all are valid,
-/// aggregates the shares into a signature to publish.
-///
-/// Resulting signature is compatible with verification of a plain SpendAuth
-/// signature.
+/// Aggregates the signature shares to produce a final signature that
+/// can be verified with the group public key.
 ///
 /// This operation is performed by a coordinator that can communicate with all
 /// the signing participants before publishing the final signature. The
