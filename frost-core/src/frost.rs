@@ -376,7 +376,7 @@ where
         .group_public
         .verify(signing_package.message(), &signature);
 
-    // If verification failed; verify each share to find the cheater.
+    // Only if the verification of the aggregate signature failed; verify each share to find the cheater.
     // This approach is more efficient since we don't need to verify all shares
     // if the aggregate signature is valid (which should be the common case).
     if let Err(err) = verification_result {
