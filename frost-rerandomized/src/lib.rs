@@ -92,7 +92,7 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
-    let public_key = pubkeys.group_public.to_element() + *randomized_params.randomizer_point();
+    let public_key = randomized_params.randomized_group_public_key();
 
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
     // binding factor.
@@ -107,49 +107,62 @@ where
     // Compute the per-message challenge.
     let challenge = frost_core::challenge::<C>(
         &group_commitment.clone().to_element(),
-        &public_key,
+        &public_key.to_element(),
         signing_package.message().as_slice(),
     );
-
-    // Verify the signature shares.
-    for signature_share in signature_shares {
-        // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
-        // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
-        let signer_pubkey = pubkeys
-            .signer_pubkeys
-            .get(&signature_share.identifier)
-            .unwrap();
-
-        // Compute Lagrange coefficient.
-        let lambda_i =
-            frost::derive_interpolating_value(&signature_share.identifier, signing_package)?;
-
-        let rho = binding_factor_list[signature_share.identifier].clone();
-
-        // Compute the commitment share.
-        let R_share = signing_package
-            .signing_commitment(&signature_share.identifier)
-            .to_group_commitment_share(&rho);
-
-        // Compute relation values to verify this signature share.
-        signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
-    }
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
     //
     // Implements [`aggregate`] from the spec.
     //
-    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-5.3
+    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-5.3
     let mut z = <<C::Group as Group>::Field as Field>::zero();
 
     for signature_share in signature_shares {
         z = z + signature_share.signature.z_share;
     }
 
-    z = z + challenge.to_scalar() * randomized_params.randomizer;
+    z = z + challenge.clone().to_scalar() * randomized_params.randomizer;
 
-    Ok(frost_core::Signature::new(group_commitment.to_element(), z))
+    let signature = frost_core::Signature::new(group_commitment.to_element(), z);
+
+    // Verify the aggregate signature
+    let verification_result = public_key.verify(signing_package.message(), &signature);
+
+    // Only if the verification of the aggregate signature failed; verify each share to find the cheater.
+    // This approach is more efficient since we don't need to verify all shares
+    // if the aggregate signature is valid (which should be the common case).
+    if let Err(err) = verification_result {
+        // Verify the signature shares.
+        for signature_share in signature_shares {
+            // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
+            // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
+            let signer_pubkey = pubkeys
+                .signer_pubkeys
+                .get(&signature_share.identifier)
+                .unwrap();
+
+            // Compute Lagrange coefficient.
+            let lambda_i =
+                frost::derive_interpolating_value(&signature_share.identifier, signing_package)?;
+
+            let binding_factor = binding_factor_list[signature_share.identifier].clone();
+
+            // Compute the commitment share.
+            let R_share = signing_package
+                .signing_commitment(&signature_share.identifier)
+                .to_group_commitment_share(&binding_factor);
+
+            // Compute relation values to verify this signature share.
+            signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
+        }
+
+        // We should never reach here; but we return the verification error to be safe.
+        return Err(err);
+    }
+
+    Ok(signature)
 }
 
 /// Randomized params for a signing instance of randomized FROST.
