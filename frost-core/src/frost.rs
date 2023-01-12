@@ -323,11 +323,8 @@ where
 // Aggregation
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Verifies each participant's signature share, and if all are valid,
-/// aggregates the shares into a signature to publish.
-///
-/// Resulting signature is compatible with verification of a plain SpendAuth
-/// signature.
+/// Aggregates the signature shares to produce a final signature that
+/// can be verified with the group public key.
 ///
 /// This operation is performed by a coordinator that can communicate with all
 /// the signing participants before publishing the final signature. The
@@ -354,36 +351,6 @@ where
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
 
-    // Compute the per-message challenge.
-    let challenge = crate::challenge::<C>(
-        &group_commitment.0,
-        &pubkeys.group_public.element,
-        signing_package.message().as_slice(),
-    );
-
-    // Verify the signature shares.
-    for signature_share in signature_shares {
-        // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
-        // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
-        let signer_pubkey = pubkeys
-            .signer_pubkeys
-            .get(&signature_share.identifier)
-            .unwrap();
-
-        // Compute Lagrange coefficient.
-        let lambda_i = derive_lagrange_coeff(&signature_share.identifier, signing_package)?;
-
-        let binding_factor = binding_factor_list[signature_share.identifier].clone();
-
-        // Compute the commitment share.
-        let R_share = signing_package
-            .signing_commitment(&signature_share.identifier)
-            .to_group_commitment_share(&binding_factor);
-
-        // Compute relation values to verify this signature share.
-        signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
-    }
-
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
     //
@@ -396,8 +363,53 @@ where
         z = z + signature_share.signature.z_share;
     }
 
-    Ok(Signature {
+    let signature = Signature {
         R: group_commitment.0,
         z,
-    })
+    };
+
+    // Verify the aggregate signature
+    let verification_result = pubkeys
+        .group_public
+        .verify(signing_package.message(), &signature);
+
+    // Only if the verification of the aggregate signature failed; verify each share to find the cheater.
+    // This approach is more efficient since we don't need to verify all shares
+    // if the aggregate signature is valid (which should be the common case).
+    if let Err(err) = verification_result {
+        // Compute the per-message challenge.
+        let challenge = crate::challenge::<C>(
+            &group_commitment.0,
+            &pubkeys.group_public.element,
+            signing_package.message().as_slice(),
+        );
+
+        // Verify the signature shares.
+        for signature_share in signature_shares {
+            // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
+            // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
+            let signer_pubkey = pubkeys
+                .signer_pubkeys
+                .get(&signature_share.identifier)
+                .unwrap();
+
+            // Compute Lagrange coefficient.
+            let lambda_i = derive_lagrange_coeff(&signature_share.identifier, signing_package)?;
+
+            let binding_factor = binding_factor_list[signature_share.identifier].clone();
+
+            // Compute the commitment share.
+            let R_share = signing_package
+                .signing_commitment(&signature_share.identifier)
+                .to_group_commitment_share(&binding_factor);
+
+            // Compute relation values to verify this signature share.
+            signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
+        }
+
+        // We should never reach here; but we return the verification error to be safe.
+        return Err(err);
+    }
+
+    Ok(signature)
 }
