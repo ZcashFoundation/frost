@@ -1,7 +1,7 @@
 //! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use crate::frost;
+use crate::{frost, Signature, VerifyingKey};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -35,7 +35,9 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.
-pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
     ////////////////////////////////////////////////////////////////////////////
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
@@ -56,7 +58,7 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
         })
         .collect();
 
-    check_sign(min_signers, key_packages, rng, pubkeys);
+    check_sign(min_signers, key_packages, rng, pubkeys)
 }
 
 fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
@@ -64,7 +66,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
     pubkeys: frost::keys::PublicKeyPackage<C>,
-) {
+) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
     let mut nonces: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
     let mut commitments: HashMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         HashMap::new();
@@ -141,10 +143,14 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
             .verify(message, &group_signature)
             .is_ok());
     }
+
+    (message.to_owned(), group_signature, pubkeys.group_public)
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.
-pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(mut rng: R)
+pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+    mut rng: R,
+) -> (Vec<u8>, Signature<C>, VerifyingKey<C>)
 where
     C::Group: std::cmp::PartialEq,
 {
@@ -303,5 +309,5 @@ where
     };
 
     // Proceed with the signing test.
-    check_sign(min_signers, key_packages, rng, pubkeys);
+    check_sign(min_signers, key_packages, rng, pubkeys)
 }
