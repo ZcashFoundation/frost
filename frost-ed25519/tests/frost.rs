@@ -26,7 +26,8 @@ fn verify_signature(
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 
-    // For the interoperability test it's better to test with multiple signatures
+    // Test with multiple keys/signatures to better exercise the key generation
+    // and the interoperability check.
     for _ in 0..256 {
         let (msg, group_signature, group_pubkey) =
             frost_core::tests::check_sign_with_dealer::<Ed25519Sha512, _>(rng.clone());
@@ -41,10 +42,15 @@ fn check_sign_with_dealer() {
 fn check_sign_with_dkg() {
     let rng = thread_rng();
 
-    let (msg, group_signature, group_pubkey) =
-        frost_core::tests::check_sign_with_dkg::<Ed25519Sha512, _>(rng);
+    // Test with multiple keys/signatures to better exercise the key generation
+    // and the interoperability check. A smaller number of iterations is used
+    // because DKG takes longer and otherwise the test would be too slow.
+    for _ in 0..32 {
+        let (msg, group_signature, group_pubkey) =
+            frost_core::tests::check_sign_with_dkg::<Ed25519Sha512, _>(rng.clone());
 
-    verify_signature(&msg, group_signature, group_pubkey);
+        verify_signature(&msg, group_signature, group_pubkey);
+    }
 }
 
 #[test]
