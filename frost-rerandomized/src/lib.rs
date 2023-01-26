@@ -116,7 +116,7 @@ where
     //
     // Implements [`aggregate`] from the spec.
     //
-    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-5.3
+    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-12.html#section-5.3
     let mut z = <<C::Group as Group>::Field as Field>::zero();
 
     for signature_share in signature_shares {
