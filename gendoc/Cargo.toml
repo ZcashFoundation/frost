@@ -7,3 +7,10 @@ edition = "2021"
 
 [dependencies]
 regex = "1.6.0"
+
+[[bin]]
+name = "gendoc"
+path = "src/main.rs"
+# Disables non-criterion benchmark which is not used; prevents errors
+# when using criterion-specific flags
+bench = false

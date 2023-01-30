@@ -44,6 +44,11 @@ serde_json = "1.0"
 nightly = []
 default = []
 
-# [[bench]]
-# name = "bench"
-# harness = false
+[lib]
+# Disables non-criterion benchmark which is not used; prevents errors
+# when using criterion-specific flags
+bench = false
+
+[[bench]]
+name = "bench"
+harness = false
