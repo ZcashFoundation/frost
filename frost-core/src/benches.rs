@@ -93,7 +93,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
                 let mut rng = rng.clone();
                 b.iter(|| {
                     frost::keys::keygen_with_dealer::<C, R>(*max_signers, *min_signers, &mut rng)
-                    .unwrap();
+                        .unwrap();
                 })
             },
         );
