@@ -48,9 +48,7 @@ pub fn bench_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
                         let msg = b"Bench";
 
                         let Item { vk, sig } = item;
-                        {
-                            let _ = vk.verify(msg, sig);
-                        }
+                        let _ = vk.verify(msg, sig);
                     }
                 })
             },
@@ -67,9 +65,7 @@ pub fn bench_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
                         let msg = b"Bench";
 
                         let Item { vk, sig } = item;
-                        {
-                            batch.queue((*vk, *sig, msg));
-                        }
+                        batch.queue((*vk, *sig, msg));
                     }
                     batch.verify(&mut rng)
                 })
@@ -96,11 +92,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             |b, (max_signers, min_signers)| {
                 let mut rng = rng.clone();
                 b.iter(|| {
-                    let (_shares, _pubkeys) = frost::keys::keygen_with_dealer::<C, R>(
-                        *max_signers,
-                        *min_signers,
-                        &mut rng,
-                    )
+                    frost::keys::keygen_with_dealer::<C, R>(*max_signers, *min_signers, &mut rng)
                     .unwrap();
                 })
             },
@@ -126,7 +118,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             |b, key_packages| {
                 b.iter(|| {
                     let participant_identifier = 1u16.try_into().expect("should be nonzero");
-                    let (_nonce, _commitment) = frost::round1::commit(
+                    frost::round1::commit(
                         participant_identifier,
                         key_packages
                             .get(&participant_identifier)
@@ -141,7 +133,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
         let mut nonces: HashMap<_, _> = HashMap::new();
         let mut commitments: HashMap<_, _> = HashMap::new();
 
-        for participant_index in 1..(min_signers + 1) {
+        for participant_index in 1..=min_signers {
             let participant_identifier = participant_index.try_into().expect("should be nonzero");
             let (nonce, commitment) = frost::round1::commit(
                 participant_identifier,
@@ -171,8 +163,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
                     let participant_identifier = 1u16.try_into().expect("should be nonzero");
                     let key_package = key_packages.get(&participant_identifier).unwrap();
                     let nonces_to_use = &nonces.get(&participant_identifier).unwrap();
-                    let _signature_share =
-                        frost::round2::sign(signing_package, nonces_to_use, key_package).unwrap();
+                    frost::round2::sign(signing_package, nonces_to_use, key_package).unwrap();
                 })
             },
         );
@@ -191,8 +182,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             &(signing_package.clone(), signature_shares.clone(), pubkeys),
             |b, (signing_package, signature_shares, pubkeys)| {
                 b.iter(|| {
-                    let _group_signature_ =
-                        frost::aggregate(signing_package, &signature_shares[..], pubkeys).unwrap();
+                    frost::aggregate(signing_package, &signature_shares[..], pubkeys).unwrap();
                 })
             },
         );
