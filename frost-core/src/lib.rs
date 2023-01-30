@@ -14,6 +14,8 @@ use std::{
 use rand_core::{CryptoRng, RngCore};
 
 pub mod batch;
+#[cfg(any(test, feature = "test-impl"))]
+pub mod benches;
 mod error;
 pub mod frost;
 mod scalar_mul;

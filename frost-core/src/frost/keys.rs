@@ -60,11 +60,11 @@ where
 
     /// Generates a new uniformly random secret value using the provided RNG.
     // TODO: should this only be behind test?
-    pub fn random<R>(mut rng: R) -> Self
+    pub fn random<R>(rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
     {
-        Self(random_nonzero::<C, R>(&mut rng))
+        Self(random_nonzero::<C, R>(rng))
     }
 }
 
@@ -322,15 +322,15 @@ where
 pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
-    mut rng: R,
+    rng: &mut R,
 ) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     let mut bytes = [0; 64];
     rng.fill_bytes(&mut bytes);
 
-    let secret = SharedSecret::random(&mut rng);
+    let secret = SharedSecret::random(rng);
     let group_public = VerifyingKey::from(&secret);
 
-    let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, &mut rng);
+    let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
 
     let secret_shares = generate_secret_shares(&secret, max_signers, min_signers, coefficients)?;
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
