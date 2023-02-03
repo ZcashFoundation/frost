@@ -71,11 +71,11 @@ pub fn sign<C: Ciphersuite>(
 /// Aggregates the shares into a verified signature to publish.
 ///
 /// Resulting signature is compatible with verification of a plain SpendAuth
-/// signature. 
+/// signature.
 ///
 /// If the aggegated signature does not verify, each participant's signature share
-/// is validated, to find the cheater(s). This approach is more efficient and secure 
-/// as we don't need to verify all shares if the aggregate signature is verifiable 
+/// is validated, to find the cheater(s). This approach is more efficient and secure
+/// as we don't need to verify all shares if the aggregate signature is verifiable
 /// under the public group key and message (which should be the common case).
 ///
 /// This operation is performed by a coordinator that can communicate with all
