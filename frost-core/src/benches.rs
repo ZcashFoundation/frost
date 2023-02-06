@@ -31,7 +31,7 @@ pub fn bench_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
     name: &str,
     rng: &mut R,
 ) {
-    let mut group = c.benchmark_group(format!("Batch Verification {}", name));
+    let mut group = c.benchmark_group(format!("Batch Verification {name}"));
     for &n in [8usize, 16, 24, 32, 40, 48, 56, 64].iter() {
         group.throughput(Throughput::Elements(n as u64));
 
@@ -81,7 +81,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
     name: &str,
     rng: &mut R,
 ) {
-    let mut group = c.benchmark_group(format!("FROST Signing {}", name));
+    let mut group = c.benchmark_group(format!("FROST Signing {name}"));
     for &n in [3u16, 10, 100, 1000].iter() {
         let max_signers = n;
         let min_signers = (n * 2 + 2) / 3;
