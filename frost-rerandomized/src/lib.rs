@@ -121,7 +121,8 @@ where
             .unwrap();
 
         // Compute Lagrange coefficient.
-        let lambda_i = frost::derive_interpolating_value(&signature_share.identifier, signing_package)?;
+        let lambda_i =
+            frost::derive_interpolating_value(&signature_share.identifier, signing_package)?;
 
         let rho = binding_factor_list[signature_share.identifier].clone();
 
