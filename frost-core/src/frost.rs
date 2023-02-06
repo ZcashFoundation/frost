@@ -147,7 +147,7 @@ where
 
 /// Generates the lagrange coefficient for the i'th participant.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
-fn derive_lagrange_coeff<C: Ciphersuite>(
+fn derive_interpolating_value<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
 ) -> Result<Scalar<C>, Error<C>> {
@@ -395,7 +395,7 @@ where
                 .unwrap();
 
             // Compute Lagrange coefficient.
-            let lambda_i = derive_lagrange_coeff(&signature_share.identifier, signing_package)?;
+            let lambda_i = derive_interpolating_value(&signature_share.identifier, signing_package)?;
 
             let binding_factor = binding_factor_list[signature_share.identifier].clone();
 
