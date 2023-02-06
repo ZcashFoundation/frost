@@ -196,8 +196,8 @@ fn main() -> ExitCode {
             ],
         ),
     ] {
-        let lib_filename = format!("{}/src/lib.rs", folder);
-        let dkg_filename = format!("{}/src/keys/dkg.rs", folder);
+        let lib_filename = format!("{folder}/src/lib.rs");
+        let dkg_filename = format!("{folder}/src/keys/dkg.rs");
         // Copy the documentation of public items in Rust code, replacing ciphersuite-specific strings inside
         // them in the process.
         for (docs, filename) in [(&docs, lib_filename), (&dkg_docs, dkg_filename)] {
@@ -207,8 +207,8 @@ fn main() -> ExitCode {
         // them in the process.
         for filename in ["README.md", "dkg.md"] {
             replaced |= copy_and_replace(
-                format!("{}/{}", original_folder, filename).as_str(),
-                format!("{}/{}", folder, filename).as_str(),
+                format!("{original_folder}/{filename}").as_str(),
+                format!("{folder}/{filename}").as_str(),
                 original_strings,
                 replacement_strings,
             );
