@@ -35,3 +35,10 @@ dependency.
 1. Run tests `cargo test`
 2. Run formatter `cargo fmt`
 3. Check linter `cargo clippy` and if you want to automatically fix then run `cargo clippy --fix`
+
+## Coverage
+
+Test coverage checks are performed in the pipeline. This is cofigured here: `.github/workflows/coverage.yaml`
+To run these locally:
+1. Install coverage tool by running `cargo install cargo-llvm-cov`
+2. Run `cargo llvm-cov --ignore-filename-regex 'tests.rs|benches.rs|gendoc'` (you may be asked if you want to install `llvm-tools-preview`, if so type `Y`)
