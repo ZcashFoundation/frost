@@ -18,6 +18,13 @@ fn check_sign_with_dkg() {
 }
 
 #[test]
+fn check_rts() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_rts::<Ristretto255Sha512, _>(rng);
+}
+
+#[test]
 fn check_batch_verify() {
     let rng = thread_rng();
 
