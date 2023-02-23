@@ -1,5 +1,5 @@
 [book]
-authors = ["Pili Guerra"]
+authors = ["Zcash Foundation <frost@zfnd.org>"]
 language = "en"
 multilingual = false
 src = "src"
