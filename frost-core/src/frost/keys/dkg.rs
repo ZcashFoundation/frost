@@ -21,83 +21,93 @@ use super::{
     VerifiableSecretSharingCommitment, VerifyingShare,
 };
 
-/// The package that must be broadcast by each participant to all other participants
-/// between the first and second parts of the DKG protocol (round 1).
-#[derive(Clone)]
-pub struct Round1Package<C: Ciphersuite> {
-    /// The identifier of the participant who is sending the package (i).
-    pub sender_identifier: Identifier<C>,
-    /// The public commitment from the participant (C_i)
-    pub commitment: VerifiableSecretSharingCommitment<C>,
-    /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
-    pub proof_of_knowledge: Signature<C>,
+/// DKG Round 1 structures.
+pub mod round1 {
+    use super::*;
+
+    /// The package that must be broadcast by each participant to all other participants
+    /// between the first and second parts of the DKG protocol (round 1).
+    #[derive(Clone)]
+    pub struct Package<C: Ciphersuite> {
+        /// The identifier of the participant who is sending the package (i).
+        pub sender_identifier: Identifier<C>,
+        /// The public commitment from the participant (C_i)
+        pub commitment: VerifiableSecretSharingCommitment<C>,
+        /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
+        pub proof_of_knowledge: Signature<C>,
+    }
+
+    /// The secret package that must be kept in memory by the participant
+    /// between the first and second parts of the DKG protocol (round 1).
+    ///
+    /// # Security
+    ///
+    /// This package MUST NOT be sent to other participants!
+    #[derive(Clone)]
+    pub struct SecretPackage<C: Ciphersuite> {
+        /// The identifier of the participant holding the secret.
+        pub identifier: Identifier<C>,
+        /// Coefficients of the temporary secret polynomial for the participant.
+        /// These are (a_{i0}, ..., a_{i(t−1)})) which define the polynomial f_i(x)
+        pub coefficients: Vec<Scalar<C>>,
+        /// The public commitment for the participant (C_i)
+        pub commitment: VerifiableSecretSharingCommitment<C>,
+        /// The total number of signers.
+        pub max_signers: u16,
+    }
 }
 
-/// The secret package that must be kept in memory by the participant
-/// between the first and second parts of the DKG protocol (round 1).
-///
-/// # Security
-///
-/// This package MUST NOT be sent to other participants!
-#[derive(Clone)]
-pub struct Round1SecretPackage<C: Ciphersuite> {
-    /// The identifier of the participant holding the secret.
-    pub identifier: Identifier<C>,
-    /// Coefficients of the temporary secret polynomial for the participant.
-    /// These are (a_{i0}, ..., a_{i(t−1)})) which define the polynomial f_i(x)
-    pub coefficients: Vec<Scalar<C>>,
-    /// The public commitment for the participant (C_i)
-    pub commitment: VerifiableSecretSharingCommitment<C>,
-    /// The total number of signers.
-    pub max_signers: u16,
-}
+/// DKG Round 2 structures.
+pub mod round2 {
+    use super::*;
 
-/// A package that must be sent by each participant to some other participants
-/// in Round 2 of the DKG protocol. Note that there is one specific package
-/// for each specific recipient, in contrast to Round 1.
-///
-/// # Security
-///
-/// The package must be sent on an *confidential* and *authenticated* channel.
-#[derive(Clone)]
-pub struct Round2Package<C: Ciphersuite> {
-    /// The identifier of the participant that generated the package (i).
-    pub sender_identifier: Identifier<C>,
-    /// The identifier of the participant what will receive the package (ℓ).
-    pub receiver_identifier: Identifier<C>,
-    /// The secret share being sent.
-    pub secret_share: SigningShare<C>,
-}
+    /// A package that must be sent by each participant to some other participants
+    /// in Round 2 of the DKG protocol. Note that there is one specific package
+    /// for each specific recipient, in contrast to Round 1.
+    ///
+    /// # Security
+    ///
+    /// The package must be sent on an *confidential* and *authenticated* channel.
+    #[derive(Clone)]
+    pub struct Package<C: Ciphersuite> {
+        /// The identifier of the participant that generated the package (i).
+        pub sender_identifier: Identifier<C>,
+        /// The identifier of the participant what will receive the package (ℓ).
+        pub receiver_identifier: Identifier<C>,
+        /// The secret share being sent.
+        pub secret_share: SigningShare<C>,
+    }
 
-/// The secret package that must be kept in memory by the participant
-/// between the second and third parts of the DKG protocol (round 2).
-///
-/// # Security
-///
-/// This package MUST NOT be sent to other participants!
-pub struct Round2SecretPackage<C: Ciphersuite> {
-    /// The identifier of the participant holding the secret.
-    pub identifier: Identifier<C>,
-    /// The public commitment from the participant (C_i)
-    pub commitment: VerifiableSecretSharingCommitment<C>,
-    /// The participant's own secret share (f_i(i)).
-    pub secret_share: Scalar<C>,
-    /// The total number of signers.
-    pub max_signers: u16,
+    /// The secret package that must be kept in memory by the participant
+    /// between the second and third parts of the DKG protocol (round 2).
+    ///
+    /// # Security
+    ///
+    /// This package MUST NOT be sent to other participants!
+    pub struct SecretPackage<C: Ciphersuite> {
+        /// The identifier of the participant holding the secret.
+        pub identifier: Identifier<C>,
+        /// The public commitment from the participant (C_i)
+        pub commitment: VerifiableSecretSharingCommitment<C>,
+        /// The participant's own secret share (f_i(i)).
+        pub secret_share: Scalar<C>,
+        /// The total number of signers.
+        pub max_signers: u16,
+    }
 }
 
 /// Performs the first part of the distributed key generation protocol
 /// for the given participant.
 ///
-/// It returns the [`Round1SecretPackage`] that must be kept in memory
-/// by the participant for the other steps, and the [`Round1Package`] that
+/// It returns the [`round1::SecretPackage`] that must be kept in memory
+/// by the participant for the other steps, and the [`round1::Package`] that
 /// must be sent to other participants.
-pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifier: Identifier<C>,
     max_signers: u16,
     min_signers: u16,
     mut rng: R,
-) -> Result<(Round1SecretPackage<C>, Round1Package<C>), Error<C>> {
+) -> Result<(round1::SecretPackage<C>, round1::Package<C>), Error<C>> {
     let secret: SharedSecret<C> = SharedSecret::random(&mut rng);
 
     // Round 1, Step 1
@@ -124,13 +134,13 @@ pub fn keygen_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let c_i = challenge::<C>(identifier, &R_i, &commitment.0[0].0).ok_or(Error::DKGNotSupported)?;
     let mu_i = k + coefficients[0] * c_i.0;
 
-    let secret_package = Round1SecretPackage {
+    let secret_package = round1::SecretPackage {
         identifier,
         coefficients,
         commitment: commitment.clone(),
         max_signers,
     };
-    let package = Round1Package {
+    let package = round1::Package {
         sender_identifier: identifier,
         commitment,
         proof_of_knowledge: Signature { R: R_i, z: mu_i },
@@ -158,16 +168,16 @@ where
 }
 
 /// Performs the second part of the distributed key generation protocol
-/// for the participant holding the given [`Round1SecretPackage`],
-/// given the received [`Round1Package`]s received from the other participants.
+/// for the participant holding the given [`round1::SecretPackage`],
+/// given the received [`round1::Package`]s received from the other participants.
 ///
-/// It returns the [`Round2SecretPackage`] that must be kept in memory
-/// by the participant for the final step, and the [`Round2Package`]s that
+/// It returns the [`round2::SecretPackage`] that must be kept in memory
+/// by the participant for the final step, and the [`round2::Package`]s that
 /// must be sent to other participants.
-pub fn keygen_part2<C: Ciphersuite>(
-    secret_package: Round1SecretPackage<C>,
-    round1_packages: &[Round1Package<C>],
-) -> Result<(Round2SecretPackage<C>, Vec<Round2Package<C>>), Error<C>> {
+pub fn part2<C: Ciphersuite>(
+    secret_package: round1::SecretPackage<C>,
+    round1_packages: &[round1::Package<C>],
+) -> Result<(round2::SecretPackage<C>, Vec<round2::Package<C>>), Error<C>> {
     if round1_packages.len() != (secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
     }
@@ -197,7 +207,7 @@ pub fn keygen_part2<C: Ciphersuite>(
         // > which they keep for themselves.
         let value = evaluate_polynomial(ell, &secret_package.coefficients);
 
-        round2_packages.push(Round2Package {
+        round2_packages.push(round2::Package {
             sender_identifier: secret_package.identifier,
             receiver_identifier: ell,
             secret_share: SigningShare(value),
@@ -205,7 +215,7 @@ pub fn keygen_part2<C: Ciphersuite>(
     }
     let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients);
     Ok((
-        Round2SecretPackage {
+        round2::SecretPackage {
             identifier: secret_package.identifier,
             commitment: secret_package.commitment,
             secret_share: fii,
@@ -218,9 +228,9 @@ pub fn keygen_part2<C: Ciphersuite>(
 /// Computes the verifying keys of the other participants for the third step
 /// of the DKG protocol.
 fn compute_verifying_keys<C: Ciphersuite>(
-    round2_packages: &[Round2Package<C>],
-    round1_packages_map: HashMap<Identifier<C>, &Round1Package<C>>,
-    round2_secret_package: &Round2SecretPackage<C>,
+    round2_packages: &[round2::Package<C>],
+    round1_packages_map: HashMap<Identifier<C>, &round1::Package<C>>,
+    round2_secret_package: &round2::SecretPackage<C>,
 ) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, Error<C>> {
     // Round 2, Step 4
     //
@@ -258,18 +268,18 @@ fn compute_verifying_keys<C: Ciphersuite>(
 }
 
 /// Performs the third and final part of the distributed key generation protocol
-/// for the participant holding the given [`Round2SecretPackage`],
-/// given the received [`Round1Package`]s and [`Round2Package`]s received from
+/// for the participant holding the given [`round2::SecretPackage`],
+/// given the received [`round1::Package`]s and [`round2::Package`]s received from
 /// the other participants.
 ///
 /// It returns the [`KeyPackage`] that has the long-lived key share for the
 /// participant, and the [`PublicKeyPackage`]s that has public information
 /// about all participants; both of which are required to compute FROST
 /// signatures.
-pub fn keygen_part3<C: Ciphersuite>(
-    round2_secret_package: &Round2SecretPackage<C>,
-    round1_packages: &[Round1Package<C>],
-    round2_packages: &[Round2Package<C>],
+pub fn part3<C: Ciphersuite>(
+    round2_secret_package: &round2::SecretPackage<C>,
+    round1_packages: &[round1::Package<C>],
+    round2_packages: &[round2::Package<C>],
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
     if round1_packages.len() != (round2_secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
@@ -281,7 +291,7 @@ pub fn keygen_part3<C: Ciphersuite>(
     let mut signing_share = <<C::Group as Group>::Field>::zero();
     let mut group_public = <C::Group>::identity();
 
-    let round1_packages_map: HashMap<Identifier<C>, &Round1Package<C>> = round1_packages
+    let round1_packages_map: HashMap<Identifier<C>, &round1::Package<C>> = round1_packages
         .iter()
         .map(|package| (package.sender_identifier, package))
         .collect();
