@@ -145,7 +145,6 @@ fn main() -> ExitCode {
     ];
 
     let docs = read_docs("frost-ristretto255/src/lib.rs", original_strings);
-    let dkg_docs = read_docs("frost-ristretto255/src/keys/dkg.rs", original_strings);
 
     // To add a new ciphersuite, just copy a tuple and replace the required strings.
     for (folder, replacement_strings) in [
@@ -197,15 +196,12 @@ fn main() -> ExitCode {
         ),
     ] {
         let lib_filename = format!("{folder}/src/lib.rs");
-        let dkg_filename = format!("{folder}/src/keys/dkg.rs");
         // Copy the documentation of public items in Rust code, replacing ciphersuite-specific strings inside
         // them in the process.
-        for (docs, filename) in [(&docs, lib_filename), (&dkg_docs, dkg_filename)] {
-            replaced |= write_docs(docs, &filename, original_strings, replacement_strings);
-        }
-        // Copy Markdown documentation, replacing ciphersuite-specific strings inside
-        // them in the process.
-        for filename in ["README.md", "dkg.md"] {
+        replaced |= write_docs(&docs, &lib_filename, original_strings, replacement_strings);
+
+        // Generate files based on a template with simple search & replace.
+        for filename in ["README.md", "dkg.md", "src/keys/dkg.rs"] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
                 format!("{folder}/{filename}").as_str(),

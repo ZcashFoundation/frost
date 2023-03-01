@@ -9,12 +9,12 @@ a `u16`. The process in which these identifiers are allocated is up to the appli
 The distributed key generation process has 3 parts, with 2 communication rounds
 between them, in which each participant needs to send a "package" to every other
 participant. In the first round, each participant sends the same package
-(a [`Round1Package`]) to every other. In the second round, each receiver gets
-their own package (a [`Round2Package`]).
+(a [`round1::Package`]) to every other. In the second round, each receiver gets
+their own package (a [`round2::Package`]).
 
-Between part 1 and 2, each participant needs to hold onto a [`Round1SecretPackage`]
+Between part 1 and 2, each participant needs to hold onto a [`round1::SecretPackage`]
 that MUST be kept secret. Between part 2 and 3, each participant needs to hold
-onto a [`Round2SecretPackage`].
+onto a [`round2::SecretPackage`].
 
 After the third part, each participant will get a [`KeyPackage`] with their
 long-term secret share that must be kept secret, and a [`PublicKeyPackage`]
@@ -53,7 +53,7 @@ let mut received_round1_packages = HashMap::new();
 // In practice, each participant will perform this on their own environments.
 for participant_index in 1..=max_signers {
     let participant_identifier = participant_index.try_into().expect("should be nonzero");
-    let (secret_package, round1_package) = frost::keys::dkg::keygen_part1(
+    let (secret_package, round1_package) = frost::keys::dkg::part1(
         participant_identifier,
         max_signers,
         min_signers,
@@ -99,7 +99,7 @@ let mut received_round2_packages = HashMap::new();
 // In practice, each participant will perform this on their own environments.
 for participant_index in 1..=max_signers {
     let participant_identifier = participant_index.try_into().expect("should be nonzero");
-    let (round2_secret_package, round2_packages) = frost::keys::dkg::keygen_part2(
+    let (round2_secret_package, round2_packages) = frost::keys::dkg::part2(
         round1_secret_packages
             .remove(&participant_identifier)
             .unwrap(),
@@ -142,7 +142,7 @@ let mut pubkey_packages = HashMap::new();
 // In practice, each participant will perform this on their own environments.
 for participant_index in 1..=max_signers {
     let participant_identifier = participant_index.try_into().expect("should be nonzero");
-    let (key_package, pubkey_package_for_participant) = frost::keys::dkg::keygen_part3(
+    let (key_package, pubkey_package_for_participant) = frost::keys::dkg::part3(
         &round2_secret_packages[&participant_identifier],
         &received_round1_packages[&participant_identifier],
         &received_round2_packages[&participant_identifier],

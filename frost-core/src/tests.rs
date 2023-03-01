@@ -166,7 +166,7 @@ where
     // will have all the participant's packages.
     let mut round1_secret_packages: HashMap<
         frost::Identifier<C>,
-        frost::keys::dkg::Round1SecretPackage<C>,
+        frost::keys::dkg::round1::SecretPackage<C>,
     > = HashMap::new();
 
     // Keep track of all round 1 packages sent to the given participant.
@@ -174,20 +174,16 @@ where
     // will be sent through some communication channel.
     let mut received_round1_packages: HashMap<
         frost::Identifier<C>,
-        Vec<frost::keys::dkg::Round1Package<C>>,
+        Vec<frost::keys::dkg::round1::Package<C>>,
     > = HashMap::new();
 
     // For each participant, perform the first part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let (secret_package, round1_package) = frost::keys::dkg::keygen_part1(
-            participant_identifier,
-            max_signers,
-            min_signers,
-            &mut rng,
-        )
-        .unwrap();
+        let (secret_package, round1_package) =
+            frost::keys::dkg::part1(participant_identifier, max_signers, min_signers, &mut rng)
+                .unwrap();
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
@@ -228,7 +224,7 @@ where
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let (round2_secret_package, round2_packages) = frost::keys::dkg::keygen_part2(
+        let (round2_secret_package, round2_packages) = frost::keys::dkg::part2(
             round1_secret_packages
                 .remove(&participant_identifier)
                 .unwrap(),
@@ -281,7 +277,7 @@ where
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let (key_package, pubkey_package_for_participant) = frost::keys::dkg::keygen_part3(
+        let (key_package, pubkey_package_for_participant) = frost::keys::dkg::part3(
             &round2_secret_packages[&participant_identifier],
             &received_round1_packages[&participant_identifier],
             &received_round2_packages[&participant_identifier],
