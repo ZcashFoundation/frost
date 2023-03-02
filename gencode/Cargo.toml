@@ -1,7 +1,8 @@
 [package]
-name = "gendoc"
+name = "gencode"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,7 +10,7 @@ edition = "2021"
 regex = "1.6.0"
 
 [[bin]]
-name = "gendoc"
+name = "gencode"
 path = "src/main.rs"
 # Disables non-criterion benchmark which is not used; prevents errors
 # when using criterion-specific flags
