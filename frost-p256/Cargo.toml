@@ -22,7 +22,7 @@ description = "A Schnorr signature scheme over the NIST P-256 curve that support
 features = ["nightly"]
 
 [dependencies]
-p256 = { version = "0.11.1", features = ["hash2curve"] }
+p256 = { version = "0.12.0", features = ["hash2curve"] }
 frost-core = { path = "../frost-core", features = ["test-impl"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
