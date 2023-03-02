@@ -1,5 +1,7 @@
 //! Generate documentation for a ciphersuite based on another ciphersuite implementation.
 //!
+//! This is an internal tool used for development.
+//!
 //! The documentation for each ciphersuite is very similar, with the only difference being
 //! the ciphersuite name.
 //!
@@ -8,7 +10,7 @@
 //! uses frost-ristretto255 as the "canonical" one, so:
 //!
 //! - Change any documentation of a public function or struct in `frost-ristretto255/src/lib.rs`
-//! - Run `cargo run --manifest-path gendoc/Cargo.toml` to update the documentation
+//! - Run `cargo run --manifest-path gencode/Cargo.toml` to update the documentation
 //!   of the other ciphersuites.
 
 use std::{env, fs, iter::zip, process::ExitCode};
