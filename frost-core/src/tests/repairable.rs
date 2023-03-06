@@ -28,17 +28,6 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let (shares, _pubkeys): (Vec<SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
-    // // Verifies the secret shares from the dealer
-    // let key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> = shares
-    //     .into_iter()
-    //     .map(|share| {
-    //         (
-    //             share.identifier,
-    //             frost::keys::KeyPackage::try_from(share).unwrap(),
-    //         )
-    //     })
-    //     .collect();
-
     // Try to recover a share
 
     // Signer 2 will lose their share

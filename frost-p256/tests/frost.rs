@@ -65,3 +65,10 @@ fn check_deserialize_non_canonical() {
     let r = <P256Sha256 as Ciphersuite>::Group::deserialize(&encoded_point);
     assert_eq!(r, Err(GroupError::MalformedElement));
 }
+
+#[test]
+fn check_compute_random_values() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_rts::<P256Sha256, _>(rng);
+}

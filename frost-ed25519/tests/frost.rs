@@ -85,3 +85,10 @@ fn check_deserialize_non_prime_order() {
     let r = <Ed25519Sha512 as Ciphersuite>::Group::deserialize(&encoded_point);
     assert_eq!(r, Err(GroupError::InvalidNonPrimeOrderElement));
 }
+
+#[test]
+fn check_compute_random_values() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_rts::<Ed25519Sha512, _>(rng);
+}

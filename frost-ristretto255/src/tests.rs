@@ -27,3 +27,11 @@ fn check_sign_with_test_vectors() {
         &VECTORS_BIG_IDENTIFIER,
     );
 }
+
+#[test]
+fn check_compute_random_values() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_rts::<Ristretto255Sha512, _>(rng);
+}
+
