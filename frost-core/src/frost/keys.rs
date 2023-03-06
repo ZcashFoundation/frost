@@ -21,6 +21,7 @@ use crate::{
 };
 
 pub mod dkg;
+pub mod repairable;
 
 /// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
 pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
