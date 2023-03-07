@@ -1,4 +1,12 @@
-//! Repairable Threshold Scheme
+/// Repairable Threshold Scheme
+
+#![doc = include_str!("../../repairable.md")]
+
+use std::collections::HashMap;
+
+use crate::{frost::Identifier, Ciphersuite, CryptoRng, Field, Group, RngCore, Scalar};
+
+use super::{SecretShare};
 
 /// Generate random values for each helper - 1 for use in computing the value for the final helper
 

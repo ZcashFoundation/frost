@@ -1,5 +1,7 @@
 //! Repairable Threshold Scheme
 
+#![doc = include_str!("../../repairable.md")]
+
 /// Generate random values for each helper - 1 for use in computing the value for the final helper
 
 pub fn generate_random_values<R: RngCore + CryptoRng>(

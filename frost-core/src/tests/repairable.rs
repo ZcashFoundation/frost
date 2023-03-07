@@ -1,16 +1,18 @@
 //! Test for Repairable Threshold Scheme
 
+use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     frost::{
         self,
         keys::{
-            generate_coefficients, repairable::compute_random_values, PublicKeyPackage, SecretShare,
+            generate_coefficients, repairable::compute_random_values,
+            repairable::compute_sum_of_random_values, PublicKeyPackage, SecretShare,
         },
         Identifier,
     },
-    Ciphersuite, Field, Group,
+    Ciphersuite, Field, Group, Scalar,
 };
 
 /// Test RTS.
@@ -57,4 +59,34 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
         assert!(lhs == rhs);
     }
+}
+
+fn generate_scalars_from_byte_strings<C: Ciphersuite>(
+    bs: &str,
+) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+    let decoded = hex::decode(bs).unwrap();
+    let out = <<C::Group as Group>::Field>::deserialize(&decoded.try_into().debugless_unwrap());
+    out.unwrap()
+}
+
+/// Test compute_sum_of_random_values
+pub fn check_compute_sum_of_random_values<C: Ciphersuite>() {
+    let value_1 = generate_scalars_from_byte_strings::<C>(
+        "44260f9f457d96bd0dcdcd9b83c45231bca28ecc5ab52dee9cf59f6b361c520c",
+    );
+    let value_2 = generate_scalars_from_byte_strings::<C>(
+        "9babf5fa9a6ea4bf9486e796115dc767a1bdd27cd2834b6d5f29c988ffebe508",
+    );
+    let value_3 = generate_scalars_from_byte_strings::<C>(
+        "3e62e7461db9ca1ed2f1549a8114bbc87fa9242ce0012ed3f9ac9dcf23f4c30a",
+    );
+
+    let expected: Scalar<C> = compute_sum_of_random_values::<C>(&[value_1, value_2, value_3]);
+
+    let actual: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar =
+        generate_scalars_from_byte_strings::<C>(
+            "3060f683e341f3439ea8122a383cf64cdd0986750d3ba72ef6cb06c459fcfb0f",
+        );
+
+    assert!(actual == expected);
 }

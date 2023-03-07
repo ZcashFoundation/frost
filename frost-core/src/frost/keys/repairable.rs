@@ -53,15 +53,20 @@ pub fn compute_random_values<C: Ciphersuite>(
     out
 }
 
-// # Communication round:
-// # Helper i sends deltas_i[j] to helper j
+/// # Communication round:
+/// # Helper i sends deltas_i[j] to helper j
 
-// # deltas_j: values received by j in the communication round
-// # Output: sigma_j
+/// # deltas_j: values received by j in the communication round
+/// # Output: sigma_j
 
-// pub fn compute_sum_of_random_values<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
+pub fn compute_sum_of_random_values<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
+    let mut sigma_j = <<C::Group as Group>::Field>::zero();
 
-// }
+    for v in deltas_j {
+        sigma_j = sigma_j + *v;
+    }
+    sigma_j
+}
 
 // # Communication round
 // # Helper j sends sigma_j to signer r

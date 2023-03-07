@@ -1,4 +1,11 @@
-//! Repairable Threshold Scheme
+/// Repairable Threshold Scheme
+#![doc = include_str!("../../repairable.md")]
+
+use std::collections::HashMap;
+
+use crate::{frost::Identifier, Ciphersuite, CryptoRng, Field, Group, RngCore, Scalar};
+
+use super::{SecretShare};
 
 /// Generate random values for each helper - 1 for use in computing the value for the final helper
 
@@ -8,5 +15,6 @@ pub fn generate_random_values<R: RngCore + CryptoRng>(
     zeta_i: Scalar<C>,
     rng: &mut R,
 ) -> HashMap<Identifier<C>, Scalar<C>> {
-    frost::keys::repairable::generate_random_values(identifier, max_signers, min_signers, &mut rng)
+    let out = frost::keys::repairable::generate_random_values(identifier, max_signers, min_signers, &mut rng);
+    out
 }

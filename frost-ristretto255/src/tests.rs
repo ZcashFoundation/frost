@@ -34,4 +34,3 @@ fn check_compute_random_values() {
 
     frost_core::tests::repairable::check_rts::<Ristretto255Sha512, _>(rng);
 }
-

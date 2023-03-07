@@ -76,7 +76,6 @@ fn check_deserialize_non_prime_order() {
 
 #[test]
 fn check_compute_random_values() {
-    println!("--- is this test running? ---");
     let rng = thread_rng();
 
     frost_core::tests::repairable::check_rts::<Ed448Shake256, _>(rng);
