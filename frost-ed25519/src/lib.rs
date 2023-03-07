@@ -34,7 +34,7 @@ impl Group for Ed25519Group {
     type Serialization = [u8; 32];
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
-        Scalar::one()
+        Scalar::ONE
     }
 
     fn identity() -> Self::Element {
@@ -50,7 +50,10 @@ impl Group for Ed25519Group {
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
-        match CompressedEdwardsY::from_slice(buf.as_ref()).decompress() {
+        match CompressedEdwardsY::from_slice(buf.as_ref())
+            .map_err(|_| GroupError::MalformedElement)?
+            .decompress()
+        {
             Some(point) => {
                 if point == Self::identity() {
                     Err(GroupError::InvalidIdentityElement)
