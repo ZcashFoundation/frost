@@ -29,11 +29,11 @@ impl Field for RistrettoScalarField {
     type Serialization = [u8; 32];
 
     fn zero() -> Self::Scalar {
-        Scalar::zero()
+        Scalar::ZERO
     }
 
     fn one() -> Self::Scalar {
-        Scalar::one()
+        Scalar::ONE
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
@@ -55,7 +55,7 @@ impl Field for RistrettoScalarField {
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
-        match Scalar::from_canonical_bytes(*buf) {
+        match Scalar::from_canonical_bytes(*buf).into() {
             Some(s) => Ok(s),
             None => Err(FieldError::MalformedScalar),
         }
@@ -78,7 +78,7 @@ impl Group for RistrettoGroup {
     type Serialization = [u8; 32];
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
-        Scalar::one()
+        Scalar::ONE
     }
 
     fn identity() -> Self::Element {
@@ -94,7 +94,10 @@ impl Group for RistrettoGroup {
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
-        match CompressedRistretto::from_slice(buf.as_ref()).decompress() {
+        match CompressedRistretto::from_slice(buf.as_ref())
+            .map_err(|_| GroupError::MalformedElement)?
+            .decompress()
+        {
             Some(point) => {
                 if point == Self::identity() {
                     Err(GroupError::InvalidIdentityElement)
