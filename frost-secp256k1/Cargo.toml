@@ -22,9 +22,7 @@ features = ["nightly"]
 
 [dependencies]
 frost-core = { path = "../frost-core", features = ["test-impl"] }
-# Waiting for release after https://github.com/RustCrypto/elliptic-curves/pull/673 merged
-# k256 = { version = "0.11.6", features = ["arithmetic", "hash2curve"] }
-k256 = { git = "https://github.com/RustCrypto/elliptic-curves", rev = "e82a44cd4088dae04849824b6f84d37eb67a0e97", features = ["arithmetic", "hash2curve"] }
+k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 

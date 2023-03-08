@@ -4,7 +4,6 @@
 
 use p256::{
     elliptic_curve::{
-        group::prime::PrimeCurveAffine,
         hash2curve::{hash_to_field, ExpandMsgXmd},
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
