@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::{frost::Identifier, Ciphersuite, CryptoRng, Field, Group, RngCore, Scalar};
 
-use super::{generate_coefficients, SecretShare};
+use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSharingCommitment};
 
 /// # For every single helper i in helpers:
 
@@ -68,15 +68,26 @@ pub fn compute_sum_of_random_values<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> S
     sigma_j
 }
 
-// # Communication round
-// # Helper j sends sigma_j to signer r
+/// # Communication round
+/// # Helper j sends sigma_j to signer r
 
-// # sigmas: all sigma_j received from each helper j
-// # Output: share_r: r's secret share
+/// # sigmas: all sigma_j received from each helper j
+/// # Output: share_r: r's secret share
 
-// pub fn recover_share<C: Ciphersuite>(
-//     sigmas: &[Scalar<C>],
-//     identifier: Identifier<C>,
-//     commitment: VerifiableSecretSharingCommitment<C>,
-// ) -> SecretShare<C> {
-// }
+pub fn recover_share<C: Ciphersuite>(
+    sigmas: &[Scalar<C>],
+    identifier: Identifier<C>,
+    commitment: &VerifiableSecretSharingCommitment<C>,
+) -> SecretShare<C> {
+    let mut share = <<C::Group as Group>::Field>::zero();
+
+    for v in sigmas {
+        share = share + *v;
+    }
+
+    SecretShare {
+        identifier,
+        value: SigningShare(share),
+        commitment: commitment.clone(),
+    }
+}
