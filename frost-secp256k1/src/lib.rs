@@ -5,7 +5,7 @@
 use k256::{
     elliptic_curve::{
         group::prime::PrimeCurveAffine,
-        hash2curve::{self, ExpandMsgXmd},
+        hash2curve::{hash_to_field, ExpandMsgXmd},
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
     },
@@ -150,6 +150,13 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
     output
 }
 
+fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
+    let mut u = [Secp256K1ScalarField::zero()];
+    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], &[domain], &mut u)
+        .expect("should never return error according to error cases described in ExpandMsgXmd");
+    u[0]
+}
+
 /// Context string from the ciphersuite in the [spec].
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-1
@@ -170,39 +177,21 @@ impl Ciphersuite for Secp256K1Sha256 {
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let dst = CONTEXT_STRING.to_owned() + "rho";
-
-        let mut u = [Scalar::default()];
-        hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], &[dst.as_bytes()], &mut u)
-            .unwrap();
-
-        u[0]
+        hash_to_scalar((CONTEXT_STRING.to_owned() + "rho").as_bytes(), m)
     }
 
     /// H2 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let dst = CONTEXT_STRING.to_owned() + "chal";
-
-        let mut u = [Scalar::default()];
-        hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], &[dst.as_bytes()], &mut u)
-            .unwrap();
-
-        u[0]
+        hash_to_scalar((CONTEXT_STRING.to_owned() + "chal").as_bytes(), m)
     }
 
     /// H3 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let dst = CONTEXT_STRING.to_owned() + "nonce";
-
-        let mut u = [Scalar::default()];
-        hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], &[dst.as_bytes()], &mut u)
-            .unwrap();
-
-        u[0]
+        hash_to_scalar((CONTEXT_STRING.to_owned() + "nonce").as_bytes(), m)
     }
 
     /// H4 for FROST(secp256k1, SHA-256)
@@ -221,13 +210,10 @@ impl Ciphersuite for Secp256K1Sha256 {
 
     /// HDKG for FROST(secp256k1, SHA-256)
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
-        let dst = CONTEXT_STRING.to_owned() + "dkg";
-
-        let mut u = [Scalar::default()];
-        hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], &[dst.as_bytes()], &mut u)
-            .unwrap();
-
-        Some(u[0])
+        Some(hash_to_scalar(
+            (CONTEXT_STRING.to_owned() + "dkg").as_bytes(),
+            m,
+        ))
     }
 }
 
