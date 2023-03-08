@@ -4,10 +4,8 @@
 
 use k256::{
     elliptic_curve::{
-        bigint::{Encoding, U384},
-        generic_array::GenericArray,
         group::prime::PrimeCurveAffine,
-        hash2curve::{ExpandMsg, ExpandMsgXmd, Expander},
+        hash2curve::{self, ExpandMsgXmd},
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
     },
@@ -93,7 +91,7 @@ impl Group for Secp256K1Group {
     type Serialization = [u8; 33];
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
-        Scalar::one()
+        Scalar::ONE
     }
 
     fn identity() -> Self::Element {
@@ -152,32 +150,6 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
     output
 }
 
-/// hash2field implementation from <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-11#section-5.3>
-///
-/// From <https://github.com/serai-dex/serai/blob/5df74ac9e28f9299e674e98d08e64c99c34e579c/crypto/ciphersuite/src/kp256.rs#L45-L62>
-//
-// After https://github.com/RustCrypto/elliptic-curves/pull/673/ merges this should
-// be removed, and a similar implementation to p256 should be used.
-fn hash_to_field(msg: &[u8], dst: &[u8]) -> Scalar {
-    let mut modulus = [0; 48];
-    modulus[16..].copy_from_slice(&(Scalar::ZERO - Scalar::ONE).to_bytes());
-    let modulus = U384::from_be_slice(&modulus).wrapping_add(&U384::ONE);
-
-    let unreduced = U384::from_be_bytes({
-        let mut bytes = [0; 48];
-        ExpandMsgXmd::<Sha256>::expand_message(&[msg], dst, 48)
-            .expect("should never return error according to error cases described in ExpandMsgXmd")
-            .fill_bytes(&mut bytes);
-        bytes
-    })
-    .reduce(&modulus)
-    .unwrap()
-    .to_be_bytes();
-
-    let array = *GenericArray::from_slice(&unreduced[16..]);
-    Scalar::from_repr(array).unwrap()
-}
-
 /// Context string from the ciphersuite in the [spec].
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-1
@@ -199,7 +171,12 @@ impl Ciphersuite for Secp256K1Sha256 {
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let dst = CONTEXT_STRING.to_owned() + "rho";
-        hash_to_field(m, dst.as_bytes())
+
+        let mut u = [Scalar::default()];
+        hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], &[dst.as_bytes()], &mut u)
+            .unwrap();
+
+        u[0]
     }
 
     /// H2 for FROST(secp256k1, SHA-256)
@@ -207,7 +184,12 @@ impl Ciphersuite for Secp256K1Sha256 {
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let dst = CONTEXT_STRING.to_owned() + "chal";
-        hash_to_field(m, dst.as_bytes())
+
+        let mut u = [Scalar::default()];
+        hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], &[dst.as_bytes()], &mut u)
+            .unwrap();
+
+        u[0]
     }
 
     /// H3 for FROST(secp256k1, SHA-256)
@@ -215,7 +197,12 @@ impl Ciphersuite for Secp256K1Sha256 {
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.5-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let dst = CONTEXT_STRING.to_owned() + "nonce";
-        hash_to_field(m, dst.as_bytes())
+
+        let mut u = [Scalar::default()];
+        hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], &[dst.as_bytes()], &mut u)
+            .unwrap();
+
+        u[0]
     }
 
     /// H4 for FROST(secp256k1, SHA-256)
@@ -235,7 +222,12 @@ impl Ciphersuite for Secp256K1Sha256 {
     /// HDKG for FROST(secp256k1, SHA-256)
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         let dst = CONTEXT_STRING.to_owned() + "dkg";
-        Some(hash_to_field(m, dst.as_bytes()))
+
+        let mut u = [Scalar::default()];
+        hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[m], &[dst.as_bytes()], &mut u)
+            .unwrap();
+
+        Some(u[0])
     }
 }
 
