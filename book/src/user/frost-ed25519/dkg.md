@@ -1,0 +1,1 @@
+{{#include ../../../../frost-ed25519/dkg.md}}
