@@ -65,6 +65,7 @@ pub fn compute_sum_of_random_values<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> S
     for v in deltas_j {
         sigma_j = sigma_j + *v;
     }
+
     sigma_j
 }
 

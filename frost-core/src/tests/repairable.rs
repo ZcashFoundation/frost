@@ -2,6 +2,7 @@
 
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
+use serde_json::Value;
 
 use crate::{
     frost::{
@@ -72,29 +73,29 @@ fn generate_scalar_from_byte_string<C: Ciphersuite>(
 }
 
 /// Test compute_sum_of_random_values
-pub fn check_compute_sum_of_random_values<C: Ciphersuite>() {
-    let value_1 = generate_scalar_from_byte_string::<C>(
-        "44260f9f457d96bd0dcdcd9b83c45231bca28ecc5ab52dee9cf59f6b361c520c",
-    );
-    let value_2 = generate_scalar_from_byte_string::<C>(
-        "9babf5fa9a6ea4bf9486e796115dc767a1bdd27cd2834b6d5f29c988ffebe508",
-    );
-    let value_3 = generate_scalar_from_byte_string::<C>(
-        "3e62e7461db9ca1ed2f1549a8114bbc87fa9242ce0012ed3f9ac9dcf23f4c30a",
-    );
+pub fn check_compute_sum_of_random_values<C: Ciphersuite>(repair_share_helper_functions: &Value) {
+    let values = &repair_share_helper_functions["scalar_generation"];
+
+    let value_1 =
+        generate_scalar_from_byte_string::<C>(values["random_scalar_1"].as_str().unwrap());
+    let value_2 =
+        generate_scalar_from_byte_string::<C>(values["random_scalar_2"].as_str().unwrap());
+    let value_3 =
+        generate_scalar_from_byte_string::<C>(values["random_scalar_3"].as_str().unwrap());
 
     let expected: Scalar<C> = compute_sum_of_random_values::<C>(&[value_1, value_2, value_3]);
 
     let actual: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar =
-        generate_scalar_from_byte_string::<C>(
-            "3060f683e341f3439ea8122a383cf64cdd0986750d3ba72ef6cb06c459fcfb0f",
-        );
+        generate_scalar_from_byte_string::<C>(values["random_scalar_sum"].as_str().unwrap());
 
     assert!(actual == expected);
 }
 
 /// Test recover_share
-pub fn check_recover_share<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_recover_share<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+    repair_share_helper_functions: &Value,
+) {
 
     // Generate shares
     let max_signers = 5;
@@ -102,28 +103,23 @@ pub fn check_recover_share<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let (shares, _pubkeys): (Vec<SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
-    let sigma_1 = generate_scalar_from_byte_string::<C>(
-        "44260f9f457d96bd0dcdcd9b83c45231bca28ecc5ab52dee9cf59f6b361c520c",
-    );
-    let sigma_2 = generate_scalar_from_byte_string::<C>(
-        "9babf5fa9a6ea4bf9486e796115dc767a1bdd27cd2834b6d5f29c988ffebe508",
-    );
-    let sigma_3 = generate_scalar_from_byte_string::<C>(
-        "3e62e7461db9ca1ed2f1549a8114bbc87fa9242ce0012ed3f9ac9dcf23f4c30a",
-    );
+    let sigmas: &Value = &repair_share_helper_functions["sigma_generation"];
+
+    let sigma_1 = generate_scalar_from_byte_string::<C>(sigmas["sigma_1"].as_str().unwrap());
+    let sigma_2 = generate_scalar_from_byte_string::<C>(sigmas["sigma_2"].as_str().unwrap());
+    let sigma_3 = generate_scalar_from_byte_string::<C>(sigmas["sigma_3"].as_str().unwrap());
+    let sigma_4 = generate_scalar_from_byte_string::<C>(sigmas["sigma_4"].as_str().unwrap());
 
     let commitment = (shares[0].commitment).clone();
 
     let expected = recover_share::<C>(
-        &[sigma_1, sigma_2, sigma_3],
+        &[sigma_1, sigma_2, sigma_3, sigma_4],
         Identifier::try_from(2).unwrap(),
         &commitment,
     );
 
     let actual_sigma: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar =
-        generate_scalar_from_byte_string::<C>(
-            "3060f683e341f3439ea8122a383cf64cdd0986750d3ba72ef6cb06c459fcfb0f",
-        );
+        generate_scalar_from_byte_string::<C>(sigmas["sigma_sum"].as_str().unwrap());
     let actual: SecretShare<C> = SecretShare {
         identifier: Identifier::try_from(2).unwrap(),
         value: SigningShare(actual_sigma),

@@ -1,0 +1,15 @@
+{
+    "scalar_generation": {
+        "random_scalar_1": "cc8010fa9823f6d8dfea10f0368b685f428e7dce3131895dc9344740f2b76010de79ffa2e0452c0a7143ca0c8985ef08569f788ea0983f0d00",
+        "random_scalar_2": "058c85c8ef2f91abf60ee5c331cd9d0af456ab706b7cb830b5979cb816fbeccad115ee46790195c76c7484bcae70c2f0f4e6eeb9f8510f1300",
+        "random_scalar_3": "3c2684f6482c92faa863542d5bd6a244b03f3afc30d553ecb2a11dccabb72adc4e40a4aa8d4eba5fab6fe55a07b0350d860f55bece59b0900",
+        "random_scalar_sum": "2e0d88bb0efa6344a9bd4e3ef3389f633ef19722a2547ab5b7eb090870fb7cd33b9edac4eb19c9dd721344ffa5a8c873fd623f23572b2e2200"
+    },
+    "sigma_generation": {
+        "sigma_1": "44260f9f457d96bd0dcdcd9b83c45231bca28ecc5ab52dee9cf59f6b361c520c",
+        "sigma_2": "9babf5fa9a6ea4bf9486e796115dc767a1bdd27cd2834b6d5f29c988ffebe508",
+        "sigma_3": "3e62e7461db9ca1ed2f1549a8114bbc87fa9242ce0012ed3f9ac9dcf23f4c30a",
+        "sigma_4": "44260f9f457d96bd0dcdcd9b83c45231bca28ecc5ab52dee9cf59f6b361c520c",
+        "sigma_sum": "3060f683e341f3439ea8122a383cf64cdd0986750d3ba72ef6cb06c459fcfb0f"
+    }
+}

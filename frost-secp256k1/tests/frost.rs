@@ -1,6 +1,8 @@
 use frost_core::{Ciphersuite, Group, GroupError};
 use frost_secp256k1::*;
+use lazy_static::lazy_static;
 use rand::thread_rng;
+use serde_json::Value;
 
 #[test]
 fn check_sign_with_dealer() {
@@ -71,4 +73,22 @@ fn check_compute_random_values() {
     let rng = thread_rng();
 
     frost_core::tests::repairable::check_rts::<Secp256K1Sha256, _>(rng);
+}
+
+lazy_static! {
+    pub static ref REPAIR_SHARE: Value =
+        serde_json::from_str(include_str!("repair-share.json").trim()).unwrap();
+}
+
+#[test]
+fn check_compute_sum_of_random_values() {
+    frost_core::tests::repairable::check_compute_sum_of_random_values::<Secp256K1Sha256>(
+        &REPAIR_SHARE,
+    );
+}
+
+#[test]
+fn check_recover_share() {
+    let rng = thread_rng();
+    frost_core::tests::repairable::check_recover_share::<Secp256K1Sha256, _>(rng, &REPAIR_SHARE);
 }
