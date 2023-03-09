@@ -15,16 +15,15 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
-keywords = ["cryptography", "crypto", "ristretto", "threshold", "signature"]
-description = "A Schnorr signature scheme over the prime-order Ristretto group that supports FROST ."
+keywords = ["cryptography", "crypto", "ed25519", "threshold", "signature"]
+description = "A Schnorr signature scheme over Ed25519 that supports FROST."
 
 [package.metadata.docs.rs]
 features = ["nightly"]
 
 [dependencies]
-curve25519-dalek = { version = "=4.0.0-rc.1", features = ["serde"] }
-frost-core = { path = "../frost-core", features = ["test-impl"] }
-frost-ristretto255 = { path = "../frost-ristretto255" }
+curve25519-dalek = { version = "=4.0.0-rc.1", features = ["serde", "rand_core"] }
+frost-core = { path = "../frost-core", version = "0.1.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
