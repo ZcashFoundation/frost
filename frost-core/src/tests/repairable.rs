@@ -126,5 +126,6 @@ pub fn check_recover_share<C: Ciphersuite, R: RngCore + CryptoRng>(
         commitment,
     };
 
-    assert!(actual.identifier == expected.identifier);
+    assert!(actual.value == expected.value);
+
 }
