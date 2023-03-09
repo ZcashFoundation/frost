@@ -91,7 +91,7 @@ impl Group for P256Group {
     type Serialization = [u8; 33];
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
-        Scalar::one()
+        Scalar::ONE
     }
 
     fn identity() -> Self::Element {
@@ -104,7 +104,7 @@ impl Group for P256Group {
 
     fn serialize(element: &Self::Element) -> Self::Serialization {
         let mut fixed_serialized = [0; 33];
-        let serialized_point = element.to_affine().to_encoded_point(true);
+        let serialized_point = element.to_encoded_point(true);
         let serialized = serialized_point.as_bytes();
         // Sanity check; either it takes all bytes or a single byte (identity).
         assert!(serialized.len() == fixed_serialized.len() || serialized.len() == 1);
@@ -151,7 +151,7 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
 
 fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
     let mut u = [P256ScalarField::zero()];
-    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], domain, &mut u)
+    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], &[domain], &mut u)
         .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]
 }
