@@ -11,7 +11,7 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
-use frost_core::{frost, Ciphersuite, Field, Group, GroupError};
+use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
 
 #[cfg(test)]
 mod tests;
@@ -20,7 +20,51 @@ mod tests;
 pub type Error = frost_core::Error<Ed25519Sha512>;
 
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite scalar field.
-pub type Ed25519ScalarField = frost_ristretto255::RistrettoScalarField;
+#[derive(Clone, Copy)]
+pub struct Ed25519ScalarField;
+
+impl Field for Ed25519ScalarField {
+    type Scalar = Scalar;
+
+    type Serialization = [u8; 32];
+
+    fn zero() -> Self::Scalar {
+        Scalar::ZERO
+    }
+
+    fn one() -> Self::Scalar {
+        Scalar::ONE
+    }
+
+    fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
+        // [`curve25519_dalek::scalar::Scalar`]'s Eq/PartialEq does a constant-time comparison using
+        // `ConstantTimeEq`
+        if *scalar == <Self as Field>::zero() {
+            Err(FieldError::InvalidZeroScalar)
+        } else {
+            Ok(scalar.invert())
+        }
+    }
+
+    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
+        Scalar::random(rng)
+    }
+
+    fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
+        scalar.to_bytes()
+    }
+
+    fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
+        match Scalar::from_canonical_bytes(*buf).into() {
+            Some(s) => Ok(s),
+            None => Err(FieldError::MalformedScalar),
+        }
+    }
+
+    fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization {
+        Self::serialize(scalar)
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite group.
@@ -92,7 +136,7 @@ fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
     Scalar::from_bytes_mod_order_wide(&output)
 }
 
-/// Context string 'FROST-RISTRETTO255-SHA512-v5' from the ciphersuite in the [spec]
+/// Context string 'FROST-ED25519-SHA512-v11' from the ciphersuite in the [spec]
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-1
 const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v11";
