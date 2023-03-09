@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
-keywords = ["cryptography", "crypto", "ristretto", "threshold", "signature", "schnorr"]
+keywords = ["cryptography", "crypto", "threshold", "signature", "schnorr"]
 description = "Types and traits to support implementing Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
 
 [package.metadata.docs.rs]
