@@ -19,8 +19,8 @@ mod tests;
 /// An error.
 pub type Error = frost_core::Error<Ed25519Sha512>;
 
-/// An implementation of the FROST(Ed25519, SHA-512) ciphersuite scalar field.
 #[derive(Clone, Copy)]
+/// An implementation of the FROST(Ed25519, SHA-512) ciphersuite scalar field.
 pub struct Ed25519ScalarField;
 
 impl Field for Ed25519ScalarField {
