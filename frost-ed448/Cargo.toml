@@ -14,8 +14,8 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
-keywords = ["cryptography", "crypto", "ristretto", "threshold", "signature"]
-description = "A Schnorr signature scheme over the prime-order Ristretto group that supports FROST ."
+keywords = ["cryptography", "crypto", "ed448", "threshold", "signature"]
+description = "A Schnorr signature scheme over Ed448 that supports FROST."
 
 [package.metadata.docs.rs]
 features = ["nightly"]
@@ -23,8 +23,8 @@ features = ["nightly"]
 [dependencies]
 # Pointing to a commit after 0.8.3 with the required functions for FROST.
 # TODO: update after a release is made
-ed448-goldilocks = { git = "https://github.com/crate-crypto/Ed448-Goldilocks.git", rev = "54ffc6b8f14030688996da50a1bfb7bb713eb172" }
-frost-core = { path = "../frost-core", features = ["test-impl"] }
+ed448-goldilocks = { version = "0.4.0", git = "https://github.com/crate-crypto/Ed448-Goldilocks.git", rev = "54ffc6b8f14030688996da50a1bfb7bb713eb172" }
+frost-core = { path = "../frost-core", version = "0.1.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha3 = "0.10.6"
 
