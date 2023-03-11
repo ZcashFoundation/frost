@@ -50,8 +50,7 @@ impl Field for Ed448ScalarField {
     }
 
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
-        let bytes = scalar.to_bytes();
-        std::array::from_fn(|i| if i < 56 { bytes[i] } else { 0 })
+        scalar.to_bytes_rfc_8032()
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
