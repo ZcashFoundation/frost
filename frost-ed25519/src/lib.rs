@@ -19,8 +19,8 @@ mod tests;
 /// An error.
 pub type Error = frost_core::Error<Ed25519Sha512>;
 
-#[derive(Clone, Copy)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite scalar field.
+#[derive(Clone, Copy)]
 pub struct Ed25519ScalarField;
 
 impl Field for Ed25519ScalarField {
@@ -66,8 +66,8 @@ impl Field for Ed25519ScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite group.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Ed25519Group;
 
 impl Group for Ed25519Group {
@@ -141,8 +141,8 @@ fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-1
 const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Ed25519Sha512;
 
 impl Ciphersuite for Ed25519Sha512 {
