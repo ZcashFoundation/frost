@@ -20,13 +20,6 @@ fn check_sign_with_dkg() {
 }
 
 #[test]
-fn check_rts() {
-    let rng = thread_rng();
-
-    frost_core::tests::repairable::check_rts::<Ristretto255Sha512, _>(rng);
-}
-
-#[test]
 fn check_batch_verify() {
     let rng = thread_rng();
 
@@ -48,16 +41,16 @@ fn check_deserialize_identity() {
     assert_eq!(r, Err(GroupError::InvalidIdentityElement));
 }
 
-#[test]
-fn check_compute_random_values() {
-    let rng = thread_rng();
-
-    frost_core::tests::repairable::check_rts::<Ristretto255Sha512, _>(rng);
-}
-
 lazy_static! {
     pub static ref REPAIR_SHARE: Value =
         serde_json::from_str(include_str!("repair-share.json").trim()).unwrap();
+}
+
+#[test]
+fn check_generate_random_values() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_generate_random_values::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]

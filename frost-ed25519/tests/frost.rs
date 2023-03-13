@@ -89,10 +89,10 @@ fn check_deserialize_non_prime_order() {
 }
 
 #[test]
-fn check_compute_random_values() {
+fn check_generate_random_values() {
     let rng = thread_rng();
 
-    frost_core::tests::repairable::check_rts::<Ed25519Sha512, _>(rng);
+    frost_core::tests::repairable::check_generate_random_values::<Ed25519Sha512, _>(rng);
 }
 
 lazy_static! {

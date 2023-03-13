@@ -203,7 +203,7 @@ fn main() -> ExitCode {
         replaced |= write_docs(&docs, &lib_filename, original_strings, replacement_strings);
 
         // Generate files based on a template with simple search & replace.
-        for filename in ["src/tests/repair-share.json"] {
+        for filename in ["README.md", "dkg.md", "src/keys/dkg.rs"] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
                 format!("{folder}/{filename}").as_str(),

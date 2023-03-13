@@ -8,9 +8,10 @@ use crate::{
     frost::{
         self,
         keys::{
-            generate_coefficients,
-            repairable::compute_random_values,
-            repairable::{compute_sum_of_random_values, recover_share},
+            repairable::{
+                compute_lagrange_coefficient, compute_sum_of_random_values, generate_random_values,
+                recover_share,
+            },
             PublicKeyPackage, SecretShare, SigningShare,
         },
         Identifier,
@@ -18,58 +19,45 @@ use crate::{
     Ciphersuite, Field, Group, Scalar,
 };
 
-/// Test RTS.
-pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
-    // We want to test that recover share matches the original share
-
-    // Compute shares
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Key generation
-    ////////////////////////////////////////////////////////////////////////////
-
-    let max_signers = 5;
-    let min_signers = 3;
-    let (shares, _pubkeys): (Vec<SecretShare<C>>, PublicKeyPackage<C>) =
-        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
-
-    // Try to recover a share
-
-    // Signer 2 will lose their share
-    // Signer 1, 4 and 5 will help signer 2 to recover their share
-
-    let helpers: [Identifier<C>; 3] = [
-        Identifier::try_from(1).unwrap(),
-        Identifier::try_from(4).unwrap(),
-        Identifier::try_from(5).unwrap(),
-    ];
-    //  For every helper i in helpers:
-
-    let random_values = generate_coefficients::<C, R>(2, &mut rng);
-
-    for i in [1usize, 4, 5] {
-        // let identifier: Identifier<C> = Identifier::try_from(i as u16).unwrap();
-        // pub fn compute_random_values(i, helpers, share_i, zeta_i) -> deltas_i
-        let zeta_i = <<C::Group as Group>::Field>::one();
-        let deltas_i = compute_random_values(&helpers, &shares[i - 1], zeta_i, &random_values);
-
-        // Test if Sum of deltas_i = zeta_i * share _i
-        let lhs = zeta_i * shares[i - 1].value.0;
-        let mut rhs = <<C::Group as Group>::Field>::zero();
-        for (_k, v) in deltas_i {
-            rhs = rhs + v;
-        }
-
-        assert!(lhs == rhs);
-    }
-}
-
 fn generate_scalar_from_byte_string<C: Ciphersuite>(
     bs: &str,
 ) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
     let decoded = hex::decode(bs).unwrap();
     let out = <<C::Group as Group>::Field>::deserialize(&decoded.try_into().debugless_unwrap());
     out.unwrap()
+}
+
+/// Test generate_random_values
+pub fn check_generate_random_values<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    // Compute shares
+
+    let max_signers = 5;
+    let min_signers = 3;
+    let (shares, _pubkeys): (Vec<SecretShare<C>>, PublicKeyPackage<C>) =
+        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+
+    // Signer 2 will lose their share
+    // Signer 1, 4 and 5 will help signer 2 to recover their share
+
+    let helpers: [Identifier<C>; 3] = [
+        shares[0].identifier,
+        shares[3].identifier,
+        shares[4].identifier,
+    ];
+
+    let participant: Identifier<C> = shares[1].identifier;
+
+    let deltas_i = generate_random_values(&helpers, &shares[3], &mut rng, participant, helpers[1]);
+
+    let zeta = compute_lagrange_coefficient(&helpers, participant, helpers[1]);
+
+    let mut rhs = <<C::Group as Group>::Field>::zero();
+    for (_k, v) in deltas_i {
+        rhs = rhs + v;
+    }
+    let lhs = zeta * shares[3].value.0;
+
+    assert!(lhs == rhs)
 }
 
 /// Test compute_sum_of_random_values
@@ -96,7 +84,6 @@ pub fn check_recover_share<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
     repair_share_helper_functions: &Value,
 ) {
-
     // Generate shares
     let max_signers = 5;
     let min_signers = 3;
@@ -127,5 +114,4 @@ pub fn check_recover_share<C: Ciphersuite, R: RngCore + CryptoRng>(
     };
 
     assert!(actual.value == expected.value);
-
 }

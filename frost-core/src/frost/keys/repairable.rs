@@ -6,35 +6,59 @@ use crate::{frost::Identifier, Ciphersuite, CryptoRng, Field, Group, RngCore, Sc
 
 use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSharingCommitment};
 
-/// # For every single helper i in helpers:
+/// For every single helper i in helpers:
 
-/// Generate random values for each helper - 1 for use in computing the value for the final helper
+/// Generate random values for each helper for use in computing the value for the final helper
+/// /// # i: the identifier of the signer helping
+/// # helpers: as above
+/// # share_i: i's secret share
+/// # Output: i_deltas: random values that sum up to zeta_i * share _i
 
 pub fn generate_random_values<C: Ciphersuite, R: RngCore + CryptoRng>(
     helpers: &[Identifier<C>],
     share_i: &SecretShare<C>,
-    zeta_i: Scalar<C>,
     rng: &mut R,
+    participant: Identifier<C>,
+    current_helper: Identifier<C>,
 ) -> HashMap<Identifier<C>, Scalar<C>> {
-    let rand_val: Vec<Scalar<C>> = generate_coefficients::<C, R>(helpers.len() - 2, rng);
+    let rand_val: Vec<Scalar<C>> = generate_coefficients::<C, R>(helpers.len() - 1, rng);
 
-    compute_random_values(helpers, share_i, zeta_i, &rand_val)
+    compute_random_values(helpers, share_i, &rand_val, participant, current_helper)
 }
 
-/// # i: the identifier of the signer helping
-/// # helpers: as above
+/// Temp <- don't make public - TODO
+pub fn compute_lagrange_coefficient<C: Ciphersuite>(
+    helpers: &[Identifier<C>],
+    participant: Identifier<C>,
+    current_helper: Identifier<C>,
+) -> Scalar<C> {
+    let mut num = <<C::Group as Group>::Field>::one();
+    let mut den = <<C::Group as Group>::Field>::one();
 
-/// # share_i: i's secret share
-/// # zeta_i: Lagrange coefficient
-/// # Output: i_deltas: random values that sum up to zeta_i * share _i
+    for j in helpers.iter().skip(0) {
+        if current_helper == *j {
+            continue;
+        }
 
-pub fn compute_random_values<C: Ciphersuite>(
+        num *= current_helper - participant;
+        den *= *j - current_helper;
+    }
+
+    num * <<C::Group as Group>::Field>::invert(&den).unwrap()
+}
+
+fn compute_random_values<C: Ciphersuite>(
     helpers: &[Identifier<C>],
     share_i: &SecretShare<C>,
-    zeta_i: Scalar<C>,
     random_values: &Vec<Scalar<C>>,
+    participant: Identifier<C>,
+    current_helper: Identifier<C>,
 ) -> HashMap<Identifier<C>, Scalar<C>> {
-    let lhs = zeta_i * share_i.value.0; // Here
+    // Calculate Lagrange Coefficient
+
+    let zeta_i = compute_lagrange_coefficient(helpers, participant, current_helper);
+
+    let lhs = zeta_i * share_i.value.0;
 
     let mut out: HashMap<Identifier<C>, Scalar<C>> = helpers
         .iter()

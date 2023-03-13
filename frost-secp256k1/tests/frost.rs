@@ -69,10 +69,10 @@ fn check_deserialize_non_canonical() {
 }
 
 #[test]
-fn check_compute_random_values() {
+fn check_generate_random_values() {
     let rng = thread_rng();
 
-    frost_core::tests::repairable::check_rts::<Secp256K1Sha256, _>(rng);
+    frost_core::tests::repairable::check_generate_random_values::<Secp256K1Sha256, _>(rng);
 }
 
 lazy_static! {
