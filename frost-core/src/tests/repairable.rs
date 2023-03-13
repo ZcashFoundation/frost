@@ -19,6 +19,98 @@ use crate::{
     Ciphersuite, Field, Group, Scalar,
 };
 
+/// We want to test that recover share matches the original share
+pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    // Compute shares
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation
+    ////////////////////////////////////////////////////////////////////////////
+
+    let max_signers = 5;
+    let min_signers = 3;
+    let (shares, _pubkeys): (Vec<SecretShare<C>>, PublicKeyPackage<C>) =
+        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+
+    // Try to recover a share
+
+    // Signer 2 will lose their share
+    // Signer 1, 4 and 5 will help signer 2 to recover their share
+
+    let helper_1 = &shares[0];
+    let helper_4 = &shares[3];
+    let helper_5 = &shares[4];
+    let participant = &shares[1];
+
+    let helpers: [Identifier<C>; 3] = [
+        helper_1.identifier,
+        helper_4.identifier,
+        helper_5.identifier,
+    ];
+
+    // Each helper generates random values for each helper
+
+    let helper_1_deltas = generate_deltas_to_repair_share(
+        &helpers,
+        &shares[0],
+        &mut rng,
+        participant.identifier,
+        helpers[0],
+    );
+    let helper_4_deltas = generate_deltas_to_repair_share(
+        &helpers,
+        &shares[3],
+        &mut rng,
+        participant.identifier,
+        helpers[1],
+    );
+    let helper_5_deltas = generate_deltas_to_repair_share(
+        &helpers,
+        &shares[4],
+        &mut rng,
+        participant.identifier,
+        helpers[2],
+    );
+
+    let helper_array_iter = helper_1_deltas
+        .iter()
+        .chain(helper_4_deltas.iter())
+        .chain(helper_5_deltas.iter());
+    let mut sum: Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::zero();
+    for (_k, v) in helper_array_iter {
+        sum = sum + *v;
+    }
+
+    // Each helper calculates their sigma from the random values received from the other helpers
+
+    let helper_1_sigma: Scalar<C> = compute_sigmas_to_repair_share::<C>(&[
+        helper_1_deltas[&helpers[0]],
+        helper_4_deltas[&helpers[0]],
+        helper_5_deltas[&helpers[0]],
+    ]);
+    let helper_4_sigma: Scalar<C> = compute_sigmas_to_repair_share::<C>(&[
+        helper_1_deltas[&helpers[1]],
+        helper_4_deltas[&helpers[1]],
+        helper_5_deltas[&helpers[1]],
+    ]);
+    let helper_5_sigma: Scalar<C> = compute_sigmas_to_repair_share::<C>(&[
+        helper_1_deltas[&helpers[2]],
+        helper_4_deltas[&helpers[2]],
+        helper_5_deltas[&helpers[2]],
+    ]);
+
+    // The participant wishing to recover their share sums the sigmas sent from all helpers
+
+    let participant_2_recovered_share = repair_share(
+        &[helper_1_sigma, helper_4_sigma, helper_5_sigma],
+        participant.identifier,
+        &shares[1].commitment,
+    );
+
+    // assert!(shares[1].identifier == participant_2_recovered_share.identifier);
+    assert!(shares[1].secret() == participant_2_recovered_share.secret())
+}
+
 fn generate_scalar_from_byte_string<C: Ciphersuite>(
     bs: &str,
 ) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {

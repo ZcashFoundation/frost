@@ -92,3 +92,10 @@ fn check_repair_share() {
     let rng = thread_rng();
     frost_core::tests::repairable::check_repair_share::<Secp256K1Sha256, _>(rng, &REPAIR_SHARE);
 }
+
+#[test]
+fn check_rts() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_rts::<Secp256K1Sha256, _>(rng);
+}

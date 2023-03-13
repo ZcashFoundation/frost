@@ -112,3 +112,10 @@ fn check_repair_share() {
     let rng = thread_rng();
     frost_core::tests::repairable::check_repair_share::<Ed25519Sha512, _>(rng, &REPAIR_SHARE);
 }
+
+#[test]
+fn check_rts() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_rts::<Ed25519Sha512, _>(rng);
+}

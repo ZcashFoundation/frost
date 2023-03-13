@@ -64,13 +64,13 @@ pub fn compute_lagrange_coefficient<C: Ciphersuite>(
     let mut num = <<C::Group as Group>::Field>::one();
     let mut den = <<C::Group as Group>::Field>::one();
 
-    for j in helpers.iter().skip(0) {
+    for j in helpers.iter() {
         if helper_i == *j {
             continue;
         }
 
-        num *= helper_i - participant;
-        den *= *j - helper_i;
+        num *= participant - *j;
+        den *= helper_i - *j;
     }
 
     num * <<C::Group as Group>::Field>::invert(&den).unwrap()
