@@ -47,21 +47,23 @@ lazy_static! {
 }
 
 #[test]
-fn check_generate_random_values() {
+fn check_generate_deltas_to_repair_share() {
     let rng = thread_rng();
 
-    frost_core::tests::repairable::check_generate_random_values::<Ristretto255Sha512, _>(rng);
+    frost_core::tests::repairable::check_generate_deltas_to_repair_share::<Ristretto255Sha512, _>(
+        rng,
+    );
 }
 
 #[test]
-fn check_compute_sum_of_random_values() {
-    frost_core::tests::repairable::check_compute_sum_of_random_values::<Ristretto255Sha512>(
+fn check_compute_sigmas_to_repair_share() {
+    frost_core::tests::repairable::check_compute_sigmas_to_repair_share::<Ristretto255Sha512>(
         &REPAIR_SHARE,
     );
 }
 
 #[test]
-fn check_recover_share() {
+fn check_repair_share() {
     let rng = thread_rng();
-    frost_core::tests::repairable::check_recover_share::<Ristretto255Sha512, _>(rng, &REPAIR_SHARE);
+    frost_core::tests::repairable::check_repair_share::<Ristretto255Sha512, _>(rng, &REPAIR_SHARE);
 }

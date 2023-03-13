@@ -77,10 +77,10 @@ fn check_deserialize_non_prime_order() {
 }
 
 #[test]
-fn check_generate_random_values() {
+fn check_generate_deltas_to_repair_share() {
     let rng = thread_rng();
 
-    frost_core::tests::repairable::check_generate_random_values::<Ed448Shake256, _>(rng);
+    frost_core::tests::repairable::check_generate_deltas_to_repair_share::<Ed448Shake256, _>(rng);
 }
 
 lazy_static! {
@@ -89,14 +89,14 @@ lazy_static! {
 }
 
 #[test]
-fn check_compute_sum_of_random_values() {
-    frost_core::tests::repairable::check_compute_sum_of_random_values::<Ed448Shake256>(
+fn check_compute_sigmas_to_repair_share() {
+    frost_core::tests::repairable::check_compute_sigmas_to_repair_share::<Ed448Shake256>(
         &REPAIR_SHARE,
     );
 }
 
 #[test]
-fn check_recover_share() {
+fn check_repair_share() {
     let rng = thread_rng();
-    frost_core::tests::repairable::check_recover_share::<Ed448Shake256, _>(rng, &REPAIR_SHARE);
+    frost_core::tests::repairable::check_repair_share::<Ed448Shake256, _>(rng, &REPAIR_SHARE);
 }

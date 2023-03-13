@@ -9,8 +9,8 @@ use crate::{
         self,
         keys::{
             repairable::{
-                compute_lagrange_coefficient, compute_sum_of_random_values, generate_random_values,
-                recover_share,
+                compute_lagrange_coefficient, compute_sigmas_to_repair_share,
+                generate_deltas_to_repair_share, repair_share,
             },
             PublicKeyPackage, SecretShare, SigningShare,
         },
@@ -27,8 +27,8 @@ fn generate_scalar_from_byte_string<C: Ciphersuite>(
     out.unwrap()
 }
 
-/// Test generate_random_values
-pub fn check_generate_random_values<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+/// Test generate_deltas_to_repair_share
+pub fn check_generate_deltas_to_repair_share<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     // Compute shares
 
     let max_signers = 5;
@@ -37,31 +37,43 @@ pub fn check_generate_random_values<C: Ciphersuite, R: RngCore + CryptoRng>(mut 
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Signer 2 will lose their share
-    // Signer 1, 4 and 5 will help signer 2 to recover their share
+    // Signers (helpers) 1, 4 and 5 will help signer 2 (participant) to recover their share
+
+    let helper_1 = &shares[0];
+    let helper_4 = &shares[3];
+    let helper_5 = &shares[4];
+    let participant = &shares[1];
 
     let helpers: [Identifier<C>; 3] = [
-        shares[0].identifier,
-        shares[3].identifier,
-        shares[4].identifier,
+        helper_1.identifier,
+        helper_4.identifier,
+        helper_5.identifier,
     ];
 
-    let participant: Identifier<C> = shares[1].identifier;
+    // Generate deltas for helper 4
+    let deltas = generate_deltas_to_repair_share(
+        &helpers,
+        helper_4,
+        &mut rng,
+        participant.identifier,
+        helpers[1],
+    );
 
-    let deltas_i = generate_random_values(&helpers, &shares[3], &mut rng, participant, helpers[1]);
-
-    let zeta = compute_lagrange_coefficient(&helpers, participant, helpers[1]);
+    let lagrange_coefficient =
+        compute_lagrange_coefficient(&helpers, participant.identifier, helpers[1]);
 
     let mut rhs = <<C::Group as Group>::Field>::zero();
-    for (_k, v) in deltas_i {
+    for (_k, v) in deltas {
         rhs = rhs + v;
     }
-    let lhs = zeta * shares[3].value.0;
+
+    let lhs = lagrange_coefficient * helper_4.value.0;
 
     assert!(lhs == rhs)
 }
 
-/// Test compute_sum_of_random_values
-pub fn check_compute_sum_of_random_values<C: Ciphersuite>(repair_share_helper_functions: &Value) {
+/// Test compute_sigmas_to_repair_share
+pub fn check_compute_sigmas_to_repair_share<C: Ciphersuite>(repair_share_helper_functions: &Value) {
     let values = &repair_share_helper_functions["scalar_generation"];
 
     let value_1 =
@@ -71,7 +83,7 @@ pub fn check_compute_sum_of_random_values<C: Ciphersuite>(repair_share_helper_fu
     let value_3 =
         generate_scalar_from_byte_string::<C>(values["random_scalar_3"].as_str().unwrap());
 
-    let expected: Scalar<C> = compute_sum_of_random_values::<C>(&[value_1, value_2, value_3]);
+    let expected: Scalar<C> = compute_sigmas_to_repair_share::<C>(&[value_1, value_2, value_3]);
 
     let actual: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar =
         generate_scalar_from_byte_string::<C>(values["random_scalar_sum"].as_str().unwrap());
@@ -79,8 +91,8 @@ pub fn check_compute_sum_of_random_values<C: Ciphersuite>(repair_share_helper_fu
     assert!(actual == expected);
 }
 
-/// Test recover_share
-pub fn check_recover_share<C: Ciphersuite, R: RngCore + CryptoRng>(
+/// Test repair_share
+pub fn check_repair_share<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
     repair_share_helper_functions: &Value,
 ) {
@@ -99,7 +111,7 @@ pub fn check_recover_share<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let commitment = (shares[0].commitment).clone();
 
-    let expected = recover_share::<C>(
+    let expected = repair_share::<C>(
         &[sigma_1, sigma_2, sigma_3, sigma_4],
         Identifier::try_from(2).unwrap(),
         &commitment,
