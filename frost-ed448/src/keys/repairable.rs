@@ -10,13 +10,13 @@ use super::{SecretShare};
 
 /// Generate random values for each helper - 1 for use in computing the value for the final helper
 
-pub fn generate_deltas_to_repair_share<R: RngCore + CryptoRng>(
+pub fn repair_share_step_1<R: RngCore + CryptoRng>(
     helpers: &[Identifier<C>],
     share_i: &SecretShare<C>,
     zeta_i: Scalar<C>,
     rng: &mut R,
 ) -> HashMap<Identifier<C>, Scalar<C>> {
-    frost::keys::repairable::generate_deltas_to_repair_share(identifier, max_signers, min_signers, &mut rng)
+    frost::keys::repairable::repair_share_step_1(identifier, max_signers, min_signers, &mut rng)
 }
 
 /// # Communication round:
@@ -25,8 +25,8 @@ pub fn generate_deltas_to_repair_share<R: RngCore + CryptoRng>(
 /// # deltas_j: values received by j in the communication round
 /// # Output: sigma_j
 
-pub fn compute_sigmas_to_repair_share<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
-    frost::keys::repairable::compute_sigmas_to_repair_share(deltas_j)
+pub fn repair_share_step_3<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
+    frost::keys::repairable::repair_share_step_3(deltas_j)
 }
 
 /// # Communication round
@@ -35,7 +35,7 @@ pub fn compute_sigmas_to_repair_share<C: Ciphersuite>(deltas_j: &[Scalar<C>]) ->
 /// # sigmas: all sigma_j received from each helper j
 /// # Output: share_r: r's secret share
 
-pub fn repair_share<C: Ciphersuite>(
+pub fn repair_share_step_5<C: Ciphersuite>(
     sigmas: &[Scalar<C>],
     identifier: Identifier<C>,
     commitment: &VerifiableSecretSharingCommitment<C>,

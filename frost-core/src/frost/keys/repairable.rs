@@ -9,9 +9,9 @@ use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSh
 /// Step 1 of RTS. Generates the "delta" values from `helper_i` to help `participant` recover their share;
 /// where `helpers` contains the identifiers of all the helpers (including `helper_i`), and `share_i`
 /// is the share of `helper_i`.
-/// 
+///
 /// Returns a HashMap mapping which value should be sent to which participant.
-pub fn generate_deltas_to_repair_share<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     helpers: &[Identifier<C>],
     share_i: &SecretShare<C>,
     rng: &mut R,
@@ -20,14 +20,14 @@ pub fn generate_deltas_to_repair_share<C: Ciphersuite, R: RngCore + CryptoRng>(
 ) -> HashMap<Identifier<C>, Scalar<C>> {
     let rand_val: Vec<Scalar<C>> = generate_coefficients::<C, R>(helpers.len() - 1, rng);
 
-    compute_last_delta(helpers, share_i, &rand_val, participant, helper_i)
+    compute_last_random_value(helpers, share_i, &rand_val, participant, helper_i)
 }
 
 /// Compute the last delta value given the (generated uniformly at random) remaining ones
 /// since they all must add up to `zeta_i * share_i`.
 ///
 /// Returns a HashMap mapping which value should be sent to which participant.
-fn compute_last_delta<C: Ciphersuite>(
+fn compute_last_random_value<C: Ciphersuite>(
     helpers: &[Identifier<C>],
     share_i: &SecretShare<C>,
     random_values: &Vec<Scalar<C>>,
@@ -77,13 +77,13 @@ pub fn compute_lagrange_coefficient<C: Ciphersuite>(
     num * <<C::Group as Group>::Field>::invert(&den).unwrap()
 }
 
-/// # Communication round 1
+/// # Repair share step 2: Communication round
 /// # Helper i sends i_deltas[j] to helper j
 
 /// # deltas: all i_deltas received from each helper i in the communication round
 /// # Output: sigma_j
 
-pub fn compute_sigmas_to_repair_share<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
+pub fn repair_share_step_3<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
     let mut sigma_j = <<C::Group as Group>::Field>::zero();
 
     for d in deltas_j {
@@ -93,13 +93,13 @@ pub fn compute_sigmas_to_repair_share<C: Ciphersuite>(deltas_j: &[Scalar<C>]) ->
     sigma_j
 }
 
-/// # Communication round 2
+/// # Repair share step 4: Communication round
 /// # Helper j sends sigma_j to participant r
 
 /// # sigmas: all sigma_j received from each helper j
 /// # Output: share_r: r's secret share
 
-pub fn repair_share<C: Ciphersuite>(
+pub fn repair_share_step_5<C: Ciphersuite>(
     sigmas: &[Scalar<C>],
     identifier: Identifier<C>,
     commitment: &VerifiableSecretSharingCommitment<C>,

@@ -69,10 +69,10 @@ fn check_deserialize_non_canonical() {
 }
 
 #[test]
-fn check_generate_deltas_to_repair_share() {
+fn check_repair_share_step_1() {
     let rng = thread_rng();
 
-    frost_core::tests::repairable::check_generate_deltas_to_repair_share::<P256Sha256, _>(rng);
+    frost_core::tests::repairable::check_repair_share_step_1::<P256Sha256, _>(rng);
 }
 
 lazy_static! {
@@ -81,16 +81,14 @@ lazy_static! {
 }
 
 #[test]
-fn check_compute_sigmas_to_repair_share() {
-    frost_core::tests::repairable::check_compute_sigmas_to_repair_share::<P256Sha256>(
-        &REPAIR_SHARE,
-    );
+fn check_repair_share_step_3() {
+    frost_core::tests::repairable::check_repair_share_step_3::<P256Sha256>(&REPAIR_SHARE);
 }
 
 #[test]
 fn check_repair_share() {
     let rng = thread_rng();
-    frost_core::tests::repairable::check_repair_share::<P256Sha256, _>(rng, &REPAIR_SHARE);
+    frost_core::tests::repairable::check_repair_share_step_5::<P256Sha256, _>(rng, &REPAIR_SHARE);
 }
 
 #[test]
