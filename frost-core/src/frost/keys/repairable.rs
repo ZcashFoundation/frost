@@ -23,6 +23,10 @@ pub fn generate_deltas_to_repair_share<C: Ciphersuite, R: RngCore + CryptoRng>(
     compute_last_delta(helpers, share_i, &rand_val, participant, helper_i)
 }
 
+/// Compute the last delta value given the (generated uniformly at random) remaining ones
+/// since they all must add up to `zeta_i * share_i`.
+///
+/// Returns a HashMap mapping which value should be sent to which participant.
 fn compute_last_delta<C: Ciphersuite>(
     helpers: &[Identifier<C>],
     share_i: &SecretShare<C>,
