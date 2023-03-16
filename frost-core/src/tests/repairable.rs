@@ -107,7 +107,6 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
         &shares[1].commitment,
     );
 
-    // assert!(shares[1].identifier == participant_2_recovered_share.identifier);
     assert!(shares[1].secret() == participant_2_recovered_share.secret())
 }
 
