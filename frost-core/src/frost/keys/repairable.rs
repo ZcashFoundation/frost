@@ -6,14 +6,11 @@ use crate::{frost::Identifier, Ciphersuite, CryptoRng, Field, Group, RngCore, Sc
 
 use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSharingCommitment};
 
-/// For every single helper i in helpers: generate random values (deltas) for each helper
-
-/// # helpers: identifiers for signers involved in recovering share for participant
-/// # share_i: i's secret share
-/// # participant: signer who
-/// # helper_i: the identifier of the signer helping
-/// # Output: i_deltas: random values that sum up to zeta_i * share_i
-
+/// Step 1 of RTS. Generates the "delta" values from `helper_i` to help `participant` recover their share;
+/// where `helpers` contains the identifiers of all the helpers (including `helper_i`), and `share_i`
+/// is the share of `helper_i`.
+/// 
+/// Returns a HashMap mapping which value should be sent to which participant.
 pub fn generate_deltas_to_repair_share<C: Ciphersuite, R: RngCore + CryptoRng>(
     helpers: &[Identifier<C>],
     share_i: &SecretShare<C>,
