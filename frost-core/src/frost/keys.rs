@@ -323,7 +323,7 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
     rng: &mut R,
-) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
+) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     let mut bytes = [0; 64];
     rng.fill_bytes(&mut bytes);
 
@@ -336,13 +336,18 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(max_signers as usize);
 
-    for secret_share in &secret_shares {
+    let mut secret_shares_by_id: HashMap<Identifier<C>, SecretShare<C>> =
+        HashMap::with_capacity(max_signers as usize);
+
+    for secret_share in secret_shares {
         let signer_public = secret_share.value.into();
         signer_pubkeys.insert(secret_share.identifier, signer_public);
+
+        secret_shares_by_id.insert(secret_share.identifier, secret_share);
     }
 
     Ok((
-        secret_shares,
+        secret_shares_by_id,
         PublicKeyPackage {
             signer_pubkeys,
             group_public,

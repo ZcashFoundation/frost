@@ -102,15 +102,12 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             frost::keys::keygen_with_dealer::<C, R>(max_signers, min_signers, rng).unwrap();
 
         // Verifies the secret shares from the dealer
-        let key_packages: HashMap<_, _> = shares
-            .into_iter()
-            .map(|share| {
-                (
-                    share.identifier,
-                    frost::keys::KeyPackage::try_from(share).unwrap(),
-                )
-            })
-            .collect();
+        let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+            HashMap::new();
+
+        for (k, v) in shares {
+            key_packages.insert(k, frost::keys::KeyPackage::try_from(v).unwrap());
+        }
 
         group.bench_with_input(
             BenchmarkId::new("Round 1", min_signers),
