@@ -72,15 +72,6 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
         helpers[2],
     );
 
-    let helper_array_iter = helper_1_deltas
-        .iter()
-        .chain(helper_4_deltas.iter())
-        .chain(helper_5_deltas.iter());
-    let mut sum: Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::zero();
-    for (_k, v) in helper_array_iter {
-        sum = sum + *v;
-    }
-
     // Each helper calculates their sigma from the random values received from the other helpers
 
     let helper_1_sigma: Scalar<C> = repair_share_step_3::<C>(&[
