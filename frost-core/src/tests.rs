@@ -48,15 +48,13 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Verifies the secret shares from the dealer
-    let key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> = shares
-        .into_iter()
-        .map(|share| {
-            (
-                share.identifier,
-                frost::keys::KeyPackage::try_from(share).unwrap(),
-            )
-        })
-        .collect();
+    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        HashMap::new();
+
+    for (k, v) in shares {
+        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+        key_packages.insert(k, key_package);
+    }
 
     check_sign(min_signers, key_packages, rng, pubkeys)
 }

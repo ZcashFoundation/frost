@@ -22,15 +22,12 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Verifies the secret shares from the dealer
-    let key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> = shares
-        .into_iter()
-        .map(|share| {
-            (
-                share.identifier,
-                frost::keys::KeyPackage::try_from(share).unwrap(),
-            )
-        })
-        .collect();
+    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        HashMap::new();
+
+    for (k, v) in shares {
+        key_packages.insert(k, frost::keys::KeyPackage::try_from(v).unwrap());
+    }
 
     let mut nonces: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
     let mut commitments: HashMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
