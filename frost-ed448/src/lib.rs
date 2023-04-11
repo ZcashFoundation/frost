@@ -20,8 +20,8 @@ mod tests;
 /// An error.
 pub type Error = frost_core::Error<Ed448Shake256>;
 
-#[derive(Clone, Copy)]
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite scalar field.
+#[derive(Clone, Copy)]
 pub struct Ed448ScalarField;
 
 impl Field for Ed448ScalarField {
@@ -65,8 +65,8 @@ impl Field for Ed448ScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite group.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Ed448Group;
 
 impl Group for Ed448Group {
@@ -136,8 +136,8 @@ fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.3-1
 const CONTEXT_STRING: &str = "FROST-ED448-SHAKE256-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Ed448Shake256;
 
 impl Ciphersuite for Ed448Shake256 {

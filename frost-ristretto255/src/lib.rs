@@ -19,8 +19,8 @@ mod tests;
 /// An error.
 pub type Error = frost_core::Error<Ristretto255Sha512>;
 
-#[derive(Clone, Copy)]
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite scalar field.
+#[derive(Clone, Copy)]
 pub struct RistrettoScalarField;
 
 impl Field for RistrettoScalarField {
@@ -66,8 +66,8 @@ impl Field for RistrettoScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite group.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct RistrettoGroup;
 
 impl Group for RistrettoGroup {
@@ -130,8 +130,8 @@ fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-1
 const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Ristretto255Sha512;
 
 impl Ciphersuite for Ristretto255Sha512 {
