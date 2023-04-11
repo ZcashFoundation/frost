@@ -12,10 +12,14 @@ use sha3::{
     Shake256,
 };
 
-use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
+use frost_core::frost;
 
 #[cfg(test)]
 mod tests;
+
+// Re-exports in our public API
+pub use frost_core::{Ciphersuite, Field, FieldError, Group, GroupError};
+pub use rand_core;
 
 /// An error.
 pub type Error = frost_core::Error<Ed448Shake256>;

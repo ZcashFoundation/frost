@@ -1,5 +1,4 @@
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
-use frost_core::{Ciphersuite, Group, GroupError};
 use frost_ristretto255::*;
 use rand::thread_rng;
 
