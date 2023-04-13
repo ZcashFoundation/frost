@@ -13,7 +13,7 @@ use crate::{frost, Ciphersuite, Element, Error, Field, Group, Scalar};
 use super::{keys::SigningShare, Identifier};
 
 /// A scalar that is a signing nonce.
-#[derive(Clone, PartialEq, Eq, Zeroize)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Nonce<C: Ciphersuite>(pub(super) Scalar<C>);
 
 impl<C> Nonce<C>
@@ -68,6 +68,15 @@ where
     /// Serialize [`Nonce`] to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
+    }
+}
+
+impl<C> Zeroize for Nonce<C>
+where
+    C: Ciphersuite,
+{
+    fn zeroize(&mut self) {
+        *self = Nonce(<<C::Group as Group>::Field>::zero());
     }
 }
 
