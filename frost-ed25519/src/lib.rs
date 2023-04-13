@@ -11,7 +11,7 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
-pub use frost_core::frost;
+use frost_core::frost;
 
 #[cfg(test)]
 mod tests;
