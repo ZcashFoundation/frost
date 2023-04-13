@@ -196,6 +196,7 @@ pub type Identifier = frost::Identifier<E>;
 /// FROST(Ed448, SHAKE256) keys, key generation, key shares.
 pub mod keys {
     use super::*;
+    use std::collections::HashMap;
 
     /// Allows all participants' keys to be generated using a central, trusted
     /// dealer.
@@ -203,7 +204,7 @@ pub mod keys {
         max_signers: u16,
         min_signers: u16,
         mut rng: RNG,
-    ) -> Result<(Vec<SecretShare>, PublicKeyPackage), Error> {
+    ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng)
     }
 

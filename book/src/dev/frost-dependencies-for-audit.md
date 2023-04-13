@@ -13,21 +13,39 @@ This is a list of production Rust code that is in scope and out of scope for FRO
 | frost-ed25519 | v0.1.0 |
 | frost-ed448 | v0.1.0 |
 | frost-p256 | v0.1.0 |
-| ~~frost-rerandomized~~ | ~~v0.1.0~~ | Out of scope
 | frost-ristretto255 | v0.1.0 |
 | frost-secp256k1 | v0.1.0 |
+
+### ZF Dependencies
+
+| Name | Version | Notes
+|------| ------- | -----
+| redjubjub | v0.6.0 | This library is being partially audited as part of the [Zebra audit](https://github.com/ZcashFoundation/zebra-private/blob/d4137908385be7e6df0a935b91bfc83b532261a2/book/src/dev/zebra-dependencies-for-audit.md#zcashzf-dependencies-1). 
+| reddsa | v0.5.0 | This library is being partially audited as part of the [Zebra audit](https://github.com/ZcashFoundation/zebra-private/blob/d4137908385be7e6df0a935b91bfc83b532261a2/book/src/dev/zebra-dependencies-for-audit.md#zcashzf-dependencies-1). 
 
 ---
 ## Partial Audit
 
 | Name | Version | Reason | Notes
 |------| ------- | -----  | -----
-| ed448-goldilocks | v0.4.0 | Doesn't have a lot of users on github (12) or crates.io (~2k recent downloads) and it's not been previously audited and reviewed | A pure-Rust implementation of Ed448 and Curve448 and Decaf
+| ed448-goldilocks | v0.4.0 | Doesn't have a lot of users on github (12) or crates.io (~2k recent downloads) and it's not been previously audited and reviewed | A pure-Rust implementation of Ed448 and Curve448 and Decaf. 
+
+The following ed448-goldilocks modules are used by frost-ed448:
+- `src/field/scalar.rs`
+- `src/curve/edwards/extended.rs` (converting to/from TwistedExtendedPoint, MontgomeryPoint and AffinePoint are out of scope)
+- `src/field/mod.rs`
+- `src/curve/scalar_mul/variable_base.rs`
 
 ---
 ## Out of Scope
 
-The following list of dependencies is out of scope for the audit.
+The following crates and dependencies are out of scope for the audit.
+
+### FROST Crates
+
+| Name | Version | Notes
+|------| ------- | -----
+| frost-rerandomized | v0.1.0 | To be audited after the security proof is complete.
 
 ### `frost-core` Dependencies
 
