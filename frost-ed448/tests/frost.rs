@@ -1,5 +1,5 @@
 use ed448_goldilocks::curve::ExtendedPoint;
-use frost_core::{Ciphersuite, Group, GroupError};
+
 use frost_ed448::*;
 use rand::thread_rng;
 

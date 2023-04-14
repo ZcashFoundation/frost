@@ -13,10 +13,14 @@ use p256::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
 
-use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
+use frost_core::frost;
 
 #[cfg(test)]
 mod tests;
+
+// Re-exports in our public API
+pub use frost_core::{Ciphersuite, Field, FieldError, Group, GroupError};
+pub use rand_core;
 
 /// An error.
 pub type Error = frost_core::Error<P256Sha256>;
