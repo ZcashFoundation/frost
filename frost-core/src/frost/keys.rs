@@ -261,9 +261,11 @@ pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
 #[derive(Clone, Zeroize)]
 pub struct SecretShare<C: Ciphersuite> {
     /// The participant identifier of this [`SecretShare`].
+    #[zeroize(skip)]
     pub identifier: Identifier<C>,
     /// Secret Key.
     pub value: SigningShare<C>,
+    #[zeroize(skip)]
     /// The commitments to be distributed among signers.
     pub commitment: VerifiableSecretSharingCommitment<C>,
 }

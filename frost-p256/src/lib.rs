@@ -25,8 +25,8 @@ pub use rand_core;
 /// An error.
 pub type Error = frost_core::Error<P256Sha256>;
 
-#[derive(Clone, Copy)]
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite scalar field.
+#[derive(Clone, Copy)]
 pub struct P256ScalarField;
 
 impl Field for P256ScalarField {
@@ -75,8 +75,8 @@ impl Field for P256ScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite group.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct P256Group;
 
 impl Group for P256Group {
@@ -165,8 +165,8 @@ fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-1
 const CONTEXT_STRING: &str = "FROST-P256-SHA256-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct P256Sha256;
 
 impl Ciphersuite for P256Sha256 {
