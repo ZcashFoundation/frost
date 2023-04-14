@@ -33,7 +33,7 @@ serde_json = { version = "1.0", optional = true }
 criterion = { version = "0.4", optional = true }
 
 [dev-dependencies]
-curve25519-dalek = { version = "=4.0.0-rc.1", features = ["serde"] }
+curve25519-dalek = { version = "=4.0.0-rc.2", features = ["serde"] }
 lazy_static = "1.4"
 proptest = "1.0"
 rand = "0.8"
