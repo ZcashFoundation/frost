@@ -54,14 +54,14 @@ fn check_repair_share_step_1() {
 }
 
 #[test]
-fn check_repair_share_step_3() {
-    frost_core::tests::repairable::check_repair_share_step_3::<Ristretto255Sha512>(&REPAIR_SHARE);
+fn check_repair_share_step_2() {
+    frost_core::tests::repairable::check_repair_share_step_2::<Ristretto255Sha512>(&REPAIR_SHARE);
 }
 
 #[test]
-fn check_repair_share_step_5() {
+fn check_repair_share_step_3() {
     let rng = thread_rng();
-    frost_core::tests::repairable::check_repair_share_step_5::<Ristretto255Sha512, _>(
+    frost_core::tests::repairable::check_repair_share_step_3::<Ristretto255Sha512, _>(
         rng,
         &REPAIR_SHARE,
     );

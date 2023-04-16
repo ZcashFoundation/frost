@@ -81,14 +81,14 @@ lazy_static! {
 }
 
 #[test]
-fn check_repair_share_step_3() {
-    frost_core::tests::repairable::check_repair_share_step_3::<P256Sha256>(&REPAIR_SHARE);
+fn check_repair_share_step_2() {
+    frost_core::tests::repairable::check_repair_share_step_2::<P256Sha256>(&REPAIR_SHARE);
 }
 
 #[test]
 fn check_repair_share() {
     let rng = thread_rng();
-    frost_core::tests::repairable::check_repair_share_step_5::<P256Sha256, _>(rng, &REPAIR_SHARE);
+    frost_core::tests::repairable::check_repair_share_step_3::<P256Sha256, _>(rng, &REPAIR_SHARE);
 }
 
 #[test]

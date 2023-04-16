@@ -101,14 +101,14 @@ lazy_static! {
 }
 
 #[test]
-fn check_repair_share_step_3() {
-    frost_core::tests::repairable::check_repair_share_step_3::<Ed25519Sha512>(&REPAIR_SHARE);
+fn check_repair_share_step_2() {
+    frost_core::tests::repairable::check_repair_share_step_2::<Ed25519Sha512>(&REPAIR_SHARE);
 }
 
 #[test]
 fn check_repair_share() {
     let rng = thread_rng();
-    frost_core::tests::repairable::check_repair_share_step_5::<Ed25519Sha512, _>(
+    frost_core::tests::repairable::check_repair_share_step_3::<Ed25519Sha512, _>(
         rng,
         &REPAIR_SHARE,
     );

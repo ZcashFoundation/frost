@@ -9,8 +9,8 @@ use crate::{
         self,
         keys::{
             repairable::{
-                compute_lagrange_coefficient, repair_share_step_1, repair_share_step_3,
-                repair_share_step_5,
+                compute_lagrange_coefficient, repair_share_step_1, repair_share_step_2,
+                repair_share_step_3,
             },
             PublicKeyPackage, SecretShare, SigningShare,
         },
@@ -74,17 +74,17 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
     // Each helper calculates their sigma from the random values received from the other helpers
 
-    let helper_1_sigma: Scalar<C> = repair_share_step_3::<C>(&[
+    let helper_1_sigma: Scalar<C> = repair_share_step_2::<C>(&[
         helper_1_deltas[&helpers[0]],
         helper_4_deltas[&helpers[0]],
         helper_5_deltas[&helpers[0]],
     ]);
-    let helper_4_sigma: Scalar<C> = repair_share_step_3::<C>(&[
+    let helper_4_sigma: Scalar<C> = repair_share_step_2::<C>(&[
         helper_1_deltas[&helpers[1]],
         helper_4_deltas[&helpers[1]],
         helper_5_deltas[&helpers[1]],
     ]);
-    let helper_5_sigma: Scalar<C> = repair_share_step_3::<C>(&[
+    let helper_5_sigma: Scalar<C> = repair_share_step_2::<C>(&[
         helper_1_deltas[&helpers[2]],
         helper_4_deltas[&helpers[2]],
         helper_5_deltas[&helpers[2]],
@@ -92,7 +92,7 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
     // The participant wishing to recover their share sums the sigmas sent from all helpers
 
-    let participant_2_recovered_share = repair_share_step_5(
+    let participant_2_recovered_share = repair_share_step_3(
         &[helper_1_sigma, helper_4_sigma, helper_5_sigma],
         participant.identifier,
         &shares[1].commitment,
@@ -154,8 +154,8 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
     assert!(lhs == rhs)
 }
 
-/// Test repair_share_step_3
-pub fn check_repair_share_step_3<C: Ciphersuite>(repair_share_helper_functions: &Value) {
+/// Test repair_share_step_2
+pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helper_functions: &Value) {
     let values = &repair_share_helper_functions["scalar_generation"];
 
     let value_1 =
@@ -165,7 +165,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite>(repair_share_helper_functions: 
     let value_3 =
         generate_scalar_from_byte_string::<C>(values["random_scalar_3"].as_str().unwrap());
 
-    let expected: Scalar<C> = repair_share_step_3::<C>(&[value_1, value_2, value_3]);
+    let expected: Scalar<C> = repair_share_step_2::<C>(&[value_1, value_2, value_3]);
 
     let actual: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar =
         generate_scalar_from_byte_string::<C>(values["random_scalar_sum"].as_str().unwrap());
@@ -174,7 +174,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite>(repair_share_helper_functions: 
 }
 
 /// Test repair_share
-pub fn check_repair_share_step_5<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
     repair_share_helper_functions: &Value,
 ) {
@@ -193,7 +193,7 @@ pub fn check_repair_share_step_5<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let commitment = (shares[0].commitment).clone();
 
-    let expected = repair_share_step_5::<C>(
+    let expected = repair_share_step_3::<C>(
         &[sigma_1, sigma_2, sigma_3, sigma_4],
         Identifier::try_from(2).unwrap(),
         &commitment,

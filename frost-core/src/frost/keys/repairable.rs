@@ -85,19 +85,19 @@ pub fn compute_lagrange_coefficient<C: Ciphersuite>(
     num * <<C::Group as Group>::Field>::invert(&den).unwrap()
 }
 
-/// Step 2 of RTS: Communication round
+/// Communication round
 ///
 /// `helper_i` sends 1 `delta_j` to all other helpers (j)
 /// `helper_i` retains 1 `delta_j`
 
-/// Step 3 of RTS.
+/// Step 2 of RTS.
 ///
 /// Generates the `sigma` values from all `deltas` received from `helpers`
 /// to help `participant` recover their share.
 /// `sigma` is the sum of all received `delta` and the `delta_i` generated for `helper_i`.
 ///
 /// Returns a scalar
-pub fn repair_share_step_3<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
+pub fn repair_share_step_2<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
     let mut sigma_j = <<C::Group as Group>::Field>::zero();
 
     for d in deltas_j {
@@ -107,16 +107,16 @@ pub fn repair_share_step_3<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> 
     sigma_j
 }
 
-/// Step 4 of RTS: Communication round
+/// Communication round
 ///
 /// `helper_j` sends 1 `sigma_j` to the `participant` repairing their share.
 
-/// Step 5 of RTS
+/// Step 3 of RTS
 ///
 /// The `participant` sums all `sigma_j` received to compute the `share`. The `SecretShare`
 /// is made up of the `identifier`and `commitment` of the `participant` as well as the
 /// `value` which is the `SigningShare`.
-pub fn repair_share_step_5<C: Ciphersuite>(
+pub fn repair_share_step_3<C: Ciphersuite>(
     sigmas: &[Scalar<C>],
     identifier: Identifier<C>,
     commitment: &VerifiableSecretSharingCommitment<C>,

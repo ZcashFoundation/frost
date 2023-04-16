@@ -25,8 +25,8 @@ pub fn repair_share_step_1<R: RngCore + CryptoRng>(
 /// # deltas_j: values received by j in the communication round
 /// # Output: sigma_j
 
-pub fn repair_share_step_3<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
-    frost::keys::repairable::repair_share_step_3(deltas_j)
+pub fn repair_share_step_2<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
+    frost::keys::repairable::repair_share_step_2(deltas_j)
 }
 
 /// # Communication round
@@ -35,7 +35,7 @@ pub fn repair_share_step_3<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> 
 /// # sigmas: all sigma_j received from each helper j
 /// # Output: share_r: r's secret share
 
-pub fn repair_share_step_5<C: Ciphersuite>(
+pub fn repair_share_step_3<C: Ciphersuite>(
     sigmas: &[Scalar<C>],
     identifier: Identifier<C>,
     commitment: &VerifiableSecretSharingCommitment<C>,
