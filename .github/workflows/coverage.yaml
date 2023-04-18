@@ -44,4 +44,4 @@ jobs:
         run: cargo llvm-cov report --lcov --ignore-filename-regex 'tests.rs|benches.rs|gencode' --output-path lcov.info
 
       - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3.1.1
+        uses: codecov/codecov-action@v3.1.2
