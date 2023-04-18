@@ -114,7 +114,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v3.5.2
-      - uses: reviewdog/action-actionlint@v1.36.0
+      - uses: reviewdog/action-actionlint@v1.37.0
         with:
           level: warning
           fail_on_error: false
