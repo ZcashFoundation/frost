@@ -21,7 +21,7 @@ description = "A Schnorr signature scheme over the prime-order Ristretto group t
 features = ["nightly"]
 
 [dependencies]
-frost-core = { path = "../frost-core", version = "0.1.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.2.0", features = ["test-impl"] }
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
 rand_core = "0.6"
 sha2 = "0.10.2"

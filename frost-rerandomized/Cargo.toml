@@ -19,7 +19,7 @@ description = "Types and traits to support implementing a re-randomized variant 
 features = ["nightly"]
 
 [dependencies]
-frost-core = { path = "../frost-core", version = "0.1.0", features = ["internals"] }
+frost-core = { path = "../frost-core", version = "0.2.0", features = ["internals"] }
 rand_core = "0.6"
 
 [dev-dependencies]
