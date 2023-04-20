@@ -93,5 +93,5 @@ jobs:
           entrypoint: "book/"
           firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
 
