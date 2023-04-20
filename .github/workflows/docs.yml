@@ -9,6 +9,7 @@ concurrency:
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
       - main
@@ -74,12 +75,23 @@ jobs:
         run: |
           mdbook build book/
           
-      - name: Deploy FROST book to firebase
-        uses: w9jds/firebase-action@v11.22.0
+      - name: Deploy FROST book to Firebase preview channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        if: ${{ github.event_name == 'pull_request' }}
         with:
-          args: deploy
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-          PROJECT_PATH: book/
-          PROJECT_ID: frost-book
+          entrypoint: "book/"
+          expires: 14d
+          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+
+      - name: DeployFROST book to Firebase live channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        with:
+          channelId: live
+          entrypoint: "book/"
+          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
 
