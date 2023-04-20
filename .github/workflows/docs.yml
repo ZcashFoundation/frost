@@ -85,7 +85,7 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
 
-      - name: DeployFROST book to Firebase live channel
+      - name: Deploy FROST book to Firebase live channel
         uses: FirebaseExtended/action-hosting-deploy@v0
         if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
         with:
