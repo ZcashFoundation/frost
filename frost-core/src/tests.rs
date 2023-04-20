@@ -12,7 +12,7 @@ pub mod vectors;
 
 /// Test share generation with a Ciphersuite
 pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
-    let secret = frost::keys::SharedSecret::<C>::random(&mut rng);
+    let secret = crate::SigningKey::<C>::new(&mut rng);
 
     let max_signers = 5;
     let min_signers = 3;
@@ -29,8 +29,11 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     }
 
     assert_eq!(
-        frost::keys::reconstruct_secret::<C>(secret_shares).unwrap(),
-        secret
+        frost::keys::reconstruct_key::<C>(secret_shares)
+            .unwrap()
+            .to_bytes()
+            .as_ref(),
+        secret.to_bytes().as_ref()
     )
 }
 

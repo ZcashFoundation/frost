@@ -12,13 +12,13 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     frost::Identifier, Challenge, Ciphersuite, Element, Error, Field, Group, Scalar, Signature,
-    VerifyingKey,
+    SigningKey, VerifyingKey,
 };
 
 use super::{
     evaluate_polynomial, evaluate_vss, generate_coefficients, generate_secret_polynomial,
-    KeyPackage, PublicKeyPackage, SecretShare, SharedSecret, SigningShare,
-    VerifiableSecretSharingCommitment, VerifyingShare,
+    KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
+    VerifyingShare,
 };
 
 /// DKG Round 1 structures.
@@ -108,7 +108,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     min_signers: u16,
     mut rng: R,
 ) -> Result<(round1::SecretPackage<C>, round1::Package<C>), Error<C>> {
-    let secret: SharedSecret<C> = SharedSecret::random(&mut rng);
+    let secret: SigningKey<C> = SigningKey::new(&mut rng);
 
     // Round 1, Step 1
     //
