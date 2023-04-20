@@ -23,7 +23,7 @@ features = ["nightly"]
 
 [dependencies]
 p256 = { version = "0.13.0", features = ["hash2curve"] }
-frost-core = { path = "../frost-core", version = "0.1.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.2.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
