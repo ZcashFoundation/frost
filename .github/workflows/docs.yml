@@ -18,13 +18,6 @@ on:
       - 'book/**'
       - '**/firebase.json'
       - 'katex-header.html'
-      # rustdoc source files
-      - '**/*.rs'
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
-      # configuration files
-      - '.cargo/config.toml'
-      - '**/clippy.toml'
       # workflow definitions
       - '.github/workflows/docs.yml'
 
