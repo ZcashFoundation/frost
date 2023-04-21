@@ -10,8 +10,7 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-  push:
-    branches:
+    branches:    
       - main
     paths:
       # doc source files
