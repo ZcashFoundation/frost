@@ -1,6 +1,6 @@
 //! Repairable Threshold Scheme
 //!
-//! Implements the Repairable Threshold Scheme (RTS) from [https://eprint.iacr.org/2017/1155].
+//! Implements the Repairable Threshold Scheme (RTS) from <https://eprint.iacr.org/2017/1155>.
 //! The RTS is used to help a signer (participant) repair their lost share. This is achieved
 //! using a subset of the other signers know here as `helpers`.
 
