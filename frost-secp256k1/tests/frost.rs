@@ -1,4 +1,3 @@
-use frost_core::{Ciphersuite, Group, GroupError};
 use frost_secp256k1::*;
 use lazy_static::lazy_static;
 use rand::thread_rng;

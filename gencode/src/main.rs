@@ -45,12 +45,26 @@ use regex::Regex;
 fn read_docs(filename: &str, suite_strings: &[&str]) -> Vec<(String, String, usize, usize)> {
     let mut docs = Vec::new();
     let code = fs::read_to_string(filename).unwrap();
-    let re = Regex::new(r"(?m)((^[ ]*///.*\n)+)\s*pub (.*)").unwrap();
+    let re = Regex::new(concat!(
+        // Enable multi-line (makes "^" match start of line)
+        r"(?m)",
+        // Matches multiple comment lines: whitespace, three slashes, anything else.
+        // Captures the entire comment in the "doc" group.
+        r"(?P<doc>(^[ ]*///.*\n)+)",
+        // Matches zero or more attributes: whitespace, "#", anything else.
+        // Captures all attributes in the "attrs" group
+        r"(?P<attrs>(\s*#.*\n)*)",
+        // Matches the item declaration: whitespace, "pub ", anything else (which
+        // is captured in the "name" capture group)
+        r"\s*pub (?P<name>.*)"
+    ))
+    .unwrap();
 
     for m in re.captures_iter(code.as_str()) {
-        // Captures: 0 - the whole match; 1: documentation;
-        // 2: internal capture group; 3: the item "name" as described above
-        let (name, doc) = (m.get(3).unwrap().as_str(), m.get(1).unwrap().as_str());
+        let (name, doc) = (
+            m.name("name").unwrap().as_str(),
+            m.name("doc").unwrap().as_str(),
+        );
         let mut name = name.to_string();
         // Replacing ciphersuite-specific names with a fixed string allows
         // comparing item "names" to check later if we're working on the
@@ -61,8 +75,8 @@ fn read_docs(filename: &str, suite_strings: &[&str]) -> Vec<(String, String, usi
         docs.push((
             name,
             doc.to_string(),
-            m.get(1).unwrap().start(),
-            m.get(1).unwrap().end(),
+            m.name("doc").unwrap().start(),
+            m.name("doc").unwrap().end(),
         ))
     }
     docs
@@ -91,13 +105,11 @@ fn write_docs(
 
     // To be able to replace the documentation properly, start from the end, which
     // will keep the string positions consistent
-    for ((_old_name, _, old_start, old_end), (_new_name, new_doc, _, _)) in
+    for ((old_name, _, old_start, old_end), (new_name, new_doc, _, _)) in
         zip(old_docs.iter().rev(), docs.iter().rev())
     {
         // This is a sanity check to test if we're replacing the right comment.
-        // It was commented out due to an exception (Ed25519 scalar is defined
-        // as the Ristretto25519 scalar instead of its own struct)
-        // assert_eq!(old_name, new_name, "source code does not match");
+        assert_eq!(old_name, new_name, "source code does not match");
 
         // Replaces ciphersuite-references in documentation
         let mut new_doc = new_doc.to_string();

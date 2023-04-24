@@ -21,10 +21,12 @@ let (shares, pubkeys) = frost::keys::keygen_with_dealer(max_signers, min_signers
 // Verifies the secret shares from the dealer and store them in a HashMap.
 // In practice, the KeyPackages must be sent to its respective participants
 // through a confidential and authenticated channel.
-let key_packages: HashMap<_, _> = shares
-    .into_iter()
-    .map(|share| Ok((share.identifier, frost::keys::KeyPackage::try_from(share)?)))
-    .collect::<Result<_, frost::Error>>()?;
+let mut key_packages: HashMap<_, _> = HashMap::new();
+
+for (k, v) in shares {
+    let key_package = frost::keys::KeyPackage::try_from(v)?;
+    key_packages.insert(k, key_package);
+}
 
 let mut nonces = HashMap::new();
 let mut commitments = HashMap::new();

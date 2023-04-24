@@ -13,16 +13,20 @@ use p256::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
 
-use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
+use frost_core::frost;
 
 #[cfg(test)]
 mod tests;
 
+// Re-exports in our public API
+pub use frost_core::{Ciphersuite, Field, FieldError, Group, GroupError};
+pub use rand_core;
+
 /// An error.
 pub type Error = frost_core::Error<P256Sha256>;
 
-#[derive(Clone, Copy)]
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite scalar field.
+#[derive(Clone, Copy)]
 pub struct P256ScalarField;
 
 impl Field for P256ScalarField {
@@ -71,8 +75,8 @@ impl Field for P256ScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite group.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct P256Group;
 
 impl Group for P256Group {
@@ -161,8 +165,8 @@ fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.4-1
 const CONTEXT_STRING: &str = "FROST-P256-SHA256-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct P256Sha256;
 
 impl Ciphersuite for P256Sha256 {
@@ -224,6 +228,8 @@ pub type Identifier = frost::Identifier<P>;
 
 /// FROST(P-256, SHA-256) keys, key generation, key shares.
 pub mod keys {
+    use std::collections::HashMap;
+
     use super::*;
 
     /// Allows all participants' keys to be generated using a central, trusted
@@ -232,7 +238,7 @@ pub mod keys {
         max_signers: u16,
         min_signers: u16,
         mut rng: RNG,
-    ) -> Result<(Vec<SecretShare>, PublicKeyPackage), Error> {
+    ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng)
     }
 

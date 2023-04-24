@@ -1,4 +1,3 @@
-use frost_core::{Ciphersuite, Group, GroupError};
 use frost_ed25519::*;
 
 use curve25519_dalek::{edwards::EdwardsPoint, traits::Identity};

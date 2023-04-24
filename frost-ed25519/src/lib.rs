@@ -11,16 +11,20 @@ use curve25519_dalek::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
-use frost_core::{frost, Ciphersuite, Field, FieldError, Group, GroupError};
+use frost_core::frost;
 
 #[cfg(test)]
 mod tests;
 
+// Re-exports in our public API
+pub use frost_core::{Ciphersuite, Field, FieldError, Group, GroupError};
+pub use rand_core;
+
 /// An error.
 pub type Error = frost_core::Error<Ed25519Sha512>;
 
-#[derive(Clone, Copy)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite scalar field.
+#[derive(Clone, Copy)]
 pub struct Ed25519ScalarField;
 
 impl Field for Ed25519ScalarField {
@@ -66,8 +70,8 @@ impl Field for Ed25519ScalarField {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite group.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Ed25519Group;
 
 impl Group for Ed25519Group {
@@ -141,8 +145,8 @@ fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.1-1
 const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v11";
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Ed25519Sha512;
 
 impl Ciphersuite for Ed25519Sha512 {
@@ -200,6 +204,8 @@ pub type Identifier = frost::Identifier<E>;
 
 /// FROST(Ed25519, SHA-512) keys, key generation, key shares.
 pub mod keys {
+    use std::collections::HashMap;
+
     use super::*;
 
     /// Allows all participants' keys to be generated using a central, trusted
@@ -208,7 +214,7 @@ pub mod keys {
         max_signers: u16,
         min_signers: u16,
         mut rng: RNG,
-    ) -> Result<(Vec<SecretShare>, PublicKeyPackage), Error> {
+    ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng)
     }
 

@@ -12,6 +12,8 @@ use frost_core::{
     Ciphersuite, Error, Field, Group, VerifyingKey,
 };
 
+// When pulled into `reddsa`, that has its own sibling `rand_core` import.
+// For the time being, we do not re-export this `rand_core`.
 use rand_core::{CryptoRng, RngCore};
 
 /// Performed once by each participant selected for the signing operation.
