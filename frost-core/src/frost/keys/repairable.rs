@@ -22,11 +22,10 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     share_i: &SecretShare<C>,
     rng: &mut R,
     participant: Identifier<C>,
-    helper_i: Identifier<C>,
 ) -> HashMap<Identifier<C>, Scalar<C>> {
     let rand_val: Vec<Scalar<C>> = generate_coefficients::<C, R>(helpers.len() - 1, rng);
 
-    compute_last_random_value(helpers, share_i, &rand_val, participant, helper_i)
+    compute_last_random_value(helpers, share_i, &rand_val, participant)
 }
 
 /// Compute the last delta value given the (generated uniformly at random) remaining ones
@@ -38,10 +37,9 @@ fn compute_last_random_value<C: Ciphersuite>(
     share_i: &SecretShare<C>,
     random_values: &Vec<Scalar<C>>,
     participant: Identifier<C>,
-    helper_i: Identifier<C>,
 ) -> HashMap<Identifier<C>, Scalar<C>> {
     // Calculate Lagrange Coefficient for helper_i
-    let zeta_i = compute_lagrange_coefficient(helpers, participant, helper_i);
+    let zeta_i = compute_lagrange_coefficient(helpers, participant, share_i.identifier);
 
     let lhs = zeta_i * share_i.value.0;
 

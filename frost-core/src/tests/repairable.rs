@@ -1,5 +1,7 @@
 //! Test for Repairable Threshold Scheme
 
+use std::collections::HashMap;
+
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
@@ -29,7 +31,7 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, _pubkeys): (Vec<SecretShare<C>>, PublicKeyPackage<C>) =
+    let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Try to recover a share
@@ -37,10 +39,10 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     // Signer 2 will lose their share
     // Signer 1, 4 and 5 will help signer 2 to recover their share
 
-    let helper_1 = &shares[0];
-    let helper_4 = &shares[3];
-    let helper_5 = &shares[4];
-    let participant = &shares[1];
+    let helper_1 = &shares[&Identifier::try_from(1).unwrap()];
+    let helper_4 = &shares[&Identifier::try_from(4).unwrap()];
+    let helper_5 = &shares[&Identifier::try_from(5).unwrap()];
+    let participant = &shares[&Identifier::try_from(2).unwrap()];
 
     let helpers: [Identifier<C>; 3] = [
         helper_1.identifier,
@@ -50,27 +52,9 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
     // Each helper generates random values for each helper
 
-    let helper_1_deltas = repair_share_step_1(
-        &helpers,
-        &shares[0],
-        &mut rng,
-        participant.identifier,
-        helpers[0],
-    );
-    let helper_4_deltas = repair_share_step_1(
-        &helpers,
-        &shares[3],
-        &mut rng,
-        participant.identifier,
-        helpers[1],
-    );
-    let helper_5_deltas = repair_share_step_1(
-        &helpers,
-        &shares[4],
-        &mut rng,
-        participant.identifier,
-        helpers[2],
-    );
+    let helper_1_deltas = repair_share_step_1(&helpers, helper_1, &mut rng, participant.identifier);
+    let helper_4_deltas = repair_share_step_1(&helpers, helper_4, &mut rng, participant.identifier);
+    let helper_5_deltas = repair_share_step_1(&helpers, helper_5, &mut rng, participant.identifier);
 
     // Each helper calculates their sigma from the random values received from the other helpers
 
@@ -92,13 +76,14 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
     // The participant wishing to recover their share sums the sigmas sent from all helpers
 
-    let participant_2_recovered_share = repair_share_step_3(
+    let participant_recovered_share = repair_share_step_3(
         &[helper_1_sigma, helper_4_sigma, helper_5_sigma],
         participant.identifier,
-        &shares[1].commitment,
+        &participant.commitment,
     );
 
-    assert!(shares[1].secret() == participant_2_recovered_share.secret())
+    // TODO: assert on commitment equality as well once updates have been made to VerifiableSecretSharingCommitment
+    assert!(participant.secret() == participant_recovered_share.secret())
 }
 
 fn generate_scalar_from_byte_string<C: Ciphersuite>(
@@ -115,16 +100,16 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, _pubkeys): (Vec<SecretShare<C>>, PublicKeyPackage<C>) =
+    let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Signer 2 will lose their share
     // Signers (helpers) 1, 4 and 5 will help signer 2 (participant) to recover their share
 
-    let helper_1 = &shares[0];
-    let helper_4 = &shares[3];
-    let helper_5 = &shares[4];
-    let participant = &shares[1];
+    let helper_1 = &shares[&Identifier::try_from(1).unwrap()];
+    let helper_4 = &shares[&Identifier::try_from(4).unwrap()];
+    let helper_5 = &shares[&Identifier::try_from(5).unwrap()];
+    let participant = &shares[&Identifier::try_from(2).unwrap()];
 
     let helpers: [Identifier<C>; 3] = [
         helper_1.identifier,
@@ -133,13 +118,7 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
     ];
 
     // Generate deltas for helper 4
-    let deltas = repair_share_step_1(
-        &helpers,
-        helper_4,
-        &mut rng,
-        participant.identifier,
-        helpers[1],
-    );
+    let deltas = repair_share_step_1(&helpers, helper_4, &mut rng, participant.identifier);
 
     let lagrange_coefficient =
         compute_lagrange_coefficient(&helpers, participant.identifier, helpers[1]);
@@ -181,7 +160,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     // Generate shares
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, _pubkeys): (Vec<SecretShare<C>>, PublicKeyPackage<C>) =
+    let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     let sigmas: &Value = &repair_share_helper_functions["sigma_generation"];
@@ -191,7 +170,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     let sigma_3 = generate_scalar_from_byte_string::<C>(sigmas["sigma_3"].as_str().unwrap());
     let sigma_4 = generate_scalar_from_byte_string::<C>(sigmas["sigma_4"].as_str().unwrap());
 
-    let commitment = (shares[0].commitment).clone();
+    let commitment = (shares[&Identifier::try_from(1).unwrap()].commitment).clone();
 
     let expected = repair_share_step_3::<C>(
         &[sigma_1, sigma_2, sigma_3, sigma_4],
