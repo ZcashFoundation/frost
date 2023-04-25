@@ -500,7 +500,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 /// This can be used if for some reason the original key must be restored; e.g.
 /// if threshold signing is not required anymore.
 ///
-/// This is NOT required to sign with FROST; the whole point of FROST is being
+/// This is NOT required to sign with FROST; the point of FROST is being
 /// able to generate signatures only using the shares, without having to
 /// reconstruct the original key.
 ///
