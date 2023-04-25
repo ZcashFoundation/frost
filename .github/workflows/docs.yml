@@ -19,7 +19,10 @@ on:
       - 'katex-header.html'
       # workflow definitions
       - '.github/workflows/docs.yml'
-
+  push:
+    branches:    
+      - main
+      
 env:
   RUST_LOG: info
   RUST_BACKTRACE: full
@@ -69,7 +72,7 @@ jobs:
           
       - name: Deploy FROST book to Firebase preview channel
         uses: FirebaseExtended/action-hosting-deploy@v0
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' }}
         with:
           entrypoint: "book/"
           expires: 14d
