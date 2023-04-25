@@ -1,0 +1,92 @@
+name: Docs
+
+# Ensures that only one workflow task will run at a time. Previous deployments, if
+# already in process, won't get cancelled. Instead, we let the first to complete
+# then queue the latest pending workflow, cancelling any workflows in between
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:    
+      - main
+    paths:
+      # doc source files
+      - 'book/**'
+      - '**/firebase.json'
+      - 'katex-header.html'
+      # workflow definitions
+      - '.github/workflows/docs.yml'
+  push:
+    branches:    
+      - main
+      
+env:
+  RUST_LOG: info
+  RUST_BACKTRACE: full
+  RUST_LIB_BACKTRACE: full
+  COLORBT_SHOW_HIDDEN: '1'
+
+jobs:
+  build:
+    name: Build and Deploy Docs (+beta)
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v3.5.2
+        with:
+          persist-credentials: false
+
+      - name: Install last version of Protoc
+        uses: arduino/setup-protoc@v1.1.2
+        with:
+          # TODO: increase to latest version after https://github.com/arduino/setup-protoc/issues/33 is fixed
+          version: '3.20.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install latest beta
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: beta
+          components: rust-docs
+          override: true
+
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1.2.0
+        with:
+          mdbook-version: '0.4.18'
+
+      # TODO: actions-mdbook does not yet have an option to install mdbook-mermaid https://github.com/peaceiris/actions-mdbook/issues/426
+      - name: Install mdbook
+        run: |
+          cargo install mdbook-mermaid
+          
+      - name: Build FROST book
+        run: |
+          mdbook build book/
+          
+      - name: Deploy FROST book to Firebase preview channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        if: ${{ github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' }}
+        with:
+          entrypoint: "book/"
+          expires: 14d
+          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+
+      - name: Deploy FROST book to Firebase live channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        with:
+          channelId: live
+          entrypoint: "book/"
+          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+
