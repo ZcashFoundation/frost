@@ -230,6 +230,7 @@ pub mod keys {
     pub type PublicKeyPackage = frost::keys::PublicKeyPackage<R>;
 
     pub mod dkg;
+    pub mod repairable;
 }
 
 /// FROST(ristretto255, SHA-512) Round 1 functionality and types.
