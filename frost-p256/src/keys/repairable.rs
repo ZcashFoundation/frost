@@ -1,11 +1,10 @@
-/// Repairable Threshold Schemes
-#![doc = include_str!("../../repairable.md")]
+//! Repairable Threshold Schemes
 
 use std::collections::HashMap;
 
-use crate::{frost::Identifier, Ciphersuite, CryptoRng, Field, Group, RngCore, Scalar};
+use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore, Scalar, P};
 
-use super::SecretShare;
+use super::{SecretShare, VerifiableSecretSharingCommitment};
 
 /// Step 1 of RTS.
 ///
@@ -14,35 +13,35 @@ use super::SecretShare;
 /// is the share of `helper_i`.
 ///
 /// Returns a HashMap mapping which value should be sent to which participant.
-pub fn repair_share_step_1<R: RngCore + CryptoRng>(
-    helpers: &[Identifier<C>],
-    share_i: &SecretShare<C>,
-    zeta_i: Scalar<C>,
+pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
+    helpers: &[Identifier],
+    share_i: &SecretShare,
     rng: &mut R,
-) -> HashMap<Identifier<C>, Scalar<C>> {
-    frost::keys::repairable::repair_share_step_1(identifier, max_signers, min_signers, &mut rng)
+    participant: Identifier,
+) -> HashMap<Identifier, Scalar> {
+    frost::keys::repairable::repair_share_step_1(helpers, share_i, rng, participant)
 }
 
-/// Step 3 of RTS.
+/// Step 2 of RTS.
 ///
 /// Generates the `sigma` values from all `deltas` received from `helpers`
 /// to help `participant` recover their share.
 /// `sigma` is the sum of all received `delta` and the `delta_i` generated for `helper_i`.
 ///
 /// Returns a scalar
-pub fn repair_share_step_2<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
-    frost::keys::repairable::repair_share_step_2(deltas_j)
+pub fn repair_share_step_2(deltas_j: &[Scalar]) -> Scalar {
+    frost::keys::repairable::repair_share_step_2::<P>(deltas_j)
 }
 
-/// Step 5 of RTS
+/// Step 3 of RTS
 ///
 /// The `participant` sums all `sigma_j` received to compute the `share`. The `SecretShare`
 /// is made up of the `identifier`and `commitment` of the `participant` as well as the
 /// `value` which is the `SigningShare`.
-pub fn repair_share_step_3<C: Ciphersuite>(
-    sigmas: &[Scalar<C>],
-    identifier: Identifier<C>,
-    commitment: &VerifiableSecretSharingCommitment<C>,
-) -> SecretShare<C> {
-    frost::keys::repairable::repair_share(sigmas, identifier, commitment)
+pub fn repair_share_step_3(
+    sigmas: &[Scalar],
+    identifier: Identifier,
+    commitment: &VerifiableSecretSharingCommitment,
+) -> SecretShare {
+    frost::keys::repairable::repair_share_step_3(sigmas, identifier, commitment)
 }
