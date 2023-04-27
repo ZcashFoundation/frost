@@ -6,7 +6,11 @@
 
 use std::collections::HashMap;
 
-use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore, Scalar, R};
+// This is imported separately to make `gencode` work.
+// (if it were below, the position of the import would vary between ciphersuites
+//  after `cargo fmt`)
+use crate::Ristretto255Sha512;
+use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore, Scalar};
 
 use super::{SecretShare, VerifiableSecretSharingCommitment};
 
@@ -34,7 +38,7 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 ///
 /// Returns a scalar
 pub fn repair_share_step_2(deltas_j: &[Scalar]) -> Scalar {
-    frost::keys::repairable::repair_share_step_2::<R>(deltas_j)
+    frost::keys::repairable::repair_share_step_2::<Ristretto255Sha512>(deltas_j)
 }
 
 /// Step 3 of RTS
