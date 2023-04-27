@@ -1,10 +1,33 @@
 //! Distributed Key Generation functions and structures.
 //!
 //! The DKG module supports generating FROST key shares in a distributed manner,
-//! without a trusted dealer.
+//! without a trusted dealer, via two rounds of communication between all
+//! participants.
+//!
+//! This implements FROST KeyGen from the original [FROST paper], specifically
+//! Figure 1. This protocol is a variant of [Pedersen's DKG] that additionally
+//! requires each participant to demonstrate knowledge of their secret by providing
+//! other participants with proof in zero knowledge, instantiated as a Schnorr signature,
+//! to protect against rogue-key attacks in the setting where `t ≥ n/2`.
+//!
+//! Pedersen's DKG is simply where each participant executes Feldman's
+//! Verifiable Secret Sharing (VSS) as the dealer in parallel, and derives their
+//! secret share as the sum of the shares received from each of the `n` VSS
+//! executions.
+//!
+//! As required for any multi-party protocol using Feldman's VSS, the key
+//! generation stage in FROST requires participants to maintain a consistent
+//! view of secret polynomial coefficient commitments. This DKG protocol
+//! requires participants to broadcast the commitment values honestly (e.g.,
+//! participants do not provide different commitment values to a subset of
+//! participants) over a _[secure broadcast channel]_.
 //!
 //! For more details and an example, see the ciphersuite-specific crates, e.g.
 //! [`frost_ristretto255::keys::dkg`](../../../../frost_ristretto255/keys/dkg).
+//!
+//! [FROST paper]: https://eprint.iacr.org/2020/852.pdf
+//! [Pedersen's DKG]: https://link.springer.com/chapter/10.1007/3-540-46416-6_47
+//! [secure broadcast channel]: https://frost.zfnd.org/terminology.html#broadcast-channel
 
 use std::{collections::HashMap, iter};
 
