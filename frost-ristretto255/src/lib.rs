@@ -229,7 +229,22 @@ pub mod keys {
     /// Used for verification purposes before publishing a signature.
     pub type PublicKeyPackage = frost::keys::PublicKeyPackage<R>;
 
+    /// Contains the commitments to the coefficients for our secret polynomial _f_,
+    /// used to generate participants' key shares.
+    ///
+    /// [`VerifiableSecretSharingCommitment`] contains a set of commitments to the coefficients (which
+    /// themselves are scalars) for a secret polynomial f, where f is used to
+    /// generate each ith participant's key share f(i). Participants use this set of
+    /// commitments to perform verifiable secret sharing.
+    ///
+    /// Note that participants MUST be assured that they have the *same*
+    /// [`VerifiableSecretSharingCommitment`], either by performing pairwise comparison, or by using
+    /// some agreed-upon public location for publication, where each participant can
+    /// ensure that they received the correct (and same) value.
+    pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<R>;
+
     pub mod dkg;
+    pub mod repairable;
 }
 
 /// FROST(ristretto255, SHA-512) Round 1 functionality and types.
