@@ -1,5 +1,6 @@
 //! FROST Round 2 functionality and types, for signature share generation
 
+use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug};
 
 use crate::{
@@ -34,6 +35,40 @@ where
     }
 }
 
+impl<C> serde::Serialize for SignatureResponse<C>
+where
+    C: Ciphersuite,
+    C::Group: Group,
+    <C::Group as Group>::Field: Field,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(self.to_bytes().as_ref())
+    }
+}
+
+impl<'de, C> serde::Deserialize<'de> for SignatureResponse<C>
+where
+    C: Ciphersuite,
+    C::Group: Group,
+    <C::Group as Group>::Field: Field,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        let identifier = SignatureResponse::from_bytes(array)
+            .map_err(|err| serde::de::Error::custom(format!("{err}")))?;
+        Ok(identifier)
+    }
+}
+
 impl<C> Debug for SignatureResponse<C>
 where
     C: Ciphersuite,
@@ -59,7 +94,7 @@ where
 
 /// A participant's signature share, which the coordinator will aggregate with all other signer's
 /// shares into the joint signature.
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Deserialize, Serialize)]
 pub struct SignatureShare<C: Ciphersuite> {
     /// Represents the participant identifier.
     pub identifier: Identifier<C>,

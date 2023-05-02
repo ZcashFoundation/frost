@@ -31,6 +31,7 @@ proptest = { version = "1.0", optional = true }
 proptest-derive = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
 criterion = { version = "0.4", optional = true }
+serde = { version = "1.0.160", features = ["derive"] }
 
 [dev-dependencies]
 curve25519-dalek = { version = "=4.0.0-rc.2", features = ["serde"] }

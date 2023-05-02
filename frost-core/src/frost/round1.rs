@@ -6,6 +6,7 @@ use std::fmt::{self, Debug};
 use hex::FromHex;
 
 use rand_core::{CryptoRng, RngCore};
+use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Element, Error, Field, Group, Scalar};
@@ -126,6 +127,36 @@ where
     }
 }
 
+impl<C> serde::Serialize for NonceCommitment<C>
+where
+    C: Ciphersuite,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(self.to_bytes().as_ref())
+    }
+}
+
+impl<'de, C> serde::Deserialize<'de> for NonceCommitment<C>
+where
+    C: Ciphersuite,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        let identifier =
+            Self::from_bytes(array).map_err(|err| serde::de::Error::custom(format!("{err}")))?;
+        Ok(identifier)
+    }
+}
+
 impl<C> Debug for NonceCommitment<C>
 where
     C: Ciphersuite,
@@ -219,7 +250,7 @@ where
 ///
 /// This step can be batched if desired by the implementation. Each
 /// SigningCommitment can be used for exactly *one* signature.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Deserialize, Serialize)]
 pub struct SigningCommitments<C: Ciphersuite> {
     /// The participant identifier.
     pub identifier: Identifier<C>,

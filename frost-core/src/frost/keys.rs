@@ -13,6 +13,7 @@ use std::{
 use hex::FromHex;
 
 use rand_core::{CryptoRng, RngCore};
+use serde::{Deserialize, Serialize};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
@@ -142,6 +143,36 @@ where
     }
 }
 
+impl<C> serde::Serialize for SigningShare<C>
+where
+    C: Ciphersuite,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(self.to_bytes().as_ref())
+    }
+}
+
+impl<'de, C> serde::Deserialize<'de> for SigningShare<C>
+where
+    C: Ciphersuite,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        let identifier =
+            Self::from_bytes(array).map_err(|err| serde::de::Error::custom(format!("{err}")))?;
+        Ok(identifier)
+    }
+}
+
 impl<C> Debug for SigningShare<C>
 where
     C: Ciphersuite,
@@ -231,6 +262,37 @@ where
 #[derive(Clone, Copy, PartialEq)]
 pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) Element<C>);
 
+impl<C> serde::Serialize for CoefficientCommitment<C>
+where
+    C: Ciphersuite,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = <C::Group as Group>::serialize(&self.0);
+        serializer.serialize_bytes(bytes.as_ref())
+    }
+}
+
+impl<'de, C> serde::Deserialize<'de> for CoefficientCommitment<C>
+where
+    C: Ciphersuite,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        let element = <C::Group as Group>::deserialize(&array)
+            .map_err(|err| serde::de::Error::custom(format!("{err}")))?;
+        Ok(Self(element))
+    }
+}
+
 /// Contains the commitments to the coefficients for our secret polynomial _f_,
 /// used to generate participants' key shares.
 ///
@@ -243,7 +305,7 @@ pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) Element<C>);
 /// [`VerifiableSecretSharingCommitment`], either by performing pairwise comparison, or by using
 /// some agreed-upon public location for publication, where each participant can
 /// ensure that they received the correct (and same) value.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
     pub(super) Vec<CoefficientCommitment<C>>,
 );

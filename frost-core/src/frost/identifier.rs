@@ -20,8 +20,7 @@ where
     C: Ciphersuite,
 {
     /// Serialize the identifier using the ciphersuite encoding.
-    #[cfg_attr(feature = "internals", visibility::make(pub))]
-    pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
     }
 
@@ -36,6 +35,36 @@ where
         } else {
             Ok(Self(scalar))
         }
+    }
+}
+
+impl<C> serde::Serialize for Identifier<C>
+where
+    C: Ciphersuite,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(self.serialize().as_ref())
+    }
+}
+
+impl<'de, C> serde::Deserialize<'de> for Identifier<C>
+where
+    C: Ciphersuite,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        let identifier = Identifier::deserialize(&array)
+            .map_err(|err| serde::de::Error::custom(format!("{err}")))?;
+        Ok(identifier)
     }
 }
 

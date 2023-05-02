@@ -24,10 +24,11 @@ use super::{
 /// DKG Round 1 structures.
 pub mod round1 {
     use super::*;
+    use serde::{Deserialize, Serialize};
 
     /// The package that must be broadcast by each participant to all other participants
     /// between the first and second parts of the DKG protocol (round 1).
-    #[derive(Clone)]
+    #[derive(Clone, Deserialize, Serialize)]
     pub struct Package<C: Ciphersuite> {
         /// The identifier of the participant who is sending the package (i).
         pub sender_identifier: Identifier<C>,
@@ -60,6 +61,7 @@ pub mod round1 {
 /// DKG Round 2 structures.
 pub mod round2 {
     use super::*;
+    use serde::{Deserialize, Serialize};
 
     /// A package that must be sent by each participant to some other participants
     /// in Round 2 of the DKG protocol. Note that there is one specific package
@@ -68,7 +70,7 @@ pub mod round2 {
     /// # Security
     ///
     /// The package must be sent on an *confidential* and *authenticated* channel.
-    #[derive(Clone)]
+    #[derive(Clone, Deserialize, Serialize)]
     pub struct Package<C: Ciphersuite> {
         /// The identifier of the participant that generated the package (i).
         pub sender_identifier: Identifier<C>,
