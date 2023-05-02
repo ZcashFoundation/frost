@@ -24,6 +24,7 @@ features = ["nightly"]
 frost-core = { path = "../frost-core", version = "0.2.0", features = ["test-impl"] }
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
 rand_core = "0.6"
+serde = { version = "1.0.160", features = ["derive"] }
 sha2 = "0.10.2"
 
 [dev-dependencies]
