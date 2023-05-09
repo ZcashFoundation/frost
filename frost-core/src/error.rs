@@ -46,7 +46,10 @@ pub enum Error<C: Ciphersuite> {
     },
     /// Secret share verification failed.
     #[error("Invalid secret share.")]
-    InvalidSecretShare,
+    InvalidSecretShare {
+        /// The identifier of the signer whose share validation failed.
+        identifier: Identifier<C>,
+    },
     /// Round 1 package not found for Round 2 participant.
     #[error("Round 1 package not found for Round 2 participant.")]
     PackageNotFound,
@@ -61,7 +64,10 @@ pub enum Error<C: Ciphersuite> {
     DKGNotSupported,
     /// The proof of knowledge is not valid.
     #[error("The proof of knowledge is not valid.")]
-    InvalidProofOfKnowledge,
+    InvalidProofOfKnowledge {
+        /// The identifier of the signer whose share validation failed.
+        sender: Identifier<C>,
+    },
     /// Error in scalar Field.
     #[error("Error in scalar Field.")]
     FieldError(#[from] FieldError),
