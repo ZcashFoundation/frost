@@ -323,7 +323,7 @@ where
         let binding_factor = binding_factor_list[commitment.identifier].clone();
 
         // Collect the binding commitments and their binding factors for one big
-        // multiscalar mulitplication at the end.
+        // multiscalar multiplication at the end.
         binding_elements.push(commitment.binding.0);
         binding_scalars.push(binding_factor.0);
 
