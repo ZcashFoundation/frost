@@ -22,7 +22,7 @@ use crate::{Ciphersuite, Element, Field, Group, Scalar};
 const fn div_ceil(lhs: usize, rhs: usize) -> usize {
     let d = lhs / rhs;
     let r = lhs % rhs;
-    if (r > 0 && rhs > 0) || (r < 0 && rhs < 0) {
+    if r > 0 && rhs > 0 {
         d + 1
     } else {
         d
