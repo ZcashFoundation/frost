@@ -69,7 +69,7 @@ where
         //
         // The max value of `naf_length` (the number of bits to represent the
         // scalar plus 1) _should_ have plenty of room in systems where usize is
-        // great than 8 bits (aka, not a u8). If you are able to compile this
+        // greater than 8 bits (aka, not a u8). If you are able to compile this
         // code on a system with 8-bit pointers, well done, but this code with
         // probably not compute the right thing for you, use a 16-bit or above
         // system. Since the rest of this code uses u64's for limbs, we
