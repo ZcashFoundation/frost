@@ -22,7 +22,7 @@ Possible deployment options:
 Peer-to-peer channels are authenticated, reliable, and unordered, per the
 definitions above. Additionally, peer-to-peer channels are _confidential_; i.e.,
 only participants `i` and `j` are allowed to know the contents of
-`pmsg_i,j`.
+a message `msg_i,j`.
 
 Possible deployment options:
 - Mutually authenticated TLS
