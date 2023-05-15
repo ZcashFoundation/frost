@@ -27,3 +27,16 @@ only participants `i` and `j` are allowed to know the contents of
 Possible deployment options:
 - Mutually authenticated TLS
 - Wireguard
+
+### _Threshold secret sharing_
+
+Threshold secret sharing does not require a broadcast channel because the dealer is fully trusted.
+
+### _Verifiable secret sharing_
+
+Verifiable secret sharing requires a broadcast channel because the dealer is
+_not_ fully trusted: keygen participants verify the VSS commitment which is
+transmitted over the broadcast channel before accepting the shares distributed
+from the dealer.
+
+
