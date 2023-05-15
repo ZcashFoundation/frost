@@ -3,7 +3,7 @@
 ### _Broadcast channel_
 
 A secure broadcast channel in the context of multi-party computation protocols
-such as has the following properties:
+such as FROST has the following properties:
 
 1. Consistent. Each participant has the same view of the message sent over the channel.
 2. Authenticated. Players know that the message was in fact sent by the claimed sender. In practice, this
