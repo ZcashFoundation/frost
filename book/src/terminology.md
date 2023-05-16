@@ -13,7 +13,7 @@ requirement is often fulfilled by a PKI.
 
 Possible deployment options:
 - Echo-broadcast (Goldwasser-Lindell)
-- posting commitments to an authenticated centralized server that is trusted to
+- Posting commitments to an authenticated centralized server that is trusted to
   provide a single view to all participants
 
 
