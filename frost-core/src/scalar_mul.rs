@@ -53,11 +53,9 @@ where
 
         use byteorder::{ByteOrder, LittleEndian};
 
+        let serialized_scalar = <<C::Group as Group>::Field>::little_endian_serialize(self);
         // The canonical serialization length of this `Scalar` in bytes.
-        let serialization_len =
-            <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
-                .as_ref()
-                .len();
+        let serialization_len = serialized_scalar.as_ref().len();
 
         // Compute the size of the non-adjacent form from the number of bytes needed to serialize
         // `Scalar`s, plus 1 bit.
@@ -84,8 +82,7 @@ where
         // This length needs to be 8*destination.len(), so pad out to length num_limbs * 8.
         let mut padded_le_serialized = vec![0u8; num_limbs * 8];
 
-        padded_le_serialized[..serialization_len]
-            .copy_from_slice(<<C::Group as Group>::Field>::little_endian_serialize(self).as_ref());
+        padded_le_serialized[..serialization_len].copy_from_slice(serialized_scalar.as_ref());
 
         LittleEndian::read_u64_into(padded_le_serialized.as_ref(), &mut x_u64[0..num_limbs]);
 
@@ -196,16 +193,11 @@ where
 
         let mut r = <C::Group>::identity();
 
-        // Compute the size of the non-adjacent form from the number of bytes needed to serialize
-        // `Scalar`s, plus 1 bit.
-        //
-        // The length of the NAF is at most one more than the bit length.
-        let naf_length: usize =
-            <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
-                .as_ref()
-                .len()
-                * u8::BITS as usize
-                + 1;
+        // All NAFs will have the same size, so get it from the first
+        if nafs.is_empty() {
+            return Some(r);
+        }
+        let naf_length = nafs[0].len();
 
         for i in (0..naf_length).rev() {
             let mut t = r + r;
