@@ -37,6 +37,6 @@ Threshold secret sharing does not require a broadcast channel because the dealer
 Verifiable secret sharing requires a broadcast channel because the dealer is
 _not_ fully trusted: keygen participants verify the VSS commitment which is
 transmitted over the broadcast channel before accepting the shares distributed
-from the dealer.
+from the dealer, to ensure all participants have the same view of the commitment.
 
 
