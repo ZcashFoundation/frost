@@ -1,4 +1,5 @@
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
+use frost_core::{Ciphersuite, Group, GroupError};
 use frost_ristretto255::*;
 use lazy_static::lazy_static;
 use rand::thread_rng;
@@ -71,4 +72,11 @@ fn check_rts() {
     let rng = thread_rng();
 
     frost_core::tests::repairable::check_rts::<Ristretto255Sha512, _>(rng);
+}
+
+#[test]
+fn check_create_coefficient_commitment() {
+    let rng = thread_rng();
+
+    frost_core::tests::check_create_coefficient_commitment::<Ristretto255Sha512, _>(rng);
 }

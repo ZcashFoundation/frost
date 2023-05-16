@@ -229,7 +229,17 @@ where
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
 #[derive(Clone, Copy, PartialEq)]
-pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) Element<C>);
+pub(crate) struct CoefficientCommitment<C: Ciphersuite>(pub(crate) Element<C>);
+
+impl<C> CoefficientCommitment<C>
+where
+    C: Ciphersuite,
+{
+    /// Creates a new commitment from a coefficient input
+    pub fn new(element: Element<C>) -> CoefficientCommitment<C> {
+        Self(element)
+    }
+}
 
 /// Contains the commitments to the coefficients for our secret polynomial _f_,
 /// used to generate participants' key shares.

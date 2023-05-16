@@ -96,3 +96,10 @@ fn check_rts() {
 
     frost_core::tests::repairable::check_rts::<P256Sha256, _>(rng);
 }
+
+#[test]
+fn check_create_coefficient_commitment() {
+    let rng = thread_rng();
+
+    frost_core::tests::check_create_coefficient_commitment::<P256Sha256, _>(rng);
+}

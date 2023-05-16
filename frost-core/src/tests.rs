@@ -1,7 +1,10 @@
 //! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use crate::{frost, Signature, VerifyingKey};
+use crate::{
+    frost::{self},
+    random_nonzero, Group, Signature, VerifyingKey,
+};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -305,4 +308,17 @@ where
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys)
+}
+
+/// Test creation of a CoefficientCommitment. This effectively parses an Element into a CoefficientCommitment.
+pub fn check_create_coefficient_commitment<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+    mut rng: R,
+) {
+    let scalar = random_nonzero::<C, R>(&mut rng);
+
+    let element = <C::Group>::generator() * scalar;
+
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::new(element);
+
+    assert!(coeff_commitment.0 == element);
 }

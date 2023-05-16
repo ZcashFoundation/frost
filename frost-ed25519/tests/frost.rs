@@ -119,3 +119,10 @@ fn check_rts() {
 
     frost_core::tests::repairable::check_rts::<Ed25519Sha512, _>(rng);
 }
+
+#[test]
+fn check_create_coefficient_commitment() {
+    let rng = thread_rng();
+
+    frost_core::tests::check_create_coefficient_commitment::<Ed25519Sha512, _>(rng);
+}
