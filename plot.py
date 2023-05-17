@@ -1,3 +1,25 @@
+"""
+
+Generate the graphs for the FROST perfomance blog post.
+
+Run the benchmarks with
+
+(check out old code)
+
+cargo criterion --message-format=json 'FROST' | tee > benchmark-verify-all-shares.txt
+
+(check out new code)
+
+cargo criterion --message-format=json 'FROST' | tee > benchmark-verify-aggregate.txt
+
+And then run
+
+python3 plot.py
+
+It will generate the figures (names are partially hardcoded in each functions)
+and will insert/update the tables inside `performance.md`
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import json
