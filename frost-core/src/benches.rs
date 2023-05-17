@@ -92,14 +92,14 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             |b, (max_signers, min_signers)| {
                 let mut rng = rng.clone();
                 b.iter(|| {
-                    frost::keys::keygen_with_dealer::<C, R>(*max_signers, *min_signers, &mut rng)
+                    frost::keys::generate_with_dealer::<C, R>(*max_signers, *min_signers, &mut rng)
                         .unwrap();
                 })
             },
         );
 
         let (shares, pubkeys) =
-            frost::keys::keygen_with_dealer::<C, R>(max_signers, min_signers, rng).unwrap();
+            frost::keys::generate_with_dealer::<C, R>(max_signers, min_signers, rng).unwrap();
 
         // Verifies the secret shares from the dealer
         let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =

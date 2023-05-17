@@ -7,7 +7,7 @@
 //! dealer. In the future, we will add support for key generation via a DKG,
 //! as specified in the FROST paper.
 //!
-//! Internally, keygen_with_dealer generates keys using Verifiable Secret
+//! Internally, generate_with_dealer generates keys using Verifiable Secret
 //! Sharing, where shares are generated using Shamir Secret Sharing.
 
 use std::{

@@ -30,7 +30,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     }
 
     assert_eq!(
-        frost::keys::reconstruct_key::<C>(&secret_shares)
+        frost::keys::reconstruct::<C>(&secret_shares)
             .unwrap()
             .to_bytes()
             .as_ref(),
@@ -40,7 +40,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     // Test error cases
 
     assert_eq!(
-        frost::keys::reconstruct_key::<C>(&[]).debugless_unwrap_err(),
+        frost::keys::reconstruct::<C>(&[]).debugless_unwrap_err(),
         Error::IncorrectNumberOfShares
     );
 
@@ -48,7 +48,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     secret_shares[0] = secret_shares[1].clone();
 
     assert_eq!(
-        frost::keys::reconstruct_key::<C>(&secret_shares).debugless_unwrap_err(),
+        frost::keys::reconstruct::<C>(&secret_shares).debugless_unwrap_err(),
         Error::DuplicatedShares
     );
 }
@@ -64,7 +64,7 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let max_signers = 5;
     let min_signers = 3;
     let (shares, pubkeys) =
-        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Verifies the secret shares from the dealer
     let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
