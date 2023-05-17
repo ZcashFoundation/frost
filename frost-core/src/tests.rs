@@ -3,7 +3,7 @@ use std::{collections::HashMap, convert::TryFrom};
 
 use crate::{
     frost::{self, keys::CoefficientCommitment},
-    Group, GroupError, Signature, VerifyingKey,
+    Field, Group, GroupError, Signature, VerifyingKey,
 };
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
@@ -336,4 +336,17 @@ pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(inp
 
     assert!(coeff_commitment.is_err());
     assert!(coeff_commitment == Err(GroupError::MalformedElement.into()))
+}
+
+/// Test retrieving Element from CoefficientCommitment
+pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+) {
+    let scalar = <<C::Group as Group>::Field>::random(&mut rng);
+    let element = <C::Group>::generator() * scalar;
+
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>(element);
+    let value = coeff_commitment.value();
+
+    assert!(value == element)
 }

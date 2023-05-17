@@ -247,6 +247,10 @@ where
 
         Ok(Self(out.unwrap()))
     }
+
+    pub fn value(&self) -> Element<C> {
+        self.0
+    }
 }
 
 /// Contains the commitments to the coefficients for our secret polynomial _f_,

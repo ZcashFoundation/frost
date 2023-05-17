@@ -119,3 +119,10 @@ fn check_create_coefficient_commitment() {
 
     frost_core::tests::check_create_coefficient_commitment_error::<Ed448Shake256>(invalid_element);
 }
+
+#[test]
+fn check_get_value_of_coefficient_commitment() {
+    let rng = thread_rng();
+
+    frost_core::tests::check_get_value_of_coefficient_commitment::<Ed448Shake256, _>(rng);
+}

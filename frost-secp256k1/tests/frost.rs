@@ -112,3 +112,10 @@ fn check_create_coefficient_commitment() {
         invalid_element,
     );
 }
+
+#[test]
+fn check_get_value_of_coefficient_commitment() {
+    let rng = thread_rng();
+
+    frost_core::tests::check_get_value_of_coefficient_commitment::<Secp256K1Sha256, _>(rng);
+}
