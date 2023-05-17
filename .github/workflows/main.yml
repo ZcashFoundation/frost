@@ -10,8 +10,8 @@ on:
 
 jobs:
 
-  test_nightly:
-    name: test on nightly
+  test_beta:
+    name: test on beta
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +20,7 @@ jobs:
       # using --all-features will fail without nightly toolchain.
       - uses: actions-rs/toolchain@v1.0.7
         with:
-          toolchain: nightly
+          toolchain: beta
           override: true
       - uses: actions-rs/cargo@v1.0.3
         with:

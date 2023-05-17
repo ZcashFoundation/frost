@@ -1,10 +1,34 @@
 //! Distributed Key Generation functions and structures.
 //!
 //! The DKG module supports generating FROST key shares in a distributed manner,
-//! without a trusted dealer.
+//! without a trusted dealer, via two rounds of communication between all
+//! participants.
+//!
+//! This implements FROST KeyGen from the original [FROST paper], specifically
+//! Figure 1. This protocol is a variant of [Pedersen's DKG] that additionally
+//! requires each participant to demonstrate knowledge of their secret by providing
+//! other participants with proof in zero knowledge, instantiated as a Schnorr signature,
+//! to protect against rogue-key attacks in the setting where `t ≥ n/2`.
+//!
+//! In Pedersen's DKG, each of the `n` participants executes [Feldman's
+//! Verifiable Secret Sharing (VSS)][Feldman's VSS] as the dealer in parallel,
+//! and derives their secret share as the sum of the shares received from each
+//! of the `n` VSS executions.
+//!
+//! As required for any multi-party protocol using Feldman's VSS, the key
+//! generation stage in FROST requires participants to maintain a consistent
+//! view of the pubic commitments to the secret polynomial coefficients. This
+//! DKG protocol requires participants to broadcast the commitment values
+//! honestly (e.g., participants do not provide different commitment values to a
+//! subset of participants) over a _[secure broadcast channel]_.
 //!
 //! For more details and an example, see the ciphersuite-specific crates, e.g.
 //! [`frost_ristretto255::keys::dkg`](../../../../frost_ristretto255/keys/dkg).
+//!
+//! [FROST paper]: https://eprint.iacr.org/2020/852.pdf
+//! [Pedersen's DKG]: https://link.springer.com/chapter/10.1007/3-540-46416-6_47
+//! [Feldman's VSS]: https://www.cs.umd.edu/~gasarch/TOPICS/secretsharing/feldmanVSS.pdf
+//! [secure broadcast channel]: https://frost.zfnd.org/terminology.html#broadcast-channel
 
 use std::{collections::HashMap, iter};
 
@@ -197,7 +221,7 @@ pub fn part2<C: Ciphersuite>(
         let c_ell = challenge::<C>(ell, &R_ell, &phi_ell0).ok_or(Error::DKGNotSupported)?;
 
         if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
-            return Err(Error::InvalidProofOfKnowledge);
+            return Err(Error::InvalidProofOfKnowledge { sender: ell });
         }
 
         // Round 2, Step 1

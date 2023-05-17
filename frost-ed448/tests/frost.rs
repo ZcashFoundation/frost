@@ -1,7 +1,9 @@
 use ed448_goldilocks::curve::ExtendedPoint;
 
 use frost_ed448::*;
+use lazy_static::lazy_static;
 use rand::thread_rng;
+use serde_json::Value;
 
 #[test]
 fn check_sign_with_dealer() {
@@ -72,4 +74,37 @@ fn check_deserialize_non_prime_order() {
             .unwrap();
     let r = <Ed448Shake256 as Ciphersuite>::Group::deserialize(&encoded_point);
     assert_eq!(r, Err(GroupError::InvalidNonPrimeOrderElement));
+}
+
+#[test]
+fn check_repair_share_step_1() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_repair_share_step_1::<Ed448Shake256, _>(rng);
+}
+
+lazy_static! {
+    pub static ref REPAIR_SHARE: Value =
+        serde_json::from_str(include_str!("repair-share.json").trim()).unwrap();
+}
+
+#[test]
+fn check_repair_share_step_2() {
+    frost_core::tests::repairable::check_repair_share_step_2::<Ed448Shake256>(&REPAIR_SHARE);
+}
+
+#[test]
+fn check_repair_share() {
+    let rng = thread_rng();
+    frost_core::tests::repairable::check_repair_share_step_3::<Ed448Shake256, _>(
+        rng,
+        &REPAIR_SHARE,
+    );
+}
+
+#[test]
+fn check_rts() {
+    let rng = thread_rng();
+
+    frost_core::tests::repairable::check_rts::<Ed448Shake256, _>(rng);
 }

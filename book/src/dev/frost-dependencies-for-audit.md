@@ -9,12 +9,12 @@ This is a list of production Rust code that is in scope and out of scope for FRO
 
 | Name | Version | Notes
 |------| ------- | -----
-| frost-core | v0.1.0 |
-| frost-ed25519 | v0.1.0 |
-| frost-ed448 | v0.1.0 |
-| frost-p256 | v0.1.0 |
-| frost-ristretto255 | v0.1.0 |
-| frost-secp256k1 | v0.1.0 |
+| frost-core | v0.2.0 |
+| frost-ed25519 | v0.2.0 |
+| frost-ed448 | v0.2.0 |
+| frost-p256 | v0.2.0 |
+| frost-ristretto255 | v0.2.0 |
+| frost-secp256k1 | v0.2.0 |
 
 ### ZF Dependencies
 
@@ -45,7 +45,7 @@ The following crates and dependencies are out of scope for the audit.
 
 | Name | Version | Notes
 |------| ------- | -----
-| frost-rerandomized | v0.1.0 | To be audited after the security proof is complete.
+| frost-rerandomized | v0.2.0 | To be audited after the security proof is complete.
 
 ### `frost-core` Dependencies
 

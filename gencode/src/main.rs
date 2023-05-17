@@ -12,8 +12,14 @@
 //! - Change any documentation of a public function or struct in `frost-ristretto255/src/lib.rs`
 //! - Run `cargo run --manifest-path gencode/Cargo.toml` to update the documentation
 //!   of the other ciphersuites.
+//!
+//! This tool is also used to automatically generate similar files in each
+//! ciphersuite, such as:
+//! - README.md
+//! - The dkg.rs module and the dkg.md docs
+//! - The repairable.rs module (it uses the frost-core docs as canonical)
 
-use std::{env, fs, iter::zip, process::ExitCode};
+use std::{collections::HashMap, env, fs, iter::zip, process::ExitCode};
 
 use regex::Regex;
 
@@ -23,12 +29,11 @@ use regex::Regex;
 ///
 /// ```
 /// /// Some documentation
-/// pub [rest of the line...]
+/// pub [kind] [identifier][rest of the line...]
 /// ```
 ///
 /// It will return details for each match:
-/// - the item "name" ("[rest of the line...]" above, but after replacing
-///   any string in `suite_strings` with "SuiteName")
+/// - the item identifier
 /// - the entire documentation string
 /// - the start and end position of the documentation string in the code, which allows
 ///   replacing it later
@@ -54,9 +59,9 @@ fn read_docs(filename: &str, suite_strings: &[&str]) -> Vec<(String, String, usi
         // Matches zero or more attributes: whitespace, "#", anything else.
         // Captures all attributes in the "attrs" group
         r"(?P<attrs>(\s*#.*\n)*)",
-        // Matches the item declaration: whitespace, "pub ", anything else (which
-        // is captured in the "name" capture group)
-        r"\s*pub (?P<name>.*)"
+        // Matches the item declaration: whitespace, "pub", kind, identifier
+        // (captured in the "name" capture group), anything else
+        r"\s*pub \w+ (?P<name>\w+).*"
     ))
     .unwrap();
 
@@ -103,13 +108,23 @@ fn write_docs(
     let mut code = fs::read_to_string(filename).unwrap();
     let original_code = code.clone();
 
+    // Map documentations by their identifiers
+    let docs: HashMap<String, (String, String, usize, usize)> =
+        docs.iter().map(|x| (x.0.clone(), x.clone())).collect();
+
     // To be able to replace the documentation properly, start from the end, which
     // will keep the string positions consistent
-    for ((old_name, _, old_start, old_end), (new_name, new_doc, _, _)) in
-        zip(old_docs.iter().rev(), docs.iter().rev())
-    {
-        // This is a sanity check to test if we're replacing the right comment.
-        assert_eq!(old_name, new_name, "source code does not match");
+    for (old_name, _, old_start, old_end) in old_docs.iter().rev() {
+        let new_doc = docs
+            .get(old_name)
+            .unwrap_or_else(|| {
+                panic!(
+                    "documentation for {} is not available in base file",
+                    old_name
+                )
+            })
+            .1
+            .clone();
 
         // Replaces ciphersuite-references in documentation
         let mut new_doc = new_doc.to_string();
@@ -147,6 +162,19 @@ fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
     let mut replaced = 0;
     let check = args.len() == 2 && args[1] == "--check";
+
+    // Copy the frost-core repairable docs into ristretto255.
+    // This will then be copied later down into the other ciphersuites.
+    let repairable_docs = read_docs("frost-core/src/frost/keys/repairable.rs", &[]);
+    replaced |= write_docs(
+        &repairable_docs,
+        "frost-ristretto255/src/keys/repairable.rs",
+        &[],
+        &[],
+    );
+
+    // Generate code or copy docs for other ciphersuites, using
+    // ristretto255 as the canonical base.
 
     let original_folder = "frost-ristretto255";
     let original_strings = &[
@@ -215,7 +243,12 @@ fn main() -> ExitCode {
         replaced |= write_docs(&docs, &lib_filename, original_strings, replacement_strings);
 
         // Generate files based on a template with simple search & replace.
-        for filename in ["README.md", "dkg.md", "src/keys/dkg.rs"] {
+        for filename in [
+            "README.md",
+            "dkg.md",
+            "src/keys/dkg.rs",
+            "src/keys/repairable.rs",
+        ] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
                 format!("{folder}/{filename}").as_str(),
@@ -225,6 +258,9 @@ fn main() -> ExitCode {
         }
     }
 
+    // If --check was specified, return 0 if no replacements were made
+    // and 1 if some were made. This allows checking in CI whether
+    // gencode-generated files are up to date.
     if check {
         ExitCode::from(replaced)
     } else {

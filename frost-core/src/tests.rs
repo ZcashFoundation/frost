@@ -9,6 +9,7 @@ use crate::Ciphersuite;
 
 pub mod batch;
 pub mod proptests;
+pub mod repairable;
 pub mod vectors;
 
 /// Test share generation with a Ciphersuite
