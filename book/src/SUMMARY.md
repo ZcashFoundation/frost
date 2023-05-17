@@ -14,6 +14,7 @@
         - [DKG](user/frost-ristretto255/dkg.md)
     - [frost-secp256k1](user/frost-secp256k1.md)
         - [DKG](user/frost-secp256k1/dkg.md)
+- [Terminology](terminology.md)
 - [Developer Documentation](dev.md)
     - [FROST RFCs](dev/rfcs.md)
         - [FROST messages](dev/rfcs/0001-messages.md )
