@@ -1,7 +1,8 @@
 //! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use crate::{frost, Signature, VerifyingKey};
+use crate::{frost, Error, Signature, VerifyingKey};
+use debugless_unwrap::DebuglessUnwrapErr;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -29,12 +30,27 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     }
 
     assert_eq!(
-        frost::keys::reconstruct_key::<C>(secret_shares)
+        frost::keys::reconstruct_key::<C>(&secret_shares)
             .unwrap()
             .to_bytes()
             .as_ref(),
         secret.to_bytes().as_ref()
-    )
+    );
+
+    // Test error cases
+
+    assert_eq!(
+        frost::keys::reconstruct_key::<C>(&[]).debugless_unwrap_err(),
+        Error::IncorrectNumberOfShares
+    );
+
+    let mut secret_shares = secret_shares;
+    secret_shares[0] = secret_shares[1].clone();
+
+    assert_eq!(
+        frost::keys::reconstruct_key::<C>(&secret_shares).debugless_unwrap_err(),
+        Error::DuplicatedShares
+    );
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.

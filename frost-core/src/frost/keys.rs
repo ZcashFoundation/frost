@@ -507,26 +507,29 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 /// The caller is responsible for providing at least `min_signers` shares;
 /// if less than that is provided, a different key will be returned.
 pub fn reconstruct_key<C: Ciphersuite>(
-    secret_shares: Vec<SecretShare<C>>,
+    secret_shares: &[SecretShare<C>],
 ) -> Result<SigningKey<C>, Error<C>> {
     if secret_shares.is_empty() {
         return Err(Error::IncorrectNumberOfShares);
     }
 
-    let secret_share_map: HashMap<Identifier<C>, SecretShare<C>> = secret_shares
-        .into_iter()
-        .map(|share| (share.identifier, share))
-        .collect();
-
     let mut secret = <<C::Group as Group>::Field>::zero();
 
     // Compute the Lagrange coefficients
-    for (i, secret_share) in secret_share_map.clone() {
+    for (i_idx, i, secret_share) in secret_shares
+        .iter()
+        .enumerate()
+        .map(|(idx, s)| (idx, s.identifier, s))
+    {
         let mut num = <<C::Group as Group>::Field>::one();
         let mut den = <<C::Group as Group>::Field>::one();
 
-        for j in secret_share_map.clone().into_keys() {
-            if j == i {
+        for (j_idx, j) in secret_shares
+            .iter()
+            .enumerate()
+            .map(|(idx, s)| (idx, s.identifier))
+        {
+            if j_idx == i_idx {
                 continue;
             }
 
