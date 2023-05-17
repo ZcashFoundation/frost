@@ -2,9 +2,10 @@
 use std::{collections::HashMap, convert::TryFrom};
 
 use crate::{
-    frost::{self},
-    random_nonzero, Group, Signature, VerifyingKey,
+    frost::{self, keys::CoefficientCommitment},
+    Group, GroupError, Signature, VerifyingKey,
 };
+use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -311,14 +312,28 @@ where
 }
 
 /// Test creation of a CoefficientCommitment. This effectively parses an Element into a CoefficientCommitment.
-pub fn check_create_coefficient_commitment<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
-    mut rng: R,
-) {
-    let scalar = random_nonzero::<C, R>(&mut rng);
+pub fn check_create_coefficient_commitment<C: Ciphersuite + PartialEq>(input: &str) {
+    let serialized: <C::Group as Group>::Serialization =
+        <C::Group as Group>::Serialization::try_from(hex::decode(input).unwrap())
+            .debugless_unwrap();
 
-    let element = <C::Group>::generator() * scalar;
+    let element = <C::Group as Group>::deserialize(&serialized).unwrap();
 
-    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::new(element);
+    let expected = CoefficientCommitment::<C>(element);
 
-    assert!(coeff_commitment.0 == element);
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::new(serialized).unwrap();
+
+    assert!(coeff_commitment.0 == expected.0);
+}
+
+/// Test error handling for creation of a coefficient commitment
+pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(input: &str) {
+    let serialized: <C::Group as Group>::Serialization =
+        <C::Group as Group>::Serialization::try_from(hex::decode(input).unwrap())
+            .debugless_unwrap();
+
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::new(serialized);
+
+    assert!(coeff_commitment.is_err());
+    assert!(coeff_commitment == Err(GroupError::MalformedElement.into()))
 }

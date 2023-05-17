@@ -76,7 +76,13 @@ fn check_rts() {
 
 #[test]
 fn check_create_coefficient_commitment() {
-    let rng = thread_rng();
+    let valid_element = "ea39907de8baf62d57fe0452581b147b152f776e830c346d1119cee0bc954a59";
 
-    frost_core::tests::check_create_coefficient_commitment::<Ristretto255Sha512, _>(rng);
+    frost_core::tests::check_create_coefficient_commitment::<Ristretto255Sha512>(valid_element);
+
+    let invalid_element = "abcdef7de8baf62d57fe0452581b147b152f776e830c346d1119cee0bc954a59";
+
+    frost_core::tests::check_create_coefficient_commitment_error::<Ristretto255Sha512>(
+        invalid_element,
+    );
 }

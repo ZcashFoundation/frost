@@ -102,7 +102,13 @@ fn check_rts() {
 
 #[test]
 fn check_create_coefficient_commitment() {
-    let rng = thread_rng();
+    let valid_element = "02ceddafdf4a7f88885ab26b20d18edb7d4d9589812a6cf1a5a1a09d3808dae5d8";
 
-    frost_core::tests::check_create_coefficient_commitment::<Secp256K1Sha256, _>(rng);
+    frost_core::tests::check_create_coefficient_commitment::<Secp256K1Sha256>(valid_element);
+
+    let invalid_element = "123456afdf4a7f88885ab26b20d18edb7d4d9589812a6cf1a5a1a09d3808dae5d8";
+
+    frost_core::tests::check_create_coefficient_commitment_error::<Secp256K1Sha256>(
+        invalid_element,
+    );
 }
