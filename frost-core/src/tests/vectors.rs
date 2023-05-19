@@ -7,12 +7,12 @@ use serde_json::Value;
 
 use crate::{
     frost::{self, keys::*, round1::*, round2::*, *},
-    Ciphersuite, Field, Group, Scalar, VerifyingKey,
+    Ciphersuite, Field, Group, Scalar, SigningKey, VerifyingKey,
 };
 
 /// Test vectors for a ciphersuite.
 pub struct TestVectors<C: Ciphersuite> {
-    secret_key: SharedSecret<C>,
+    secret_key: SigningKey<C>,
     group_public: VerifyingKey<C>,
     key_packages: HashMap<Identifier<C>, KeyPackage<C>>,
     message_bytes: Vec<u8>,
@@ -35,7 +35,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
     let secret_key_str = inputs["group_secret_key"].as_str().unwrap();
     let secret_key_bytes = hex::decode(secret_key_str).unwrap();
     let secret_key =
-        SharedSecret::from_bytes(secret_key_bytes.try_into().debugless_unwrap()).unwrap();
+        SigningKey::from_bytes(secret_key_bytes.try_into().debugless_unwrap()).unwrap();
 
     let message = inputs["message"].as_str().unwrap();
     let message_bytes = hex::decode(message).unwrap();

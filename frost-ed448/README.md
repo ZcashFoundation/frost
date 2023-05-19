@@ -16,7 +16,7 @@ use std::collections::HashMap;
 let mut rng = thread_rng();
 let max_signers = 5;
 let min_signers = 3;
-let (shares, pubkeys) = frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng)?;
+let (shares, pubkeys) = frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng)?;
 
 // Verifies the secret shares from the dealer and store them in a HashMap.
 // In practice, the KeyPackages must be sent to its respective participants

@@ -4,6 +4,15 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 0.3.0
+
+* add frost::keys::split()
+* rename reconstruct_secret() to reconstruct(), make it takes a slice instead
+  of a Vector, make it return SigningKey, fix it to return Error instead of an
+  error string
+* rename keygen_with_dealer() to generate_with_dealer()
+* change SigningKey::new() to take a reference instead of a value
+
 ## 0.2.0
 
 * Implement Zeroize where needed or skip where not needed (fixes compiling error) (#301)
