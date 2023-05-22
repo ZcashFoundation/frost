@@ -240,13 +240,10 @@ where
     pub fn deserialize(
         coefficient: <C::Group as Group>::Serialization,
     ) -> Result<CoefficientCommitment<C>, Error<C>> {
-        let out = <C::Group as Group>::deserialize(&coefficient);
-
-        if out.is_err() {
-            return Err(GroupError::MalformedElement.into());
-        }
-
-        Ok(Self(out.unwrap()))
+        Ok(Self(
+            <C::Group as Group>::deserialize(&coefficient)
+                .map_err(|_| Error::from(GroupError::MalformedElement))?,
+        ))
     }
 
     /// Returns inner element value

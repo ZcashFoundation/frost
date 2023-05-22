@@ -325,7 +325,8 @@ pub fn check_create_coefficient_commitment<C: Ciphersuite + PartialEq>(input: &s
 
     let expected = CoefficientCommitment::<C>(element);
 
-    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::deserialize(serialized).unwrap();
+    let coeff_commitment =
+        frost::keys::CoefficientCommitment::<C>::deserialize(serialized).unwrap();
 
     assert!(coeff_commitment.0 == expected.0);
 }
