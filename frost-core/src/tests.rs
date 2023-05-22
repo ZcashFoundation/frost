@@ -2,11 +2,15 @@
 use std::{collections::HashMap, convert::TryFrom};
 
 use crate::{
-    frost::{self, keys::CoefficientCommitment},
+    frost::{
+        self,
+        keys::{CoefficientCommitment, VerifiableSecretSharingCommitment},
+    },
     Field, Group, GroupError, Signature, VerifyingKey,
 };
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
+use serde_json::Value;
 
 use crate::Ciphersuite;
 
@@ -349,4 +353,40 @@ pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: RngCore + Cr
     let value = coeff_commitment.value();
 
     assert!(value == element)
+}
+
+/// Test retrieving CoefficientCommitments from VerifiableSecretSharingCommitment
+pub fn check_get_value_of_vss_commitment<C: Ciphersuite>(commitment_helper_functions: &Value) {
+    let values = &commitment_helper_functions["elements"];
+
+    // Generate test CoefficientCommitments
+
+    // ---
+    let input_1 = values["element_1"].as_str().unwrap();
+    let input_2 = values["element_2"].as_str().unwrap();
+    let input_3 = values["element_3"].as_str().unwrap();
+
+    let comm_1_serialized =
+        <C::Group as Group>::Serialization::try_from(hex::decode(input_1).unwrap())
+            .debugless_unwrap();
+    let comm_2_serialized: <C::Group as Group>::Serialization =
+        <C::Group as Group>::Serialization::try_from(hex::decode(input_2).unwrap())
+            .debugless_unwrap();
+    let comm_3_serialized: <C::Group as Group>::Serialization =
+        <C::Group as Group>::Serialization::try_from(hex::decode(input_3).unwrap())
+            .debugless_unwrap();
+
+    let comm_1 = frost::keys::CoefficientCommitment::<C>::new(comm_1_serialized).unwrap();
+    let comm_2 = frost::keys::CoefficientCommitment::<C>::new(comm_2_serialized).unwrap();
+    let comm_3 = frost::keys::CoefficientCommitment::<C>::new(comm_3_serialized).unwrap();
+    // ---
+
+    let vss_commitment =
+        VerifiableSecretSharingCommitment(vec![comm_1, comm_2, comm_3]).serialize();
+
+    let num_of_commitments = hex::encode("3");
+
+    let expected = num_of_commitments + input_1 + input_2 + input_3;
+
+    assert!(vss_commitment == expected)
 }

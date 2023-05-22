@@ -93,3 +93,13 @@ fn check_get_value_of_coefficient_commitment() {
 
     frost_core::tests::check_get_value_of_coefficient_commitment::<Ristretto255Sha512, _>(rng);
 }
+
+lazy_static! {
+    pub static ref ELEMENTS: Value =
+        serde_json::from_str(include_str!("elements.json").trim()).unwrap();
+}
+
+#[test]
+fn check_get_value_of_vss_commitment() {
+    frost_core::tests::check_get_value_of_vss_commitment::<Ristretto255Sha512>(&ELEMENTS);
+}
