@@ -325,7 +325,7 @@ pub fn check_create_coefficient_commitment<C: Ciphersuite + PartialEq>(input: &s
 
     let expected = CoefficientCommitment::<C>(element);
 
-    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::new(serialized).unwrap();
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::deserialize(serialized).unwrap();
 
     assert!(coeff_commitment.0 == expected.0);
 }
@@ -336,7 +336,7 @@ pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(inp
         <C::Group as Group>::Serialization::try_from(hex::decode(input).unwrap())
             .debugless_unwrap();
 
-    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::new(serialized);
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::deserialize(serialized);
 
     assert!(coeff_commitment.is_err());
     assert!(coeff_commitment == Err(GroupError::MalformedElement.into()))
@@ -362,7 +362,7 @@ fn generate_coefficient_commitments<C: Ciphersuite>(
     for e in elements {
         let serialized = <C::Group as Group>::Serialization::try_from(hex::decode(e).unwrap())
             .debugless_unwrap();
-        let commitment = frost::keys::CoefficientCommitment::<C>::new(serialized).unwrap();
+        let commitment = frost::keys::CoefficientCommitment::<C>::deserialize(serialized).unwrap();
         coefficient_commitments.push(commitment)
     }
     coefficient_commitments

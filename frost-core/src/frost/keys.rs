@@ -237,7 +237,7 @@ where
     C: Ciphersuite,
 {
     /// Creates a new commitment from a coefficient input
-    pub fn new(
+    pub fn deserialize(
         coefficient: <C::Group as Group>::Serialization,
     ) -> Result<CoefficientCommitment<C>, Error<C>> {
         let out = <C::Group as Group>::deserialize(&coefficient);
