@@ -6,9 +6,10 @@ use crate::{
         self,
         keys::{CoefficientCommitment, VerifiableSecretSharingCommitment},
     },
-    Field, Group, GroupError, Signature, VerifyingKey,
+    Error, Field, Group, GroupError, Signature, VerifyingKey,
 };
 use debugless_unwrap::DebuglessUnwrap;
+use debugless_unwrap::DebuglessUnwrapErr;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
 
@@ -21,7 +22,7 @@ pub mod vectors;
 
 /// Test share generation with a Ciphersuite
 pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
-    let secret = frost::keys::SharedSecret::<C>::random(&mut rng);
+    let secret = crate::SigningKey::<C>::new(&mut rng);
 
     let max_signers = 5;
     let min_signers = 3;
@@ -38,9 +39,27 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     }
 
     assert_eq!(
-        frost::keys::reconstruct_secret::<C>(secret_shares).unwrap(),
-        secret
-    )
+        frost::keys::reconstruct::<C>(&secret_shares)
+            .unwrap()
+            .to_bytes()
+            .as_ref(),
+        secret.to_bytes().as_ref()
+    );
+
+    // Test error cases
+
+    assert_eq!(
+        frost::keys::reconstruct::<C>(&[]).debugless_unwrap_err(),
+        Error::IncorrectNumberOfShares
+    );
+
+    let mut secret_shares = secret_shares;
+    secret_shares[0] = secret_shares[1].clone();
+
+    assert_eq!(
+        frost::keys::reconstruct::<C>(&secret_shares).debugless_unwrap_err(),
+        Error::DuplicatedShares
+    );
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.
@@ -54,7 +73,7 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let max_signers = 5;
     let min_signers = 3;
     let (shares, pubkeys) =
-        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Verifies the secret shares from the dealer
     let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =

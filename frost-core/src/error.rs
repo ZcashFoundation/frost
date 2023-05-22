@@ -35,6 +35,9 @@ pub enum Error<C: Ciphersuite> {
     /// Duplicated shares provided
     #[error("Duplicated shares provided.")]
     DuplicatedShares,
+    /// Incorrect number of shares.
+    #[error("Incorrect number of shares.")]
+    IncorrectNumberOfShares,
     /// Commitment equals the identity
     #[error("Commitment equals the identity.")]
     IdentityCommitment,

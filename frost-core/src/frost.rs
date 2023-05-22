@@ -7,7 +7,7 @@
 //! dealer. In the future, we will add support for key generation via a DKG,
 //! as specified in the FROST paper.
 //!
-//! Internally, keygen_with_dealer generates keys using Verifiable Secret
+//! Internally, generate_with_dealer generates keys using Verifiable Secret
 //! Sharing, where shares are generated using Shamir Secret Sharing.
 
 use std::{
@@ -24,7 +24,9 @@ pub mod keys;
 pub mod round1;
 pub mod round2;
 
-use crate::{Ciphersuite, Element, Error, Field, Group, Scalar, Signature};
+use crate::{
+    scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, Error, Field, Group, Scalar, Signature,
+};
 
 pub use self::identifier::Identifier;
 
@@ -301,6 +303,13 @@ where
 
     let mut group_commitment = <C::Group as Group>::identity();
 
+    // Number of signing participants we are iterating over.
+    let n = signing_package.signing_commitments().len();
+
+    let mut binding_scalars = Vec::with_capacity(n);
+
+    let mut binding_elements = Vec::with_capacity(n);
+
     // Ala the sorting of B, just always sort by identifier in ascending order
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
@@ -313,9 +322,18 @@ where
 
         let binding_factor = binding_factor_list[commitment.identifier].clone();
 
-        group_commitment =
-            group_commitment + (commitment.hiding.0 + (commitment.binding.0 * binding_factor.0));
+        // Collect the binding commitments and their binding factors for one big
+        // multiscalar multiplication at the end.
+        binding_elements.push(commitment.binding.0);
+        binding_scalars.push(binding_factor.0);
+
+        group_commitment = group_commitment + commitment.hiding.0;
     }
+
+    let accumulated_binding_commitment: Element<C> =
+        VartimeMultiscalarMul::<C>::vartime_multiscalar_mul(binding_scalars, binding_elements);
+
+    group_commitment = group_commitment + accumulated_binding_commitment;
 
     Ok(GroupCommitment(group_commitment))
 }
