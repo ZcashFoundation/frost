@@ -133,6 +133,6 @@ lazy_static! {
 }
 
 #[test]
-fn check_get_value_of_vss_commitment() {
-    frost_core::tests::check_get_value_of_vss_commitment::<Ed448Shake256>(&ELEMENTS);
+fn check_serialize_vss_commitment() {
+    frost_core::tests::check_serialize_vss_commitment::<Ed448Shake256>(&ELEMENTS);
 }

@@ -356,7 +356,7 @@ pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: RngCore + Cr
 }
 
 /// Test retrieving CoefficientCommitments from VerifiableSecretSharingCommitment
-pub fn check_get_value_of_vss_commitment<C: Ciphersuite>(commitment_helper_functions: &Value) {
+pub fn check_serialize_vss_commitment<C: Ciphersuite>(commitment_helper_functions: &Value) {
     let values = &commitment_helper_functions["elements"];
 
     // Generate test CoefficientCommitments
