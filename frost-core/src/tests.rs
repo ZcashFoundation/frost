@@ -355,6 +355,19 @@ pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: RngCore + Cr
     assert!(value == element)
 }
 
+fn generate_coefficient_commitments<C: Ciphersuite>(
+    elements: Vec<&str>,
+) -> Vec<CoefficientCommitment<C>> {
+    let mut coefficient_commitments = Vec::new();
+    for e in elements {
+        let serialized = <C::Group as Group>::Serialization::try_from(hex::decode(e).unwrap())
+            .debugless_unwrap();
+        let commitment = frost::keys::CoefficientCommitment::<C>::new(serialized).unwrap();
+        coefficient_commitments.push(commitment)
+    }
+    coefficient_commitments
+}
+
 /// Test retrieving CoefficientCommitments from VerifiableSecretSharingCommitment
 pub fn check_serialize_vss_commitment<C: Ciphersuite>(commitment_helper_functions: &Value) {
     let values = &commitment_helper_functions["elements"];
@@ -366,27 +379,37 @@ pub fn check_serialize_vss_commitment<C: Ciphersuite>(commitment_helper_function
     let input_2 = values["element_2"].as_str().unwrap();
     let input_3 = values["element_3"].as_str().unwrap();
 
-    let comm_1_serialized =
-        <C::Group as Group>::Serialization::try_from(hex::decode(input_1).unwrap())
-            .debugless_unwrap();
-    let comm_2_serialized: <C::Group as Group>::Serialization =
-        <C::Group as Group>::Serialization::try_from(hex::decode(input_2).unwrap())
-            .debugless_unwrap();
-    let comm_3_serialized: <C::Group as Group>::Serialization =
-        <C::Group as Group>::Serialization::try_from(hex::decode(input_3).unwrap())
-            .debugless_unwrap();
-
-    let comm_1 = frost::keys::CoefficientCommitment::<C>::new(comm_1_serialized).unwrap();
-    let comm_2 = frost::keys::CoefficientCommitment::<C>::new(comm_2_serialized).unwrap();
-    let comm_3 = frost::keys::CoefficientCommitment::<C>::new(comm_3_serialized).unwrap();
+    let coefficient_commitments =
+        generate_coefficient_commitments::<C>(vec![input_1, input_2, input_3]);
     // ---
 
-    let vss_commitment =
-        VerifiableSecretSharingCommitment(vec![comm_1, comm_2, comm_3]).serialize();
+    let vss_commitment = VerifiableSecretSharingCommitment(coefficient_commitments).serialize();
 
     let num_of_commitments = hex::encode("3");
 
     let expected = num_of_commitments + input_1 + input_2 + input_3;
 
     assert!(vss_commitment == expected)
+}
+
+/// Test deserializing vss_commitment
+pub fn check_deserialize_vss_commitment<C: Ciphersuite>(commitment_helper_functions: &Value) {
+    let values = &commitment_helper_functions["elements"];
+
+    // Generate test CoefficientCommitments
+
+    // ---
+    let input_1 = values["element_1"].as_str().unwrap();
+    let input_2 = values["element_2"].as_str().unwrap();
+    let input_3 = values["element_3"].as_str().unwrap();
+
+    let coefficient_commitments =
+        generate_coefficient_commitments::<C>(vec![input_1, input_2, input_3]);
+    // ---
+
+    let vss_commitment = VerifiableSecretSharingCommitment(coefficient_commitments.clone());
+
+    let expected = VerifiableSecretSharingCommitment::deserialize(coefficient_commitments);
+
+    assert!(vss_commitment.0 == expected.0)
 }
