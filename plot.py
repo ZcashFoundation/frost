@@ -2,7 +2,11 @@
 
 Generate the graphs for the FROST perfomance blog post.
 
-Run the benchmarks with
+Install cargo-criterion:
+
+cargo install cargo-criterion
+
+Run the benchmarks with:
 
 (check out old code)
 
@@ -12,7 +16,7 @@ cargo criterion --message-format=json 'FROST' | tee > benchmark-verify-all-share
 
 cargo criterion --message-format=json 'FROST' | tee > benchmark-verify-aggregate.txt
 
-And then run
+And then run:
 
 python3 plot.py
 
