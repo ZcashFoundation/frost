@@ -6,6 +6,8 @@ Entries are listed in reverse chronological order.
 
 ## 0.3.0
 
+* add multiscalar support to speed up signing and aggregating
+* change errors caused by protocol violations to contain the misbehaving party
 * add frost::keys::split()
 * rename reconstruct_secret() to reconstruct(), make it takes a slice instead
   of a Vector, make it return SigningKey, fix it to return Error instead of an
