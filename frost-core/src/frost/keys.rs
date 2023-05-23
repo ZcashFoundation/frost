@@ -9,6 +9,7 @@ use std::{
     iter,
 };
 
+use debugless_unwrap::DebuglessUnwrap;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
@@ -187,7 +188,7 @@ impl<C> VerifiableSecretSharingCommitment<C>
 where
     C: Ciphersuite,
 {
-    /// Returns concatenated coefficent commitments from self.0 specifyin the number of commitments
+    /// Returns concatenated coefficent commitments from self.0 specifying the number of commitments
     pub fn serialize(&self) -> String {
         let values = self
             .0
@@ -199,10 +200,32 @@ where
     }
 
     /// Returns VerifiableSecretSharingCommitment from a vector of CoefficientCommitments
-    pub fn deserialize(
-        coefficientCommitments: Vec<CoefficientCommitment<C>>,
-    ) -> VerifiableSecretSharingCommitment<C> {
-        VerifiableSecretSharingCommitment(coefficientCommitments)
+    pub fn deserialize(coefficientCommitments: String) -> VerifiableSecretSharingCommitment<C> {
+        let decoded = hex::decode(&coefficientCommitments).expect("Invalid hex string"); // TODO handle error
+
+        let coeff_commitments_data = &decoded[1..decoded.len()].to_vec();
+
+        let n: usize = String::from_utf8(coefficientCommitments.as_bytes()[0..1].to_vec())
+            .unwrap()
+            .parse()
+            .unwrap(); // TODO handle error
+        let l = coeff_commitments_data.len() / n;
+
+        let mut coeff_commitments: Vec<CoefficientCommitment<C>> = Vec::with_capacity(n);
+
+        for i in 0..n {
+            let commitment_value = hex::encode(&coeff_commitments_data[(i * l)..((i * l) + l)]);
+            println!("comm value: {}", commitment_value);
+            let serialized: <C::Group as Group>::Serialization =
+                <C::Group as Group>::Serialization::try_from(
+                    hex::decode(commitment_value).unwrap(),
+                )
+                .debugless_unwrap(); // TODO handle error
+            let coeff_commitment = CoefficientCommitment::<C>::deserialize(serialized).unwrap(); // TODO handle error
+
+            coeff_commitments.push(coeff_commitment)
+        }
+        VerifiableSecretSharingCommitment(coeff_commitments)
     }
 }
 

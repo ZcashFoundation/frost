@@ -427,9 +427,12 @@ pub fn check_deserialize_vss_commitment<C: Ciphersuite>(commitment_helper_functi
         generate_coefficient_commitments::<C>(vec![input_1, input_2, input_3]);
     // ---
 
-    let vss_commitment = VerifiableSecretSharingCommitment(coefficient_commitments.clone());
+    let num_of_commitments = hex::encode(b"3");
+    let out = num_of_commitments + input_1 + input_2 + input_3;
 
-    let expected = VerifiableSecretSharingCommitment::deserialize(coefficient_commitments);
+    let expected = VerifiableSecretSharingCommitment(coefficient_commitments);
 
-    assert!(vss_commitment.0 == expected.0)
+    let vss_value = VerifiableSecretSharingCommitment::deserialize(out);
+
+    assert!(expected.0 == vss_value.0)
 }
