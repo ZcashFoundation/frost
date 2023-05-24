@@ -28,7 +28,7 @@ sha3 = "0.10.6"
 
 [dev-dependencies]
 bincode = "1"
-criterion = "0.4"
+criterion = "0.5"
 lazy_static = "1.4"
 hex = "0.4.3"
 proptest = "1.0"
