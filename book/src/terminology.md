@@ -14,8 +14,7 @@ requirement is often fulfilled by a PKI.
 Possible deployment options:
 - Echo-broadcast (Goldwasser-Lindell)
 - Posting commitments to an authenticated centralized server that is trusted to
-  provide a single view to all participants
-
+  provide a single view to all participants (also known as 'public bulletin board')
 
 ### _Peer to peer channel_
 
