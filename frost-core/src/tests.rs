@@ -428,11 +428,71 @@ pub fn check_deserialize_vss_commitment<C: Ciphersuite>(commitment_helper_functi
     // ---
 
     let num_of_commitments = hex::encode(b"3");
-    let out = num_of_commitments + input_1 + input_2 + input_3;
+    let coeff_commitments = num_of_commitments + input_1 + input_2 + input_3;
 
     let expected = VerifiableSecretSharingCommitment(coefficient_commitments);
 
-    let vss_value = VerifiableSecretSharingCommitment::deserialize(out);
+    let vss_value = VerifiableSecretSharingCommitment::deserialize(coeff_commitments);
 
-    assert!(expected.0 == vss_value.0)
+    assert!(vss_value.is_ok());
+    assert!(expected.0 == vss_value.unwrap().0);
+}
+
+/// Test errors deserializing vss_commitment
+pub fn check_deserialize_vss_commitment_errors<C: Ciphersuite>(
+    commitment_helper_functions: &Value,
+) {
+    let values = &commitment_helper_functions["elements"];
+
+    // Generate test CoefficientCommitments
+
+    // ---
+    let input_1 = values["element_1"].as_str().unwrap();
+    let input_2 = values["element_2"].as_str().unwrap();
+    let input_3 = values["element_3"].as_str().unwrap();
+
+    // ---
+
+    // Invalid hex for number of commitments
+    let invalid_hex_num_of_commitments = hex::encode("invalidhex");
+    let invalid_hex_num_coeff_commitments =
+        invalid_hex_num_of_commitments + input_1 + input_2 + input_3;
+
+    let vss_value =
+        VerifiableSecretSharingCommitment::<C>::deserialize(invalid_hex_num_coeff_commitments);
+
+    assert!(vss_value.is_err());
+    assert!(vss_value == Err(Error::InvalidCoefficient));
+
+    // Number of commitments is not a number
+    let invalid_num_of_commitments = hex::encode("a1");
+    let invalid_num_coeff_commitments = invalid_num_of_commitments + input_1 + input_2 + input_3;
+
+    let vss_value =
+        VerifiableSecretSharingCommitment::<C>::deserialize(invalid_num_coeff_commitments);
+
+    assert!(vss_value.is_err());
+    assert!(vss_value == Err(Error::InvalidCoefficient));
+
+    // Invalid hex for coefficient
+    let num_of_commitments = hex::encode("3");
+    let invalid_hex_coeff_commitments = num_of_commitments + "invalidhex" + input_2 + input_3;
+
+    let vss_value =
+        VerifiableSecretSharingCommitment::<C>::deserialize(invalid_hex_coeff_commitments);
+
+    assert!(vss_value.is_err());
+    assert!(vss_value == Err(Error::from(GroupError::MalformedElement)));
+
+    // Invalid value for serialization
+    let num_of_commitments = hex::encode("3");
+    let invalid_coeff_commitment_for_serialization =
+        num_of_commitments + &input_1.to_string().split_off(6) + input_2 + input_3;
+
+    let vss_value = VerifiableSecretSharingCommitment::<C>::deserialize(
+        invalid_coeff_commitment_for_serialization,
+    );
+
+    assert!(vss_value.is_err());
+    assert!(vss_value == Err(Error::InvalidCoefficient));
 }

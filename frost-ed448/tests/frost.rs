@@ -141,3 +141,8 @@ fn check_serialize_vss_commitment() {
 fn check_deserialize_vss_commitment() {
     frost_core::tests::check_deserialize_vss_commitment::<Ed448Shake256>(&ELEMENTS);
 }
+
+#[test]
+fn check_deserialize_vss_commitment_errors() {
+    frost_core::tests::check_deserialize_vss_commitment_errors::<Ed448Shake256>(&ELEMENTS);
+}

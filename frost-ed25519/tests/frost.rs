@@ -152,3 +152,8 @@ fn check_serialize_vss_commitment() {
 fn check_deserialize_vss_commitment() {
     frost_core::tests::check_deserialize_vss_commitment::<Ed25519Sha512>(&ELEMENTS);
 }
+
+#[test]
+fn check_deserialize_vss_commitment_errors() {
+    frost_core::tests::check_deserialize_vss_commitment_errors::<Ed25519Sha512>(&ELEMENTS);
+}

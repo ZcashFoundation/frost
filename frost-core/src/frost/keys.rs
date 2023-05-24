@@ -9,7 +9,6 @@ use std::{
     iter,
 };
 
-use debugless_unwrap::DebuglessUnwrap;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
@@ -179,7 +178,7 @@ where
 /// [`VerifiableSecretSharingCommitment`], either by performing pairwise comparison, or by using
 /// some agreed-upon public location for publication, where each participant can
 /// ensure that they received the correct (and same) value.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
     pub(crate) Vec<CoefficientCommitment<C>>,
 );
@@ -200,15 +199,16 @@ where
     }
 
     /// Returns VerifiableSecretSharingCommitment from a vector of CoefficientCommitments
-    pub fn deserialize(coefficientCommitments: String) -> VerifiableSecretSharingCommitment<C> {
-        let decoded = hex::decode(&coefficientCommitments).expect("Invalid hex string"); // TODO handle error
+    pub fn deserialize(coefficientCommitments: String) -> Result<Self, Error<C>> {
+        let decoded = hex::decode(&coefficientCommitments)
+            .map_err(|_| Error::from(GroupError::MalformedElement))?;
 
         let coeff_commitments_data = &decoded[1..decoded.len()].to_vec();
 
-        let n: usize = String::from_utf8(coefficientCommitments.as_bytes()[0..1].to_vec())
-            .unwrap()
+        let n: usize = String::from_utf8([decoded[0]].to_vec())
+            .map_err(|_| Error::InvalidCoefficient)?
             .parse()
-            .unwrap(); // TODO handle error
+            .map_err(|_| Error::InvalidCoefficient)?;
         let l = coeff_commitments_data.len() / n;
 
         let mut coeff_commitments: Vec<CoefficientCommitment<C>> = Vec::with_capacity(n);
@@ -218,14 +218,15 @@ where
             println!("comm value: {}", commitment_value);
             let serialized: <C::Group as Group>::Serialization =
                 <C::Group as Group>::Serialization::try_from(
-                    hex::decode(commitment_value).unwrap(),
+                    hex::decode(commitment_value)
+                        .map_err(|_| Error::from(GroupError::MalformedElement))?,
                 )
-                .debugless_unwrap(); // TODO handle error
-            let coeff_commitment = CoefficientCommitment::<C>::deserialize(serialized).unwrap(); // TODO handle error
+                .map_err(|_| Error::InvalidCoefficient)?;
+            let coeff_commitment = CoefficientCommitment::<C>::deserialize(serialized)?;
 
             coeff_commitments.push(coeff_commitment)
         }
-        VerifiableSecretSharingCommitment(coeff_commitments)
+        Ok(Self(coeff_commitments))
     }
 }
 
