@@ -155,8 +155,7 @@ where
         coefficient: <C::Group as Group>::Serialization,
     ) -> Result<CoefficientCommitment<C>, Error<C>> {
         Ok(Self(
-            <C::Group as Group>::deserialize(&coefficient)
-                .map_err(|_| Error::from(GroupError::MalformedElement))?,
+            <C::Group as Group>::deserialize(&coefficient).map_err(Error::from)?,
         ))
     }
 
