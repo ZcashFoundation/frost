@@ -76,15 +76,12 @@ fn check_rts() {
 
 #[test]
 fn check_create_coefficient_commitment() {
-    let valid_element = "ea39907de8baf62d57fe0452581b147b152f776e830c346d1119cee0bc954a59";
-
-    frost_core::tests::check_create_coefficient_commitment::<Ristretto255Sha512>(valid_element);
-
-    let invalid_element = "abcdef7de8baf62d57fe0452581b147b152f776e830c346d1119cee0bc954a59";
-
-    frost_core::tests::check_create_coefficient_commitment_error::<Ristretto255Sha512>(
-        invalid_element,
-    );
+    let rng = thread_rng();
+    frost_core::tests::check_create_coefficient_commitment::<Ristretto255Sha512, _>(rng);
+}
+#[test]
+fn check_create_coefficient_commitment_error() {
+    frost_core::tests::check_create_coefficient_commitment_error::<Ristretto255Sha512>(&ELEMENTS);
 }
 
 #[test]
@@ -101,10 +98,12 @@ lazy_static! {
 
 #[test]
 fn check_serialize_vss_commitment() {
-    frost_core::tests::check_serialize_vss_commitment::<Ristretto255Sha512>(&ELEMENTS);
+    let rng = thread_rng();
+    frost_core::tests::check_serialize_vss_commitment::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_deserialize_vss_commitment() {
-    frost_core::tests::check_deserialize_vss_commitment::<Ristretto255Sha512>(&ELEMENTS);
+    let rng = thread_rng();
+    frost_core::tests::check_deserialize_vss_commitment::<Ristretto255Sha512, _>(rng);
 }

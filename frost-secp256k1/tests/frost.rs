@@ -100,17 +100,19 @@ fn check_rts() {
     frost_core::tests::repairable::check_rts::<Secp256K1Sha256, _>(rng);
 }
 
+lazy_static! {
+    pub static ref ELEMENTS: Value =
+        serde_json::from_str(include_str!("elements.json").trim()).unwrap();
+}
+
 #[test]
 fn check_create_coefficient_commitment() {
-    let valid_element = "02ceddafdf4a7f88885ab26b20d18edb7d4d9589812a6cf1a5a1a09d3808dae5d8";
-
-    frost_core::tests::check_create_coefficient_commitment::<Secp256K1Sha256>(valid_element);
-
-    let invalid_element = "123456afdf4a7f88885ab26b20d18edb7d4d9589812a6cf1a5a1a09d3808dae5d8";
-
-    frost_core::tests::check_create_coefficient_commitment_error::<Secp256K1Sha256>(
-        invalid_element,
-    );
+    let rng = thread_rng();
+    frost_core::tests::check_create_coefficient_commitment::<Secp256K1Sha256, _>(rng);
+}
+#[test]
+fn check_create_coefficient_commitment_error() {
+    frost_core::tests::check_create_coefficient_commitment_error::<Secp256K1Sha256>(&ELEMENTS);
 }
 
 #[test]
@@ -120,17 +122,14 @@ fn check_get_value_of_coefficient_commitment() {
     frost_core::tests::check_get_value_of_coefficient_commitment::<Secp256K1Sha256, _>(rng);
 }
 
-lazy_static! {
-    pub static ref ELEMENTS: Value =
-        serde_json::from_str(include_str!("elements.json").trim()).unwrap();
-}
-
 #[test]
 fn check_serialize_vss_commitment() {
-    frost_core::tests::check_serialize_vss_commitment::<Secp256K1Sha256>(&ELEMENTS);
+    let rng = thread_rng();
+    frost_core::tests::check_serialize_vss_commitment::<Secp256K1Sha256, _>(rng);
 }
 
 #[test]
 fn check_deserialize_vss_commitment() {
-    frost_core::tests::check_deserialize_vss_commitment::<Secp256K1Sha256>(&ELEMENTS);
+    let rng = thread_rng();
+    frost_core::tests::check_deserialize_vss_commitment::<Secp256K1Sha256, _>(rng);
 }

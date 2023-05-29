@@ -99,13 +99,12 @@ fn check_rts() {
 
 #[test]
 fn check_create_coefficient_commitment() {
-    let valid_element = "035c7b1ff7e5eee9158f10f7af6deea45e93b0c5a30b01701107b29cf8d4bae5b1";
-
-    frost_core::tests::check_create_coefficient_commitment::<P256Sha256>(valid_element);
-
-    let invalid_element = "1234561ff7e5eee9158f10f7af6deea45e93b0c5a30b01701107b29cf8d4bae5b1";
-
-    frost_core::tests::check_create_coefficient_commitment_error::<P256Sha256>(invalid_element);
+    let rng = thread_rng();
+    frost_core::tests::check_create_coefficient_commitment::<P256Sha256, _>(rng);
+}
+#[test]
+fn check_create_coefficient_commitment_error() {
+    frost_core::tests::check_create_coefficient_commitment_error::<P256Sha256>(&ELEMENTS);
 }
 
 #[test]
@@ -122,10 +121,12 @@ lazy_static! {
 
 #[test]
 fn check_serialize_vss_commitment() {
-    frost_core::tests::check_serialize_vss_commitment::<P256Sha256>(&ELEMENTS);
+    let rng = thread_rng();
+    frost_core::tests::check_serialize_vss_commitment::<P256Sha256, _>(rng);
 }
 
 #[test]
 fn check_deserialize_vss_commitment() {
-    frost_core::tests::check_deserialize_vss_commitment::<P256Sha256>(&ELEMENTS);
+    let rng = thread_rng();
+    frost_core::tests::check_deserialize_vss_commitment::<P256Sha256, _>(rng);
 }

@@ -120,15 +120,18 @@ fn check_rts() {
     frost_core::tests::repairable::check_rts::<Ed25519Sha512, _>(rng);
 }
 
+lazy_static! {
+    pub static ref ELEMENTS: Value =
+        serde_json::from_str(include_str!("elements.json").trim()).unwrap();
+}
+
 #[test]
 fn check_create_coefficient_commitment() {
-    let valid_element = "bada3ef9e9d319cad973b84cc4c835c8ee73281f5e2638d2d2b352c09edccbfb";
+    let rng = thread_rng();
 
-    frost_core::tests::check_create_coefficient_commitment::<Ed25519Sha512>(valid_element);
+    frost_core::tests::check_create_coefficient_commitment::<Ed25519Sha512, _>(rng);
 
-    let invalid_element = "123456f9e9d319cad973b84cc4c835c8ee73281f5e2638d2d2b352c09edccbfb";
-
-    frost_core::tests::check_create_coefficient_commitment_error::<Ed25519Sha512>(invalid_element);
+    frost_core::tests::check_create_coefficient_commitment_error::<Ed25519Sha512>(&ELEMENTS);
 }
 
 #[test]
@@ -138,17 +141,14 @@ fn check_get_value_of_coefficient_commitment() {
     frost_core::tests::check_get_value_of_coefficient_commitment::<Ed25519Sha512, _>(rng);
 }
 
-lazy_static! {
-    pub static ref ELEMENTS: Value =
-        serde_json::from_str(include_str!("elements.json").trim()).unwrap();
-}
-
 #[test]
 fn check_serialize_vss_commitment() {
-    frost_core::tests::check_serialize_vss_commitment::<Ed25519Sha512>(&ELEMENTS);
+    let rng = thread_rng();
+    frost_core::tests::check_serialize_vss_commitment::<Ed25519Sha512, _>(rng);
 }
 
 #[test]
 fn check_deserialize_vss_commitment() {
-    frost_core::tests::check_deserialize_vss_commitment::<Ed25519Sha512>(&ELEMENTS);
+    let rng = thread_rng();
+    frost_core::tests::check_deserialize_vss_commitment::<Ed25519Sha512, _>(rng);
 }
