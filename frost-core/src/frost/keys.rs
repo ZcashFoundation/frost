@@ -12,13 +12,11 @@ use std::{
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use itertools::Itertools;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    frost::Identifier, Ciphersuite, Element, Error, Field, Group, GroupError, Scalar, SigningKey,
-    VerifyingKey,
+    frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, SigningKey, VerifyingKey,
 };
 
 pub mod dkg;
@@ -146,6 +144,10 @@ where
 #[derive(Clone, Copy, PartialEq)]
 pub struct CoefficientCommitment<C: Ciphersuite>(pub(crate) Element<C>);
 
+// -            <C::Group as Group>::deserialize(&coefficient).map_err(Error::from)?,
+// +            <C::Group as Group>::deserialize(&coefficient)
+// +                .map_err(|_| Error::from(GroupError::MalformedElement))?,
+
 impl<C> CoefficientCommitment<C>
 where
     C: Ciphersuite,
@@ -154,9 +156,7 @@ where
     pub fn deserialize(
         coefficient: <C::Group as Group>::Serialization,
     ) -> Result<CoefficientCommitment<C>, Error<C>> {
-        Ok(Self(
-            <C::Group as Group>::deserialize(&coefficient).map_err(Error::from)?,
-        ))
+        Ok(Self(<C::Group as Group>::deserialize(&coefficient)?))
     }
 
     /// Returns inner element value
@@ -186,46 +186,24 @@ impl<C> VerifiableSecretSharingCommitment<C>
 where
     C: Ciphersuite,
 {
-    /// Returns concatenated coefficent commitments from self.0 specifying the number of commitments
-    pub fn serialize(&self) -> String {
-        let values = self
-            .0
+    /// Returns serialized coefficent commitments
+    pub fn serialize(&self) -> Vec<<C::Group as Group>::Serialization> {
+        self.0
             .iter()
-            .map(|cc| hex::encode(<<C as Ciphersuite>::Group as Group>::serialize(&cc.0)))
-            .join("");
-
-        hex::encode(self.0.len().to_string()) + &values
+            .map(|cc| <<C as Ciphersuite>::Group as Group>::serialize(&cc.0))
+            .collect()
     }
 
-    /// Returns VerifiableSecretSharingCommitment from a vector of CoefficientCommitments
-    pub fn deserialize(coefficientCommitments: String) -> Result<Self, Error<C>> {
-        let decoded = hex::decode(&coefficientCommitments)
-            .map_err(|_| Error::from(GroupError::MalformedElement))?;
-
-        let coeff_commitments_data = &decoded[1..decoded.len()].to_vec();
-
-        let n: usize = String::from_utf8([decoded[0]].to_vec())
-            .map_err(|_| Error::InvalidCoefficient)?
-            .parse()
-            .map_err(|_| Error::InvalidCoefficient)?;
-        let l = coeff_commitments_data.len() / n;
-
-        let mut coeff_commitments: Vec<CoefficientCommitment<C>> = Vec::with_capacity(n);
-
-        for i in 0..n {
-            let commitment_value = hex::encode(&coeff_commitments_data[(i * l)..((i * l) + l)]);
-            println!("comm value: {}", commitment_value);
-            let serialized: <C::Group as Group>::Serialization =
-                <C::Group as Group>::Serialization::try_from(
-                    hex::decode(commitment_value)
-                        .map_err(|_| Error::from(GroupError::MalformedElement))?,
-                )
-                .map_err(|_| Error::InvalidCoefficient)?;
-            let coeff_commitment = CoefficientCommitment::<C>::deserialize(serialized)?;
-
-            coeff_commitments.push(coeff_commitment)
+    /// Returns VerifiableSecretSharingCommitment from a vector of serialized CoefficientCommitments
+    pub fn deserialize(
+        serialized_coefficient_commitments: Vec<<C::Group as Group>::Serialization>,
+    ) -> Result<Self, Error<C>> {
+        let mut coefficient_commitments = Vec::new();
+        for cc in serialized_coefficient_commitments {
+            coefficient_commitments.push(CoefficientCommitment::<C>::deserialize(cc)?);
         }
-        Ok(Self(coeff_commitments))
+
+        Ok(Self(coefficient_commitments))
     }
 }
 

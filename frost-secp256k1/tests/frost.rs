@@ -134,8 +134,3 @@ fn check_serialize_vss_commitment() {
 fn check_deserialize_vss_commitment() {
     frost_core::tests::check_deserialize_vss_commitment::<Secp256K1Sha256>(&ELEMENTS);
 }
-
-#[test]
-fn check_deserialize_vss_commitment_errors() {
-    frost_core::tests::check_deserialize_vss_commitment_errors::<Secp256K1Sha256>(&ELEMENTS);
-}
