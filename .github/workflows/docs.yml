@@ -10,7 +10,7 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    branches:    
+    branches:
       - main
     paths:
       # doc source files
@@ -20,9 +20,9 @@ on:
       # workflow definitions
       - '.github/workflows/docs.yml'
   push:
-    branches:    
+    branches:
       - main
-      
+
 env:
   RUST_LOG: info
   RUST_BACKTRACE: full
@@ -62,14 +62,15 @@ jobs:
           mdbook-version: '0.4.18'
 
       # TODO: actions-mdbook does not yet have an option to install mdbook-mermaid https://github.com/peaceiris/actions-mdbook/issues/426
-      - name: Install mdbook
+      - name: Install plugins
         run: |
           cargo install mdbook-mermaid
-          
+          cargo install mdbook-admonish
+
       - name: Build FROST book
         run: |
           mdbook build book/
-          
+
       - name: Deploy FROST book to Firebase preview channel
         uses: FirebaseExtended/action-hosting-deploy@v0
         if: ${{ github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' }}
