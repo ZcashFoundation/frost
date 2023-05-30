@@ -115,3 +115,9 @@ fn check_deserialize_vss_commitment() {
     let rng = thread_rng();
     frost_core::tests::check_deserialize_vss_commitment::<Ristretto255Sha512, _>(rng);
 }
+
+#[test]
+fn check_deserialize_vss_commitment_error() {
+    let rng = thread_rng();
+    frost_core::tests::check_deserialize_vss_commitment_error::<Ristretto255Sha512, _>(rng);
+}

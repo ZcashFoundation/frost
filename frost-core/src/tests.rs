@@ -345,7 +345,7 @@ fn generate_element<C: Ciphersuite, R: RngCore + CryptoRng>(
 pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) {
-    let element = generate_element::<C,R>(&mut rng);
+    let element = generate_element::<C, R>(&mut rng);
 
     let expected = <C::Group>::serialize(&element);
 

@@ -149,7 +149,7 @@ where
     C: Ciphersuite,
 {
     /// returns serialized element
-    pub fn serialize(&self) ->  <C::Group as Group>::Serialization {
+    pub fn serialize(&self) -> <C::Group as Group>::Serialization {
         <C::Group>::serialize(&self.0)
     }
 
