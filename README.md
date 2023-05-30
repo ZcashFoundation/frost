@@ -30,13 +30,15 @@ scratch. End-users should not use `frost-core` if they want to sign and verify s
 should use the crate specific to their ciphersuite/curve parameters that uses `frost-core` as a
 dependency.
 
-## Pre-commit checks
+## Developer Information
+
+### Pre-commit checks
 
 1. Run tests `cargo test`
 2. Run formatter `cargo fmt`
-3. Check linter `cargo clippy` and if you want to automatically fix then run `cargo clippy --fix`
+3. Check linter `cargo clippy --all-features --all-targets -- -D warnings` and if you want to automatically fix then run `cargo clippy --fix`
 
-## Coverage
+### Coverage
 
 Test coverage checks are performed in the pipeline. This is cofigured here: `.github/workflows/coverage.yaml`
 To run these locally:

@@ -4,6 +4,13 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 0.4.0
+
+* add serialize and deserialize functions for VerifiableSecretSharingCommitment
+* add value and deserialize functions for CoefficientCommitment
+
+## Released
+
 ## 0.3.0
 
 * add multiscalar support to speed up signing and aggregating
