@@ -458,3 +458,45 @@ pub fn check_deserialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
     assert!(vss_value.is_ok());
     assert!(expected == vss_value.unwrap());
 }
+
+/// Test deserialize VerifiableSecretSharingCommitment error
+pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+    commitment_helper_functions: &Value,
+) {
+    // Generate test CoefficientCommitments
+
+    // ---
+    let values = &commitment_helper_functions["elements"];
+
+    let input_1 = generate_element::<C, R>(&mut rng);
+    let input_2 = generate_element::<C, R>(&mut rng);
+    let input_3 = generate_element::<C, R>(&mut rng);
+
+    // let coeff_comms = vec![
+    //     CoefficientCommitment::<C>(input_1),
+    //     CoefficientCommitment(input_2),
+    //     CoefficientCommitment(input_3),
+    //     // CoefficientCommitment(values.invalid_element)
+    // ];
+
+    let serialized: <C::Group as Group>::Serialization =
+        <C::Group as Group>::Serialization::try_from(
+            hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
+        )
+        .debugless_unwrap();
+    // ---
+
+    // let expected = VerifiableSecretSharingCommitment(coeff_comms);
+
+    let data = vec![
+        <C::Group>::serialize(&input_1),
+        <C::Group>::serialize(&input_2),
+        <C::Group>::serialize(&input_3),
+        serialized,
+    ];
+
+    let vss_value = VerifiableSecretSharingCommitment::<C>::deserialize(data);
+
+    assert!(vss_value.is_err());
+}

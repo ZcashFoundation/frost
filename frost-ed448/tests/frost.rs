@@ -150,3 +150,9 @@ fn check_deserialize_vss_commitment() {
     let rng = thread_rng();
     frost_core::tests::check_deserialize_vss_commitment::<Ed448Shake256, _>(rng);
 }
+
+#[test]
+fn check_deserialize_vss_commitment_error() {
+    let rng = thread_rng();
+    frost_core::tests::check_deserialize_vss_commitment_error::<Ed448Shake256, _>(rng, &ELEMENTS);
+}
