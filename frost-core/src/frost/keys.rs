@@ -144,14 +144,15 @@ where
 #[derive(Clone, Copy, PartialEq)]
 pub struct CoefficientCommitment<C: Ciphersuite>(pub(crate) Element<C>);
 
-// -            <C::Group as Group>::deserialize(&coefficient).map_err(Error::from)?,
-// +            <C::Group as Group>::deserialize(&coefficient)
-// +                .map_err(|_| Error::from(GroupError::MalformedElement))?,
-
 impl<C> CoefficientCommitment<C>
 where
     C: Ciphersuite,
 {
+    /// returns serialized element
+    pub fn serialize(&self) ->  <C::Group as Group>::Serialization {
+        <C::Group>::serialize(&self.0)
+    }
+
     /// Creates a new commitment from a coefficient input
     pub fn deserialize(
         coefficient: <C::Group as Group>::Serialization,

@@ -109,9 +109,12 @@ fn check_rts() {
     frost_core::tests::repairable::check_rts::<Ed448Shake256, _>(rng);
 }
 
-lazy_static! {
-    pub static ref ELEMENTS: Value =
-        serde_json::from_str(include_str!("elements.json").trim()).unwrap();
+/// Tests for serialization and deserialization of CoefficientCommitment and VerifiableSecretSharingCommitment
+
+#[test]
+fn check_serialization_of_coefficient_commitment() {
+    let rng = thread_rng();
+    frost_core::tests::check_serialization_of_coefficient_commitment::<Ed448Shake256, _>(rng);
 }
 
 #[test]
@@ -129,6 +132,11 @@ fn check_get_value_of_coefficient_commitment() {
     let rng = thread_rng();
 
     frost_core::tests::check_get_value_of_coefficient_commitment::<Ed448Shake256, _>(rng);
+}
+
+lazy_static! {
+    pub static ref ELEMENTS: Value =
+        serde_json::from_str(include_str!("elements.json").trim()).unwrap();
 }
 
 #[test]

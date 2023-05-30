@@ -97,6 +97,14 @@ fn check_rts() {
     frost_core::tests::repairable::check_rts::<P256Sha256, _>(rng);
 }
 
+/// Tests for serialization and deserialization of CoefficientCommitment and VerifiableSecretSharingCommitment
+
+#[test]
+fn check_serialization_of_coefficient_commitment() {
+    let rng = thread_rng();
+    frost_core::tests::check_serialization_of_coefficient_commitment::<P256Sha256, _>(rng);
+}
+
 #[test]
 fn check_create_coefficient_commitment() {
     let rng = thread_rng();

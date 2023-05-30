@@ -341,6 +341,19 @@ fn generate_element<C: Ciphersuite, R: RngCore + CryptoRng>(
     <C::Group>::generator() * scalar
 }
 
+/// Test retrieving Element from CoefficientCommitment
+pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+) {
+    let element = generate_element::<C,R>(&mut rng);
+
+    let expected = <C::Group>::serialize(&element);
+
+    let data = frost::keys::CoefficientCommitment::<C>(element).serialize();
+
+    assert!(expected.as_ref() == data.as_ref());
+}
+
 /// Test create a CoefficientCommitment.
 pub fn check_create_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let element = generate_element::<C, R>(&mut rng);
