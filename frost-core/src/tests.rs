@@ -388,8 +388,7 @@ pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(
 pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) {
-    let scalar = <<C::Group as Group>::Field>::random(&mut rng);
-    let element = <C::Group>::generator() * scalar;
+    let element = generate_element::<C, R>(&mut rng);
 
     let coeff_commitment = frost::keys::CoefficientCommitment::<C>(element);
     let value = coeff_commitment.value();
@@ -473,21 +472,12 @@ pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + Crypt
     let input_2 = generate_element::<C, R>(&mut rng);
     let input_3 = generate_element::<C, R>(&mut rng);
 
-    // let coeff_comms = vec![
-    //     CoefficientCommitment::<C>(input_1),
-    //     CoefficientCommitment(input_2),
-    //     CoefficientCommitment(input_3),
-    //     // CoefficientCommitment(values.invalid_element)
-    // ];
-
     let serialized: <C::Group as Group>::Serialization =
         <C::Group as Group>::Serialization::try_from(
             hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
         )
         .debugless_unwrap();
     // ---
-
-    // let expected = VerifiableSecretSharingCommitment(coeff_comms);
 
     let data = vec![
         <C::Group>::serialize(&input_1),
