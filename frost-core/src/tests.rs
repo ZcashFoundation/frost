@@ -1,9 +1,17 @@
 //! Ciphersuite-generic test functions.
 use std::{collections::HashMap, convert::TryFrom};
 
-use crate::{frost, Error, Signature, VerifyingKey};
+use crate::{
+    frost::{
+        self,
+        keys::{CoefficientCommitment, VerifiableSecretSharingCommitment},
+    },
+    Error, Field, Group, Signature, VerifyingKey,
+};
+use debugless_unwrap::DebuglessUnwrap;
 use debugless_unwrap::DebuglessUnwrapErr;
 use rand_core::{CryptoRng, RngCore};
+use serde_json::Value;
 
 use crate::Ciphersuite;
 
@@ -324,4 +332,161 @@ where
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys)
+}
+
+fn generate_element<C: Ciphersuite, R: RngCore + CryptoRng>(
+    rng: &mut R,
+) -> <<C as Ciphersuite>::Group as Group>::Element {
+    let scalar = <<C::Group as Group>::Field>::random(rng);
+    <C::Group>::generator() * scalar
+}
+
+/// Test retrieving Element from CoefficientCommitment
+pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+) {
+    let element = generate_element::<C, R>(&mut rng);
+
+    let expected = <C::Group>::serialize(&element);
+
+    let data = frost::keys::CoefficientCommitment::<C>(element).serialize();
+
+    assert!(expected.as_ref() == data.as_ref());
+}
+
+/// Test create a CoefficientCommitment.
+pub fn check_create_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    let element = generate_element::<C, R>(&mut rng);
+
+    let expected = CoefficientCommitment::<C>(element);
+
+    let serialized_element = <C::Group>::serialize(&element);
+
+    let coeff_commitment =
+        frost::keys::CoefficientCommitment::<C>::deserialize(serialized_element).unwrap();
+
+    assert!(expected == coeff_commitment);
+}
+
+/// Test error handling for creation of a coefficient commitment
+pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(
+    commitment_helper_functions: &Value,
+) {
+    let values = &commitment_helper_functions["elements"];
+    let serialized: <C::Group as Group>::Serialization =
+        <C::Group as Group>::Serialization::try_from(
+            hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
+        )
+        .debugless_unwrap();
+
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::deserialize(serialized);
+
+    assert!(coeff_commitment.is_err());
+}
+
+/// Test retrieve Element from CoefficientCommitment
+pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+) {
+    let element = generate_element::<C, R>(&mut rng);
+
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>(element);
+    let value = coeff_commitment.value();
+
+    assert!(value == element)
+}
+
+/// Test serialize VerifiableSecretSharingCommitment
+pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    // Generate test CoefficientCommitments
+
+    // ---
+    let input_1 = generate_element::<C, R>(&mut rng);
+    let input_2 = generate_element::<C, R>(&mut rng);
+    let input_3 = generate_element::<C, R>(&mut rng);
+
+    let coeff_comms = vec![
+        CoefficientCommitment::<C>(input_1),
+        CoefficientCommitment(input_2),
+        CoefficientCommitment(input_3),
+    ];
+
+    //    ---
+
+    let expected = vec![
+        <C::Group>::serialize(&input_1),
+        <C::Group>::serialize(&input_2),
+        <C::Group>::serialize(&input_3),
+    ];
+
+    let vss_commitment = VerifiableSecretSharingCommitment(coeff_comms).serialize();
+
+    assert!(expected.len() == vss_commitment.len());
+    assert!(expected
+        .iter()
+        .zip(vss_commitment.iter())
+        .all(|(e, c)| e.as_ref() == c.as_ref()));
+}
+
+/// Test deserialize VerifiableSecretSharingCommitment
+pub fn check_deserialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    // Generate test CoefficientCommitments
+
+    // ---
+    let input_1 = generate_element::<C, R>(&mut rng);
+    let input_2 = generate_element::<C, R>(&mut rng);
+    let input_3 = generate_element::<C, R>(&mut rng);
+
+    let coeff_comms = vec![
+        CoefficientCommitment::<C>(input_1),
+        CoefficientCommitment(input_2),
+        CoefficientCommitment(input_3),
+    ];
+    // ---
+
+    let expected = VerifiableSecretSharingCommitment(coeff_comms);
+
+    let data = vec![
+        <C::Group>::serialize(&input_1),
+        <C::Group>::serialize(&input_2),
+        <C::Group>::serialize(&input_3),
+    ];
+
+    let vss_value = VerifiableSecretSharingCommitment::deserialize(data);
+
+    assert!(vss_value.is_ok());
+    assert!(expected == vss_value.unwrap());
+}
+
+/// Test deserialize VerifiableSecretSharingCommitment error
+pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+    commitment_helper_functions: &Value,
+) {
+    // Generate test CoefficientCommitments
+
+    // ---
+    let values = &commitment_helper_functions["elements"];
+
+    let input_1 = generate_element::<C, R>(&mut rng);
+    let input_2 = generate_element::<C, R>(&mut rng);
+    let input_3 = generate_element::<C, R>(&mut rng);
+
+    let serialized: <C::Group as Group>::Serialization =
+        <C::Group as Group>::Serialization::try_from(
+            hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
+        )
+        .debugless_unwrap();
+    // ---
+
+    let data = vec![
+        <C::Group>::serialize(&input_1),
+        <C::Group>::serialize(&input_2),
+        <C::Group>::serialize(&input_3),
+        serialized,
+    ];
+
+    let vss_value = VerifiableSecretSharingCommitment::<C>::deserialize(data);
+
+    assert!(vss_value.is_err());
 }

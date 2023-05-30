@@ -77,6 +77,9 @@ pub enum Error<C: Ciphersuite> {
     /// Error in elliptic curve Group.
     #[error("Error in elliptic curve Group.")]
     GroupError(#[from] GroupError),
+    /// Error in coefficient commitment deserialization.
+    #[error("Invalid coefficient")]
+    InvalidCoefficient,
 }
 
 /// An error related to a scalar Field.
