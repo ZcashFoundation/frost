@@ -115,7 +115,7 @@ pub trait Group: Copy + Clone + PartialEq {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>> + PartialEq;
+    type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>>;
 
     /// The order of the the quotient group when the prime order subgroup divides the order of the
     /// full curve group.

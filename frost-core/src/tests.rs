@@ -409,7 +409,11 @@ pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mu
 
     let vss_commitment = VerifiableSecretSharingCommitment(coeff_comms).serialize();
 
-    assert!(expected == vss_commitment);
+    assert!(expected.len() == vss_commitment.len());
+    assert!(expected
+        .iter()
+        .zip(vss_commitment.iter())
+        .all(|(e, c)| e.as_ref() == c.as_ref()));
 }
 
 /// Test deserialize VerifiableSecretSharingCommitment
