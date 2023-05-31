@@ -1,6 +1,6 @@
-mod batch_tests;
-mod ciphersuite_generic_tests;
-mod coefficient_commitment_tests;
-mod deserialize_tests;
+mod batch;
+mod ciphersuite_generic;
+mod coefficient_commitment;
+mod deserialize;
 mod proptests;
-mod vss_commitment_tests;
+mod vss_commitment;
