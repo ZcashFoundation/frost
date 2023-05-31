@@ -85,3 +85,25 @@ pub fn part3(
 ) -> Result<(KeyPackage, PublicKeyPackage), Error> {
     frost::keys::dkg::part3(round2_secret_package, round1_packages, round2_packages)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::helper_functions::verify_signature;
+    use crate::Ed25519Sha512;
+    use rand::thread_rng;
+
+    #[test]
+    fn check_sign_with_dkg() {
+        let rng = thread_rng();
+
+        // Test with multiple keys/signatures to better exercise the key generation
+        // and the interoperability check. A smaller number of iterations is used
+        // because DKG takes longer and otherwise the test would be too slow.
+        for _ in 0..32 {
+            let (msg, group_signature, group_pubkey) =
+                frost_core::tests::check_sign_with_dkg::<Ed25519Sha512, _>(rng.clone());
+
+            verify_signature(&msg, group_signature, group_pubkey);
+        }
+    }
+}

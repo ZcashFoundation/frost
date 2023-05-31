@@ -53,3 +53,47 @@ pub fn repair_share_step_3(
 ) -> SecretShare {
     frost::keys::repairable::repair_share_step_3(sigmas, identifier, commitment)
 }
+
+#[cfg(test)]
+mod tests {
+
+    use lazy_static::lazy_static;
+    use rand::thread_rng;
+    use serde_json::Value;
+
+    use crate::Ed25519Sha512;
+
+    lazy_static! {
+        pub static ref REPAIR_SHARE: Value =
+            serde_json::from_str(include_str!("../../tests/test_helpers/repair-share.json").trim())
+                .unwrap();
+    }
+
+    #[test]
+    fn check_repair_share_step_1() {
+        let rng = thread_rng();
+
+        frost_core::tests::repairable::check_repair_share_step_1::<Ed25519Sha512, _>(rng);
+    }
+
+    #[test]
+    fn check_repair_share_step_2() {
+        frost_core::tests::repairable::check_repair_share_step_2::<Ed25519Sha512>(&REPAIR_SHARE);
+    }
+
+    #[test]
+    fn check_repair_share_step_3() {
+        let rng = thread_rng();
+        frost_core::tests::repairable::check_repair_share_step_3::<Ed25519Sha512, _>(
+            rng,
+            &REPAIR_SHARE,
+        );
+    }
+
+    #[test]
+    fn check_rts() {
+        let rng = thread_rng();
+
+        frost_core::tests::repairable::check_rts::<Ed25519Sha512, _>(rng);
+    }
+}

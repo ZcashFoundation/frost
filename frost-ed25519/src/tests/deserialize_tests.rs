@@ -1,5 +1,4 @@
-use frost_ed25519::*;
-
+use crate::*;
 use curve25519_dalek::{edwards::EdwardsPoint, traits::Identity};
 
 #[test]
