@@ -53,3 +53,40 @@ pub fn repair_share_step_3(
 ) -> SecretShare {
     frost::keys::repairable::repair_share_step_3(sigmas, identifier, commitment)
 }
+
+#[cfg(test)]
+mod tests {
+
+    use lazy_static::lazy_static;
+    use rand::thread_rng;
+    use serde_json::Value;
+
+    use crate::P256Sha256;
+
+    lazy_static! {
+        pub static ref REPAIR_SHARE: Value =
+            serde_json::from_str(include_str!("../../tests/helpers/repair-share.json").trim())
+                .unwrap();
+    }
+
+    #[test]
+    fn check_repair_share_step_1() {
+        let rng = thread_rng();
+
+        frost_core::tests::repairable::check_repair_share_step_1::<P256Sha256, _>(rng);
+    }
+
+    #[test]
+    fn check_repair_share_step_2() {
+        frost_core::tests::repairable::check_repair_share_step_2::<P256Sha256>(&REPAIR_SHARE);
+    }
+
+    #[test]
+    fn check_repair_share_step_3() {
+        let rng = thread_rng();
+        frost_core::tests::repairable::check_repair_share_step_3::<P256Sha256, _>(
+            rng,
+            &REPAIR_SHARE,
+        );
+    }
+}

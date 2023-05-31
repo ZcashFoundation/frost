@@ -27,3 +27,6 @@ parsers:
 
 github_checks:
   annotations: false
+
+codecov:
+  branch: main
