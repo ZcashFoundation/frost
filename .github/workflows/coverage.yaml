@@ -38,10 +38,10 @@ jobs:
         run: cargo install cargo-llvm-cov
 
       - name: Run tests
-        run: cargo llvm-cov --lcov --no-report --ignore-filename-regex 'tests.rs|benches.rs|gencode'
+        run: cargo llvm-cov --lcov --no-report --ignore-filename-regex '.*(tests).*|benches.rs|gencode|helper_functions.rs'
 
       - name: Generate coverage report
-        run: cargo llvm-cov report --lcov --ignore-filename-regex 'tests.rs|benches.rs|gencode' --output-path lcov.info
+        run: cargo llvm-cov report --lcov --ignore-filename-regex '.*(tests).*|benches.rs|gencode|helper_functions.rs' --output-path lcov.info
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3.1.4
