@@ -255,7 +255,7 @@ fn main() -> ExitCode {
             "src/tests/coefficient_commitment_tests.rs",
             "src/tests/vss_commitment_tests.rs",
             "src/tests/batch_tests.rs",
-            "src/tests/ciphersuite_generic.rs",
+            "src/tests/ciphersuite_generic_tests.rs",
             "src/tests.rs",
         ] {
             replaced |= copy_and_replace(
