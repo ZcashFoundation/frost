@@ -19,7 +19,13 @@
 //! - The dkg.rs module and the dkg.md docs
 //! - The repairable.rs module (it uses the frost-core docs as canonical)
 
-use std::{collections::HashMap, env, fs, iter::zip, process::ExitCode};
+use std::{
+    collections::HashMap,
+    env, fs,
+    io::Write,
+    iter::zip,
+    process::{Command, ExitCode, Stdio},
+};
 
 use regex::Regex;
 
@@ -144,6 +150,7 @@ fn copy_and_replace(
     destination_filename: &str,
     original_strings: &[&str],
     replacement_strings: &[&str],
+    format: bool,
 ) -> u8 {
     let mut text = fs::read_to_string(origin_filename).unwrap();
     let original_text = fs::read_to_string(destination_filename).unwrap_or_else(|_| "".to_string());
@@ -151,11 +158,33 @@ fn copy_and_replace(
     for (from, to) in std::iter::zip(original_strings, replacement_strings) {
         text = text.replace(from, to)
     }
+    if format {
+        text = rustfmt(text);
+    }
 
     let folder = std::path::Path::new(destination_filename).parent().unwrap();
     let _ = fs::create_dir_all(folder);
     fs::write(destination_filename, &text).unwrap();
     u8::from(original_text != text)
+}
+
+pub fn rustfmt(source: String) -> String {
+    let mut child = Command::new("rustfmt")
+        .stdin(Stdio::piped())
+        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn child process. Is 'rustfmt' available?");
+
+    let mut stdin = child.stdin.take().expect("Failed to open stdin");
+    std::thread::spawn(move || {
+        stdin
+            .write_all(source.as_bytes())
+            .expect("Failed to write to stdin");
+    });
+
+    let output = child.wait_with_output().expect("Failed to read stdout");
+    String::from_utf8_lossy(&output.stdout).to_string()
 }
 
 fn main() -> ExitCode {
@@ -254,6 +283,7 @@ fn main() -> ExitCode {
                 format!("{folder}/{filename}").as_str(),
                 original_strings,
                 replacement_strings,
+                filename.ends_with(".rs"),
             );
         }
     }
