@@ -1,4 +1,4 @@
-use frost_p256::*;
+use crate::*;
 
 #[test]
 fn check_deserialize_non_canonical() {

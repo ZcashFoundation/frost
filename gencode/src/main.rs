@@ -249,7 +249,7 @@ fn main() -> ExitCode {
 
         // Generate files based on a template with simple search & replace.
         for filename in [
-            // "README.md",
+            "README.md",
             "src/keys/dkg.rs",
             "src/keys/repairable.rs",
             "src/tests/coefficient_commitment_tests.rs",
@@ -257,7 +257,6 @@ fn main() -> ExitCode {
             "src/tests/batch_tests.rs",
             "src/tests/signing_tests.rs",
             "src/tests.rs",
-            "src/tests/proptests/proptests.rs",
         ] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
