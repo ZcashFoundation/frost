@@ -14,9 +14,6 @@ use sha2::{Digest, Sha512};
 use frost_core::frost;
 
 #[cfg(test)]
-mod helpers;
-
-#[cfg(test)]
 mod tests;
 
 // Re-exports in our public API

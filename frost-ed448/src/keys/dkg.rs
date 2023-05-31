@@ -85,16 +85,3 @@ pub fn part3(
 ) -> Result<(KeyPackage, PublicKeyPackage), Error> {
     frost::keys::dkg::part3(round2_secret_package, round1_packages, round2_packages)
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::Ed448Shake256;
-    use rand::thread_rng;
-
-    #[test]
-    fn check_sign_with_dkg() {
-        let rng = thread_rng();
-
-        frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Ed448Shake256, _>(rng);
-    }
-}

@@ -252,7 +252,7 @@ fn main() -> ExitCode {
             "README.md",
             "dkg.md",
             "src/keys/dkg.rs",
-            "src/keys/repairable.rs",
+            "src/keys/repairable.rs"
         ] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),

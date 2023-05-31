@@ -1,7 +1,7 @@
-use crate::Ed25519Sha512;
 use ed25519_dalek::Verifier;
+use frost_ed25519::*;
 
-#[cfg(test)]
+// #[cfg(test)]
 pub fn verify_signature(
     msg: &[u8],
     group_signature: frost_core::Signature<Ed25519Sha512>,

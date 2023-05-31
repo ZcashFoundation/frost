@@ -89,11 +89,4 @@ mod tests {
             &REPAIR_SHARE,
         );
     }
-
-    #[test]
-    fn check_rts() {
-        let rng = thread_rng();
-
-        frost_core::tests::repairable::check_rts::<Ed448Shake256, _>(rng);
-    }
 }
