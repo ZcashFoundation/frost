@@ -248,7 +248,17 @@ fn main() -> ExitCode {
         replaced |= write_docs(&docs, &lib_filename, original_strings, replacement_strings);
 
         // Generate files based on a template with simple search & replace.
-        for filename in ["tests/frost.rs"] {
+        for filename in [
+            // "README.md",
+            "src/keys/dkg.rs",
+            "src/keys/repairable.rs",
+            "src/tests/coefficient_commitment_tests.rs",
+            "src/tests/deserialize_tests.rs",
+            "src/tests/vss_commitment_tests.rs",
+            "src/tests/bath_tests.rs",
+            "src/tests/signing.rs",
+            "src/tests.rs"
+        ] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
                 format!("{folder}/{filename}").as_str(),
