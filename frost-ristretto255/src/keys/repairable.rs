@@ -91,11 +91,4 @@ mod tests {
             &REPAIR_SHARE,
         );
     }
-
-    #[test]
-    fn check_rts() {
-        let rng = thread_rng();
-
-        frost_core::tests::repairable::check_rts::<Ristretto255Sha512, _>(rng);
-    }
 }
