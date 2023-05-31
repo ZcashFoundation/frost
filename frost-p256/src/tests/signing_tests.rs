@@ -19,7 +19,7 @@ lazy_static! {
 #[test]
 fn check_share_generation_p256_sha256() {
     let rng = thread_rng();
-    frost_core::tests::check_share_generation::<P256Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_share_generation::<P256Sha256, _>(rng);
 }
 
 #[test]
@@ -32,5 +32,5 @@ fn check_sign_with_test_vectors() {
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 
-    frost_core::tests::check_sign_with_dealer::<P256Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<P256Sha256, _>(rng);
 }

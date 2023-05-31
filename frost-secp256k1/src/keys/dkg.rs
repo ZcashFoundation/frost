@@ -95,6 +95,6 @@ mod tests {
     fn check_sign_with_dkg() {
         let rng = thread_rng();
 
-        frost_core::tests::check_sign_with_dkg::<Secp256K1Sha256, _>(rng);
+        frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Secp256K1Sha256, _>(rng);
     }
 }

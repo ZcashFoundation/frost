@@ -15,19 +15,22 @@ lazy_static! {
 #[test]
 fn check_serialize_vss_commitment() {
     let rng = thread_rng();
-    frost_core::tests::check_serialize_vss_commitment::<Ristretto255Sha512, _>(rng);
+    frost_core::tests::vss_commitment::check_serialize_vss_commitment::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_deserialize_vss_commitment() {
     let rng = thread_rng();
-    frost_core::tests::check_deserialize_vss_commitment::<Ristretto255Sha512, _>(rng);
+    frost_core::tests::vss_commitment::check_deserialize_vss_commitment::<Ristretto255Sha512, _>(
+        rng,
+    );
 }
 
 #[test]
 fn check_deserialize_vss_commitment_error() {
     let rng = thread_rng();
-    frost_core::tests::check_deserialize_vss_commitment_error::<Ristretto255Sha512, _>(
-        rng, &ELEMENTS,
-    );
+    frost_core::tests::vss_commitment::check_deserialize_vss_commitment_error::<
+        Ristretto255Sha512,
+        _,
+    >(rng, &ELEMENTS);
 }

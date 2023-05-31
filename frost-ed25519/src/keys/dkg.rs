@@ -101,7 +101,9 @@ mod tests {
         // because DKG takes longer and otherwise the test would be too slow.
         for _ in 0..32 {
             let (msg, group_signature, group_pubkey) =
-                frost_core::tests::check_sign_with_dkg::<Ed25519Sha512, _>(rng.clone());
+                frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Ed25519Sha512, _>(
+                    rng.clone(),
+                );
 
             verify_signature(&msg, group_signature, group_pubkey);
         }

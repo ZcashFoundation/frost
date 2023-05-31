@@ -19,7 +19,7 @@ lazy_static! {
 #[test]
 fn check_share_generation_ristretto255_sha512() {
     let rng = thread_rng();
-    frost_core::tests::check_share_generation::<Ristretto255Sha512, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_share_generation::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
@@ -34,5 +34,5 @@ fn check_sign_with_test_vectors() {
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 
-    frost_core::tests::check_sign_with_dealer::<Ristretto255Sha512, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Ristretto255Sha512, _>(rng);
 }

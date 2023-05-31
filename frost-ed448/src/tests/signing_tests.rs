@@ -19,7 +19,7 @@ lazy_static! {
 #[test]
 fn check_share_generation_ed448_shake256() {
     let rng = thread_rng();
-    frost_core::tests::check_share_generation::<Ed448Shake256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_share_generation::<Ed448Shake256, _>(rng);
 }
 
 #[test]
@@ -34,5 +34,5 @@ fn check_sign_with_test_vectors() {
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 
-    frost_core::tests::check_sign_with_dealer::<Ed448Shake256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Ed448Shake256, _>(rng);
 }

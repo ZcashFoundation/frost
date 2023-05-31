@@ -15,22 +15,33 @@ lazy_static! {
 #[test]
 fn check_serialization_of_coefficient_commitment() {
     let rng = thread_rng();
-    frost_core::tests::check_serialization_of_coefficient_commitment::<Ed25519Sha512, _>(rng);
+    frost_core::tests::coefficient_commitment::check_serialization_of_coefficient_commitment::<
+        Ed25519Sha512,
+        _,
+    >(rng);
 }
 
 #[test]
 fn check_create_coefficient_commitment() {
     let rng = thread_rng();
-    frost_core::tests::check_create_coefficient_commitment::<Ed25519Sha512, _>(rng);
+    frost_core::tests::coefficient_commitment::check_create_coefficient_commitment::<
+        Ed25519Sha512,
+        _,
+    >(rng);
 }
 #[test]
 fn check_create_coefficient_commitment_error() {
-    frost_core::tests::check_create_coefficient_commitment_error::<Ed25519Sha512>(&ELEMENTS);
+    frost_core::tests::coefficient_commitment::check_create_coefficient_commitment_error::<
+        Ed25519Sha512,
+    >(&ELEMENTS);
 }
 
 #[test]
 fn check_get_value_of_coefficient_commitment() {
     let rng = thread_rng();
 
-    frost_core::tests::check_get_value_of_coefficient_commitment::<Ed25519Sha512, _>(rng);
+    frost_core::tests::coefficient_commitment::check_get_value_of_coefficient_commitment::<
+        Ed25519Sha512,
+        _,
+    >(rng);
 }

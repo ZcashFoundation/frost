@@ -19,7 +19,7 @@ lazy_static! {
 #[test]
 fn check_share_generation_ed25519_sha512() {
     let rng = thread_rng();
-    frost_core::tests::check_share_generation::<Ed25519Sha512, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_share_generation::<Ed25519Sha512, _>(rng);
 }
 
 #[test]
@@ -38,7 +38,9 @@ fn check_sign_with_dealer() {
     // and the interoperability check.
     for _ in 0..256 {
         let (msg, group_signature, group_pubkey) =
-            frost_core::tests::check_sign_with_dealer::<Ed25519Sha512, _>(rng.clone());
+            frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Ed25519Sha512, _>(
+                rng.clone(),
+            );
 
         // Check that the threshold signature can be verified by the `ed25519_dalek` crate
         // public key (interoperability test)
