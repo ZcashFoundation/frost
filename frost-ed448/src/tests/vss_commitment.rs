@@ -8,8 +8,7 @@ use crate::*;
 
 lazy_static! {
     pub static ref ELEMENTS: Value =
-        serde_json::from_str(include_str!("../../tests/test_helpers/elements.json").trim())
-            .unwrap();
+        serde_json::from_str(include_str!("../../tests/helpers/elements.json").trim()).unwrap();
 }
 
 #[test]

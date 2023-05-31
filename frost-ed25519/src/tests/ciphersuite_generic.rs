@@ -6,10 +6,10 @@ use crate::{helpers::verify_signature, *};
 
 lazy_static! {
     pub static ref VECTORS: Value =
-        serde_json::from_str(include_str!("../../tests/test_helpers/vectors.json").trim())
+        serde_json::from_str(include_str!("../../tests/helpers/vectors.json").trim())
             .expect("Test vector is valid JSON");
     pub static ref VECTORS_BIG_IDENTIFIER: Value = serde_json::from_str(
-        include_str!("../../tests/test_helpers/vectors-big-identifier.json").trim()
+        include_str!("../../tests/helpers/vectors-big-identifier.json").trim()
     )
     .expect("Test vector is valid JSON");
 }

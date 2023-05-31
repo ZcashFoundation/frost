@@ -65,7 +65,7 @@ mod tests {
 
     lazy_static! {
         pub static ref REPAIR_SHARE: Value =
-            serde_json::from_str(include_str!("../../tests/test_helpers/repair-share.json").trim())
+            serde_json::from_str(include_str!("../../tests/helpers/repair-share.json").trim())
                 .unwrap();
     }
 
