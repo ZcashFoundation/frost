@@ -1,7 +1,5 @@
-use frost_ed25519::*;
-
-use curve25519_dalek::{edwards::EdwardsPoint, traits::Identity};
 use ed25519_dalek::Verifier;
+use frost_ed25519::*;
 use lazy_static::lazy_static;
 use rand::thread_rng;
 use serde_json::Value;
@@ -68,23 +66,9 @@ fn check_bad_batch_verify() {
     frost_core::tests::batch::bad_batch_verify::<Ed25519Sha512, _>(rng);
 }
 
-#[test]
-fn check_deserialize_identity() {
-    let encoded_identity = EdwardsPoint::identity().compress().to_bytes();
-
-    let r = <Ed25519Sha512 as Ciphersuite>::Group::deserialize(&encoded_identity);
-    assert_eq!(r, Err(GroupError::InvalidIdentityElement));
-}
-
-#[test]
-fn check_deserialize_non_prime_order() {
-    let encoded_point =
-        hex::decode("0300000000000000000000000000000000000000000000000000000000000000")
-            .unwrap()
-            .try_into()
-            .unwrap();
-    let r = <Ed25519Sha512 as Ciphersuite>::Group::deserialize(&encoded_point);
-    assert_eq!(r, Err(GroupError::InvalidNonPrimeOrderElement));
+lazy_static! {
+    pub static ref REPAIR_SHARE: Value =
+        serde_json::from_str(include_str!("repair-share.json").trim()).unwrap();
 }
 
 #[test]
@@ -94,18 +78,13 @@ fn check_repair_share_step_1() {
     frost_core::tests::repairable::check_repair_share_step_1::<Ed25519Sha512, _>(rng);
 }
 
-lazy_static! {
-    pub static ref REPAIR_SHARE: Value =
-        serde_json::from_str(include_str!("repair-share.json").trim()).unwrap();
-}
-
 #[test]
 fn check_repair_share_step_2() {
     frost_core::tests::repairable::check_repair_share_step_2::<Ed25519Sha512>(&REPAIR_SHARE);
 }
 
 #[test]
-fn check_repair_share() {
+fn check_repair_share_step_3() {
     let rng = thread_rng();
     frost_core::tests::repairable::check_repair_share_step_3::<Ed25519Sha512, _>(
         rng,

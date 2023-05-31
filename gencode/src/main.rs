@@ -182,6 +182,7 @@ fn main() -> ExitCode {
         "Ristretto group",
         "Ristretto",
         "FROST(ristretto255, SHA-512)",
+        "ristretto255_sha512",
         "ristretto255",
         "<R>",
     ];
@@ -199,6 +200,7 @@ fn main() -> ExitCode {
                 "P-256 curve",
                 "P256",
                 "FROST(P-256, SHA-256)",
+                "p256_sha256",
                 "p256",
                 "<P>",
             ],
@@ -210,6 +212,7 @@ fn main() -> ExitCode {
                 "Ed25519 curve",
                 "Ed25519",
                 "FROST(Ed25519, SHA-512)",
+                "ed25519_sha512",
                 "ed25519",
                 "<E>",
             ],
@@ -221,6 +224,7 @@ fn main() -> ExitCode {
                 "Ed448 curve",
                 "Ed448",
                 "FROST(Ed448, SHAKE256)",
+                "ed448_shake256",
                 "ed448",
                 "<E>",
             ],
@@ -232,6 +236,7 @@ fn main() -> ExitCode {
                 "secp256k1 curve",
                 "Secp256K1",
                 "FROST(secp256k1, SHA-256)",
+                "secp256k1_sha256",
                 "secp256k1",
                 "<S>",
             ],
@@ -243,12 +248,7 @@ fn main() -> ExitCode {
         replaced |= write_docs(&docs, &lib_filename, original_strings, replacement_strings);
 
         // Generate files based on a template with simple search & replace.
-        for filename in [
-            "README.md",
-            "dkg.md",
-            "src/keys/dkg.rs",
-            "src/keys/repairable.rs",
-        ] {
+        for filename in ["tests/frost.rs"] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
                 format!("{folder}/{filename}").as_str(),
