@@ -1,5 +1,6 @@
+use crate::*;
 use ed448_goldilocks::curve::ExtendedPoint;
-use frost_ed448::*;
+use frost_core::Ciphersuite;
 
 #[test]
 fn check_deserialize_non_canonical() {
