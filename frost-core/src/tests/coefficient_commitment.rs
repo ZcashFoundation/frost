@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 
 use crate::{
     frost::{self, keys::CoefficientCommitment},
-    tests::helper_functions::generate_element,
+    tests::helpers::generate_element,
     Group,
 };
 use debugless_unwrap::DebuglessUnwrap;
@@ -42,9 +42,9 @@ pub fn check_create_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRn
 
 /// Test error handling for creation of a coefficient commitment
 pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(
-    commitment_helper_functions: &Value,
+    commitment_helpers: &Value,
 ) {
-    let values = &commitment_helper_functions["elements"];
+    let values = &commitment_helpers["elements"];
     let serialized: <C::Group as Group>::Serialization =
         <C::Group as Group>::Serialization::try_from(
             hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),

@@ -88,7 +88,7 @@ pub fn part3(
 
 #[cfg(test)]
 mod tests {
-    use super::helper_functions::verify_signature;
+    use super::helpers::verify_signature;
     use crate::Ed25519Sha512;
     use rand::thread_rng;
 

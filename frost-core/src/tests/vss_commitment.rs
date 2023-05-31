@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 
 use crate::{
     frost::keys::{CoefficientCommitment, VerifiableSecretSharingCommitment},
-    tests::helper_functions::generate_element,
+    tests::helpers::generate_element,
     Group,
 };
 use debugless_unwrap::DebuglessUnwrap;
@@ -78,12 +78,12 @@ pub fn check_deserialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Test deserialize VerifiableSecretSharingCommitment error
 pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
-    commitment_helper_functions: &Value,
+    commitment_helpers: &Value,
 ) {
     // Generate test CoefficientCommitments
 
     // ---
-    let values = &commitment_helper_functions["elements"];
+    let values = &commitment_helpers["elements"];
 
     let input_1 = generate_element::<C, R>(&mut rng);
     let input_2 = generate_element::<C, R>(&mut rng);

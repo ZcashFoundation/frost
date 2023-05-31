@@ -3,7 +3,7 @@
 pub mod batch;
 pub mod ciphersuite_generic;
 pub mod coefficient_commitment;
-pub mod helper_functions;
+pub mod helpers;
 pub mod proptests;
 pub mod repairable;
 pub mod vectors;

@@ -134,8 +134,8 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
 }
 
 /// Test repair_share_step_2
-pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helper_functions: &Value) {
-    let values = &repair_share_helper_functions["scalar_generation"];
+pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helpers: &Value) {
+    let values = &repair_share_helpers["scalar_generation"];
 
     let value_1 =
         generate_scalar_from_byte_string::<C>(values["random_scalar_1"].as_str().unwrap());
@@ -155,7 +155,7 @@ pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helper_functions: 
 /// Test repair_share
 pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
-    repair_share_helper_functions: &Value,
+    repair_share_helpers: &Value,
 ) {
     // Generate shares
     let max_signers = 5;
@@ -163,7 +163,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
-    let sigmas: &Value = &repair_share_helper_functions["sigma_generation"];
+    let sigmas: &Value = &repair_share_helpers["sigma_generation"];
 
     let sigma_1 = generate_scalar_from_byte_string::<C>(sigmas["sigma_1"].as_str().unwrap());
     let sigma_2 = generate_scalar_from_byte_string::<C>(sigmas["sigma_2"].as_str().unwrap());

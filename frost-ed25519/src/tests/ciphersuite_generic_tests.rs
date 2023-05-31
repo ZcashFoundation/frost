@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use rand::thread_rng;
 use serde_json::Value;
 
-use crate::{helper_functions::verify_signature, *};
+use crate::{helpers::verify_signature, *};
 
 lazy_static! {
     pub static ref VECTORS: Value =
