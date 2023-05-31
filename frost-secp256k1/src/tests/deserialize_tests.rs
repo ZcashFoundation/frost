@@ -1,4 +1,4 @@
-use frost_secp256k1::*;
+use crate::*;
 
 #[test]
 fn check_deserialize_non_canonical() {
