@@ -1,8 +1,8 @@
 # Tutorial
 
-The ZF FROST library consists of multiple crates. `frost-core` contains
+The ZF FROST suite consists of multiple crates. `frost-core` contains
 a generic implementation of the protocol, which can't be used directly
-without a concrete suite.
+without a concrete instantiation.
 
 The ciphersuite crates (`frost-ristretto255`, `frost-ed25519`, `frost-ed448`,
 `frost-p256`, and `frost-secp256k1`) provide ciphersuites to use with
@@ -36,10 +36,10 @@ their respective `SecretShare`s, and a `PublicKeyPackage` which contains the
 
 TODO: insert code snippet
 
-Each `SecretShare` must then be sent via a **authenticated** and
-**confidential** channel for each participant, who verify the
-package to obtain a `KeyPackage` which contains their secret share,
-verifying share and group public key.
+Each `SecretShare` must then be sent via an [**authenticated** and
+**confidential** channel ](https://frost.zfnd.org/terminology.html#peer-to-peer-channel)for each participant, who verify the
+package to obtain a `KeyPackage` which contains their signing share,
+verifying share and group verifying key.
 
 TODO: insert code snippet
 
@@ -58,7 +58,7 @@ The same applies to `KeyPackage`.
 ```
 
 ```admonish danger
-Which **authenticated** and **confidential** channel to use is up to the
+Which [**authenticated** and **confidential** channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) to use is up to the
 application. Some examples:
 
 - Manually require the dealer to sent the `SecretShare`s to the
@@ -68,8 +68,8 @@ application. Some examples:
   mechanism;
 
 Failure of using a **confidential** channel may lead to the shares being
-stolen and possibly allowing signature forgeries if a threshold of them
-are stolen.
+stolen and possibly allowing signature forgeries if a threshold number of 
+them are stolen.
 
 Failure of using an **authenticated** channel may lead to shares being
 sent to the wrong person, possibly allowing unintended parties

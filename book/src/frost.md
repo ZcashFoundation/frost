@@ -4,10 +4,10 @@ This explain the main concepts and flows of FROST in a generic manner. These
 are important to understand how to use the library, but rest assured that the
 [Tutorial](tutorial.md) will have more concrete information.
 
-FROST is a threshold signature scheme. It allows splitting a Schnorr private key
+FROST is a threshold signature scheme. It allows splitting a Schnorr signing key
 into `n` shares for a threshold `t`, such that `t` (or more) participants can
-together generate a signature that can be validated by the matching public key.
-One important aspect is that the resulting signature is indistinguishable from a
+together generate a signature that can be validated by the corresponding verifying
+key. One important aspect is that the resulting signature is indistinguishable from a
 non-threshold signature from the point of view of signature verifiers.
 
 ```admonish note
@@ -32,7 +32,7 @@ An existing key (which can be freshly generated) is split into shares. It's the
 simplest approach, but it has the downside of requiring the entire key to exist
 in memory at some point in time, which may not be desired in high security
 applications. However, it is much simpler to set up. It requires an
-authenticated and confidential communication channel to distribute each share to
+[authenticated and confidential communication channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) to distribute each share to
 their respective participants.
 
 To learn how to do Trusted Dealer Generation with the ZF FROST library, see
@@ -41,10 +41,10 @@ TODO.
 ### Distribtuted Key Generation
 
 A two-round protocol after which each participant will have their share of
-the secret, without the secret being ever present in its entirety in any of the
+the secret, without the secret being ever present in its entirety in any
 participant's memory. Its downside is that it require a [broadcast
-channel](https://frost.zfnd.org/terminology.html#broadcast-channel) on top of
-authenticated and confidential communication channel between each pair of
+channel](https://frost.zfnd.org/terminology.html#broadcast-channel) as well as 
+an [authenticated and confidential communication channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) between each pair of
 participants, which may be difficult to deploy in practice. See guidelines in
 TODO.
 
@@ -57,9 +57,9 @@ library, see TODO.
 
 Signing with FROST starts with a Coordinator (which can be one of the
 share holders, or not) which selects the message to be signed and
-the participants that will generated the signature.
+the participants that will generate the signature.
 
-Each participant sends a fresh signing commitment to the Coordinator, which then
+Each participant sends fresh nonce commitments to the Coordinator, which then
 consolidates them and sends them to each participant. Each one will then produce
 a signature share, which is sent to the Coordinator who finally aggregates them
 and produces the final signature.
@@ -80,14 +80,13 @@ is still free to start the process with only 2 participants if they wish.
 
 ## Verifying
 
-Signature verification is carried out as normal, along with the signed message
-and the group public key as inputs.
+Signature verification is carried out as normal with single-party signatures, 
+along with the signed message and the group verifying key as inputs.
 
 
 ## Ciphersuites
 
-FROST is a generic protocol that works with any adequated prime-order group,
-which in practice are elliptic curves. The spec specifies five "official"
-ciphersuites with the Ristretto255, Ed25519, Ed448, P-256 and secp256k1
-curves. But it's possible (though not recommended) to use your own
-ciphersuite.
+FROST is a generic protocol that works with any adequate prime-order group,
+which in practice are constructed from elliptic curves. The spec specifies 
+five ciphersuites with the Ristretto255, Ed25519, Ed448, P-256 and secp256k1
+groups. It's possible (though not recommended) to use your own ciphersuite.
