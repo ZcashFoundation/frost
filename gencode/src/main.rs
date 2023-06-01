@@ -282,6 +282,10 @@ fn main() -> ExitCode {
             "dkg.md",
             "src/keys/dkg.rs",
             "src/keys/repairable.rs",
+            "src/tests/batch.rs",
+            "src/tests/coefficient_commitment.rs",
+            "src/tests/proptests.rs",
+            "src/tests/vss_commitment.rs",
         ] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
