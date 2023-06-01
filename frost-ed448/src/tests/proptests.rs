@@ -1,10 +1,9 @@
+use crate::*;
 use frost_core::tests::proptests::{tweak_strategy, SignatureCase};
 use proptest::prelude::*;
 
 use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
-
-use crate::*;
 
 proptest! {
 
