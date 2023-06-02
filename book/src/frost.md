@@ -22,9 +22,9 @@ key generation procedure, each participant will get:
 
 - a **secret share**;
 - a **verifying share** (which can be used by other participants to verify the
-  signature shares they produce);
-- a **group public key**, which is the public key matching the private key that was
-  split into shares.
+  signature shares the participant produces);
+- a **group verifying key**, which is the public key matching the private key that was
+  split into shares; it is used to verify the final signature generated with FROST.
 
 ### Trusted Dealer Generation
 
@@ -32,21 +32,23 @@ An existing key (which can be freshly generated) is split into shares. It's the
 simplest approach, but it has the downside of requiring the entire key to exist
 in memory at some point in time, which may not be desired in high security
 applications. However, it is much simpler to set up. It requires an
-[authenticated and confidential communication channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) to distribute each share to
-their respective participants.
+[authenticated and confidential communication
+channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) to
+distribute each share to their respective participants.
 
 To learn how to do Trusted Dealer Generation with the ZF FROST library, see
 TODO.
 
 ### Distribtuted Key Generation
 
-A two-round protocol after which each participant will have their share of
-the secret, without the secret being ever present in its entirety in any
+A two-round protocol after which each participant will have their share of the
+secret, without the secret being ever present in its entirety in any
 participant's memory. Its downside is that it require a [broadcast
-channel](https://frost.zfnd.org/terminology.html#broadcast-channel) as well as 
-an [authenticated and confidential communication channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) between each pair of
-participants, which may be difficult to deploy in practice. See guidelines in
-TODO.
+channel](https://frost.zfnd.org/terminology.html#broadcast-channel) as well as
+an [authenticated and confidential communication
+channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) between
+each pair of participants, which may be difficult to deploy in practice. See
+guidelines in TODO.
 
 To learn how to do Distributed Key Generation with the ZF FROST
 library, see TODO.
@@ -66,7 +68,9 @@ and produces the final signature.
 
 ```admonish note
 If having a single coordinator is not desired, then all participants
-can act as coordinators. Refer to the [spec](https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#removing-the-coordinator-role-no-coordinator) for more information.
+can act as coordinators. Refer to the
+[spec](https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#removing-the-coordinator-role-no-coordinator)
+for more information.
 ```
 
 ```admonish warning
@@ -80,13 +84,13 @@ is still free to start the process with only 2 participants if they wish.
 
 ## Verifying
 
-Signature verification is carried out as normal with single-party signatures, 
+Signature verification is carried out as normal with single-party signatures,
 along with the signed message and the group verifying key as inputs.
 
 
 ## Ciphersuites
 
 FROST is a generic protocol that works with any adequate prime-order group,
-which in practice are constructed from elliptic curves. The spec specifies 
+which in practice are constructed from elliptic curves. The spec specifies
 five ciphersuites with the Ristretto255, Ed25519, Ed448, P-256 and secp256k1
 groups. It's possible (though not recommended) to use your own ciphersuite.

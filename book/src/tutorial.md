@@ -58,8 +58,8 @@ The same applies to `KeyPackage`.
 ```
 
 ```admonish danger
-Which [**authenticated** and **confidential** channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) to use is up to the
-application. Some examples:
+Which [**authenticated** and **confidential** channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel)
+to use is up to the application. Some examples:
 
 - Manually require the dealer to sent the `SecretShare`s to the
   partipants using some secure messenger such as Signal;
@@ -67,8 +67,11 @@ application. Some examples:
   and the client with some user/password or another suitable authentication
   mechanism;
 
+Refer to the [Terminology page](https://frost.zfnd.org/terminology.html#peer-to-peer-channel)
+for more details.
+
 Failure of using a **confidential** channel may lead to the shares being
-stolen and possibly allowing signature forgeries if a threshold number of 
+stolen and possibly allowing signature forgeries if a threshold number of
 them are stolen.
 
 Failure of using an **authenticated** channel may lead to shares being
