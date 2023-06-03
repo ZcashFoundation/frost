@@ -81,10 +81,11 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     min_signers: u16,
     key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
-    pubkeys: frost::keys::PublicKeyPackage<C>,
+    pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
-    let mut nonces: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
-    let mut commitments: HashMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
+    let mut nonces_map: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
+        HashMap::new();
+    let mut commitments_map: HashMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         HashMap::new();
 
     ////////////////////////////////////////////////////////////////////////////
@@ -95,7 +96,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _min_signers_.
-        let (nonce, commitment) = frost::round1::commit(
+        let (nonces, commitments) = frost::round1::commit(
             participant_identifier,
             key_packages
                 .get(&participant_identifier)
@@ -103,8 +104,8 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
                 .secret_share(),
             &mut rng,
         );
-        nonces.insert(participant_identifier, nonce);
-        commitments.insert(participant_identifier, commitment);
+        nonces_map.insert(participant_identifier, nonces);
+        commitments_map.insert(participant_identifier, commitments);
     }
 
     // This is what the signature aggregator / coordinator needs to do:
@@ -112,17 +113,17 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // - take one (unused) commitment per signing participant
     let mut signature_shares = Vec::new();
     let message = "message to sign".as_bytes();
-    let comms = commitments.clone().into_values().collect();
+    let comms = commitments_map.clone().into_values().collect();
     let signing_package = frost::SigningPackage::new(comms, message.to_vec());
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
     ////////////////////////////////////////////////////////////////////////////
 
-    for participant_identifier in nonces.keys() {
+    for participant_identifier in nonces_map.keys() {
         let key_package = key_packages.get(participant_identifier).unwrap();
 
-        let nonces_to_use = &nonces.get(participant_identifier).unwrap();
+        let nonces_to_use = &nonces_map.get(participant_identifier).unwrap();
 
         // Each participant generates their signature share.
         let signature_share =
@@ -136,22 +137,20 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     ////////////////////////////////////////////////////////////////////////////
 
     // Aggregate (also verifies the signature shares)
-    let group_signature_res = frost::aggregate(&signing_package, &signature_shares[..], &pubkeys);
-
-    assert!(group_signature_res.is_ok());
-
-    let group_signature = group_signature_res.unwrap();
+    let group_signature =
+        frost::aggregate(&signing_package, &signature_shares[..], &pubkey_package).unwrap();
 
     // Check that the threshold signature can be verified by the group public
     // key (the verification key).
-    assert!(pubkeys
+    let is_signature_valid = pubkey_package
         .group_public
         .verify(message, &group_signature)
-        .is_ok());
+        .is_ok();
+    assert!(is_signature_valid);
 
     // Check that the threshold signature can be verified by the group public
     // key (the verification key) from KeyPackage.group_public
-    for (participant_identifier, _) in nonces.clone() {
+    for (participant_identifier, _) in nonces_map.clone() {
         let key_package = key_packages.get(&participant_identifier).unwrap();
 
         assert!(key_package
@@ -160,7 +159,11 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
             .is_ok());
     }
 
-    (message.to_owned(), group_signature, pubkeys.group_public)
+    (
+        message.to_owned(),
+        group_signature,
+        pubkey_package.group_public,
+    )
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.

@@ -16,6 +16,10 @@ Possible deployment options:
 - Posting commitments to an authenticated centralized server that is trusted to
   provide a single view to all participants (also known as 'public bulletin board')
 
+### Identifier
+
+TODO
+
 ### _Peer to peer channel_
 
 Peer-to-peer channels are authenticated, reliable, and unordered, per the
