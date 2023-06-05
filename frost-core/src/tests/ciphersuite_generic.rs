@@ -200,13 +200,13 @@ where
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let (secret_package, round1_package) =
+        let (round1_secret_package, round1_package) =
             frost::keys::dkg::part1(participant_identifier, max_signers, min_signers, &mut rng)
                 .unwrap();
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
-        round1_secret_packages.insert(participant_identifier, secret_package);
+        round1_secret_packages.insert(participant_identifier, round1_secret_package);
 
         // "Send" the round 1 package to all other participants. In this
         // test this is simulated using a HashMap; in practice this will be
@@ -243,15 +243,12 @@ where
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=max_signers {
         let participant_identifier = participant_index.try_into().expect("should be nonzero");
-        let (round2_secret_package, round2_packages) = frost::keys::dkg::part2(
-            round1_secret_packages
-                .remove(&participant_identifier)
-                .unwrap(),
-            received_round1_packages
-                .get(&participant_identifier)
-                .unwrap(),
-        )
-        .expect("should work");
+        let round1_secret_package = round1_secret_packages
+            .remove(&participant_identifier)
+            .unwrap();
+        let round1_packages = &received_round1_packages[&participant_identifier];
+        let (round2_secret_package, round2_packages) =
+            frost::keys::dkg::part2(round1_secret_package, round1_packages).expect("should work");
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.

@@ -240,7 +240,3 @@ The Coordinator could verify the signature with:
 (There is no need for the Coordinator to verify the signature since that already
 happens inside `aggregate()`. This just shows how the signature can be
 verified.)
-
-## DKG
-
-(TODO: will probably have its own page)

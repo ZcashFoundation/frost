@@ -36,8 +36,7 @@ applications. However, it is much simpler to set up. It requires an
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) to
 distribute each share to their respective participants.
 
-To learn how to do Trusted Dealer Generation with the ZF FROST library, see
-TODO.
+[Learn how to do Trusted Dealer Generation with the ZF FROST library](tutorial.md#generating-key-shares-with-a-trusted-dealer).
 
 ### Distribtuted Key Generation
 
@@ -47,13 +46,10 @@ participant's memory. Its downside is that it require a [broadcast
 channel](https://frost.zfnd.org/terminology.html#broadcast-channel) as well as
 an [authenticated and confidential communication
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) between
-each pair of participants, which may be difficult to deploy in practice. See
-guidelines in TODO.
+each pair of participants, which may be difficult to deploy in practice.
 
-To learn how to do Distributed Key Generation with the ZF FROST
-library, see TODO.
-
-
+[Learn how to do Distributed Key Generation with the ZF FROST
+library](tutorial/dkg.md).
 
 ## Signing
 

@@ -16,9 +16,15 @@ Possible deployment options:
 - Posting commitments to an authenticated centralized server that is trusted to
   provide a single view to all participants (also known as 'public bulletin board')
 
-### Identifier
+### _Identifier_
 
-TODO
+An identifier is a nonzero scalar (i.e. a number in a range specific to the
+ciphersuite) which identifies a specific party. There are no restrictions to
+them other than being unique for each participant and being in the valid range.
+
+In the Zf FROST library, they are either automatically generated incrementally
+during key generation or can be instantiated from a byte array using
+[`Identifier::deserialize()`](https://docs.rs/frost-core/latest/frost_core/frost/struct.Identifier.html#method.deserialize).
 
 ### _Peer to peer channel_
 
