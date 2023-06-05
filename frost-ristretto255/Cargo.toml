@@ -19,7 +19,7 @@ features = ["nightly"]
 
 [dependencies]
 curve25519-dalek = { version = "=4.0.0-rc.2", features = ["serde", "rand_core"] }
-frost-core = { path = "../frost-core", version = "0.3.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.4.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
