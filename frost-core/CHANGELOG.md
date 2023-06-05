@@ -4,12 +4,14 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 0.5.0
+
+## Released
+
 ## 0.4.0
 
 * add serialize and deserialize functions for VerifiableSecretSharingCommitment
-* add value and deserialize functions for CoefficientCommitment
-
-## Released
+* add value, serialize and deserialize functions for CoefficientCommitment
 
 ## 0.3.0
 
