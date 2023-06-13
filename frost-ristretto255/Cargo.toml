@@ -5,7 +5,7 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.2.0"
+version = "0.4.0"
 authors = ["Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>", "Conrado Gouvea <conradoplg@gmail.com>"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -19,15 +19,15 @@ features = ["nightly"]
 
 [dependencies]
 curve25519-dalek = { version = "=4.0.0-rc.2", features = ["serde", "rand_core"] }
-frost-core = { path = "../frost-core", version = "0.2.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.4.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
 [dev-dependencies]
 bincode = "1"
-criterion = { version = "0.4", features = ["html_reports"] }
+criterion = { version = "0.5", features = ["html_reports"] }
 ed25519-dalek = "1.0.1"
-ed25519-zebra = "3.0.0"
+ed25519-zebra = "4.0.0"
 lazy_static = "1.4"
 proptest = "1.0"
 proptest-derive = "0.3"

@@ -17,8 +17,7 @@ use serde::{Deserialize, Serialize};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    frost::Identifier, random_nonzero, Ciphersuite, Element, Error, Field, Group, Scalar,
-    VerifyingKey,
+    frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, SigningKey, VerifyingKey,
 };
 
 pub mod dkg;
@@ -32,92 +31,6 @@ pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     iter::repeat_with(|| <<C::Group as Group>::Field>::random(rng))
         .take(size)
         .collect()
-}
-
-/// A group secret to be split between participants.
-///
-/// This is similar to a [`crate::SigningKey`], but this secret is not intended to be used
-/// on its own for signing, but split into shares that a threshold number of signers will use to
-/// sign.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct SharedSecret<C: Ciphersuite>(pub(crate) Scalar<C>);
-
-impl<C> SharedSecret<C>
-where
-    C: Ciphersuite,
-{
-    /// Deserialize from bytes
-    pub fn from_bytes(
-        bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error<C>> {
-        <<C::Group as Group>::Field>::deserialize(&bytes)
-            .map(|scalar| Self(scalar))
-            .map_err(|e| e.into())
-    }
-
-    /// Serialize to bytes
-    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field>::serialize(&self.0)
-    }
-
-    /// Generates a new uniformly random secret value using the provided RNG.
-    // TODO: should this only be behind test?
-    pub fn random<R>(rng: &mut R) -> Self
-    where
-        R: CryptoRng + RngCore,
-    {
-        Self(random_nonzero::<C, R>(rng))
-    }
-}
-
-impl<C> Debug for SharedSecret<C>
-where
-    C: Ciphersuite,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("SharedSecret")
-            .field(&hex::encode(self.to_bytes()))
-            .finish()
-    }
-}
-
-impl<C> Default for SharedSecret<C>
-where
-    C: Ciphersuite,
-{
-    fn default() -> Self {
-        Self(<<C::Group as Group>::Field>::zero())
-    }
-}
-
-// Implements [`Zeroize`] by overwriting a value with the [`Default::default()`] value
-impl<C> DefaultIsZeroes for SharedSecret<C> where C: Ciphersuite {}
-
-impl<C> From<&SharedSecret<C>> for VerifyingKey<C>
-where
-    C: Ciphersuite,
-{
-    fn from(secret: &SharedSecret<C>) -> Self {
-        let element = <C::Group>::generator() * secret.0;
-
-        VerifyingKey { element }
-    }
-}
-
-#[cfg(any(test, feature = "test-impl"))]
-impl<C> FromHex for SharedSecret<C>
-where
-    C: Ciphersuite,
-{
-    type Error = &'static str;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
-        match v.try_into() {
-            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed secret encoding"),
-            Err(_) => Err("malformed secret encoding"),
-        }
-    }
 }
 
 /// A secret scalar value representing a signer's share of the group secret.
@@ -260,7 +173,29 @@ where
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
 #[derive(Clone, Copy, PartialEq)]
-pub(super) struct CoefficientCommitment<C: Ciphersuite>(pub(super) Element<C>);
+pub struct CoefficientCommitment<C: Ciphersuite>(pub(crate) Element<C>);
+
+impl<C> CoefficientCommitment<C>
+where
+    C: Ciphersuite,
+{
+    /// returns serialized element
+    pub fn serialize(&self) -> <C::Group as Group>::Serialization {
+        <C::Group>::serialize(&self.0)
+    }
+
+    /// Creates a new commitment from a coefficient input
+    pub fn deserialize(
+        coefficient: <C::Group as Group>::Serialization,
+    ) -> Result<CoefficientCommitment<C>, Error<C>> {
+        Ok(Self(<C::Group as Group>::deserialize(&coefficient)?))
+    }
+
+    /// Returns inner element value
+    pub fn value(&self) -> Element<C> {
+        self.0
+    }
+}
 
 impl<C> serde::Serialize for CoefficientCommitment<C>
 where
@@ -305,13 +240,38 @@ where
 /// [`VerifiableSecretSharingCommitment`], either by performing pairwise comparison, or by using
 /// some agreed-upon public location for publication, where each participant can
 /// ensure that they received the correct (and same) value.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
 pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
-    pub(super) Vec<CoefficientCommitment<C>>,
+    pub(crate) Vec<CoefficientCommitment<C>>,
 );
 
+impl<C> VerifiableSecretSharingCommitment<C>
+where
+    C: Ciphersuite,
+{
+    /// Returns serialized coefficent commitments
+    pub fn serialize(&self) -> Vec<<C::Group as Group>::Serialization> {
+        self.0
+            .iter()
+            .map(|cc| <<C as Ciphersuite>::Group as Group>::serialize(&cc.0))
+            .collect()
+    }
+
+    /// Returns VerifiableSecretSharingCommitment from a vector of serialized CoefficientCommitments
+    pub fn deserialize(
+        serialized_coefficient_commitments: Vec<<C::Group as Group>::Serialization>,
+    ) -> Result<Self, Error<C>> {
+        let mut coefficient_commitments = Vec::new();
+        for cc in serialized_coefficient_commitments {
+            coefficient_commitments.push(CoefficientCommitment::<C>::deserialize(cc)?);
+        }
+
+        Ok(Self(coefficient_commitments))
+    }
+}
+
 /// A secret share generated by performing a (t-out-of-n) secret sharing scheme,
-/// generated by a dealer performing [`keygen_with_dealer`].
+/// generated by a dealer performing [`generate_with_dealer`].
 ///
 /// `n` is the total number of shares and `t` is the threshold required to reconstruct the secret;
 /// in this case we use Shamir's secret sharing.
@@ -361,7 +321,9 @@ where
         let result = evaluate_vss(&self.commitment, self.identifier);
 
         if !(f_result == result) {
-            return Err(Error::InvalidSecretShare);
+            return Err(Error::InvalidSecretShare {
+                identifier: self.identifier,
+            });
         }
 
         let group_public = VerifyingKey {
@@ -384,7 +346,7 @@ where
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
 /// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C
-pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
     rng: &mut R,
@@ -392,12 +354,28 @@ pub fn keygen_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     let mut bytes = [0; 64];
     rng.fill_bytes(&mut bytes);
 
-    let secret = SharedSecret::random(rng);
-    let group_public = VerifyingKey::from(&secret);
+    let key = SigningKey::new(rng);
+
+    split(&key, max_signers, min_signers, rng)
+}
+
+/// Splits an existing key into FROST shares.
+///
+/// This is identical to [`generate_with_dealer`] but receives an existing key
+/// instead of generating a fresh one. This is useful in scenarios where
+/// the key needs to be generated externally or must be derived from e.g. a
+/// seed phrase.
+pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
+    key: &SigningKey<C>,
+    max_signers: u16,
+    min_signers: u16,
+    rng: &mut R,
+) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
+    let group_public = VerifyingKey::from(key);
 
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
 
-    let secret_shares = generate_secret_shares(&secret, max_signers, min_signers, coefficients)?;
+    let secret_shares = generate_secret_shares(key, max_signers, min_signers, coefficients)?;
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(max_signers as usize);
 
@@ -549,7 +527,7 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
 ///
 /// Returns an error if the parameters (max_signers, min_signers) are inconsistent.
 pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
-    secret: &SharedSecret<C>,
+    secret: &SigningKey<C>,
     max_signers: u16,
     min_signers: u16,
     mut coefficients: Vec<Scalar<C>>,
@@ -571,7 +549,7 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
     }
 
     // Prepend the secret, which is the 0th coefficient
-    coefficients.insert(0, secret.0);
+    coefficients.insert(0, secret.scalar);
 
     // Create the vector of commitments
     let commitment: Vec<_> = coefficients
@@ -604,7 +582,7 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
 ///
 /// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.1
 pub(crate) fn generate_secret_shares<C: Ciphersuite>(
-    secret: &SharedSecret<C>,
+    secret: &SigningKey<C>,
     max_signers: u16,
     min_signers: u16,
     coefficients: Vec<Scalar<C>>,
@@ -628,28 +606,42 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     Ok(secret_shares)
 }
 
-/// Recompute the secret from t-of-n secret shares using Lagrange interpolation.
-pub fn reconstruct_secret<C: Ciphersuite>(
-    secret_shares: Vec<SecretShare<C>>,
-) -> Result<SharedSecret<C>, &'static str> {
+/// Recompute the secret from at least `min_signers` secret shares
+/// using Lagrange interpolation.
+///
+/// This can be used if for some reason the original key must be restored; e.g.
+/// if threshold signing is not required anymore.
+///
+/// This is NOT required to sign with FROST; the point of FROST is being
+/// able to generate signatures only using the shares, without having to
+/// reconstruct the original key.
+///
+/// The caller is responsible for providing at least `min_signers` shares;
+/// if less than that is provided, a different key will be returned.
+pub fn reconstruct<C: Ciphersuite>(
+    secret_shares: &[SecretShare<C>],
+) -> Result<SigningKey<C>, Error<C>> {
     if secret_shares.is_empty() {
-        return Err("No secret_shares provided");
+        return Err(Error::IncorrectNumberOfShares);
     }
-
-    let secret_share_map: HashMap<Identifier<C>, SecretShare<C>> = secret_shares
-        .into_iter()
-        .map(|share| (share.identifier, share))
-        .collect();
 
     let mut secret = <<C::Group as Group>::Field>::zero();
 
     // Compute the Lagrange coefficients
-    for (i, secret_share) in secret_share_map.clone() {
+    for (i_idx, i, secret_share) in secret_shares
+        .iter()
+        .enumerate()
+        .map(|(idx, s)| (idx, s.identifier, s))
+    {
         let mut num = <<C::Group as Group>::Field>::one();
         let mut den = <<C::Group as Group>::Field>::one();
 
-        for j in secret_share_map.clone().into_keys() {
-            if j == i {
+        for (j_idx, j) in secret_shares
+            .iter()
+            .enumerate()
+            .map(|(idx, s)| (idx, s.identifier))
+        {
+            if j_idx == i_idx {
                 continue;
             }
 
@@ -663,15 +655,15 @@ pub fn reconstruct_secret<C: Ciphersuite>(
         // If at this step, the denominator is zero in the scalar field, there must be a duplicate
         // secret share.
         if den == <<C::Group as Group>::Field>::zero() {
-            return Err("Duplicate shares provided");
+            return Err(Error::DuplicatedShares);
         }
 
-        // Save numerator * 1/denomintor in the scalar field
+        // Save numerator * 1/denominator in the scalar field
         let lagrange_coefficient = num * <<C::Group as Group>::Field>::invert(&den).unwrap();
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
         secret = secret + (lagrange_coefficient * secret_share.value.0);
     }
 
-    Ok(SharedSecret::from_bytes(<<C::Group as Group>::Field>::serialize(&secret)).unwrap())
+    Ok(SigningKey { scalar: secret })
 }

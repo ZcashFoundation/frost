@@ -5,7 +5,7 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.2.0"
+version = "0.4.0"
 authors = ["Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>",
     "Conrado Gouvea <conradoplg@gmail.com>"]
 readme = "README.md"
@@ -19,7 +19,7 @@ description = "Types and traits to support implementing a re-randomized variant 
 features = ["nightly"]
 
 [dependencies]
-frost-core = { path = "../frost-core", version = "0.2.0", features = ["internals"] }
+frost-core = { path = "../frost-core", version = "0.4.0", features = ["internals"] }
 rand_core = "0.6"
 
 [dev-dependencies]

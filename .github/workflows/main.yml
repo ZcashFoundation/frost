@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3.5.2
+      - uses: actions/checkout@v3.5.3
       # Because we use nightly features for building docs,
       # using --all-features will fail without nightly toolchain.
       - uses: actions-rs/toolchain@v1.0.7
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3.5.2
+      - uses: actions/checkout@v3.5.3
         with:
           persist-credentials: false
 
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3.5.2
+      - uses: actions/checkout@v3.5.3
         with:
           persist-credentials: false
 
@@ -84,6 +84,23 @@ jobs:
           command: fmt
           args: --all -- --check
 
+  gencode:
+    name: Check if automatically generated code is up to date
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3.5.3
+        with:
+          persist-credentials: false
+
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          components: rustfmt
+          override: true
+
+      - uses: Swatinem/rust-cache@v2
+
       - uses: actions-rs/cargo@v1.0.3
         with:
           command: run
@@ -94,7 +111,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3.5.2
+      - uses: actions/checkout@v3.5.3
         with:
           persist-credentials: false
 
@@ -113,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v3.5.2
+      - uses: actions/checkout@v3.5.3
       - uses: reviewdog/action-actionlint@v1.37.0
         with:
           level: warning

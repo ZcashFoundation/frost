@@ -35,6 +35,9 @@ pub enum Error<C: Ciphersuite> {
     /// Duplicated shares provided
     #[error("Duplicated shares provided.")]
     DuplicatedShares,
+    /// Incorrect number of shares.
+    #[error("Incorrect number of shares.")]
+    IncorrectNumberOfShares,
     /// Commitment equals the identity
     #[error("Commitment equals the identity.")]
     IdentityCommitment,
@@ -46,7 +49,10 @@ pub enum Error<C: Ciphersuite> {
     },
     /// Secret share verification failed.
     #[error("Invalid secret share.")]
-    InvalidSecretShare,
+    InvalidSecretShare {
+        /// The identifier of the signer whose share validation failed.
+        identifier: Identifier<C>,
+    },
     /// Round 1 package not found for Round 2 participant.
     #[error("Round 1 package not found for Round 2 participant.")]
     PackageNotFound,
@@ -61,13 +67,19 @@ pub enum Error<C: Ciphersuite> {
     DKGNotSupported,
     /// The proof of knowledge is not valid.
     #[error("The proof of knowledge is not valid.")]
-    InvalidProofOfKnowledge,
+    InvalidProofOfKnowledge {
+        /// The identifier of the signer whose share validation failed.
+        sender: Identifier<C>,
+    },
     /// Error in scalar Field.
     #[error("Error in scalar Field.")]
     FieldError(#[from] FieldError),
     /// Error in elliptic curve Group.
     #[error("Error in elliptic curve Group.")]
     GroupError(#[from] GroupError),
+    /// Error in coefficient commitment deserialization.
+    #[error("Invalid coefficient")]
+    InvalidCoefficient,
 }
 
 /// An error related to a scalar Field.

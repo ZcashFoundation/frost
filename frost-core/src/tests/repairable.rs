@@ -32,7 +32,7 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let max_signers = 5;
     let min_signers = 3;
     let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
-        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Try to recover a share
 
@@ -101,7 +101,7 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
     let max_signers = 5;
     let min_signers = 3;
     let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
-        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
     // Signer 2 will lose their share
     // Signers (helpers) 1, 4 and 5 will help signer 2 (participant) to recover their share
@@ -134,8 +134,8 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
 }
 
 /// Test repair_share_step_2
-pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helper_functions: &Value) {
-    let values = &repair_share_helper_functions["scalar_generation"];
+pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helpers: &Value) {
+    let values = &repair_share_helpers["scalar_generation"];
 
     let value_1 =
         generate_scalar_from_byte_string::<C>(values["random_scalar_1"].as_str().unwrap());
@@ -155,15 +155,15 @@ pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helper_functions: 
 /// Test repair_share
 pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
-    repair_share_helper_functions: &Value,
+    repair_share_helpers: &Value,
 ) {
     // Generate shares
     let max_signers = 5;
     let min_signers = 3;
     let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
-        frost::keys::keygen_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
 
-    let sigmas: &Value = &repair_share_helper_functions["sigma_generation"];
+    let sigmas: &Value = &repair_share_helpers["sigma_generation"];
 
     let sigma_1 = generate_scalar_from_byte_string::<C>(sigmas["sigma_1"].as_str().unwrap());
     let sigma_2 = generate_scalar_from_byte_string::<C>(sigmas["sigma_2"].as_str().unwrap());

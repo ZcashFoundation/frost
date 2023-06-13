@@ -4,7 +4,7 @@ edition = "2021"
 # When releasing to crates.io:
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.2.0"
+version = "0.4.0"
 authors = [
     "Deirdre Connolly <durumcrustulum@gmail.com>",
     "Chelsea Komlo <me@chelseakomlo.com>",
@@ -21,7 +21,7 @@ description = "A Schnorr signature scheme over the prime-order Ristretto group t
 features = ["nightly"]
 
 [dependencies]
-frost-core = { path = "../frost-core", version = "0.2.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.4.0", features = ["test-impl"] }
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
 rand_core = "0.6"
 serde = { version = "1.0.160", features = ["derive"] }
@@ -29,9 +29,9 @@ sha2 = "0.10.2"
 
 [dev-dependencies]
 bincode = "1"
-criterion = "0.4"
+criterion = "0.5"
 ed25519-dalek = "1.0.1"
-ed25519-zebra = "3.0.0"
+ed25519-zebra = "4.0.0"
 hex = "0.4.3"
 lazy_static = "1.4"
 proptest = "1.0"

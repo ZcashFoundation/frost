@@ -18,8 +18,8 @@ where
     C: Ciphersuite,
 {
     /// Generate a new signing key.
-    pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> SigningKey<C> {
-        let scalar = random_nonzero::<C, R>(&mut rng);
+    pub fn new<R: RngCore + CryptoRng>(rng: &mut R) -> SigningKey<C> {
+        let scalar = random_nonzero::<C, R>(rng);
 
         SigningKey { scalar }
     }

@@ -1,5 +1,5 @@
+use crate::*;
 use frost_core::tests::proptests::{tweak_strategy, SignatureCase};
-use frost_secp256k1::*;
 use proptest::prelude::*;
 
 use rand_chacha::ChaChaRng;

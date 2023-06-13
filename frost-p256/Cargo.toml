@@ -5,7 +5,7 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.2.0"
+version = "0.4.0"
 authors = [
         "Deirdre Connolly <durumcrustulum@gmail.com>",
         "Chelsea Komlo <me@chelseakomlo.com>",
@@ -23,15 +23,15 @@ features = ["nightly"]
 
 [dependencies]
 p256 = { version = "0.13.0", features = ["hash2curve"] }
-frost-core = { path = "../frost-core", version = "0.2.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.4.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
 [dev-dependencies]
 bincode = "1"
-criterion = "0.4"
+criterion = "0.5"
 ed25519-dalek = "1.0.1"
-ed25519-zebra = "3.0.0"
+ed25519-zebra = "4.0.0"
 hex = "0.4.3"
 lazy_static = "1.4"
 proptest = "1.0"

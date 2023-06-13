@@ -1,5 +1,5 @@
+use crate::*;
 use frost_core::tests::proptests::{tweak_strategy, SignatureCase};
-use frost_ed448::*;
 use proptest::prelude::*;
 
 use rand_chacha::ChaChaRng;
@@ -19,7 +19,7 @@ proptest! {
 
         // Create a test case for each signature type.
         let msg = b"test message for proptests";
-        let mut sig = SignatureCase::<Ed448Shake256>::new(rng, msg.to_vec());
+        let mut sig = SignatureCase::<P256Sha256>::new(rng, msg.to_vec());
 
         // Apply tweaks to each case.
         for t in &tweaks {
