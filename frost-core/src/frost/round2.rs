@@ -6,11 +6,13 @@ use std::fmt::{self, Debug};
 use crate::{
     challenge,
     frost::{self, round1, *},
-    Challenge, Ciphersuite, Error, Field, Group,
+    Challenge, Ciphersuite, Error, Field, Group, ScalarSerialization,
 };
 
 /// A representation of a single signature share used in FROST structures and messages.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "ScalarSerialization<C>")]
+#[serde(into = "ScalarSerialization<C>")]
 pub struct SignatureResponse<C: Ciphersuite> {
     /// The scalar contribution to the group signature.
     pub z_share: Scalar<C>,
@@ -35,37 +37,23 @@ where
     }
 }
 
-impl<C> serde::Serialize for SignatureResponse<C>
+impl<C> TryFrom<ScalarSerialization<C>> for SignatureResponse<C>
 where
     C: Ciphersuite,
-    C::Group: Group,
-    <C::Group as Group>::Field: Field,
 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_bytes(self.to_bytes().as_ref())
+    type Error = Error<C>;
+
+    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
     }
 }
 
-impl<'de, C> serde::Deserialize<'de> for SignatureResponse<C>
+impl<C> From<SignatureResponse<C>> for ScalarSerialization<C>
 where
     C: Ciphersuite,
-    C::Group: Group,
-    <C::Group as Group>::Field: Field,
 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes = Vec::<u8>::deserialize(deserializer)?;
-        let array = bytes
-            .try_into()
-            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        let identifier = SignatureResponse::from_bytes(array)
-            .map_err(|err| serde::de::Error::custom(format!("{err}")))?;
-        Ok(identifier)
+    fn from(value: SignatureResponse<C>) -> Self {
+        Self(value.to_bytes())
     }
 }
 

@@ -91,6 +91,38 @@ pub trait Field: Copy + Clone {
 /// An element of the [`Ciphersuite`] `C`'s [`Group`]'s scalar [`Field`].
 pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar;
 
+pub(crate) struct ScalarSerialization<C: Ciphersuite>(
+    <<<C as Ciphersuite>::Group as Group>::Field as Field>::Serialization,
+);
+
+impl<C> serde::Serialize for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(self.0.as_ref())
+    }
+}
+
+impl<'de, C> serde::Deserialize<'de> for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        Ok(Self(array))
+    }
+}
+
 /// A prime-order group (or subgroup) that provides everything we need to create and verify Schnorr
 /// signatures.
 ///
@@ -153,6 +185,38 @@ pub trait Group: Copy + Clone + PartialEq {
 
 /// An element of the [`Ciphersuite`] `C`'s [`Group`].
 pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
+
+pub(crate) struct ElementSerialization<C: Ciphersuite>(
+    <<C as Ciphersuite>::Group as Group>::Serialization,
+);
+
+impl<C> serde::Serialize for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(self.0.as_ref())
+    }
+}
+
+impl<'de, C> serde::Deserialize<'de> for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        Ok(Self(array))
+    }
+}
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.

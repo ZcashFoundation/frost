@@ -3,10 +3,12 @@ use std::fmt::{self, Debug};
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
+use crate::{Challenge, Ciphersuite, Element, ElementSerialization, Error, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "ElementSerialization<C>")]
+#[serde(into = "ElementSerialization<C>")]
 pub struct VerifyingKey<C>
 where
     C: Ciphersuite,
@@ -102,6 +104,26 @@ where
             Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed verifying key encoding"),
             Err(_) => Err("malformed verifying key encoding"),
         }
+    }
+}
+
+impl<C> TryFrom<ElementSerialization<C>> for VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
+    }
+}
+
+impl<C> From<VerifyingKey<C>> for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: VerifyingKey<C>) -> Self {
+        Self(value.to_bytes())
     }
 }
 

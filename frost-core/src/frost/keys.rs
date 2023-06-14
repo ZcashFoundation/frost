@@ -17,7 +17,8 @@ use serde::{Deserialize, Serialize};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, SigningKey, VerifyingKey,
+    frost::Identifier, Ciphersuite, Element, ElementSerialization, Error, Field, Group, Scalar,
+    ScalarSerialization, SigningKey, VerifyingKey,
 };
 
 pub mod dkg;
@@ -34,7 +35,9 @@ pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// A secret scalar value representing a signer's share of the group secret.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "ScalarSerialization<C>")]
+#[serde(into = "ScalarSerialization<C>")]
 pub struct SigningShare<C: Ciphersuite>(pub(crate) Scalar<C>);
 
 impl<C> SigningShare<C>
@@ -53,36 +56,6 @@ where
     /// Serialize to bytes
     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
-    }
-}
-
-impl<C> serde::Serialize for SigningShare<C>
-where
-    C: Ciphersuite,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_bytes(self.to_bytes().as_ref())
-    }
-}
-
-impl<'de, C> serde::Deserialize<'de> for SigningShare<C>
-where
-    C: Ciphersuite,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes = Vec::<u8>::deserialize(deserializer)?;
-        let array = bytes
-            .try_into()
-            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        let identifier =
-            Self::from_bytes(array).map_err(|err| serde::de::Error::custom(format!("{err}")))?;
-        Ok(identifier)
     }
 }
 
@@ -125,8 +98,30 @@ where
     }
 }
 
+impl<C> TryFrom<ScalarSerialization<C>> for SigningShare<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
+    }
+}
+
+impl<C> From<SigningShare<C>> for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: SigningShare<C>) -> Self {
+        Self(value.to_bytes())
+    }
+}
+
 /// A public group element that represents a single signer's public verification share.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "ElementSerialization<C>")]
+#[serde(into = "ElementSerialization<C>")]
 pub struct VerifyingShare<C>(pub(super) Element<C>)
 where
     C: Ciphersuite;
@@ -168,11 +163,33 @@ where
     }
 }
 
+impl<C> TryFrom<ElementSerialization<C>> for VerifyingShare<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
+    }
+}
+
+impl<C> From<VerifyingShare<C>> for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: VerifyingShare<C>) -> Self {
+        Self(value.to_bytes())
+    }
+}
+
 /// A [`Group::Element`] newtype that is a commitment to one coefficient of our secret polynomial.
 ///
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "ElementSerialization<C>")]
+#[serde(into = "ElementSerialization<C>")]
 pub struct CoefficientCommitment<C: Ciphersuite>(pub(crate) Element<C>);
 
 impl<C> CoefficientCommitment<C>
@@ -197,34 +214,23 @@ where
     }
 }
 
-impl<C> serde::Serialize for CoefficientCommitment<C>
+impl<C> TryFrom<ElementSerialization<C>> for CoefficientCommitment<C>
 where
     C: Ciphersuite,
 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = <C::Group as Group>::serialize(&self.0);
-        serializer.serialize_bytes(bytes.as_ref())
+    type Error = Error<C>;
+
+    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
+        Self::deserialize(value.0)
     }
 }
 
-impl<'de, C> serde::Deserialize<'de> for CoefficientCommitment<C>
+impl<C> From<CoefficientCommitment<C>> for ElementSerialization<C>
 where
     C: Ciphersuite,
 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes = Vec::<u8>::deserialize(deserializer)?;
-        let array = bytes
-            .try_into()
-            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        let element = <C::Group as Group>::deserialize(&array)
-            .map_err(|err| serde::de::Error::custom(format!("{err}")))?;
-        Ok(Self(element))
+    fn from(value: CoefficientCommitment<C>) -> Self {
+        Self(value.serialize())
     }
 }
 
@@ -281,7 +287,7 @@ where
 ///
 /// To derive a FROST keypair, the receiver of the [`SecretShare`] *must* call
 /// .into(), which under the hood also performs validation.
-#[derive(Clone, Zeroize)]
+#[derive(Clone, Zeroize, Serialize, Deserialize)]
 pub struct SecretShare<C: Ciphersuite> {
     /// The participant identifier of this [`SecretShare`].
     #[zeroize(skip)]
@@ -441,7 +447,7 @@ fn evaluate_vss<C: Ciphersuite>(
 /// When using a central dealer, [`SecretShare`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant identifier each secret share key package is owned by.
     pub identifier: Identifier<C>,
@@ -508,6 +514,7 @@ where
 /// group public key.
 ///
 /// Used for verification purposes before publishing a signature.
+#[derive(Serialize, Deserialize)]
 pub struct PublicKeyPackage<C: Ciphersuite> {
     /// When performing signing, the coordinator must ensure that they have the
     /// correct view of participants' public keys to perform verification before

@@ -11,6 +11,8 @@ use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Element, Error, Field, Group, Scalar};
 
+use crate::ElementSerialization;
+
 use super::{keys::SigningShare, Identifier};
 
 /// A scalar that is a signing nonce.
@@ -107,7 +109,9 @@ where
 }
 
 /// A Ristretto point that is a commitment to a signing nonce share.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "ElementSerialization<C>")]
+#[serde(into = "ElementSerialization<C>")]
 pub struct NonceCommitment<C: Ciphersuite>(pub(super) Element<C>);
 
 impl<C> NonceCommitment<C>
@@ -127,33 +131,23 @@ where
     }
 }
 
-impl<C> serde::Serialize for NonceCommitment<C>
+impl<C> TryFrom<ElementSerialization<C>> for NonceCommitment<C>
 where
     C: Ciphersuite,
 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_bytes(self.to_bytes().as_ref())
+    type Error = Error<C>;
+
+    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
     }
 }
 
-impl<'de, C> serde::Deserialize<'de> for NonceCommitment<C>
+impl<C> From<NonceCommitment<C>> for ElementSerialization<C>
 where
     C: Ciphersuite,
 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes = Vec::<u8>::deserialize(deserializer)?;
-        let array = bytes
-            .try_into()
-            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        let identifier =
-            Self::from_bytes(array).map_err(|err| serde::de::Error::custom(format!("{err}")))?;
-        Ok(identifier)
+    fn from(value: NonceCommitment<C>) -> Self {
+        Self(value.to_bytes())
     }
 }
 
