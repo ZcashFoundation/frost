@@ -103,7 +103,7 @@ where
     where
         S: serde::Serializer,
     {
-        serializer.serialize_bytes(self.0.as_ref())
+        serdect::slice::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
     }
 }
 
@@ -115,7 +115,7 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let bytes = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
         let array = bytes
             .try_into()
             .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
@@ -198,7 +198,7 @@ where
     where
         S: serde::Serializer,
     {
-        serializer.serialize_bytes(self.0.as_ref())
+        serdect::slice::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
     }
 }
 
@@ -210,7 +210,7 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        let bytes = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
         let array = bytes
             .try_into()
             .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
