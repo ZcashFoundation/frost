@@ -1,18 +1,21 @@
 //! FROST Round 2 functionality and types, for signature share generation
 
-use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug};
 
 use crate::{
     challenge,
     frost::{self, round1, *},
-    Challenge, Ciphersuite, Error, Field, Group, ScalarSerialization,
+    Challenge, Ciphersuite, Error, Field, Group,
 };
 
+#[cfg(feature = "serde")]
+use crate::ScalarSerialization;
+
 /// A representation of a single signature share used in FROST structures and messages.
-#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "ScalarSerialization<C>")]
-#[serde(into = "ScalarSerialization<C>")]
+#[derive(Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct SignatureResponse<C: Ciphersuite> {
     /// The scalar contribution to the group signature.
     pub z_share: Scalar<C>,
@@ -37,6 +40,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C> TryFrom<ScalarSerialization<C>> for SignatureResponse<C>
 where
     C: Ciphersuite,
@@ -48,6 +52,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C> From<SignatureResponse<C>> for ScalarSerialization<C>
 where
     C: Ciphersuite,
@@ -82,7 +87,8 @@ where
 
 /// A participant's signature share, which the coordinator will aggregate with all other signer's
 /// shares into the joint signature.
-#[derive(Clone, Copy, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SignatureShare<C: Ciphersuite> {
     /// Represents the participant identifier.
     pub identifier: Identifier<C>,

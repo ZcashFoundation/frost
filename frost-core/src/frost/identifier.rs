@@ -5,16 +5,20 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::{Ciphersuite, Error, Field, FieldError, Group, Scalar, ScalarSerialization};
+use crate::{Ciphersuite, Error, Field, FieldError, Group, Scalar};
+
+#[cfg(feature = "serde")]
+use crate::ScalarSerialization;
 
 /// A FROST participant identifier.
 ///
 /// The identifier is a field element in the scalar field that the secret polynomial is defined
 /// over, corresponding to some x-coordinate for a polynomial f(x) = y.  MUST NOT be zero in the
 /// field, as f(0) = the shared secret.
-#[derive(Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "ScalarSerialization<C>")]
-#[serde(into = "ScalarSerialization<C>")]
+#[derive(Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct Identifier<C: Ciphersuite>(Scalar<C>);
 
 impl<C> Identifier<C>
@@ -40,6 +44,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C> TryFrom<ScalarSerialization<C>> for Identifier<C>
 where
     C: Ciphersuite,
@@ -51,6 +56,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C> From<Identifier<C>> for ScalarSerialization<C>
 where
     C: Ciphersuite,

@@ -71,6 +71,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C> serde::Serialize for Signature<C>
 where
     C: Ciphersuite,
@@ -85,6 +86,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de, C> serde::Deserialize<'de> for Signature<C>
 where
     C: Ciphersuite,

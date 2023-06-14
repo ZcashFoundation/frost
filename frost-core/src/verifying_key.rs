@@ -3,12 +3,16 @@ use std::fmt::{self, Debug};
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use crate::{Challenge, Ciphersuite, Element, ElementSerialization, Error, Group, Signature};
+use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
+
+#[cfg(feature = "serde")]
+use crate::ElementSerialization;
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
-#[derive(Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "ElementSerialization<C>")]
-#[serde(into = "ElementSerialization<C>")]
+#[derive(Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct VerifyingKey<C>
 where
     C: Ciphersuite,
@@ -107,6 +111,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C> TryFrom<ElementSerialization<C>> for VerifyingKey<C>
 where
     C: Ciphersuite,
@@ -118,6 +123,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C> From<VerifyingKey<C>> for ElementSerialization<C>
 where
     C: Ciphersuite,

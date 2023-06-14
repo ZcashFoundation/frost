@@ -91,10 +91,12 @@ pub trait Field: Copy + Clone {
 /// An element of the [`Ciphersuite`] `C`'s [`Group`]'s scalar [`Field`].
 pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar;
 
+#[cfg(feature = "serde")]
 pub(crate) struct ScalarSerialization<C: Ciphersuite>(
     <<<C as Ciphersuite>::Group as Group>::Field as Field>::Serialization,
 );
 
+#[cfg(feature = "serde")]
 impl<C> serde::Serialize for ScalarSerialization<C>
 where
     C: Ciphersuite,
@@ -107,6 +109,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de, C> serde::Deserialize<'de> for ScalarSerialization<C>
 where
     C: Ciphersuite,
@@ -186,10 +189,12 @@ pub trait Group: Copy + Clone + PartialEq {
 /// An element of the [`Ciphersuite`] `C`'s [`Group`].
 pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 
+#[cfg(feature = "serde")]
 pub(crate) struct ElementSerialization<C: Ciphersuite>(
     <<C as Ciphersuite>::Group as Group>::Serialization,
 );
 
+#[cfg(feature = "serde")]
 impl<C> serde::Serialize for ElementSerialization<C>
 where
     C: Ciphersuite,
@@ -202,6 +207,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de, C> serde::Deserialize<'de> for ElementSerialization<C>
 where
     C: Ciphersuite,
