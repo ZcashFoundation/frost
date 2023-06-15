@@ -275,7 +275,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     let signer_commitments_vec = signer_commitments.into_values().collect();
 
-    let signing_package = frost::SigningPackage::new(signer_commitments_vec, message_bytes);
+    let signing_package = frost::SigningPackage::new(signer_commitments_vec, &message_bytes);
 
     for (identifier, input) in signing_package.binding_factor_preimages(&[]).iter() {
         assert_eq!(*input, binding_factor_inputs[identifier]);

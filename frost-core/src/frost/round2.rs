@@ -89,6 +89,7 @@ where
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SignatureShare<C: Ciphersuite> {
     /// Represents the participant identifier.
     pub identifier: Identifier<C>,

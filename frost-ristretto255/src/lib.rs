@@ -13,6 +13,9 @@ use sha2::{Digest, Sha512};
 
 use frost_core::frost;
 
+#[cfg(feature = "serde")]
+use frost_core::serde;
+
 #[cfg(test)]
 mod tests;
 
@@ -136,6 +139,8 @@ const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v11";
 
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[serde(crate = "self::serde")]
 pub struct Ristretto255Sha512;
 
 impl Ciphersuite for Ristretto255Sha512 {
@@ -296,6 +301,9 @@ pub mod round1 {
     /// SigningCommitment can be used for exactly *one* signature.
     pub type SigningCommitments = frost::round1::SigningCommitments<R>;
 
+    /// A commitment to a signing nonce share.
+    pub type NonceCommitment = frost::round1::NonceCommitment<R>;
+
     /// Performed once by each participant selected for the signing operation.
     ///
     /// Generates the signing nonces and commitments to be used in the signing
@@ -323,6 +331,9 @@ pub mod round2 {
     /// A FROST(ristretto255, SHA-512) participant's signature share, which the Coordinator will aggregate with all other signer's
     /// shares into the joint signature.
     pub type SignatureShare = frost::round2::SignatureShare<R>;
+
+    /// A representation of a single signature share used in FROST structures and messages.
+    pub type SignatureResponse = frost::round2::SignatureResponse<R>;
 
     /// Performed once by each participant selected for the signing operation.
     ///

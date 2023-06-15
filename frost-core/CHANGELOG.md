@@ -6,6 +6,9 @@ Entries are listed in reverse chronological order.
 
 ## 0.5.0
 
+* change `SigningPackage::new()` to take `&[u8]P  instead of `Vec<u8>`
+* expose `NonceCommitment` and `SignatureResponse` in ciphersuite crates
+
 ## Released
 
 ## 0.4.0

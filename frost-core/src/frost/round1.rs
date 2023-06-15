@@ -109,7 +109,7 @@ where
 }
 
 /// A Ristretto point that is a commitment to a signing nonce share.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
@@ -247,8 +247,9 @@ where
 ///
 /// This step can be batched if desired by the implementation. Each
 /// SigningCommitment can be used for exactly *one* signature.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningCommitments<C: Ciphersuite> {
     /// The participant identifier.
     pub identifier: Identifier<C>,

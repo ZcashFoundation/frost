@@ -113,7 +113,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     let mut signature_shares = Vec::new();
     let message = "message to sign".as_bytes();
     let comms = commitments.clone().into_values().collect();
-    let signing_package = frost::SigningPackage::new(comms, message.to_vec());
+    let signing_package = frost::SigningPackage::new(comms, message);
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share

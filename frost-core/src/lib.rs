@@ -13,6 +13,10 @@ use std::{
 
 use rand_core::{CryptoRng, RngCore};
 
+// Re-export serde
+#[cfg(feature = "serde")]
+pub use serde;
+
 pub mod batch;
 #[cfg(any(test, feature = "test-impl"))]
 pub mod benches;
