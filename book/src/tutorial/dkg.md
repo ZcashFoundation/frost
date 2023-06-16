@@ -4,7 +4,7 @@ The diagram below shows the distributed key generation process. Dashed lines
 represent data being sent through an [authenticated and confidential
 communication
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel). Note
-that first dashed line requires a [**broadcast
+that the first dashed line requires a [**broadcast
 channel**](https://frost.zfnd.org/terminology.html#broadcast-channel)
 
 ![Diagram of Distribtuted Key Generation, illustrating what is explained in the text](dkg/dkg.png)

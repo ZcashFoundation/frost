@@ -139,7 +139,7 @@ channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 To sign, the
 [Coordinator](file:///home/conrado/zfnd/frost/book/book/frost.html#signing) must
 select which participants are going to generate the signature, and must signal
-to start the process. This needs to be done by library user and will depend on
+to start the process. This needs to be implemented by users of the ZF FROST library and will depend on
 the communication channel being used.
 
 ### Participants, Round 1
@@ -172,7 +172,7 @@ channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel). (Of cour
 if the message is confidential, then the channel must also be confidential.)
 
 ```admonish warning
-In all the main FROST ciphersuites, the entire message must
+In all of the main FROST ciphersuites, the entire message must
 be sent to participants. In some cases, where the message is too big, it may be
 necessary to send a hash of the message instead. We strongly suggest creating a
 specific ciphersuite for this, and not just sending the hash as if it were the

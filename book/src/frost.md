@@ -1,6 +1,6 @@
 # Understanding FROST
 
-This explain the main concepts and flows of FROST in a generic manner. These
+This explains the main concepts and flows of FROST in a generic manner. These
 are important to understand how to use the library, but rest assured that the
 [Tutorial](tutorial.md) will have more concrete information.
 
@@ -42,7 +42,7 @@ distribute each share to their respective participants.
 
 A two-round protocol after which each participant will have their share of the
 secret, without the secret being ever present in its entirety in any
-participant's memory. Its downside is that it require a [broadcast
+participant's memory. Its downside is that it requires a [broadcast
 channel](https://frost.zfnd.org/terminology.html#broadcast-channel) as well as
 an [authenticated and confidential communication
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) between
