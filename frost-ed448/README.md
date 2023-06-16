@@ -61,7 +61,7 @@ let comms = commitments.clone().into_values().collect();
 // In practice, the SigningPackage must be sent to all participants
 // involved in the current signing (at least min_signers participants),
 // using an authenticate channel (and confidential if the message is secret).
-let signing_package = frost::SigningPackage::new(comms, message.to_vec());
+let signing_package = frost::SigningPackage::new(comms, message);
 
 ////////////////////////////////////////////////////////////////////////////
 // Round 2: each participant generates their signature share

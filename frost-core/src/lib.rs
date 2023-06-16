@@ -233,6 +233,9 @@ where
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-ciphersuites
 pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
+    /// The ciphersuite ID string
+    const ID: &'static str;
+
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
@@ -380,5 +383,30 @@ pub(crate) fn random_nonzero<C: Ciphersuite, R: RngCore + CryptoRng>(rng: &mut R
         if scalar != <<C::Group as Group>::Field>::zero() {
             return scalar;
         }
+    }
+}
+
+/// Serialize a placeholder ciphersuite field with the ciphersuite ID string.
+#[cfg(feature = "serde")]
+pub(crate) fn ciphersuite_serialize<S, C>(_: &(), s: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    C: Ciphersuite,
+{
+    s.serialize_str(C::ID)
+}
+
+/// Deserialize a placeholder ciphersuite field, checking if it's the ciphersuite ID string.
+#[cfg(feature = "serde")]
+pub(crate) fn ciphersuite_deserialize<'de, D, C>(deserializer: D) -> Result<(), D::Error>
+where
+    D: serde::Deserializer<'de>,
+    C: Ciphersuite,
+{
+    let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+    if s != C::ID {
+        Err(serde::de::Error::custom("wrong ciphersuite"))
+    } else {
+        Ok(())
     }
 }

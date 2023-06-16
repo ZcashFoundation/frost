@@ -315,10 +315,7 @@ where
         assert!(verifying_keys_for_participant.signer_pubkeys == verifying_keys);
     }
 
-    let pubkeys = frost::keys::PublicKeyPackage {
-        signer_pubkeys: verifying_keys,
-        group_public: group_public.unwrap(),
-    };
+    let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, group_public.unwrap());
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys)

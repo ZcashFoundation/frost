@@ -257,12 +257,36 @@ pub struct SigningCommitments<C: Ciphersuite> {
     pub hiding: NonceCommitment<C>,
     /// Commitment to the binding [`Nonce`].
     pub binding: NonceCommitment<C>,
+    /// Ciphersuite ID for serialization
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    ciphersuite: (),
 }
 
 impl<C> SigningCommitments<C>
 where
     C: Ciphersuite,
 {
+    /// Create new SigningCommitments
+    pub fn new(
+        identifier: Identifier<C>,
+        hiding: NonceCommitment<C>,
+        binding: NonceCommitment<C>,
+    ) -> Self {
+        Self {
+            identifier,
+            hiding,
+            binding,
+            ciphersuite: (),
+        }
+    }
+
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
@@ -294,6 +318,7 @@ where
             identifier,
             hiding: nonces.hiding.clone().into(),
             binding: nonces.binding.clone().into(),
+            ciphersuite: (),
         }
     }
 }

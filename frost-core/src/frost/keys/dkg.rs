@@ -61,6 +61,35 @@ pub mod round1 {
         pub commitment: VerifiableSecretSharingCommitment<C>,
         /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
         pub proof_of_knowledge: Signature<C>,
+        /// Ciphersuite ID for serialization
+        #[cfg_attr(
+            feature = "serde",
+            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+        )]
+        #[cfg_attr(
+            feature = "serde",
+            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+        )]
+        pub(super) ciphersuite: (),
+    }
+
+    impl<C> Package<C>
+    where
+        C: Ciphersuite,
+    {
+        /// Create a new [`Package`] instance.
+        pub fn new(
+            sender_identifier: Identifier<C>,
+            commitment: VerifiableSecretSharingCommitment<C>,
+            proof_of_knowledge: Signature<C>,
+        ) -> Self {
+            Self {
+                sender_identifier,
+                commitment,
+                proof_of_knowledge,
+                ciphersuite: (),
+            }
+        }
     }
 
     /// The secret package that must be kept in memory by the participant
@@ -104,6 +133,35 @@ pub mod round2 {
         pub receiver_identifier: Identifier<C>,
         /// The secret share being sent.
         pub secret_share: SigningShare<C>,
+        /// Ciphersuite ID for serialization
+        #[cfg_attr(
+            feature = "serde",
+            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+        )]
+        #[cfg_attr(
+            feature = "serde",
+            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+        )]
+        pub(super) ciphersuite: (),
+    }
+
+    impl<C> Package<C>
+    where
+        C: Ciphersuite,
+    {
+        /// Create a new [`Package`] instance.
+        pub fn new(
+            sender_identifier: Identifier<C>,
+            receiver_identifier: Identifier<C>,
+            secret_share: SigningShare<C>,
+        ) -> Self {
+            Self {
+                sender_identifier,
+                receiver_identifier,
+                secret_share,
+                ciphersuite: (),
+            }
+        }
     }
 
     /// The secret package that must be kept in memory by the participant
@@ -172,6 +230,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
         sender_identifier: identifier,
         commitment,
         proof_of_knowledge: Signature { R: R_i, z: mu_i },
+        ciphersuite: (),
     };
 
     Ok((secret_package, package))
@@ -239,6 +298,7 @@ pub fn part2<C: Ciphersuite>(
             sender_identifier: secret_package.identifier,
             receiver_identifier: ell,
             secret_share: SigningShare(value),
+            ciphersuite: (),
         });
     }
     let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients);
@@ -350,6 +410,7 @@ pub fn part3<C: Ciphersuite>(
             identifier: round2_secret_package.identifier,
             value: f_ell_i,
             commitment: commitment.clone(),
+            ciphersuite: (),
         };
 
         // Verify the share. We don't need the result.
@@ -394,10 +455,12 @@ pub fn part3<C: Ciphersuite>(
         secret_share: signing_share,
         public: verifying_key,
         group_public,
+        ciphersuite: (),
     };
     let public_key_package = PublicKeyPackage {
         signer_pubkeys: all_verifying_keys,
         group_public,
+        ciphersuite: (),
     };
 
     Ok((key_package, public_key_package))

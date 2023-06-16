@@ -140,10 +140,12 @@ const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v11";
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[serde(crate = "self::serde")]
+#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct Ristretto255Sha512;
 
 impl Ciphersuite for Ristretto255Sha512 {
+    const ID: &'static str = "FROST(ristretto255, SHA-512)";
+
     type Group = RistrettoGroup;
 
     type HashOutput = [u8; 64];

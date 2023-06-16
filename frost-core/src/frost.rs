@@ -202,6 +202,16 @@ pub struct SigningPackage<C: Ciphersuite> {
         )
     )]
     message: Vec<u8>,
+    /// Ciphersuite ID for serialization
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    ciphersuite: (),
 }
 
 impl<C> SigningPackage<C>
@@ -221,6 +231,7 @@ where
                 .map(|s| (s.identifier, s))
                 .collect(),
             message: message.to_vec(),
+            ciphersuite: (),
         }
     }
 

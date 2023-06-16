@@ -95,12 +95,31 @@ pub struct SignatureShare<C: Ciphersuite> {
     pub identifier: Identifier<C>,
     /// This participant's signature over the message.
     pub signature: SignatureResponse<C>,
+    /// Ciphersuite ID for serialization
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    ciphersuite: (),
 }
 
 impl<C> SignatureShare<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`SignatureShare`].
+    pub fn new(identifier: Identifier<C>, signature: SignatureResponse<C>) -> Self {
+        Self {
+            identifier,
+            signature,
+            ciphersuite: (),
+        }
+    }
+
     /// Gets the participant identifier associated with this [`SignatureShare`].
     pub fn identifier(&self) -> &Identifier<C> {
         &self.identifier
@@ -159,6 +178,7 @@ fn compute_signature_share<C: Ciphersuite>(
     SignatureShare::<C> {
         identifier: *key_package.identifier(),
         signature: SignatureResponse::<C> { z_share },
+        ciphersuite: (),
     }
 }
 
