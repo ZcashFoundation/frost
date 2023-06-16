@@ -25,7 +25,6 @@ fn check_signing_commitments_serialization() {
     assert!(commitments == decoded_commitments);
 
     let json = r#"{
-        "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919",
         "ciphersuite": "FROST(ristretto255, SHA-512)"
@@ -38,7 +37,6 @@ fn check_signing_commitments_serialization() {
 
     // Wrong ciphersuite
     let invalid_json = r#"{
-      "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
       "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
       "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919",
       "ciphersuite": "FROST(Wrong, SHA-512)"
@@ -47,7 +45,6 @@ fn check_signing_commitments_serialization() {
 
     // Invalid identifier
     let invalid_json = r#"{
-        "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
       }"#;
@@ -55,8 +52,7 @@ fn check_signing_commitments_serialization() {
 
     // Invalid field
     let invalid_json = r#"{
-        "foo": "0000000000000000000000000000000000000000000000000000000000000000",
-        "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+        "foo": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
       }"#;
     assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
@@ -70,7 +66,6 @@ fn check_signing_commitments_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919",
         "extra": 1
@@ -94,7 +89,6 @@ fn check_signing_package_serialization() {
     let json = r#"{
       "signing_commitments": {
         "2a00000000000000000000000000000000000000000000000000000000000000": {
-          "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
           "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919",
           "ciphersuite": "FROST(ristretto255, SHA-512)"
@@ -110,7 +104,6 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "signing_commitments": {
         "0000000000000000000000000000000000000000000000000000000000000000": {
-          "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
           "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919",
           "ciphersuite": "FROST(ristretto255, SHA-512)"
@@ -125,7 +118,6 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "signing_commitments": {
         "2a00000000000000000000000000000000000000000000000000000000000000": {
-          "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
           "foo": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919",
           "ciphersuite": "FROST(ristretto255, SHA-512)"
@@ -140,7 +132,6 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "signing_commitments": {
         "2a00000000000000000000000000000000000000000000000000000000000000": {
-          "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919",
           "ciphersuite": "FROST(ristretto255, SHA-512)"
         }
@@ -154,7 +145,6 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "signing_commitments": {
         "2a00000000000000000000000000000000000000000000000000000000000000": {
-          "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
           "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919",
           "ciphersuite": "FROST(ristretto255, SHA-512)"

@@ -317,14 +317,13 @@ pub mod round1 {
     /// Generates the signing nonces and commitments to be used in the signing
     /// operation.
     pub fn commit<RNG>(
-        participant_identifier: frost::Identifier<R>,
         secret: &SigningShare,
         rng: &mut RNG,
     ) -> (SigningNonces, SigningCommitments)
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::commit::<R, RNG>(participant_identifier, secret, rng)
+        frost::round1::commit::<R, RNG>(secret, rng)
     }
 }
 

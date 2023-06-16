@@ -1,6 +1,6 @@
 //! Generate sample, fixed instances of structs for testing.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use frost_core::{Ciphersuite, Element, Group, Scalar};
 use frost_ristretto255::{
@@ -38,18 +38,14 @@ pub fn signing_commitments() -> SigningCommitments {
     let serialized_element2 = <C as Ciphersuite>::Group::serialize(&element2());
     let hiding_nonce_commitment = NonceCommitment::from_bytes(serialized_element1).unwrap();
     let binding_nonce_commitment = NonceCommitment::from_bytes(serialized_element2).unwrap();
-    let identifier = 42u16.try_into().unwrap();
 
-    SigningCommitments::new(
-        identifier,
-        hiding_nonce_commitment,
-        binding_nonce_commitment,
-    )
+    SigningCommitments::new(hiding_nonce_commitment, binding_nonce_commitment)
 }
 
 /// Generate a sample SigningPackage.
 pub fn signing_package() -> SigningPackage {
-    let commitments = vec![signing_commitments()];
+    let identifier = 42u16.try_into().unwrap();
+    let commitments = BTreeMap::from([(identifier, signing_commitments())]);
     let message = "hello world".as_bytes();
 
     SigningPackage::new(commitments, message)

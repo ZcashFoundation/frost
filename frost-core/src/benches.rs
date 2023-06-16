@@ -1,6 +1,6 @@
 //! Ciphersuite-generic benchmark functions.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use criterion::{BenchmarkId, Criterion, Throughput};
 use rand_core::{CryptoRng, RngCore};
@@ -116,7 +116,6 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
                 b.iter(|| {
                     let participant_identifier = 1u16.try_into().expect("should be nonzero");
                     frost::round1::commit(
-                        participant_identifier,
                         key_packages
                             .get(&participant_identifier)
                             .unwrap()
@@ -128,12 +127,11 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
         );
 
         let mut nonces: HashMap<_, _> = HashMap::new();
-        let mut commitments: HashMap<_, _> = HashMap::new();
+        let mut commitments: BTreeMap<_, _> = BTreeMap::new();
 
         for participant_index in 1..=min_signers {
             let participant_identifier = participant_index.try_into().expect("should be nonzero");
             let (nonce, commitment) = frost::round1::commit(
-                participant_identifier,
                 key_packages
                     .get(&participant_identifier)
                     .unwrap()
@@ -145,8 +143,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
         }
 
         let message = "message to sign".as_bytes();
-        let comms = commitments.clone().into_values().collect();
-        let signing_package = frost::SigningPackage::new(comms, message);
+        let signing_package = frost::SigningPackage::new(commitments, message);
 
         group.bench_with_input(
             BenchmarkId::new("Round 2", min_signers),

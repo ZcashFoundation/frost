@@ -1,5 +1,8 @@
 //! Helper function for testing with test vectors.
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    collections::{BTreeMap, HashMap},
+    str::FromStr,
+};
 
 use debugless_unwrap::DebuglessUnwrap;
 use hex::{self, FromHex};
@@ -20,7 +23,7 @@ pub struct TestVectors<C: Ciphersuite> {
     hiding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>>,
     binding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>>,
     signer_nonces: HashMap<Identifier<C>, SigningNonces<C>>,
-    signer_commitments: HashMap<Identifier<C>, SigningCommitments<C>>,
+    signer_commitments: BTreeMap<Identifier<C>, SigningCommitments<C>>,
     binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>>,
     binding_factors: HashMap<Identifier<C>, BindingFactor<C>>,
     signature_shares: HashMap<Identifier<C>, SignatureShare<C>>,
@@ -83,7 +86,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
     let mut hiding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
     let mut binding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
     let mut signer_nonces: HashMap<Identifier<C>, SigningNonces<C>> = HashMap::new();
-    let mut signer_commitments: HashMap<Identifier<C>, SigningCommitments<C>> = HashMap::new();
+    let mut signer_commitments: BTreeMap<Identifier<C>, SigningCommitments<C>> = BTreeMap::new();
     let mut binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
     let mut binding_factors: HashMap<Identifier<C>, BindingFactor<C>> = HashMap::new();
 
@@ -110,7 +113,6 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         signer_nonces.insert(identifier, signing_nonces);
 
         let signing_commitments = SigningCommitments::<C>::new(
-            identifier,
             NonceCommitment::from_hex(signer["hiding_nonce_commitment"].as_str().unwrap()).unwrap(),
             NonceCommitment::from_hex(signer["binding_nonce_commitment"].as_str().unwrap())
                 .unwrap(),
@@ -270,9 +272,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     // Round 2: each participant generates their signature share
     /////////////////////////////////////////////////////////////////////////////
 
-    let signer_commitments_vec = signer_commitments.into_values().collect();
-
-    let signing_package = frost::SigningPackage::new(signer_commitments_vec, &message_bytes);
+    let signing_package = frost::SigningPackage::new(signer_commitments, &message_bytes);
 
     for (identifier, input) in signing_package.binding_factor_preimages(&[]).iter() {
         assert_eq!(*input, binding_factor_inputs[identifier]);

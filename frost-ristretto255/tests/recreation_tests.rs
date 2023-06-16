@@ -19,10 +19,9 @@ use helpers::samples;
 #[test]
 fn check_signing_commitments_recreation() {
     let commitments = samples::signing_commitments();
-    let identifier = commitments.identifier();
     let hiding = commitments.hiding();
     let binding = commitments.binding();
-    let new_commitments = SigningCommitments::new(*identifier, *hiding, *binding);
+    let new_commitments = SigningCommitments::new(*hiding, *binding);
     assert!(commitments == new_commitments);
 }
 
@@ -31,14 +30,10 @@ fn check_signing_commitments_recreation() {
 fn check_signing_package_recreation() {
     let signing_package = samples::signing_package();
 
-    let commitments = signing_package
-        .signing_commitments()
-        .values()
-        .cloned()
-        .collect();
+    let commitments = signing_package.signing_commitments();
     let message = signing_package.message();
 
-    let new_signing_package = SigningPackage::new(commitments, message);
+    let new_signing_package = SigningPackage::new(commitments.clone(), message);
     assert!(signing_package == new_signing_package);
 }
 

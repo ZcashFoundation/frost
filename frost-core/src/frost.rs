@@ -162,14 +162,14 @@ fn derive_interpolating_value<C: Ciphersuite>(
     // Ala the sorting of B, just always sort by identifier in ascending order
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
-    for commitment in signing_package.signing_commitments().values() {
-        if commitment.identifier == *signer_id {
+    for commitment_identifier in signing_package.signing_commitments().keys() {
+        if *commitment_identifier == *signer_id {
             continue;
         }
 
-        num *= commitment.identifier;
+        num *= *commitment_identifier;
 
-        den *= commitment.identifier - *signer_id;
+        den *= *commitment_identifier - *signer_id;
     }
 
     if den == zero {
@@ -189,7 +189,7 @@ fn derive_interpolating_value<C: Ciphersuite>(
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningPackage<C: Ciphersuite> {
     /// The set of commitments participants published in the first round of the
-    /// protocol, ordered by their identifiers.
+    /// protocol.
     signing_commitments: BTreeMap<Identifier<C>, round1::SigningCommitments<C>>,
     /// Message which each participant will sign.
     ///
@@ -224,14 +224,11 @@ where
     ///
     /// The `signing_commitments` are sorted by participant `identifier`.
     pub fn new(
-        signing_commitments: Vec<round1::SigningCommitments<C>>,
+        signing_commitments: BTreeMap<Identifier<C>, round1::SigningCommitments<C>>,
         message: &[u8],
     ) -> SigningPackage<C> {
         SigningPackage {
-            signing_commitments: signing_commitments
-                .into_iter()
-                .map(|s| (s.identifier, s))
-                .collect(),
+            signing_commitments,
             message: message.to_vec(),
             ciphersuite: (),
         }
@@ -261,13 +258,13 @@ where
         binding_factor_input_prefix.extend_from_slice(additional_prefix);
 
         self.signing_commitments()
-            .values()
-            .map(|c| {
+            .keys()
+            .map(|identifier| {
                 let mut binding_factor_input = vec![];
 
                 binding_factor_input.extend_from_slice(&binding_factor_input_prefix);
-                binding_factor_input.extend_from_slice(c.identifier.serialize().as_ref());
-                (c.identifier, binding_factor_input)
+                binding_factor_input.extend_from_slice(identifier.serialize().as_ref());
+                (*identifier, binding_factor_input)
             })
             .collect()
     }
@@ -325,14 +322,14 @@ where
     // Ala the sorting of B, just always sort by identifier in ascending order
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
-    for commitment in signing_package.signing_commitments().values() {
+    for (commitment_identifier, commitment) in signing_package.signing_commitments() {
         // The following check prevents a party from accidentally revealing their share.
         // Note that the '&&' operator would be sufficient.
         if identity == commitment.binding.0 || identity == commitment.hiding.0 {
             return Err(Error::IdentityCommitment);
         }
 
-        let binding_factor = binding_factor_list[commitment.identifier].clone();
+        let binding_factor = binding_factor_list[*commitment_identifier].clone();
 
         // Collect the binding commitments and their binding factors for one big
         // multiscalar multiplication at the end.

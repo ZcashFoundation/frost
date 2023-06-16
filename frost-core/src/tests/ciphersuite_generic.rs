@@ -1,5 +1,8 @@
 //! Ciphersuite-generic test functions.
-use std::{collections::HashMap, convert::TryFrom};
+use std::{
+    collections::{BTreeMap, HashMap},
+    convert::TryFrom,
+};
 
 use crate::{
     frost::{self},
@@ -85,8 +88,8 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
     let mut nonces_map: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
         HashMap::new();
-    let mut commitments_map: HashMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
-        HashMap::new();
+    let mut commitments_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
+        BTreeMap::new();
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 1: generating nonces and signing commitments for each participant
@@ -97,7 +100,6 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _min_signers_.
         let (nonces, commitments) = frost::round1::commit(
-            participant_identifier,
             key_packages
                 .get(&participant_identifier)
                 .unwrap()
@@ -113,8 +115,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // - take one (unused) commitment per signing participant
     let mut signature_shares = Vec::new();
     let message = "message to sign".as_bytes();
-    let comms = commitments_map.clone().into_values().collect();
-    let signing_package = frost::SigningPackage::new(comms, message);
+    let signing_package = frost::SigningPackage::new(commitments_map, message);
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
