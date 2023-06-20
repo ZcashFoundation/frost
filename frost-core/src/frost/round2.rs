@@ -12,13 +12,13 @@ use crate::{
 use crate::ScalarSerialization;
 
 /// A representation of a single signature share used in FROST structures and messages.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct SignatureResponse<C: Ciphersuite> {
     /// The scalar contribution to the group signature.
-    pub z_share: Scalar<C>,
+    pub(crate) z_share: Scalar<C>,
 }
 
 impl<C> SignatureResponse<C>
@@ -87,14 +87,14 @@ where
 
 /// A participant's signature share, which the coordinator will aggregate with all other signer's
 /// shares into the joint signature.
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SignatureShare<C: Ciphersuite> {
     /// Represents the participant identifier.
-    pub identifier: Identifier<C>,
+    pub(crate) identifier: Identifier<C>,
     /// This participant's signature over the message.
-    pub signature: SignatureResponse<C>,
+    pub(crate) signature: SignatureResponse<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
         feature = "serde",
@@ -118,11 +118,6 @@ where
             signature,
             ciphersuite: (),
         }
-    }
-
-    /// Gets the participant identifier associated with this [`SignatureShare`].
-    pub fn identifier(&self) -> &Identifier<C> {
-        &self.identifier
     }
 
     /// Tests if a signature share issued by a participant is valid before

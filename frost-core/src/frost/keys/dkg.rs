@@ -47,20 +47,22 @@ use super::{
 
 /// DKG Round 1 structures.
 pub mod round1 {
+    use derive_getters::Getters;
+
     use super::*;
 
     /// The package that must be broadcast by each participant to all other participants
     /// between the first and second parts of the DKG protocol (round 1).
-    #[derive(Clone, PartialEq, Eq)]
+    #[derive(Clone, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The identifier of the participant who is sending the package (i).
-        pub sender_identifier: Identifier<C>,
+        pub(crate) sender_identifier: Identifier<C>,
         /// The public commitment from the participant (C_i)
-        pub commitment: VerifiableSecretSharingCommitment<C>,
+        pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
-        pub proof_of_knowledge: Signature<C>,
+        pub(crate) proof_of_knowledge: Signature<C>,
         /// Ciphersuite ID for serialization
         #[cfg_attr(
             feature = "serde",
@@ -70,6 +72,7 @@ pub mod round1 {
             feature = "serde",
             serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
         )]
+        #[getter(skip)]
         pub(super) ciphersuite: (),
     }
 
@@ -101,19 +104,21 @@ pub mod round1 {
     #[derive(Clone)]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
-        pub identifier: Identifier<C>,
+        pub(crate) identifier: Identifier<C>,
         /// Coefficients of the temporary secret polynomial for the participant.
         /// These are (a_{i0}, ..., a_{i(t−1)})) which define the polynomial f_i(x)
-        pub coefficients: Vec<Scalar<C>>,
+        pub(crate) coefficients: Vec<Scalar<C>>,
         /// The public commitment for the participant (C_i)
-        pub commitment: VerifiableSecretSharingCommitment<C>,
+        pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The total number of signers.
-        pub max_signers: u16,
+        pub(crate) max_signers: u16,
     }
 }
 
 /// DKG Round 2 structures.
 pub mod round2 {
+    use derive_getters::Getters;
+
     use super::*;
 
     /// A package that must be sent by each participant to some other participants
@@ -123,16 +128,16 @@ pub mod round2 {
     /// # Security
     ///
     /// The package must be sent on an *confidential* and *authenticated* channel.
-    #[derive(Clone, PartialEq, Eq)]
+    #[derive(Clone, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The identifier of the participant that generated the package (i).
-        pub sender_identifier: Identifier<C>,
+        pub(crate) sender_identifier: Identifier<C>,
         /// The identifier of the participant what will receive the package (ℓ).
-        pub receiver_identifier: Identifier<C>,
+        pub(crate) receiver_identifier: Identifier<C>,
         /// The secret share being sent.
-        pub secret_share: SigningShare<C>,
+        pub(crate) secret_share: SigningShare<C>,
         /// Ciphersuite ID for serialization
         #[cfg_attr(
             feature = "serde",
@@ -142,6 +147,7 @@ pub mod round2 {
             feature = "serde",
             serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
         )]
+        #[getter(skip)]
         pub(super) ciphersuite: (),
     }
 
@@ -172,13 +178,13 @@ pub mod round2 {
     /// This package MUST NOT be sent to other participants!
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
-        pub identifier: Identifier<C>,
+        pub(crate) identifier: Identifier<C>,
         /// The public commitment from the participant (C_i)
-        pub commitment: VerifiableSecretSharingCommitment<C>,
+        pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The participant's own secret share (f_i(i)).
-        pub secret_share: Scalar<C>,
+        pub(crate) secret_share: Scalar<C>,
         /// The total number of signers.
-        pub max_signers: u16,
+        pub(crate) max_signers: u16,
     }
 }
 
