@@ -1,4 +1,4 @@
-# FROST (Flexible Round-Optimised Schnorr Threshold signatures)
+# ZF FROST (Flexible Round-Optimised Schnorr Threshold signatures)
 
 Rust implementations of ['Two-Round Threshold Schnorr Signatures with FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/).
 
@@ -16,6 +16,10 @@ to prior Schnorr-based threshold signature constructions. This variant of FROST 
 to compute a signature, and implements signing efficiency improvements described by
 [Schnorr21](https://eprint.iacr.org/2021/1375.pdf). Single-round signing with FROST is not
 implemented here.
+
+## Getting Started
+
+Refer to the [ZF FROST book](https://frost.zfnd.org/).
 
 ## Status ⚠
 
