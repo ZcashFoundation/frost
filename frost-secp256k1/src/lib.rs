@@ -317,7 +317,7 @@ pub mod keys {
 
 /// FROST(secp256k1, SHA-256) Round 1 functionality and types.
 pub mod round1 {
-    use frost_core::frost::keys::SigningShare;
+    use crate::keys::SigningShare;
 
     use super::*;
 
@@ -340,7 +340,7 @@ pub mod round1 {
     /// operation.
     pub fn commit<RNG>(
         participant_identifier: frost::Identifier<S>,
-        secret: &SigningShare<S>,
+        secret: &SigningShare,
         rng: &mut RNG,
     ) -> (SigningNonces, SigningCommitments)
     where
