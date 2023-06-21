@@ -3,4 +3,15 @@ authors = ["Zcash Foundation <frost@zfnd.org>"]
 language = "en"
 multilingual = false
 src = "src"
-title = "The FROST Book"
+title = "The ZF FROST Book"
+
+[preprocessor]
+
+[preprocessor.admonish]
+command = "mdbook-admonish"
+assets_version = "2.0.1" # do not edit: managed by `mdbook-admonish install`
+
+[output]
+
+[output.html]
+additional-css = ["./mdbook-admonish.css"]
