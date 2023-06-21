@@ -245,6 +245,9 @@ pub mod keys {
     /// .into(), which under the hood also performs validation.
     pub type SecretShare = frost::keys::SecretShare<R>;
 
+    /// A secret scalar value representing a signer's share of the group secret.
+    pub type SigningShare = frost::keys::SigningShare<R>;
+
     /// A FROST(ristretto255, SHA-512) keypair, which can be generated either by a trusted dealer or using
     /// a DKG.
     ///
@@ -279,7 +282,7 @@ pub mod keys {
 
 /// FROST(ristretto255, SHA-512) Round 1 functionality and types.
 pub mod round1 {
-    use frost_core::frost::keys::SigningShare;
+    use crate::keys::SigningShare;
 
     use super::*;
 
@@ -302,7 +305,7 @@ pub mod round1 {
     /// operation.
     pub fn commit<RNG>(
         participant_identifier: frost::Identifier<R>,
-        secret: &SigningShare<R>,
+        secret: &SigningShare,
         rng: &mut RNG,
     ) -> (SigningNonces, SigningCommitments)
     where
