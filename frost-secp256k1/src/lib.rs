@@ -12,10 +12,12 @@ use k256::{
     AffinePoint, ProjectivePoint, Scalar,
 };
 use rand_core::{CryptoRng, RngCore};
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use frost_core::frost;
+
+#[cfg(feature = "serde")]
+use frost_core::serde;
 
 #[cfg(test)]
 mod tests;
@@ -168,7 +170,9 @@ fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
 const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-v11";
 
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct Secp256K1Sha256;
 
 impl Ciphersuite for Secp256K1Sha256 {

@@ -26,9 +26,9 @@ fn element2() -> Element<C> {
 
 fn scalar1() -> Scalar<C> {
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
-    let two = one + one;
-    // To return a fixed non-small number, get the inverse of 2
-    <<C as Ciphersuite>::Group as Group>::Field::invert(&two)
+    let three = one + one + one;
+    // To return a fixed non-small number, get the inverse of 3
+    <<C as Ciphersuite>::Group as Group>::Field::invert(&three)
         .expect("nonzero elements have inverses")
 }
 
