@@ -257,6 +257,9 @@ pub mod keys {
     /// .into(), which under the hood also performs validation.
     pub type SecretShare = frost::keys::SecretShare<E>;
 
+    /// A secret scalar value representing a signer's share of the group secret.
+    pub type SigningShare = frost::keys::SigningShare<E>;
+
     /// A FROST(Ed25519, SHA-512) keypair, which can be generated either by a trusted dealer or using
     /// a DKG.
     ///

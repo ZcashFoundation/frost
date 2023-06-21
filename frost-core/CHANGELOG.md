@@ -6,6 +6,8 @@ Entries are listed in reverse chronological order.
 
 ## 0.5.0
 
+* add SigningShare type to ciphersuite libraries
+
 ## Released
 
 ## 0.4.0
