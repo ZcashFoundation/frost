@@ -2,34 +2,29 @@
 
 use std::collections::HashMap;
 
-use debugless_unwrap::DebuglessUnwrap;
-
-use crate::{
-    frost::keys::{SigningShare, VerifyingShare},
-    Ciphersuite, Group, Scalar, Signature, VerifyingKey,
-};
-use crate::{
-    frost::{
-        keys::{
-            dkg::{round1, round2},
-            KeyPackage, PublicKeyPackage, SecretShare, VerifiableSecretSharingCommitment,
-        },
-        round1::{NonceCommitment, SigningCommitments},
-        round2::{SignatureResponse, SignatureShare},
-        SigningPackage,
+use frost_core::{Ciphersuite, Element, Group, Scalar};
+use frost_secp256k1::{
+    keys::{
+        dkg::{round1, round2},
+        KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
+        VerifyingShare,
     },
-    Element, Field,
+    round1::{NonceCommitment, SigningCommitments},
+    round2::{SignatureResponse, SignatureShare},
+    Field, Signature, SigningPackage, VerifyingKey,
 };
 
-fn element1<C: Ciphersuite>() -> Element<C> {
+type C = frost_secp256k1::Secp256K1Sha256;
+
+fn element1() -> Element<C> {
     <C as Ciphersuite>::Group::generator()
 }
 
-fn element2<C: Ciphersuite>() -> Element<C> {
-    element1::<C>() + element1::<C>()
+fn element2() -> Element<C> {
+    element1() + element1()
 }
 
-fn scalar1<C: Ciphersuite>() -> Scalar<C> {
+fn scalar1() -> Scalar<C> {
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
     let two = one + one;
     // To return a fixed non-small number, get the inverse of 2
@@ -38,9 +33,9 @@ fn scalar1<C: Ciphersuite>() -> Scalar<C> {
 }
 
 /// Generate a sample SigningCommitments.
-pub fn signing_commitments<C: Ciphersuite>() -> SigningCommitments<C> {
-    let serialized_element1 = <C as Ciphersuite>::Group::serialize(&element1::<C>());
-    let serialized_element2 = <C as Ciphersuite>::Group::serialize(&element2::<C>());
+pub fn signing_commitments() -> SigningCommitments {
+    let serialized_element1 = <C as Ciphersuite>::Group::serialize(&element1());
+    let serialized_element2 = <C as Ciphersuite>::Group::serialize(&element2());
     let hiding_nonce_commitment = NonceCommitment::from_bytes(serialized_element1).unwrap();
     let binding_nonce_commitment = NonceCommitment::from_bytes(serialized_element2).unwrap();
     let identifier = 42u16.try_into().unwrap();
@@ -53,7 +48,7 @@ pub fn signing_commitments<C: Ciphersuite>() -> SigningCommitments<C> {
 }
 
 /// Generate a sample SigningPackage.
-pub fn signing_package<C: Ciphersuite>() -> SigningPackage<C> {
+pub fn signing_package() -> SigningPackage {
     let commitments = vec![signing_commitments()];
     let message = "hello world".as_bytes();
 
@@ -61,19 +56,19 @@ pub fn signing_package<C: Ciphersuite>() -> SigningPackage<C> {
 }
 
 /// Generate a sample SignatureShare.
-pub fn signature_share<C: Ciphersuite>() -> SignatureShare<C> {
+pub fn signature_share() -> SignatureShare {
     let identifier = 42u16.try_into().unwrap();
-    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1::<C>());
+    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let signature_response = SignatureResponse::from_bytes(serialized_scalar).unwrap();
 
     SignatureShare::new(identifier, signature_response)
 }
 
 /// Generate a sample SecretShare.
-pub fn secret_share<C: Ciphersuite>() -> SecretShare<C> {
+pub fn secret_share() -> SecretShare {
     let identifier = 42u16.try_into().unwrap();
-    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1::<C>());
-    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1::<C>());
+    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
+    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let signing_share = SigningShare::from_bytes(serialized_scalar).unwrap();
     let vss_commitment =
         VerifiableSecretSharingCommitment::deserialize(vec![serialized_element]).unwrap();
@@ -82,24 +77,24 @@ pub fn secret_share<C: Ciphersuite>() -> SecretShare<C> {
 }
 
 /// Generate a sample KeyPackage.
-pub fn key_package<C: Ciphersuite>() -> KeyPackage<C> {
+pub fn key_package() -> KeyPackage {
     let identifier = 42u16.try_into().unwrap();
-    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1::<C>());
-    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1::<C>());
+    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
+    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let signing_share = SigningShare::from_bytes(serialized_scalar).unwrap();
     let verifying_share = VerifyingShare::from_bytes(serialized_element).unwrap();
-    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1::<C>());
+    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let verifying_key = VerifyingKey::from_bytes(serialized_element).unwrap();
 
     KeyPackage::new(identifier, signing_share, verifying_share, verifying_key)
 }
 
 /// Generate a sample PublicKeyPackage.
-pub fn public_key_package<C: Ciphersuite>() -> PublicKeyPackage<C> {
+pub fn public_key_package() -> PublicKeyPackage {
     let identifier = 42u16.try_into().unwrap();
-    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1::<C>());
+    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let verifying_share = VerifyingShare::from_bytes(serialized_element).unwrap();
-    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1::<C>());
+    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let verifying_key = VerifyingKey::from_bytes(serialized_element).unwrap();
     let signer_pubkeys = HashMap::from([(identifier, verifying_share)]);
 
@@ -107,10 +102,10 @@ pub fn public_key_package<C: Ciphersuite>() -> PublicKeyPackage<C> {
 }
 
 /// Generate a sample round1::Package.
-pub fn round1_package<C: Ciphersuite>() -> round1::Package<C> {
+pub fn round1_package() -> round1::Package {
     let identifier = 42u16.try_into().unwrap();
-    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1::<C>());
-    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1::<C>());
+    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
+    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let serialized_signature = serialized_element
         .as_ref()
         .iter()
@@ -118,7 +113,7 @@ pub fn round1_package<C: Ciphersuite>() -> round1::Package<C> {
         .cloned()
         .collect::<Vec<u8>>()
         .try_into()
-        .debugless_unwrap();
+        .unwrap();
     let vss_commitment =
         VerifiableSecretSharingCommitment::deserialize(vec![serialized_element]).unwrap();
     let signature = Signature::from_bytes(serialized_signature).unwrap();
@@ -127,9 +122,9 @@ pub fn round1_package<C: Ciphersuite>() -> round1::Package<C> {
 }
 
 /// Generate a sample round2::Package.
-pub fn round2_package<C: Ciphersuite>() -> round2::Package<C> {
+pub fn round2_package() -> round2::Package {
     let identifier = 42u16.try_into().unwrap();
-    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1::<C>());
+    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let signing_share = SigningShare::from_bytes(serialized_scalar).unwrap();
 
     round2::Package::new(identifier, identifier, signing_share)

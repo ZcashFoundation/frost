@@ -287,6 +287,7 @@ fn main() -> ExitCode {
             "src/tests/proptests.rs",
             "src/tests/vss_commitment.rs",
             "tests/recreation_tests.rs",
+            "tests/helpers/samples.rs",
         ] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
