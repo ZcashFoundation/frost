@@ -242,6 +242,9 @@ where
     ) -> Vec<(Identifier<C>, Vec<u8>)> {
         let mut binding_factor_input_prefix = vec![];
 
+        // The message is hashed with H4 to force the variable-length message
+        // into a fixed-length byte string, same for hashing the variable-sized
+        // (between runs of the protocol) set of group commitments, but with H5.
         binding_factor_input_prefix.extend_from_slice(C::H4(self.message.as_slice()).as_ref());
         binding_factor_input_prefix.extend_from_slice(
             C::H5(&round1::encode_group_commitments(self.signing_commitments())[..]).as_ref(),
