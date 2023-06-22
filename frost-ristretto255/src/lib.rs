@@ -255,6 +255,9 @@ pub mod keys {
     /// A secret scalar value representing a signer's share of the group secret.
     pub type SigningShare = frost::keys::SigningShare<R>;
 
+    /// A public group element that represents a single signer's public verification share.
+    pub type VerifyingShare = frost::keys::VerifyingShare<R>;
+
     /// A FROST(ristretto255, SHA-512) keypair, which can be generated either by a trusted dealer or using
     /// a DKG.
     ///

@@ -286,6 +286,9 @@ pub mod keys {
     /// A secret scalar value representing a signer's share of the group secret.
     pub type SigningShare = frost::keys::SigningShare<S>;
 
+    /// A public group element that represents a single signer's public verification share.
+    pub type VerifyingShare = frost::keys::VerifyingShare<S>;
+
     /// A FROST(secp256k1, SHA-256) keypair, which can be generated either by a trusted dealer or using
     /// a DKG.
     ///
@@ -337,6 +340,9 @@ pub mod round1 {
     /// SigningCommitment can be used for exactly *one* signature.
     pub type SigningCommitments = frost::round1::SigningCommitments<S>;
 
+    /// A commitment to a signing nonce share.
+    pub type NonceCommitment = frost::round1::NonceCommitment<S>;
+
     /// Performed once by each participant selected for the signing operation.
     ///
     /// Generates the signing nonces and commitments to be used in the signing
@@ -364,6 +370,9 @@ pub mod round2 {
     /// A FROST(secp256k1, SHA-256) participant's signature share, which the Coordinator will aggregate with all other signer's
     /// shares into the joint signature.
     pub type SignatureShare = frost::round2::SignatureShare<S>;
+
+    /// A representation of a single signature share used in FROST structures and messages.
+    pub type SignatureResponse = frost::round2::SignatureResponse<S>;
 
     /// Performed once by each participant selected for the signing operation.
     ///
