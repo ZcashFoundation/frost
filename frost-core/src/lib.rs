@@ -13,6 +13,10 @@ use std::{
 
 use rand_core::{CryptoRng, RngCore};
 
+// Re-export serde
+#[cfg(feature = "serde")]
+pub use serde;
+
 pub mod batch;
 #[cfg(any(test, feature = "test-impl"))]
 pub mod benches;
@@ -91,6 +95,41 @@ pub trait Field: Copy + Clone {
 /// An element of the [`Ciphersuite`] `C`'s [`Group`]'s scalar [`Field`].
 pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar;
 
+#[cfg(feature = "serde")]
+pub(crate) struct ScalarSerialization<C: Ciphersuite>(
+    <<<C as Ciphersuite>::Group as Group>::Field as Field>::Serialization,
+);
+
+#[cfg(feature = "serde")]
+impl<C> serde::Serialize for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serdect::slice::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, C> serde::Deserialize<'de> for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        Ok(Self(array))
+    }
+}
+
 /// A prime-order group (or subgroup) that provides everything we need to create and verify Schnorr
 /// signatures.
 ///
@@ -154,11 +193,49 @@ pub trait Group: Copy + Clone + PartialEq {
 /// An element of the [`Ciphersuite`] `C`'s [`Group`].
 pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 
+#[cfg(feature = "serde")]
+pub(crate) struct ElementSerialization<C: Ciphersuite>(
+    <<C as Ciphersuite>::Group as Group>::Serialization,
+);
+
+#[cfg(feature = "serde")]
+impl<C> serde::Serialize for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serdect::slice::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, C> serde::Deserialize<'de> for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        Ok(Self(array))
+    }
+}
+
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-ciphersuites
 pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
+    /// The ciphersuite ID string
+    const ID: &'static str;
+
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
@@ -306,5 +383,30 @@ pub(crate) fn random_nonzero<C: Ciphersuite, R: RngCore + CryptoRng>(rng: &mut R
         if scalar != <<C::Group as Group>::Field>::zero() {
             return scalar;
         }
+    }
+}
+
+/// Serialize a placeholder ciphersuite field with the ciphersuite ID string.
+#[cfg(feature = "serde")]
+pub(crate) fn ciphersuite_serialize<S, C>(_: &(), s: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    C: Ciphersuite,
+{
+    s.serialize_str(C::ID)
+}
+
+/// Deserialize a placeholder ciphersuite field, checking if it's the ciphersuite ID string.
+#[cfg(feature = "serde")]
+pub(crate) fn ciphersuite_deserialize<'de, D, C>(deserializer: D) -> Result<(), D::Error>
+where
+    D: serde::Deserializer<'de>,
+    C: Ciphersuite,
+{
+    let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+    if s != C::ID {
+        Err(serde::de::Error::custom("wrong ciphersuite"))
+    } else {
+        Ok(())
     }
 }

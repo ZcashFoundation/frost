@@ -146,7 +146,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
 
         let message = "message to sign".as_bytes();
         let comms = commitments.clone().into_values().collect();
-        let signing_package = frost::SigningPackage::new(comms, message.to_vec());
+        let signing_package = frost::SigningPackage::new(comms, message);
 
         group.bench_with_input(
             BenchmarkId::new("Round 2", min_signers),

@@ -5,8 +5,14 @@ use hex::FromHex;
 
 use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
 
+#[cfg(feature = "serde")]
+use crate::ElementSerialization;
+
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct VerifyingKey<C>
 where
     C: Ciphersuite,
@@ -102,6 +108,28 @@ where
             Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed verifying key encoding"),
             Err(_) => Err("malformed verifying key encoding"),
         }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ElementSerialization<C>> for VerifyingKey<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<VerifyingKey<C>> for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: VerifyingKey<C>) -> Self {
+        Self(value.to_bytes())
     }
 }
 

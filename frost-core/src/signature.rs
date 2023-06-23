@@ -71,6 +71,42 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
+impl<C> serde::Serialize for Signature<C>
+where
+    C: Ciphersuite,
+    C::Group: Group,
+    <C::Group as Group>::Field: Field,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serdect::slice::serialize_hex_lower_or_bin(&self.to_bytes().as_ref(), serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, C> serde::Deserialize<'de> for Signature<C>
+where
+    C: Ciphersuite,
+    C::Group: Group,
+    <C::Group as Group>::Field: Field,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
+        let identifier = Signature::from_bytes(array)
+            .map_err(|err| serde::de::Error::custom(format!("{err}")))?;
+        Ok(identifier)
+    }
+}
+
 impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Signature")

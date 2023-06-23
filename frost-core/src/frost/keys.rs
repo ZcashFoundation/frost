@@ -9,6 +9,7 @@ use std::{
     iter,
 };
 
+use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
@@ -18,6 +19,9 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 use crate::{
     frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, SigningKey, VerifyingKey,
 };
+
+#[cfg(feature = "serde")]
+use crate::{ElementSerialization, ScalarSerialization};
 
 pub mod dkg;
 pub mod repairable;
@@ -34,6 +38,9 @@ pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
 
 /// A secret scalar value representing a signer's share of the group secret.
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct SigningShare<C: Ciphersuite>(pub(crate) Scalar<C>);
 
 impl<C> SigningShare<C>
@@ -94,8 +101,33 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ScalarSerialization<C>> for SigningShare<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<SigningShare<C>> for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: SigningShare<C>) -> Self {
+        Self(value.to_bytes())
+    }
+}
+
 /// A public group element that represents a single signer's public verification share.
 #[derive(Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct VerifyingShare<C>(pub(super) Element<C>)
 where
     C: Ciphersuite;
@@ -137,11 +169,36 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ElementSerialization<C>> for VerifyingShare<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<VerifyingShare<C>> for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: VerifyingShare<C>) -> Self {
+        Self(value.to_bytes())
+    }
+}
+
 /// A [`Group::Element`] newtype that is a commitment to one coefficient of our secret polynomial.
 ///
 /// This is a (public) commitment to one coefficient of a secret polynomial used for performing
 /// verifiable secret sharing for a Shamir secret share.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct CoefficientCommitment<C: Ciphersuite>(pub(crate) Element<C>);
 
 impl<C> CoefficientCommitment<C>
@@ -166,6 +223,28 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ElementSerialization<C>> for CoefficientCommitment<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
+        Self::deserialize(value.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<CoefficientCommitment<C>> for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: CoefficientCommitment<C>) -> Self {
+        Self(value.serialize())
+    }
+}
+
 /// Contains the commitments to the coefficients for our secret polynomial _f_,
 /// used to generate participants' key shares.
 ///
@@ -178,7 +257,8 @@ where
 /// [`VerifiableSecretSharingCommitment`], either by performing pairwise comparison, or by using
 /// some agreed-upon public location for publication, where each participant can
 /// ensure that they received the correct (and same) value.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
     pub(crate) Vec<CoefficientCommitment<C>>,
 );
@@ -219,22 +299,49 @@ where
 ///
 /// To derive a FROST keypair, the receiver of the [`SecretShare`] *must* call
 /// .into(), which under the hood also performs validation.
-#[derive(Clone, Zeroize)]
+#[derive(Clone, Zeroize, PartialEq, Eq, Getters)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SecretShare<C: Ciphersuite> {
     /// The participant identifier of this [`SecretShare`].
     #[zeroize(skip)]
-    pub identifier: Identifier<C>,
+    pub(crate) identifier: Identifier<C>,
     /// Secret Key.
-    pub value: SigningShare<C>,
+    pub(crate) value: SigningShare<C>,
     #[zeroize(skip)]
     /// The commitments to be distributed among signers.
-    pub commitment: VerifiableSecretSharingCommitment<C>,
+    pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
+    /// Ciphersuite ID for serialization
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    #[getter(skip)]
+    ciphersuite: (),
 }
 
 impl<C> SecretShare<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`SecretShare`] instance.
+    pub fn new(
+        identifier: Identifier<C>,
+        value: SigningShare<C>,
+        commitment: VerifiableSecretSharingCommitment<C>,
+    ) -> Self {
+        SecretShare {
+            identifier,
+            value,
+            commitment,
+            ciphersuite: (),
+        }
+    }
+
     /// Gets the inner [`SigningShare`] value.
     pub fn secret(&self) -> &SigningShare<C> {
         &self.value
@@ -332,6 +439,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         PublicKeyPackage {
             signer_pubkeys,
             group_public,
+            ciphersuite: (),
         },
     ))
 }
@@ -379,40 +487,49 @@ fn evaluate_vss<C: Ciphersuite>(
 /// When using a central dealer, [`SecretShare`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Getters)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant identifier each secret share key package is owned by.
-    pub identifier: Identifier<C>,
+    pub(crate) identifier: Identifier<C>,
     /// This participant's secret share.
-    pub secret_share: SigningShare<C>,
+    pub(crate) secret_share: SigningShare<C>,
     /// This participant's public key.
-    pub public: VerifyingShare<C>,
+    pub(crate) public: VerifyingShare<C>,
     /// The public signing key that represents the entire group.
-    pub group_public: VerifyingKey<C>,
+    pub(crate) group_public: VerifyingKey<C>,
+    /// Ciphersuite ID for serialization
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    #[getter(skip)]
+    ciphersuite: (),
 }
 
 impl<C> KeyPackage<C>
 where
     C: Ciphersuite,
 {
-    /// Gets the participant identifier associated with this [`KeyPackage`].
-    pub fn identifier(&self) -> &Identifier<C> {
-        &self.identifier
-    }
-
-    /// Gets the participant's [`SigningShare`] associated with this [`KeyPackage`].
-    pub fn secret_share(&self) -> &SigningShare<C> {
-        &self.secret_share
-    }
-
-    /// Gets the participant's [`VerifyingShare`] associated with the [`SigningShare`] in this [`KeyPackage`].
-    pub fn public(&self) -> &VerifyingShare<C> {
-        &self.public
-    }
-
-    /// Gets the group [`VerifyingKey`] associated with the entire group in this [`KeyPackage`].
-    pub fn group_public(&self) -> &VerifyingKey<C> {
-        &self.group_public
+    /// Create a new [`KeyPackage`] instance.
+    pub fn new(
+        identifier: Identifier<C>,
+        secret_share: SigningShare<C>,
+        public: VerifyingShare<C>,
+        group_public: VerifyingKey<C>,
+    ) -> Self {
+        Self {
+            identifier,
+            secret_share,
+            public,
+            group_public,
+            ciphersuite: (),
+        }
     }
 }
 
@@ -438,6 +555,7 @@ where
             secret_share: secret_share.value,
             public,
             group_public,
+            ciphersuite: (),
         })
     }
 }
@@ -446,14 +564,45 @@ where
 /// group public key.
 ///
 /// Used for verification purposes before publishing a signature.
+#[derive(PartialEq, Eq, Getters)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {
     /// When performing signing, the coordinator must ensure that they have the
     /// correct view of participants' public keys to perform verification before
     /// publishing a signature. `signer_pubkeys` represents all signers for a
     /// signing operation.
-    pub signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
+    pub(crate) signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
-    pub group_public: VerifyingKey<C>,
+    pub(crate) group_public: VerifyingKey<C>,
+    /// Ciphersuite ID for serialization
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    #[getter(skip)]
+    ciphersuite: (),
+}
+
+impl<C> PublicKeyPackage<C>
+where
+    C: Ciphersuite,
+{
+    /// Create a new [`PublicKeyPackage`] instance.
+    pub fn new(
+        signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
+        group_public: VerifyingKey<C>,
+    ) -> Self {
+        Self {
+            signer_pubkeys,
+            group_public,
+            ciphersuite: (),
+        }
+    }
 }
 
 /// Generate a secret polynomial to use in secret sharing, for the given
@@ -538,6 +687,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
             identifier: id,
             value: SigningShare(value),
             commitment: commitment.clone(),
+            ciphersuite: (),
         });
     }
 

@@ -1,7 +1,11 @@
 //! FROST Round 1 functionality and types
 
-use std::fmt::{self, Debug};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Debug},
+};
 
+use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
@@ -9,6 +13,9 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
 use crate::{frost, Ciphersuite, Element, Error, Field, Group, Scalar};
+
+#[cfg(feature = "serde")]
+use crate::ElementSerialization;
 
 use super::{keys::SigningShare, Identifier};
 
@@ -106,7 +113,10 @@ where
 }
 
 /// A Ristretto point that is a commitment to a signing nonce share.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct NonceCommitment<C: Ciphersuite>(pub(super) Element<C>);
 
 impl<C> NonceCommitment<C>
@@ -123,6 +133,28 @@ where
     /// Serialize [`NonceCommitment`] to bytes
     pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
         <C::Group>::serialize(&self.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ElementSerialization<C>> for NonceCommitment<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<NonceCommitment<C>> for ElementSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: NonceCommitment<C>) -> Self {
+        Self(value.to_bytes())
     }
 }
 
@@ -179,9 +211,9 @@ where
 #[derive(Clone, Zeroize)]
 pub struct SigningNonces<C: Ciphersuite> {
     /// The hiding [`Nonce`].
-    pub hiding: Nonce<C>,
+    pub(crate) hiding: Nonce<C>,
     /// The binding [`Nonce`].
-    pub binding: Nonce<C>,
+    pub(crate) binding: Nonce<C>,
 }
 
 impl<C> SigningNonces<C>
@@ -219,20 +251,47 @@ where
 ///
 /// This step can be batched if desired by the implementation. Each
 /// SigningCommitment can be used for exactly *one* signature.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Getters)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningCommitments<C: Ciphersuite> {
     /// The participant identifier.
-    pub identifier: Identifier<C>,
+    pub(crate) identifier: Identifier<C>,
     /// Commitment to the hiding [`Nonce`].
-    pub hiding: NonceCommitment<C>,
+    pub(crate) hiding: NonceCommitment<C>,
     /// Commitment to the binding [`Nonce`].
-    pub binding: NonceCommitment<C>,
+    pub(crate) binding: NonceCommitment<C>,
+    /// Ciphersuite ID for serialization
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    #[getter(skip)]
+    ciphersuite: (),
 }
 
 impl<C> SigningCommitments<C>
 where
     C: Ciphersuite,
 {
+    /// Create new SigningCommitments
+    pub fn new(
+        identifier: Identifier<C>,
+        hiding: NonceCommitment<C>,
+        binding: NonceCommitment<C>,
+    ) -> Self {
+        Self {
+            identifier,
+            hiding,
+            binding,
+            ciphersuite: (),
+        }
+    }
+
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
@@ -242,16 +301,6 @@ where
         binding_factor: &frost::BindingFactor<C>,
     ) -> GroupCommitmentShare<C> {
         GroupCommitmentShare::<C>(self.hiding.0 + (self.binding.0 * binding_factor.0))
-    }
-
-    /// Gets the hiding [`NonceCommitment`].
-    pub fn hiding(&self) -> &NonceCommitment<C> {
-        &self.hiding
-    }
-
-    /// Gets the binding [`NonceCommitment`].
-    pub fn binding(&self) -> &NonceCommitment<C> {
-        &self.binding
     }
 }
 
@@ -264,6 +313,7 @@ where
             identifier,
             hiding: nonces.hiding.clone().into(),
             binding: nonces.binding.clone().into(),
+            ciphersuite: (),
         }
     }
 }
@@ -288,17 +338,11 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 ///
 /// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-list-operations
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
-    signing_commitments: Vec<SigningCommitments<C>>,
+    signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
 ) -> Vec<u8> {
-    // B MUST be sorted in ascending order by signer identifier.
-    //
-    // TODO: AtLeastOne or other explicitly Sorted wrapper types?
-    let mut sorted_signing_commitments = signing_commitments;
-    sorted_signing_commitments.sort_by_key(|a| a.identifier);
-
     let mut bytes = vec![];
 
-    for item in sorted_signing_commitments {
+    for item in signing_commitments.values() {
         bytes.extend_from_slice(item.identifier.serialize().as_ref());
         bytes.extend_from_slice(<C::Group>::serialize(&item.hiding.0).as_ref());
         bytes.extend_from_slice(<C::Group>::serialize(&item.binding.0).as_ref());

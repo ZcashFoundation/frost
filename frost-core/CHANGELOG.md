@@ -10,7 +10,12 @@ Entries are listed in reverse chronological order.
 
 ## 0.5.0
 
-* expose SigningShare, VerifyingShare, NonceCommitment and SignatureResponse in ciphersuite librarie
+* expose SigningShare, VerifyingShare, NonceCommitment and SignatureResponse in ciphersuite libraries
+* most structs now have a private field which mean that they can no longer be
+  instantiated directly. `new()` methods have been added to them.
+* change `SigningPackage::new()` to take `&[u8]P  instead of `Vec<u8>`
+* add `serde` support under `serde` feature to allow encoding structs which
+  need to be communicated between participants.
 * expand docs to show the overall structure and contents
 
 ## 0.4.0

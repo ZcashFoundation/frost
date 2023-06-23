@@ -19,9 +19,12 @@ features = ["nightly"]
 [dependencies]
 byteorder = "1.4"
 debugless-unwrap = "0.0.4"
+derive-getters = "0.3.0"
 digest = "0.10"
 hex = { version = "0.4.3", features = ["serde"] }
 rand_core = "0.6"
+serde = { version = "1.0.160", features = ["derive"], optional = true }
+serdect = { version = "0.2.0", optional = true }
 thiserror = "1.0"
 visibility = "0.0.1"
 zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
@@ -46,6 +49,7 @@ sha2 = "0.10.2"
 nightly = []
 default = []
 internals = []
+serde = ["dep:serde", "dep:serdect"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["proptest", "proptest-derive", "serde_json", "criterion"]
 

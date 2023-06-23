@@ -70,7 +70,7 @@ let message = "message to sign".as_bytes();
 # // In practice, the SigningPackage must be sent to all participants
 # // involved in the current signing (at least min_signers participants),
 # // using an authenticate channel (and confidential if the message is secret).
-let signing_package = frost::SigningPackage::new(commitments_received, message.to_vec());
+let signing_package = frost::SigningPackage::new(commitments_received, message);
 # // ANCHOR_END: round2_package
 
 ////////////////////////////////////////////////////////////////////////////
@@ -108,7 +108,7 @@ let group_signature = frost::aggregate(&signing_package, &signature_shares[..], 
 // key (the verification key).
 # // ANCHOR: verify
 let is_signature_valid = pubkey_package
-    .group_public
+    .group_public()
     .verify(message, &group_signature)
     .is_ok();
 # // ANCHOR_END: verify
