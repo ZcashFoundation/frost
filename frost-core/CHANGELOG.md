@@ -7,6 +7,12 @@ Entries are listed in reverse chronological order.
 ## 0.5.0
 
 * add SigningShare type to ciphersuite libraries
+* most structs now have a private field which mean that they can no longer be
+  instantiated directly. `new()` methods have been added to them.
+* change `SigningPackage::new()` to take `&[u8]P  instead of `Vec<u8>`
+* expose `NonceCommitment` and `SignatureResponse` in ciphersuite crates
+* add `serde` support under `serde` feature to allow encoding structs which
+  need to be communicated between participants.
 
 ## Released
 

@@ -180,11 +180,11 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let actual_sigma: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar =
         generate_scalar_from_byte_string::<C>(sigmas["sigma_sum"].as_str().unwrap());
-    let actual: SecretShare<C> = SecretShare {
-        identifier: Identifier::try_from(2).unwrap(),
-        value: SigningShare(actual_sigma),
+    let actual: SecretShare<C> = SecretShare::new(
+        Identifier::try_from(2).unwrap(),
+        SigningShare(actual_sigma),
         commitment,
-    };
+    );
 
     assert!(actual.value == expected.value);
 }

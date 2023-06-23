@@ -150,6 +150,8 @@ const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v11";
 pub struct Ed25519Sha512;
 
 impl Ciphersuite for Ed25519Sha512 {
+    const ID: &'static str = "FROST(Ed25519, SHA-512)";
+
     type Group = Ed25519Group;
 
     type HashOutput = [u8; 64];

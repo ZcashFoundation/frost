@@ -66,12 +66,12 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
                 .unwrap();
         let signer_public = secret.into();
 
-        let key_package = KeyPackage::<C> {
-            identifier: u16::from_str(i).unwrap().try_into().unwrap(),
-            secret_share: secret,
-            public: signer_public,
+        let key_package = KeyPackage::<C>::new(
+            u16::from_str(i).unwrap().try_into().unwrap(),
+            secret,
+            signer_public,
             group_public,
-        };
+        );
 
         key_packages.insert(*key_package.identifier(), key_package);
     }
@@ -109,15 +109,12 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 
         signer_nonces.insert(identifier, signing_nonces);
 
-        let signing_commitments = SigningCommitments::<C> {
+        let signing_commitments = SigningCommitments::<C>::new(
             identifier,
-            hiding: NonceCommitment::from_hex(signer["hiding_nonce_commitment"].as_str().unwrap())
+            NonceCommitment::from_hex(signer["hiding_nonce_commitment"].as_str().unwrap()).unwrap(),
+            NonceCommitment::from_hex(signer["binding_nonce_commitment"].as_str().unwrap())
                 .unwrap(),
-            binding: NonceCommitment::from_hex(
-                signer["binding_nonce_commitment"].as_str().unwrap(),
-            )
-            .unwrap(),
-        };
+        );
 
         signer_commitments.insert(identifier, signing_commitments);
 
@@ -148,12 +145,12 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         )
         .debugless_unwrap();
 
-        let signature_share = SignatureShare::<C> {
-            identifier: u16::from_str(i).unwrap().try_into().unwrap(),
-            signature: SignatureResponse {
+        let signature_share = SignatureShare::<C>::new(
+            u16::from_str(i).unwrap().try_into().unwrap(),
+            SignatureResponse {
                 z_share: <<C::Group as Group>::Field>::deserialize(&sig_share).unwrap(),
             },
-        };
+        );
 
         signature_shares.insert(
             u16::from_str(i).unwrap().try_into().unwrap(),
@@ -275,7 +272,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     let signer_commitments_vec = signer_commitments.into_values().collect();
 
-    let signing_package = frost::SigningPackage::new(signer_commitments_vec, message_bytes);
+    let signing_package = frost::SigningPackage::new(signer_commitments_vec, &message_bytes);
 
     for (identifier, input) in signing_package.binding_factor_preimages(&[]).iter() {
         assert_eq!(*input, binding_factor_inputs[identifier]);
@@ -310,10 +307,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         .map(|(i, key_package)| (i, *key_package.public()))
         .collect();
 
-    let pubkey_package = frost::keys::PublicKeyPackage {
-        signer_pubkeys,
-        group_public,
-    };
+    let pubkey_package = frost::keys::PublicKeyPackage::new(signer_pubkeys, group_public);
 
     ////////////////////////////////////////////////////////////////////////////
     // Aggregation:  collects the signing shares from all participants,

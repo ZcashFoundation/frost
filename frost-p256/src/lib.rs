@@ -170,6 +170,8 @@ const CONTEXT_STRING: &str = "FROST-P256-SHA256-v11";
 pub struct P256Sha256;
 
 impl Ciphersuite for P256Sha256 {
+    const ID: &'static str = "FROST(P-256, SHA-256)";
+
     type Group = P256Group;
 
     type HashOutput = [u8; 32];
