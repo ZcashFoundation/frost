@@ -4,7 +4,7 @@ edition = "2021"
 # When releasing to crates.io:
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.4.0"
+version = "0.5.0"
 authors = [
     "Deirdre Connolly <durumcrustulum@gmail.com>",
     "Chelsea Komlo <me@chelseakomlo.com>",
@@ -22,7 +22,7 @@ features = ["nightly"]
 
 [dependencies]
 ed448-goldilocks = { version = "0.9.0" }
-frost-core = { path = "../frost-core", version = "0.4.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.5.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha3 = "0.10.6"
 
