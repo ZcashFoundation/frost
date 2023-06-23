@@ -9,6 +9,7 @@ use std::{
     iter,
 };
 
+use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
@@ -298,18 +299,18 @@ where
 ///
 /// To derive a FROST keypair, the receiver of the [`SecretShare`] *must* call
 /// .into(), which under the hood also performs validation.
-#[derive(Clone, Zeroize, PartialEq, Eq)]
+#[derive(Clone, Zeroize, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SecretShare<C: Ciphersuite> {
     /// The participant identifier of this [`SecretShare`].
     #[zeroize(skip)]
-    pub identifier: Identifier<C>,
+    pub(crate) identifier: Identifier<C>,
     /// Secret Key.
-    pub value: SigningShare<C>,
+    pub(crate) value: SigningShare<C>,
     #[zeroize(skip)]
     /// The commitments to be distributed among signers.
-    pub commitment: VerifiableSecretSharingCommitment<C>,
+    pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
         feature = "serde",
@@ -319,6 +320,7 @@ pub struct SecretShare<C: Ciphersuite> {
         feature = "serde",
         serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
     )]
+    #[getter(skip)]
     ciphersuite: (),
 }
 
@@ -485,18 +487,18 @@ fn evaluate_vss<C: Ciphersuite>(
 /// When using a central dealer, [`SecretShare`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant identifier each secret share key package is owned by.
-    pub identifier: Identifier<C>,
+    pub(crate) identifier: Identifier<C>,
     /// This participant's secret share.
-    pub secret_share: SigningShare<C>,
+    pub(crate) secret_share: SigningShare<C>,
     /// This participant's public key.
-    pub public: VerifyingShare<C>,
+    pub(crate) public: VerifyingShare<C>,
     /// The public signing key that represents the entire group.
-    pub group_public: VerifyingKey<C>,
+    pub(crate) group_public: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
         feature = "serde",
@@ -506,6 +508,7 @@ pub struct KeyPackage<C: Ciphersuite> {
         feature = "serde",
         serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
     )]
+    #[getter(skip)]
     ciphersuite: (),
 }
 
@@ -527,26 +530,6 @@ where
             group_public,
             ciphersuite: (),
         }
-    }
-
-    /// Gets the participant identifier associated with this [`KeyPackage`].
-    pub fn identifier(&self) -> &Identifier<C> {
-        &self.identifier
-    }
-
-    /// Gets the participant's [`SigningShare`] associated with this [`KeyPackage`].
-    pub fn secret_share(&self) -> &SigningShare<C> {
-        &self.secret_share
-    }
-
-    /// Gets the participant's [`VerifyingShare`] associated with the [`SigningShare`] in this [`KeyPackage`].
-    pub fn public(&self) -> &VerifyingShare<C> {
-        &self.public
-    }
-
-    /// Gets the group [`VerifyingKey`] associated with the entire group in this [`KeyPackage`].
-    pub fn group_public(&self) -> &VerifyingKey<C> {
-        &self.group_public
     }
 }
 
@@ -581,7 +564,7 @@ where
 /// group public key.
 ///
 /// Used for verification purposes before publishing a signature.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {
@@ -589,9 +572,9 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     /// correct view of participants' public keys to perform verification before
     /// publishing a signature. `signer_pubkeys` represents all signers for a
     /// signing operation.
-    pub signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
+    pub(crate) signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
-    pub group_public: VerifyingKey<C>,
+    pub(crate) group_public: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
         feature = "serde",
@@ -601,6 +584,7 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
         feature = "serde",
         serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
     )]
+    #[getter(skip)]
     ciphersuite: (),
 }
 

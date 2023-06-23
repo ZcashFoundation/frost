@@ -1,3 +1,9 @@
+// Required since each integration test is compiled as a separated crate,
+// and each one uses only part of the module.
+#![allow(dead_code)]
+
+pub mod samples;
+
 use ed25519_dalek::Verifier;
 use frost_ed25519::*;
 
