@@ -387,7 +387,7 @@ pub struct KeyPackage<C: Ciphersuite> {
     pub secret_share: SigningShare<C>,
     /// This participant's public key.
     pub public: VerifyingShare<C>,
-    /// The public signing key that represents the entire group.
+    /// The public verifying key that represents the entire group.
     pub group_public: VerifyingKey<C>,
 }
 
