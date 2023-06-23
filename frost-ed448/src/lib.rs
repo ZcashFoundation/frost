@@ -14,6 +14,9 @@ use sha3::{
 
 use frost_core::frost;
 
+#[cfg(feature = "serde")]
+use frost_core::serde;
+
 #[cfg(test)]
 mod tests;
 
@@ -142,6 +145,8 @@ const CONTEXT_STRING: &str = "FROST-ED448-SHAKE256-v11";
 
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct Ed448Shake256;
 
 impl Ciphersuite for Ed448Shake256 {
