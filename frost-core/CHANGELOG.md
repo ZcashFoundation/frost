@@ -4,11 +4,14 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
-## 0.5.0
-
-* add SigningShare type to ciphersuite libraries
+## 0.6.0
 
 ## Released
+
+## 0.5.0
+
+* expose SigningShare, VerifyingShare, NonceCommitment and SignatureResponse in ciphersuite librarie
+* expand docs to show the overall structure and contents
 
 ## 0.4.0
 
