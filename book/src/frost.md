@@ -38,7 +38,7 @@ distribute each share to their respective participants.
 
 [Learn how to do Trusted Dealer Generation with the ZF FROST library](tutorial.md#generating-key-shares-with-a-trusted-dealer).
 
-### Distribtuted Key Generation
+### Distributed Key Generation
 
 A two-round protocol after which each participant will have their share of the
 secret, without the secret being ever present in its entirety in any

@@ -7,7 +7,7 @@ channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel). Note
 that the first dashed line requires a [**broadcast
 channel**](https://frost.zfnd.org/terminology.html#broadcast-channel)
 
-![Diagram of Distribtuted Key Generation, illustrating what is explained in the text](dkg/dkg.png)
+![Diagram of Distributed Key Generation, illustrating what is explained in the text](dkg/dkg.png)
 
 ## Part 1
 

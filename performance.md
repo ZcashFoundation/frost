@@ -7,7 +7,7 @@ FROST is a threshold Schnorr signature scheme
 [invented](https://eprint.iacr.org/2020/852) by Chelsea Komlo (researcher at the
 Zcash Foundation) and Ian Goldberg, and in the process of becoming an [IETF
 RFC](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/). Threshold
-signatures allows a private key being split into shares given to multiple
+signatures allow a private key being split into shares given to multiple
 participants, allowing a subgroup of them (e.g. 3 out of 5, or whatever
 threshold specified at key generation) to generate a signature that can be
 verified by the group public key, as if it were signed by the original unsplit
@@ -26,8 +26,8 @@ When we presented FROST at Zcon 3, we were asked how FROST performed in larger
 settings, such as a 667-of-1000 signers. (This is motivated by a mechanism
 proposed by Christopher Goes for [bridging Zcash with other ecosystems using
 FROST](https://forum.zcashcommunity.com/t/proposed-architecture-for-a-zcash-namada-ibc-ecosystem-ethereum-ecosystem-non-custodial-bridge-using-frost-multisignatures/42749).)
-We set out to benchmark our Rust implementation, and I was a bit surprised about
-one particular step, “Aggregate”.
+We set out to benchmark our Rust implementation, and were a bit surprised about
+one particular step: “Aggregate”.
 
 The FROST scheme can be split into steps. The first one is Key Generation, which
 only needs to be done once, while the rest are carried out each time the group
@@ -52,7 +52,7 @@ number), but the Aggregate timings appeared too high, surpassing 400ms for the
 667-of-1000 case (which may not seem much but it’s unusual for a signing
 procedure).
 
-I intended to investigate this but I didn’t even need to. Coincidentally, while
+We intended to investigate this but it was not necessary. Coincidentally, while
 the RFC was in the last call for feedback, Tim Ruffing [pointed
 out](https://mailarchive.ietf.org/arch/msg/cfrg/QQhyjvvcoaqLslaX3gWwABqHN-s/)
 that Aggregate can be sped up significantly. Originally, it was specified that
