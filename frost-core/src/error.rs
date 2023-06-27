@@ -20,6 +20,9 @@ pub enum Error<C: Ciphersuite> {
     /// This identifier is unserializable.
     #[error("Malformed identifier is unserializable.")]
     MalformedIdentifier,
+    /// This identifier is duplicated.
+    #[error("Duplicated identifier.")]
+    DuplicatedIdentifier,
     /// The encoding of a signing key was malformed.
     #[error("Malformed signing key encoding.")]
     MalformedSigningKey,

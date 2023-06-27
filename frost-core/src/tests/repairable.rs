@@ -32,7 +32,13 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let max_signers = 5;
     let min_signers = 3;
     let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+        frost::keys::generate_with_dealer(
+            max_signers,
+            min_signers,
+            frost::keys::IdentifierList::Default,
+            &mut rng,
+        )
+        .unwrap();
 
     // Try to recover a share
 
@@ -101,7 +107,13 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
     let max_signers = 5;
     let min_signers = 3;
     let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+        frost::keys::generate_with_dealer(
+            max_signers,
+            min_signers,
+            frost::keys::IdentifierList::Default,
+            &mut rng,
+        )
+        .unwrap();
 
     // Signer 2 will lose their share
     // Signers (helpers) 1, 4 and 5 will help signer 2 (participant) to recover their share
@@ -161,7 +173,13 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     let max_signers = 5;
     let min_signers = 3;
     let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+        frost::keys::generate_with_dealer(
+            max_signers,
+            min_signers,
+            frost::keys::IdentifierList::Default,
+            &mut rng,
+        )
+        .unwrap();
 
     let sigmas: &Value = &repair_share_helpers["sigma_generation"];
 

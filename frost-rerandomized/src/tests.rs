@@ -18,8 +18,13 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, pubkeys) =
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+    let (shares, pubkeys) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
 
     // Verifies the secret shares from the dealer
     let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =

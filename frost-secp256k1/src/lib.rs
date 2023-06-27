@@ -238,14 +238,18 @@ pub mod keys {
     use super::*;
     use std::collections::HashMap;
 
+    /// The identifier list to use when generating key shares.
+    pub type IdentifierList<'a> = frost::keys::IdentifierList<'a, S>;
+
     /// Allows all participants' keys to be generated using a central, trusted
     /// dealer.
     pub fn generate_with_dealer<RNG: RngCore + CryptoRng>(
         max_signers: u16,
         min_signers: u16,
+        identifiers: IdentifierList,
         mut rng: RNG,
     ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng)
+        frost::keys::generate_with_dealer(max_signers, min_signers, identifiers, &mut rng)
     }
 
     /// Splits an existing key into FROST shares.
@@ -258,9 +262,10 @@ pub mod keys {
         secret: &SigningKey,
         max_signers: u16,
         min_signers: u16,
+        identifiers: IdentifierList,
         rng: &mut R,
     ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
-        frost::keys::split(secret, max_signers, min_signers, rng)
+        frost::keys::split(secret, max_signers, min_signers, identifiers, rng)
     }
 
     /// Recompute the secret from t-of-n secret shares using Lagrange interpolation.
