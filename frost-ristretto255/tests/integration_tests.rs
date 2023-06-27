@@ -48,3 +48,8 @@ fn check_sign_with_test_vectors() {
         &VECTORS_BIG_IDENTIFIER,
     );
 }
+
+#[test]
+fn check_identifier_derivation() {
+    frost_core::tests::ciphersuite_generic::check_identifier_derivation::<Ristretto255Sha512>();
+}
