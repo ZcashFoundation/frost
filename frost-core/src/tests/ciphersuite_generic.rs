@@ -5,7 +5,6 @@ use crate::{
     frost::{self},
     Error, Signature, VerifyingKey,
 };
-use debugless_unwrap::DebuglessUnwrapErr;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -39,7 +38,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     // Test error cases
 
     assert_eq!(
-        frost::keys::reconstruct::<C>(&[]).debugless_unwrap_err(),
+        frost::keys::reconstruct::<C>(&[]).unwrap_err(),
         Error::IncorrectNumberOfShares
     );
 
@@ -47,7 +46,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     secret_shares[0] = secret_shares[1].clone();
 
     assert_eq!(
-        frost::keys::reconstruct::<C>(&secret_shares).debugless_unwrap_err(),
+        frost::keys::reconstruct::<C>(&secret_shares).unwrap_err(),
         Error::DuplicatedShares
     );
 }

@@ -67,9 +67,7 @@ where
     C: Ciphersuite,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("SigningShare")
-            .field(&hex::encode(self.to_bytes()))
-            .finish()
+        f.debug_tuple("SigningShare").field(&"<redacted>").finish()
     }
 }
 
@@ -223,6 +221,17 @@ where
     }
 }
 
+impl<C> Debug for CoefficientCommitment<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("CoefficientCommitment")
+            .field(&hex::encode(self.serialize()))
+            .finish()
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<C> TryFrom<ElementSerialization<C>> for CoefficientCommitment<C>
 where
@@ -257,7 +266,7 @@ where
 /// [`VerifiableSecretSharingCommitment`], either by performing pairwise comparison, or by using
 /// some agreed-upon public location for publication, where each participant can
 /// ensure that they received the correct (and same) value.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
     pub(crate) Vec<CoefficientCommitment<C>>,
@@ -299,7 +308,7 @@ where
 ///
 /// To derive a FROST keypair, the receiver of the [`SecretShare`] *must* call
 /// .into(), which under the hood also performs validation.
-#[derive(Clone, Zeroize, PartialEq, Eq, Getters)]
+#[derive(Clone, Debug, Zeroize, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SecretShare<C: Ciphersuite> {
@@ -487,7 +496,7 @@ fn evaluate_vss<C: Ciphersuite>(
 /// When using a central dealer, [`SecretShare`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Clone, PartialEq, Eq, Getters)]
+#[derive(Clone, Debug, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct KeyPackage<C: Ciphersuite> {
@@ -564,7 +573,7 @@ where
 /// group public key.
 ///
 /// Used for verification purposes before publishing a signature.
-#[derive(PartialEq, Eq, Getters)]
+#[derive(Clone, Debug, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {
