@@ -74,7 +74,9 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("Identifier")
-            .field(&<<C::Group as Group>::Field>::serialize(&self.0).as_ref())
+            .field(&hex::encode(
+                <<C::Group as Group>::Field>::serialize(&self.0).as_ref(),
+            ))
             .finish()
     }
 }

@@ -408,7 +408,6 @@ fn check_round1_package_serialization() {
     assert!(round1_package == decoded_round1_package);
 
     let json = r#"{
-        "sender_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         ],
@@ -421,20 +420,8 @@ fn check_round1_package_serialization() {
     let invalid_json = "{}";
     assert!(serde_json::from_str::<round1::Package>(invalid_json).is_err());
 
-    // Invalid identifier
-    let invalid_json = r#"{
-        "sender_identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "commitment": [
-          "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
-        ],
-        "proof_of_knowledge": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "ciphersuite": "FROST(ristretto255, SHA-512)"
-      }"#;
-    assert!(serde_json::from_str::<round1::Package>(invalid_json).is_err());
-
     // Invalid field
     let invalid_json = r#"{
-        "sender_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         ],
@@ -445,7 +432,6 @@ fn check_round1_package_serialization() {
 
     // Missing field
     let invalid_json = r#"{
-        "sender_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         ],
@@ -455,7 +441,6 @@ fn check_round1_package_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "sender_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         ],
@@ -477,8 +462,6 @@ fn check_round2_package_serialization() {
     assert!(round2_package == decoded_round2_package);
 
     let json = r#"{
-        "sender_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "receiver_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
@@ -488,36 +471,21 @@ fn check_round2_package_serialization() {
     let invalid_json = "{}";
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
 
-    // Invalid identifier
-    let invalid_json = r#"{
-        "sender_identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "receiver_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "ciphersuite": "FROST(ristretto255, SHA-512)"
-      }"#;
-    assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
-
     // Invalid field
     let invalid_json = r#"{
-        "sender_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "foo": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "foo": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
 
     // Missing field
     let invalid_json = r#"{
-        "sender_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
 
     // Extra field
     let invalid_json = r#"{
-        "sender_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "receiver_identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "extra": 1,
         "ciphersuite": "FROST(ristretto255, SHA-512)"

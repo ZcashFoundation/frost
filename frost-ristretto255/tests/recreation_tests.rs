@@ -100,11 +100,10 @@ fn check_public_key_package_recreation() {
 fn check_round1_package_recreation() {
     let round1_package = samples::round1_package();
 
-    let identifier = round1_package.sender_identifier();
     let vss_commitment = round1_package.commitment();
     let signature = round1_package.proof_of_knowledge();
 
-    let new_round1_package = round1::Package::new(*identifier, vss_commitment.clone(), *signature);
+    let new_round1_package = round1::Package::new(vss_commitment.clone(), *signature);
 
     assert!(round1_package == new_round1_package);
 }
@@ -114,12 +113,9 @@ fn check_round1_package_recreation() {
 fn check_round2_package_recreation() {
     let round2_package = samples::round2_package();
 
-    let sender_identifier = round2_package.sender_identifier();
-    let receiver_identifier = round2_package.receiver_identifier();
     let signing_share = round2_package.secret_share();
 
-    let new_round2_package =
-        round2::Package::new(*sender_identifier, *receiver_identifier, *signing_share);
+    let new_round2_package = round2::Package::new(*signing_share);
 
     assert!(round2_package == new_round2_package);
 }

@@ -194,7 +194,7 @@ where
     // will be sent through some communication channel.
     let mut received_round1_packages: HashMap<
         frost::Identifier<C>,
-        Vec<frost::keys::dkg::round1::Package<C>>,
+        HashMap<frost::Identifier<C>, frost::keys::dkg::round1::Package<C>>,
     > = HashMap::new();
 
     // For each participant, perform the first part of the DKG protocol.
@@ -221,8 +221,8 @@ where
                 .expect("should be nonzero");
             received_round1_packages
                 .entry(receiver_participant_identifier)
-                .or_insert_with(Vec::new)
-                .push(round1_package.clone());
+                .or_insert_with(HashMap::new)
+                .insert(participant_identifier, round1_package.clone());
         }
     }
 
@@ -260,11 +260,11 @@ where
         // sent through some communication channel.
         // Note that, in contrast to the previous part, here each other participant
         // gets its own specific package.
-        for round2_package in round2_packages {
+        for (receiver_identifier, round2_package) in round2_packages {
             received_round2_packages
-                .entry(round2_package.receiver_identifier)
-                .or_insert_with(Vec::new)
-                .push(round2_package);
+                .entry(receiver_identifier)
+                .or_insert_with(HashMap::new)
+                .insert(participant_identifier, round2_package);
         }
     }
 

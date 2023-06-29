@@ -57,8 +57,6 @@ pub mod round1 {
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
-        /// The identifier of the participant who is sending the package (i).
-        pub(crate) sender_identifier: Identifier<C>,
         /// The public commitment from the participant (C_i)
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
@@ -82,12 +80,10 @@ pub mod round1 {
     {
         /// Create a new [`Package`] instance.
         pub fn new(
-            sender_identifier: Identifier<C>,
             commitment: VerifiableSecretSharingCommitment<C>,
             proof_of_knowledge: Signature<C>,
         ) -> Self {
             Self {
-                sender_identifier,
                 commitment,
                 proof_of_knowledge,
                 ciphersuite: (),
@@ -132,10 +128,6 @@ pub mod round2 {
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
-        /// The identifier of the participant that generated the package (i).
-        pub(crate) sender_identifier: Identifier<C>,
-        /// The identifier of the participant what will receive the package (ℓ).
-        pub(crate) receiver_identifier: Identifier<C>,
         /// The secret share being sent.
         pub(crate) secret_share: SigningShare<C>,
         /// Ciphersuite ID for serialization
@@ -156,14 +148,8 @@ pub mod round2 {
         C: Ciphersuite,
     {
         /// Create a new [`Package`] instance.
-        pub fn new(
-            sender_identifier: Identifier<C>,
-            receiver_identifier: Identifier<C>,
-            secret_share: SigningShare<C>,
-        ) -> Self {
+        pub fn new(secret_share: SigningShare<C>) -> Self {
             Self {
-                sender_identifier,
-                receiver_identifier,
                 secret_share,
                 ciphersuite: (),
             }
@@ -233,7 +219,6 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
         max_signers,
     };
     let package = round1::Package {
-        sender_identifier: identifier,
         commitment,
         proof_of_knowledge: Signature { R: R_i, z: mu_i },
         ciphersuite: (),
@@ -264,21 +249,33 @@ where
 /// for the participant holding the given [`round1::SecretPackage`],
 /// given the received [`round1::Package`]s received from the other participants.
 ///
+/// `round1_packages` maps the identifier of each participant to the
+/// [`round1::Package`] they sent. These identifiers must come from whatever mapping
+/// the coordinator has between communication channels and participants, i.e.
+/// they must have assurance that the [`round1::Package`] came from
+/// the participant with that identifier.
+///
 /// It returns the [`round2::SecretPackage`] that must be kept in memory
-/// by the participant for the final step, and the [`round2::Package`]s that
-/// must be sent to other participants.
+/// by the participant for the final step, and the a map of [`round2::Package`]s that
+/// must be sent to each participant who has the given identifier in the map key.
 pub fn part2<C: Ciphersuite>(
     secret_package: round1::SecretPackage<C>,
-    round1_packages: &[round1::Package<C>],
-) -> Result<(round2::SecretPackage<C>, Vec<round2::Package<C>>), Error<C>> {
+    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
+) -> Result<
+    (
+        round2::SecretPackage<C>,
+        HashMap<Identifier<C>, round2::Package<C>>,
+    ),
+    Error<C>,
+> {
     if round1_packages.len() != (secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
     }
 
-    let mut round2_packages = Vec::new();
+    let mut round2_packages = HashMap::new();
 
-    for round1_package in round1_packages {
-        let ell = round1_package.sender_identifier;
+    for (sender_identifier, round1_package) in round1_packages {
+        let ell = *sender_identifier;
         // Round 1, Step 5
         //
         // > Upon receiving C⃗_ℓ, σ_ℓ from participants 1 ≤ ℓ ≤ n, ℓ ≠ i, participant
@@ -300,12 +297,13 @@ pub fn part2<C: Ciphersuite>(
         // > which they keep for themselves.
         let value = evaluate_polynomial(ell, &secret_package.coefficients);
 
-        round2_packages.push(round2::Package {
-            sender_identifier: secret_package.identifier,
-            receiver_identifier: ell,
-            secret_share: SigningShare(value),
-            ciphersuite: (),
-        });
+        round2_packages.insert(
+            ell,
+            round2::Package {
+                secret_share: SigningShare(value),
+                ciphersuite: (),
+            },
+        );
     }
     let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients);
     Ok((
@@ -322,8 +320,7 @@ pub fn part2<C: Ciphersuite>(
 /// Computes the verifying keys of the other participants for the third step
 /// of the DKG protocol.
 fn compute_verifying_keys<C: Ciphersuite>(
-    round2_packages: &[round2::Package<C>],
-    round1_packages_map: HashMap<Identifier<C>, &round1::Package<C>>,
+    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
     round2_secret_package: &round2::SecretPackage<C>,
 ) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, Error<C>> {
     // Round 2, Step 4
@@ -334,18 +331,18 @@ fn compute_verifying_keys<C: Ciphersuite>(
 
     // Note that in this loop, "i" refers to the other participant whose public verification share
     // we are computing, and not the current participant.
-    for i in round2_packages.iter().map(|p| p.sender_identifier) {
+    for i in round1_packages.keys().cloned() {
         let mut y_i = <C::Group>::identity();
 
         // We need to iterate through all commitment vectors, including our own,
         // so chain it manually
-        for commitments in round2_packages
-            .iter()
-            .map(|p| {
+        for commitment in round1_packages
+            .keys()
+            .map(|k| {
                 // Get the commitment vector for this participant
                 Ok::<&VerifiableSecretSharingCommitment<C>, Error<C>>(
-                    &round1_packages_map
-                        .get(&p.sender_identifier)
+                    &round1_packages
+                        .get(k)
                         .ok_or(Error::PackageNotFound)?
                         .commitment,
                 )
@@ -353,7 +350,7 @@ fn compute_verifying_keys<C: Ciphersuite>(
             // Chain our own commitment vector
             .chain(iter::once(Ok(&round2_secret_package.commitment)))
         {
-            y_i = y_i + evaluate_vss(commitments?, i);
+            y_i = y_i + evaluate_vss(commitment?, i);
         }
         let y_i = VerifyingShare(y_i);
         others_verifying_keys.insert(i, y_i);
@@ -366,14 +363,22 @@ fn compute_verifying_keys<C: Ciphersuite>(
 /// given the received [`round1::Package`]s and [`round2::Package`]s received from
 /// the other participants.
 ///
+/// `round1_packages` must be the same used in [`part2()`].
+///
+/// `round2_packages` maps the identifier of each participant to the
+/// [`round2::Package`] they sent. These identifiers must come from whatever mapping
+/// the coordinator has between communication channels and participants, i.e.
+/// they must have assurance that the [`round2::Package`] came from
+/// the participant with that identifier.
+///
 /// It returns the [`KeyPackage`] that has the long-lived key share for the
 /// participant, and the [`PublicKeyPackage`]s that has public information
 /// about all participants; both of which are required to compute FROST
 /// signatures.
 pub fn part3<C: Ciphersuite>(
     round2_secret_package: &round2::SecretPackage<C>,
-    round1_packages: &[round1::Package<C>],
-    round2_packages: &[round2::Package<C>],
+    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
+    round2_packages: &HashMap<Identifier<C>, round2::Package<C>>,
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
     if round1_packages.len() != (round2_secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
@@ -381,30 +386,26 @@ pub fn part3<C: Ciphersuite>(
     if round1_packages.len() != round2_packages.len() {
         return Err(Error::IncorrectNumberOfPackages);
     }
+    if round1_packages
+        .keys()
+        .any(|id| !round2_packages.contains_key(id))
+    {
+        return Err(Error::IncorrectPackage);
+    }
 
     let mut signing_share = <<C::Group as Group>::Field>::zero();
     let mut group_public = <C::Group>::identity();
 
-    let round1_packages_map: HashMap<Identifier<C>, &round1::Package<C>> = round1_packages
-        .iter()
-        .map(|package| (package.sender_identifier, package))
-        .collect();
-
-    for round2_package in round2_packages {
-        // Sanity check; was the package really meant to us?
-        if round2_package.receiver_identifier != round2_secret_package.identifier {
-            return Err(Error::IncorrectPackage);
-        }
-
+    for (sender_identifier, round2_package) in round2_packages {
         // Round 2, Step 2
         //
         // > Each P_i verifies their shares by calculating:
         // > g^{f_ℓ(i)} ≟ ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk}, aborting if the
         // > check fails.
-        let ell = round2_package.sender_identifier;
+        let ell = *sender_identifier;
         let f_ell_i = round2_package.secret_share;
 
-        let commitment = &round1_packages_map
+        let commitment = &round1_packages
             .get(&ell)
             .ok_or(Error::PackageNotFound)?
             .commitment;
@@ -450,8 +451,7 @@ pub fn part3<C: Ciphersuite>(
     //
     // > Any participant can compute the public verification share of any other participant
     // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
-    let mut all_verifying_keys =
-        compute_verifying_keys(round2_packages, round1_packages_map, round2_secret_package)?;
+    let mut all_verifying_keys = compute_verifying_keys(round1_packages, round2_secret_package)?;
 
     // Add the participant's own public verification share for consistency
     all_verifying_keys.insert(round2_secret_package.identifier, verifying_key);

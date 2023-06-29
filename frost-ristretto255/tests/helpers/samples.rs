@@ -98,7 +98,6 @@ pub fn public_key_package() -> PublicKeyPackage {
 
 /// Generate a sample round1::Package.
 pub fn round1_package() -> round1::Package {
-    let identifier = 42u16.try_into().unwrap();
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let serialized_signature = serialized_element
@@ -113,14 +112,13 @@ pub fn round1_package() -> round1::Package {
         VerifiableSecretSharingCommitment::deserialize(vec![serialized_element]).unwrap();
     let signature = Signature::from_bytes(serialized_signature).unwrap();
 
-    round1::Package::new(identifier, vss_commitment, signature)
+    round1::Package::new(vss_commitment, signature)
 }
 
 /// Generate a sample round2::Package.
 pub fn round2_package() -> round2::Package {
-    let identifier = 42u16.try_into().unwrap();
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let signing_share = SigningShare::from_bytes(serialized_scalar).unwrap();
 
-    round2::Package::new(identifier, identifier, signing_share)
+    round2::Package::new(signing_share)
 }
