@@ -147,12 +147,9 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         )
         .debugless_unwrap();
 
-        let signature_share = SignatureShare::<C>::new(
-            u16::from_str(i).unwrap().try_into().unwrap(),
-            SignatureResponse {
-                z_share: <<C::Group as Group>::Field>::deserialize(&sig_share).unwrap(),
-            },
-        );
+        let signature_share = SignatureShare::<C>::new(SignatureResponse {
+            z_share: <<C::Group as Group>::Field>::deserialize(&sig_share).unwrap(),
+        });
 
         signature_shares.insert(
             u16::from_str(i).unwrap().try_into().unwrap(),
@@ -285,7 +282,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         assert_eq!(*binding_factor, binding_factors[identifier]);
     }
 
-    let mut our_signature_shares: Vec<frost::round2::SignatureShare<C>> = Vec::new();
+    let mut our_signature_shares = HashMap::new();
 
     // Each participant generates their signature share
     for identifier in signer_nonces.keys() {
@@ -295,12 +292,10 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         // Each participant generates their signature share.
         let signature_share = frost::round2::sign(&signing_package, nonces, key_package).unwrap();
 
-        our_signature_shares.push(signature_share);
+        our_signature_shares.insert(*identifier, signature_share);
     }
 
-    for sig_share in our_signature_shares.clone() {
-        assert_eq!(sig_share, signature_shares[sig_share.identifier()]);
-    }
+    assert_eq!(our_signature_shares, signature_shares);
 
     let signer_pubkeys = key_packages
         .into_iter()
@@ -315,14 +310,8 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     ////////////////////////////////////////////////////////////////////////////
 
     // Aggregate the FROST signature from test vector sig shares
-    let group_signature_result = frost::aggregate(
-        &signing_package,
-        &signature_shares
-            .values()
-            .cloned()
-            .collect::<Vec<frost::round2::SignatureShare<C>>>(),
-        &pubkey_package,
-    );
+    let group_signature_result =
+        frost::aggregate(&signing_package, &signature_shares, &pubkey_package);
 
     // Check that the aggregation passed signature share verification and generation
     assert!(group_signature_result.is_ok());

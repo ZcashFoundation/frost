@@ -113,7 +113,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // This is what the signature aggregator / coordinator needs to do:
     // - decide what message to sign
     // - take one (unused) commitment per signing participant
-    let mut signature_shares = Vec::new();
+    let mut signature_shares = HashMap::new();
     let message = "message to sign".as_bytes();
     let signing_package = frost::SigningPackage::new(commitments_map, message);
 
@@ -129,7 +129,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
         // Each participant generates their signature share.
         let signature_share =
             frost::round2::sign(&signing_package, nonces_to_use, key_package).unwrap();
-        signature_shares.push(signature_share);
+        signature_shares.insert(*participant_identifier, signature_share);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -139,7 +139,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
 
     // Aggregate (also verifies the signature shares)
     let group_signature =
-        frost::aggregate(&signing_package, &signature_shares[..], &pubkey_package).unwrap();
+        frost::aggregate(&signing_package, &signature_shares, &pubkey_package).unwrap();
 
     // Check that the threshold signature can be verified by the group public
     // key (the verification key).

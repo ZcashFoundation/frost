@@ -91,8 +91,6 @@ where
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SignatureShare<C: Ciphersuite> {
-    /// Represents the participant identifier.
-    pub(crate) identifier: Identifier<C>,
     /// This participant's signature over the message.
     pub(crate) signature: SignatureResponse<C>,
     /// Ciphersuite ID for serialization
@@ -112,9 +110,8 @@ where
     C: Ciphersuite,
 {
     /// Create a new [`SignatureShare`].
-    pub fn new(identifier: Identifier<C>, signature: SignatureResponse<C>) -> Self {
+    pub fn new(signature: SignatureResponse<C>) -> Self {
         Self {
-            identifier,
             signature,
             ciphersuite: (),
         }
@@ -126,8 +123,9 @@ where
     /// This is the final step of [`verify_signature_share`] from the spec.
     ///
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
-    pub fn verify(
+    pub(crate) fn verify(
         &self,
+        identifier: Identifier<C>,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
         public_key: &frost::keys::VerifyingShare<C>,
         lambda_i: Scalar<C>,
@@ -136,9 +134,7 @@ where
         if (<C::Group>::generator() * self.signature.z_share)
             != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
-            return Err(Error::InvalidSignatureShare {
-                signer: self.identifier,
-            });
+            return Err(Error::InvalidSignatureShare { signer: identifier });
         }
 
         Ok(())
@@ -151,7 +147,6 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("SignatureShare")
-            .field("identifier", &self.identifier)
             .field("signature", &self.signature)
             .finish()
     }
@@ -171,7 +166,6 @@ fn compute_signature_share<C: Ciphersuite>(
         + (lambda_i * key_package.secret_share.0 * challenge.0);
 
     SignatureShare::<C> {
-        identifier: *key_package.identifier(),
         signature: SignatureResponse::<C> { z_share },
         ciphersuite: (),
     }

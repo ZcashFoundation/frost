@@ -53,11 +53,10 @@ pub fn signing_package() -> SigningPackage {
 
 /// Generate a sample SignatureShare.
 pub fn signature_share() -> SignatureShare {
-    let identifier = 42u16.try_into().unwrap();
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let signature_response = SignatureResponse::from_bytes(serialized_scalar).unwrap();
 
-    SignatureShare::new(identifier, signature_response)
+    SignatureShare::new(signature_response)
 }
 
 /// Generate a sample SecretShare.

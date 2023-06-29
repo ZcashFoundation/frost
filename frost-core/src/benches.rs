@@ -162,13 +162,13 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             },
         );
 
-        let mut signature_shares = Vec::new();
+        let mut signature_shares = HashMap::new();
         for participant_identifier in nonces.keys() {
             let key_package = key_packages.get(participant_identifier).unwrap();
             let nonces_to_use = &nonces.get(participant_identifier).unwrap();
             let signature_share =
                 frost::round2::sign(&signing_package, nonces_to_use, key_package).unwrap();
-            signature_shares.push(signature_share);
+            signature_shares.insert(*key_package.identifier(), signature_share);
         }
 
         group.bench_with_input(
@@ -176,7 +176,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             &(signing_package.clone(), signature_shares.clone(), pubkeys),
             |b, (signing_package, signature_shares, pubkeys)| {
                 b.iter(|| {
-                    frost::aggregate(signing_package, &signature_shares[..], pubkeys).unwrap();
+                    frost::aggregate(signing_package, &signature_shares, pubkeys).unwrap();
                 })
             },
         );

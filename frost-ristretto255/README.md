@@ -62,7 +62,7 @@ for participant_index in 1..(min_signers as u16 + 1) {
 // This is what the signature aggregator / coordinator needs to do:
 // - decide what message to sign
 // - take one (unused) commitment per signing participant
-let mut signature_shares = Vec::new();
+let mut signature_shares = HashMap::new();
 # // ANCHOR: round2_package
 let message = "message to sign".as_bytes();
 # // In practice, the SigningPackage must be sent to all participants
@@ -88,7 +88,7 @@ for participant_identifier in nonces_map.keys() {
 
     // In practice, the signature share must be sent to the Coordinator
     // using an authenticated channel.
-    signature_shares.push(signature_share);
+    signature_shares.insert(*participant_identifier, signature_share);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ for participant_identifier in nonces_map.keys() {
 
 // Aggregate (also verifies the signature shares)
 # // ANCHOR: aggregate
-let group_signature = frost::aggregate(&signing_package, &signature_shares[..], &pubkey_package)?;
+let group_signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)?;
 # // ANCHOR_END: aggregate
 
 
