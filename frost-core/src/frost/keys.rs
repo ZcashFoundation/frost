@@ -2,7 +2,7 @@
 #![allow(clippy::type_complexity)]
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     convert::TryFrom,
     default::Default,
     fmt::{self, Debug},
@@ -34,6 +34,13 @@ pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     iter::repeat_with(|| <<C::Group as Group>::Field>::random(rng))
         .take(size)
         .collect()
+}
+
+/// Return a list of default identifiers (1 to max_signers, inclusive).
+pub(crate) fn default_identifiers<C: Ciphersuite>(max_signers: u16) -> Vec<Identifier<C>> {
+    (1..=max_signers)
+        .map(|i| Identifier::<C>::try_from(i).expect("nonzero"))
+        .collect::<Vec<_>>()
 }
 
 /// A secret scalar value representing a signer's share of the group secret.
@@ -386,6 +393,14 @@ where
     }
 }
 
+/// The identifier list to use when generating key shares.
+pub enum IdentifierList<'a, C: Ciphersuite> {
+    /// Use the default values (1 to max_signers, inclusive).
+    Default,
+    /// A user-provided list of identifiers.
+    Custom(&'a [Identifier<C>]),
+}
+
 /// Allows all participants' keys to be generated using a central, trusted
 /// dealer.
 ///
@@ -401,6 +416,7 @@ where
 pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
+    identifiers: IdentifierList<C>,
     rng: &mut R,
 ) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     let mut bytes = [0; 64];
@@ -408,7 +424,7 @@ pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let key = SigningKey::new(rng);
 
-    split(&key, max_signers, min_signers, rng)
+    split(&key, max_signers, min_signers, identifiers, rng)
 }
 
 /// Splits an existing key into FROST shares.
@@ -421,13 +437,21 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
     key: &SigningKey<C>,
     max_signers: u16,
     min_signers: u16,
+    identifiers: IdentifierList<C>,
     rng: &mut R,
 ) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     let group_public = VerifyingKey::from(key);
 
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
 
-    let secret_shares = generate_secret_shares(key, max_signers, min_signers, coefficients)?;
+    let default_identifiers = default_identifiers(max_signers);
+    let identifiers = match identifiers {
+        IdentifierList::Custom(identifiers) => identifiers,
+        IdentifierList::Default => &default_identifiers,
+    };
+
+    let secret_shares =
+        generate_secret_shares(key, max_signers, min_signers, coefficients, identifiers)?;
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(max_signers as usize);
 
@@ -680,18 +704,23 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     max_signers: u16,
     min_signers: u16,
     coefficients: Vec<Scalar<C>>,
+    identifiers: &[Identifier<C>],
 ) -> Result<Vec<SecretShare<C>>, Error<C>> {
     let mut secret_shares: Vec<SecretShare<C>> = Vec::with_capacity(max_signers as usize);
 
     let (coefficients, commitment) =
         generate_secret_polynomial(secret, max_signers, min_signers, coefficients)?;
 
-    for idx in 1..=max_signers {
-        let id = Identifier::<C>::try_from(idx)?;
-        let value = evaluate_polynomial(id, &coefficients);
+    let identifiers_set: HashSet<_> = identifiers.iter().collect();
+    if identifiers_set.len() != identifiers.len() {
+        return Err(Error::DuplicatedIdentifier);
+    }
+
+    for id in identifiers {
+        let value = evaluate_polynomial(*id, &coefficients);
 
         secret_shares.push(SecretShare {
-            identifier: id,
+            identifier: *id,
             value: SigningShare(value),
             commitment: commitment.clone(),
             ciphersuite: (),

@@ -19,9 +19,14 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     let coefficients =
         frost::keys::generate_coefficients::<C, _>(min_signers as usize - 1, &mut rng);
 
-    let secret_shares =
-        frost::keys::generate_secret_shares(&secret, max_signers, min_signers, coefficients)
-            .unwrap();
+    let secret_shares = frost::keys::generate_secret_shares(
+        &secret,
+        max_signers,
+        min_signers,
+        coefficients,
+        &frost::keys::default_identifiers(max_signers),
+    )
+    .unwrap();
 
     for secret_share in secret_shares.iter() {
         assert!(secret_share.verify().is_ok());
@@ -61,8 +66,13 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, pubkeys) =
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+    let (shares, pubkeys) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
 
     // Verifies the secret shares from the dealer
     let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
@@ -91,8 +101,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Round 1: generating nonces and signing commitments for each participant
     ////////////////////////////////////////////////////////////////////////////
 
-    for participant_index in 1..(min_signers + 1) {
-        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+    for participant_identifier in key_packages.keys().take(min_signers as usize).cloned() {
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _min_signers_.
         let (nonces, commitments) = frost::round1::commit(
@@ -342,6 +351,62 @@ where
     let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, group_public.unwrap());
 
     // Proceed with the signing test.
+    check_sign(min_signers, key_packages, rng, pubkeys)
+}
+
+/// Test FROST signing with trusted dealer with a Ciphersuite, using specified
+/// Identifiers.
+pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
+    // Check error case first (repeated identifiers)
+
+    let identifiers: Vec<frost::Identifier<C>> = [1u16, 42, 100, 257, 42]
+        .into_iter()
+        .map(|i| i.try_into().unwrap())
+        .collect();
+
+    let max_signers = 5;
+    let min_signers = 3;
+    let err = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Custom(&identifiers),
+        &mut rng,
+    )
+    .unwrap_err();
+    assert_eq!(err, Error::DuplicatedIdentifier);
+
+    // Check correct case
+
+    let identifiers: Vec<frost::Identifier<C>> = [1u16, 42, 100, 257, 65535]
+        .into_iter()
+        .map(|i| i.try_into().unwrap())
+        .collect();
+
+    let max_signers = 5;
+    let min_signers = 3;
+    let (shares, pubkeys) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Custom(&identifiers),
+        &mut rng,
+    )
+    .unwrap();
+
+    // Check if the specified identifiers were used
+    for id in identifiers {
+        assert!(shares.contains_key(&id));
+    }
+
+    // Do regular testing to make sure it works
+
+    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        HashMap::new();
+    for (k, v) in shares {
+        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+        key_packages.insert(k, key_package);
+    }
     check_sign(min_signers, key_packages, rng, pubkeys)
 }
 

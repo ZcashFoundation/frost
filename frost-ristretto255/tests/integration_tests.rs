@@ -58,3 +58,13 @@ fn check_error_culprit() {
 fn check_identifier_derivation() {
     frost_core::tests::ciphersuite_generic::check_identifier_derivation::<Ristretto255Sha512>();
 }
+
+#[test]
+fn check_sign_with_dealer_and_identifiers() {
+    let rng = thread_rng();
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<
+        Ristretto255Sha512,
+        _,
+    >(rng);
+}
