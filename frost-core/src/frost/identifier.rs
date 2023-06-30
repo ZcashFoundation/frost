@@ -25,6 +25,29 @@ impl<C> Identifier<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new Identifier from a scalar. For internal use only.
+    fn new(scalar: Scalar<C>) -> Result<Self, Error<C>> {
+        if scalar == <<C::Group as Group>::Field>::zero() {
+            Err(FieldError::InvalidZeroScalar.into())
+        } else {
+            Ok(Self(scalar))
+        }
+    }
+
+    /// Derive an Identifier from an arbitrary byte string.
+    ///
+    /// This feature is not part of the specification and is just a convenient
+    /// way of creating identifiers.
+    ///
+    /// Each possible byte string will map to an uniformly random identifier.
+    /// Returns an error if the ciphersuite does not support identifier derivation,
+    /// or if the mapped identifier is zero (which is unpredictable, but should happen
+    /// with negligible probability).
+    pub fn derive(s: &[u8]) -> Result<Self, Error<C>> {
+        let scalar = C::HID(s).ok_or(Error::IdentifierDerivationNotSupported)?;
+        Self::new(scalar)
+    }
+
     /// Serialize the identifier using the ciphersuite encoding.
     pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
@@ -36,11 +59,7 @@ where
         buf: &<<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error<C>> {
         let scalar = <<C::Group as Group>::Field>::deserialize(buf)?;
-        if scalar == <<C::Group as Group>::Field>::zero() {
-            Err(FieldError::InvalidZeroScalar.into())
-        } else {
-            Ok(Self(scalar))
-        }
+        Self::new(scalar)
     }
 }
 
