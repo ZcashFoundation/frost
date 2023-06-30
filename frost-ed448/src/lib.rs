@@ -197,6 +197,11 @@ impl Ciphersuite for Ed448Shake256 {
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"dkg", m]))
     }
+
+    /// HID for FROST(Ed448, SHAKE256)
+    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"id", m]))
+    }
 }
 
 type E = Ed448Shake256;

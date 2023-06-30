@@ -2,7 +2,7 @@
 use std::{collections::HashMap, convert::TryFrom};
 
 use crate::{
-    frost::{self},
+    frost::{self, Identifier},
     Error, Field, Group, Signature, VerifyingKey,
 };
 use debugless_unwrap::DebuglessUnwrapErr;
@@ -379,4 +379,14 @@ pub fn check_error_culprit<C: Ciphersuite>() {
 
     let e: Error<C> = Error::InvalidSignature;
     assert_eq!(e.culprit(), None);
+}
+
+/// Test identifier derivation with a Ciphersuite
+pub fn check_identifier_derivation<C: Ciphersuite>() {
+    let id1a = Identifier::<C>::derive("username1".as_bytes()).unwrap();
+    let id1b = Identifier::<C>::derive("username1".as_bytes()).unwrap();
+    let id2 = Identifier::<C>::derive("username2".as_bytes()).unwrap();
+
+    assert!(id1a == id1b);
+    assert!(id1a != id2);
 }

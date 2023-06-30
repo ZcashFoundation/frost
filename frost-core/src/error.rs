@@ -80,6 +80,9 @@ pub enum Error<C: Ciphersuite> {
     /// Error in coefficient commitment deserialization.
     #[error("Invalid coefficient")]
     InvalidCoefficient,
+    /// The ciphersuite does not support deriving identifiers from strings.
+    #[error("The ciphersuite does not support deriving identifiers from strings.")]
+    IdentifierDerivationNotSupported,
 }
 
 impl<C> Error<C>
@@ -119,7 +122,8 @@ where
             | Error::DKGNotSupported
             | Error::FieldError(_)
             | Error::GroupError(_)
-            | Error::InvalidCoefficient => None,
+            | Error::InvalidCoefficient
+            | Error::IdentifierDerivationNotSupported => None,
         }
     }
 }

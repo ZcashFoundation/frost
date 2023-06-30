@@ -53,3 +53,8 @@ fn check_sign_with_test_vectors() {
 fn check_error_culprit() {
     frost_core::tests::ciphersuite_generic::check_error_culprit::<Ristretto255Sha512>();
 }
+
+#[test]
+fn check_identifier_derivation() {
+    frost_core::tests::ciphersuite_generic::check_identifier_derivation::<Ristretto255Sha512>();
+}
