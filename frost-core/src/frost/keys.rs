@@ -366,9 +366,7 @@ where
         let result = evaluate_vss(&self.commitment, self.identifier);
 
         if !(f_result == result) {
-            return Err(Error::InvalidSecretShare {
-                identifier: self.identifier,
-            });
+            return Err(Error::InvalidSecretShare);
         }
 
         let group_public = VerifyingKey {
@@ -564,7 +562,7 @@ where
 /// group public key.
 ///
 /// Used for verification purposes before publishing a signature.
-#[derive(PartialEq, Eq, Getters)]
+#[derive(Clone, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {

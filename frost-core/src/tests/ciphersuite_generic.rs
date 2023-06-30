@@ -3,7 +3,7 @@ use std::{collections::HashMap, convert::TryFrom};
 
 use crate::{
     frost::{self, Identifier},
-    Error, Signature, VerifyingKey,
+    Error, Field, Group, Signature, VerifyingKey,
 };
 use debugless_unwrap::DebuglessUnwrapErr;
 use rand_core::{CryptoRng, RngCore};
@@ -136,6 +136,12 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // generates the final signature.
     ////////////////////////////////////////////////////////////////////////////
 
+    check_aggregate_error(
+        signing_package.clone(),
+        signature_shares.clone(),
+        pubkey_package.clone(),
+    );
+
     // Aggregate (also verifies the signature shares)
     let group_signature =
         frost::aggregate(&signing_package, &signature_shares[..], &pubkey_package).unwrap();
@@ -164,6 +170,24 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
         group_signature,
         pubkey_package.group_public,
     )
+}
+
+fn check_aggregate_error<C: Ciphersuite + PartialEq>(
+    signing_package: frost::SigningPackage<C>,
+    mut signature_shares: Vec<frost::round2::SignatureShare<C>>,
+    pubkey_package: frost::keys::PublicKeyPackage<C>,
+) {
+    let one = <<C as Ciphersuite>::Group as Group>::Field::one();
+    // Corrupt a share
+    signature_shares[0].signature.z_share = signature_shares[0].signature.z_share + one;
+    let e = frost::aggregate(&signing_package, &signature_shares[..], &pubkey_package).unwrap_err();
+    assert_eq!(e.culprit(), Some(*signature_shares[0].identifier()));
+    assert_eq!(
+        e,
+        Error::InvalidSignatureShare {
+            culprit: *signature_shares[0].identifier()
+        }
+    );
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.
@@ -247,6 +271,7 @@ where
             .remove(&participant_identifier)
             .unwrap();
         let round1_packages = &received_round1_packages[&participant_identifier];
+        check_part2_error(round1_secret_package.clone(), round1_packages.clone());
         let (round2_secret_package, round2_packages) =
             frost::keys::dkg::part2(round1_secret_package, round1_packages).expect("should work");
 
@@ -319,6 +344,41 @@ where
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys)
+}
+
+fn check_part2_error<C: Ciphersuite>(
+    round1_secret_package: frost::keys::dkg::round1::SecretPackage<C>,
+    mut round1_packages: Vec<frost::keys::dkg::round1::Package<C>>,
+) {
+    let one = <<C as Ciphersuite>::Group as Group>::Field::one();
+    // Corrupt a PoK
+    round1_packages[0].proof_of_knowledge.z = round1_packages[0].proof_of_knowledge.z + one;
+    let e = frost::keys::dkg::part2(round1_secret_package, &round1_packages).debugless_unwrap_err();
+    assert_eq!(e.culprit(), Some(*round1_packages[0].sender_identifier()));
+    assert_eq!(
+        e,
+        Error::InvalidProofOfKnowledge {
+            culprit: *round1_packages[0].sender_identifier()
+        }
+    );
+}
+
+/// Test Error culprit method.
+pub fn check_error_culprit<C: Ciphersuite>() {
+    let identifier: frost::Identifier<C> = 42u16.try_into().unwrap();
+
+    let e = Error::InvalidSignatureShare {
+        culprit: identifier,
+    };
+    assert_eq!(e.culprit(), Some(identifier));
+
+    let e = Error::InvalidProofOfKnowledge {
+        culprit: identifier,
+    };
+    assert_eq!(e.culprit(), Some(identifier));
+
+    let e: Error<C> = Error::InvalidSignature;
+    assert_eq!(e.culprit(), None);
 }
 
 /// Test identifier derivation with a Ciphersuite
