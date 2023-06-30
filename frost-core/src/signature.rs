@@ -30,7 +30,7 @@ where
     }
 
     /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
-    pub fn from_bytes(bytes: C::SignatureSerialization) -> Result<Self, Error<C>> {
+    pub fn deserialize(bytes: C::SignatureSerialization) -> Result<Self, Error<C>> {
         // To compute the expected length of the encoded point, encode the generator
         // and get its length. Note that we can't use the identity because it can be encoded
         // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
@@ -61,7 +61,7 @@ where
     }
 
     /// Converts this signature to its [`Ciphersuite::SignatureSerialization`] in bytes.
-    pub fn to_bytes(&self) -> C::SignatureSerialization {
+    pub fn serialize(&self) -> C::SignatureSerialization {
         let mut bytes = vec![];
 
         bytes.extend(<C::Group>::serialize(&self.R).as_ref());
@@ -82,7 +82,7 @@ where
     where
         S: serde::Serializer,
     {
-        serdect::slice::serialize_hex_lower_or_bin(&self.to_bytes().as_ref(), serializer)
+        serdect::slice::serialize_hex_lower_or_bin(&self.serialize().as_ref(), serializer)
     }
 }
 
@@ -101,7 +101,7 @@ where
         let array = bytes
             .try_into()
             .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        let identifier = Signature::from_bytes(array)
+        let identifier = Signature::deserialize(array)
             .map_err(|err| serde::de::Error::custom(format!("{err}")))?;
         Ok(identifier)
     }
@@ -127,7 +127,7 @@ impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
 
 //     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
 //         match FromHex::from_hex(hex) {
-//             Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed signature encoding"),
+//             Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed signature encoding"),
 //             Err(_) => Err("invalid hex"),
 //         }
 //     }

@@ -14,11 +14,11 @@ pub fn verify_signature(
     group_pubkey: frost_core::VerifyingKey<Ed25519Sha512>,
 ) {
     let sig = {
-        let bytes: [u8; 64] = group_signature.to_bytes();
+        let bytes: [u8; 64] = group_signature.serialize();
         ed25519_dalek::Signature::from(bytes)
     };
     let pub_key = {
-        let bytes = group_pubkey.to_bytes();
+        let bytes = group_pubkey.serialize();
         ed25519_dalek::PublicKey::from_bytes(&bytes).unwrap()
     };
     // Check that signature validation has the expected result.

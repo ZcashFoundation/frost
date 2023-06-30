@@ -43,7 +43,7 @@ where
     }
 
     /// Deserialize from bytes
-    pub fn from_bytes(
+    pub fn deserialize(
         bytes: <C::Group as Group>::Serialization,
     ) -> Result<VerifyingKey<C>, Error<C>> {
         <C::Group>::deserialize(&bytes)
@@ -52,7 +52,7 @@ where
     }
 
     /// Serialize `VerifyingKey` to bytes
-    pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
+    pub fn serialize(&self) -> <C::Group as Group>::Serialization {
         <C::Group>::serialize(&self.element)
     }
 
@@ -90,7 +90,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("VerifyingKey")
-            .field(&hex::encode(self.to_bytes()))
+            .field(&hex::encode(self.serialize()))
             .finish()
     }
 }
@@ -105,7 +105,7 @@ where
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
         match v.try_into() {
-            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed verifying key encoding"),
+            Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed verifying key encoding"),
             Err(_) => Err("malformed verifying key encoding"),
         }
     }
@@ -119,7 +119,7 @@ where
     type Error = Error<C>;
 
     fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
-        Self::from_bytes(value.0)
+        Self::deserialize(value.0)
     }
 }
 
@@ -129,7 +129,7 @@ where
     C: Ciphersuite,
 {
     fn from(value: VerifyingKey<C>) -> Self {
-        Self(value.to_bytes())
+        Self(value.serialize())
     }
 }
 
