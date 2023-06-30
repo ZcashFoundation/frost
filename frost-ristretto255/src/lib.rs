@@ -338,9 +338,6 @@ pub mod round2 {
     /// shares into the joint signature.
     pub type SignatureShare = frost::round2::SignatureShare<R>;
 
-    /// A representation of a single signature share used in FROST structures and messages.
-    pub type SignatureResponse = frost::round2::SignatureResponse<R>;
-
     /// Performed once by each participant selected for the signing operation.
     ///
     /// Receives the message to be signed and a set of signing commitments and a set

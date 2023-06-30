@@ -25,7 +25,6 @@ fn check_signing_commitments_serialization() {
     assert!(commitments == decoded_commitments);
 
     let json = r#"{
-        "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
         "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
         "ciphersuite": "FROST(secp256k1, SHA-256)"
@@ -38,7 +37,6 @@ fn check_signing_commitments_serialization() {
 
     // Wrong ciphersuite
     let invalid_json = r#"{
-      "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
       "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
       "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
       "ciphersuite": "FROST(Wrong, SHA-512)"
@@ -47,7 +45,6 @@ fn check_signing_commitments_serialization() {
 
     // Invalid identifier
     let invalid_json = r#"{
-        "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
         "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
       }"#;
@@ -55,8 +52,7 @@ fn check_signing_commitments_serialization() {
 
     // Invalid field
     let invalid_json = r#"{
-        "foo": "0000000000000000000000000000000000000000000000000000000000000000",
-        "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        "foo": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
         "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
       }"#;
     assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
@@ -70,7 +66,6 @@ fn check_signing_commitments_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
         "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
         "extra": 1
@@ -94,7 +89,6 @@ fn check_signing_package_serialization() {
     let json = r#"{
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
-          "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
           "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
           "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
           "ciphersuite": "FROST(secp256k1, SHA-256)"
@@ -110,7 +104,6 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "signing_commitments": {
         "0000000000000000000000000000000000000000000000000000000000000000": {
-          "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
           "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
           "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
           "ciphersuite": "FROST(secp256k1, SHA-256)"
@@ -125,7 +118,6 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
-          "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
           "foo": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
           "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
           "ciphersuite": "FROST(secp256k1, SHA-256)"
@@ -140,7 +132,6 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
-          "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
           "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
           "ciphersuite": "FROST(secp256k1, SHA-256)"
         }
@@ -154,7 +145,6 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
-          "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
           "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
           "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
           "ciphersuite": "FROST(secp256k1, SHA-256)"
@@ -179,7 +169,6 @@ fn check_signature_share_serialization() {
     assert!(signature_share == decoded_signature_share);
 
     let json = r#"{
-      "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
       "signature": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
       "ciphersuite": "FROST(secp256k1, SHA-256)"
     }"#;
@@ -189,17 +178,8 @@ fn check_signature_share_serialization() {
     let invalid_json = "{}";
     assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
 
-    // Invalid identifier
-    let invalid_json = r#"{
-        "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "signature": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
-        "ciphersuite": "FROST(secp256k1, SHA-256)"
-      }"#;
-    assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
-
     // Invalid field
     let invalid_json = r#"{
-        "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "foo": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
@@ -207,14 +187,12 @@ fn check_signature_share_serialization() {
 
     // Missing field
     let invalid_json = r#"{
-        "identifier": "000000000000000000000000000000000000000000000000000000000000002a",,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
 
     // Extra field
     let invalid_json = r#"{
-        "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "signature": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "extra": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
@@ -430,7 +408,6 @@ fn check_round1_package_serialization() {
     assert!(round1_package == decoded_round1_package);
 
     let json = r#"{
-        "sender_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "commitment": [
           "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
         ],
@@ -443,20 +420,8 @@ fn check_round1_package_serialization() {
     let invalid_json = "{}";
     assert!(serde_json::from_str::<round1::Package>(invalid_json).is_err());
 
-    // Invalid identifier
-    let invalid_json = r#"{
-        "sender_identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "commitment": [
-          "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
-        ],
-        "proof_of_knowledge": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
-        "ciphersuite": "FROST(secp256k1, SHA-256)"
-      }"#;
-    assert!(serde_json::from_str::<round1::Package>(invalid_json).is_err());
-
     // Invalid field
     let invalid_json = r#"{
-        "sender_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "commitment": [
           "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
         ],
@@ -467,7 +432,6 @@ fn check_round1_package_serialization() {
 
     // Missing field
     let invalid_json = r#"{
-        "sender_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "commitment": [
           "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
         ],
@@ -477,7 +441,6 @@ fn check_round1_package_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "sender_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "commitment": [
           "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
         ],
@@ -499,8 +462,6 @@ fn check_round2_package_serialization() {
     assert!(round2_package == decoded_round2_package);
 
     let json = r#"{
-        "sender_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
-        "receiver_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "secret_share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
@@ -510,36 +471,21 @@ fn check_round2_package_serialization() {
     let invalid_json = "{}";
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
 
-    // Invalid identifier
-    let invalid_json = r#"{
-        "sender_identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "receiver_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
-        "secret_share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
-        "ciphersuite": "FROST(secp256k1, SHA-256)"
-      }"#;
-    assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
-
     // Invalid field
     let invalid_json = r#"{
-        "sender_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
-        "foo": "000000000000000000000000000000000000000000000000000000000000002a",
-        "secret_share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
+        "foo": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
 
     // Missing field
     let invalid_json = r#"{
-        "sender_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
-        "secret_share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
 
     // Extra field
     let invalid_json = r#"{
-        "sender_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
-        "receiver_identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "secret_share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "extra": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"

@@ -10,7 +10,7 @@ use frost_ristretto255::{
         VerifyingShare,
     },
     round1::{NonceCommitment, SigningCommitments},
-    round2::{SignatureResponse, SignatureShare},
+    round2::SignatureShare,
     Field, Signature, SigningPackage, VerifyingKey,
 };
 
@@ -54,9 +54,8 @@ pub fn signing_package() -> SigningPackage {
 /// Generate a sample SignatureShare.
 pub fn signature_share() -> SignatureShare {
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
-    let signature_response = SignatureResponse::from_bytes(serialized_scalar).unwrap();
 
-    SignatureShare::new(signature_response)
+    SignatureShare::from_bytes(serialized_scalar).unwrap()
 }
 
 /// Generate a sample SecretShare.

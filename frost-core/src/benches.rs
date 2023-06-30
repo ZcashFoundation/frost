@@ -176,7 +176,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             &(signing_package.clone(), signature_shares.clone(), pubkeys),
             |b, (signing_package, signature_shares, pubkeys)| {
                 b.iter(|| {
-                    frost::aggregate(signing_package, &signature_shares, pubkeys).unwrap();
+                    frost::aggregate(signing_package, signature_shares, pubkeys).unwrap();
                 })
             },
         );

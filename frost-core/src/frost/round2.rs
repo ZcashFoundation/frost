@@ -12,87 +12,89 @@ use crate::{
 use crate::ScalarSerialization;
 
 /// A representation of a single signature share used in FROST structures and messages.
-#[derive(Clone, Copy, Getters)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
-pub struct SignatureResponse<C: Ciphersuite> {
-    /// The scalar contribution to the group signature.
-    pub(crate) z_share: Scalar<C>,
-}
+// #[derive(Clone, Copy, Getters)]
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+// #[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
+// #[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
+// pub struct SignatureResponse<C: Ciphersuite> {
+//     /// The scalar contribution to the group signature.
+//     pub(crate) z_share: Scalar<C>,
+// }
 
-impl<C> SignatureResponse<C>
-where
-    C: Ciphersuite,
-{
-    /// Deserialize [`SignatureResponse`] from bytes
-    pub fn from_bytes(
-        bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error<C>> {
-        <<C::Group as Group>::Field>::deserialize(&bytes)
-            .map(|scalar| Self { z_share: scalar })
-            .map_err(|e| e.into())
-    }
+// impl<C> SignatureResponse<C>
+// where
+//     C: Ciphersuite,
+// {
+//     /// Deserialize [`SignatureResponse`] from bytes
+//     pub fn from_bytes(
+//         bytes: <<C::Group as Group>::Field as Field>::Serialization,
+//     ) -> Result<Self, Error<C>> {
+//         <<C::Group as Group>::Field>::deserialize(&bytes)
+//             .map(|scalar| Self { z_share: scalar })
+//             .map_err(|e| e.into())
+//     }
 
-    /// Serialize [`SignatureResponse`] to bytes
-    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field>::serialize(&self.z_share)
-    }
-}
+//     /// Serialize [`SignatureResponse`] to bytes
+//     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+//         <<C::Group as Group>::Field>::serialize(&self.z_share)
+//     }
+// }
 
-#[cfg(feature = "serde")]
-impl<C> TryFrom<ScalarSerialization<C>> for SignatureResponse<C>
-where
-    C: Ciphersuite,
-{
-    type Error = Error<C>;
+// #[cfg(feature = "serde")]
+// impl<C> TryFrom<ScalarSerialization<C>> for SignatureResponse<C>
+// where
+//     C: Ciphersuite,
+// {
+//     type Error = Error<C>;
 
-    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        Self::from_bytes(value.0)
-    }
-}
+//     fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
+//         Self::from_bytes(value.0)
+//     }
+// }
 
-#[cfg(feature = "serde")]
-impl<C> From<SignatureResponse<C>> for ScalarSerialization<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: SignatureResponse<C>) -> Self {
-        Self(value.to_bytes())
-    }
-}
+// #[cfg(feature = "serde")]
+// impl<C> From<SignatureResponse<C>> for ScalarSerialization<C>
+// where
+//     C: Ciphersuite,
+// {
+//     fn from(value: SignatureResponse<C>) -> Self {
+//         Self(value.to_bytes())
+//     }
+// }
 
-impl<C> Debug for SignatureResponse<C>
-where
-    C: Ciphersuite,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("SignatureResponse")
-            .field("z_share", &hex::encode(self.to_bytes()))
-            .finish()
-    }
-}
+// impl<C> Debug for SignatureResponse<C>
+// where
+//     C: Ciphersuite,
+// {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         f.debug_struct("SignatureResponse")
+//             .field("z_share", &hex::encode(self.to_bytes()))
+//             .finish()
+//     }
+// }
 
-impl<C> Eq for SignatureResponse<C> where C: Ciphersuite {}
+// impl<C> Eq for SignatureResponse<C> where C: Ciphersuite {}
 
-impl<C> PartialEq for SignatureResponse<C>
-where
-    C: Ciphersuite,
-{
-    // TODO: should this have any constant-time guarantees? I think signature shares are public.
-    fn eq(&self, other: &Self) -> bool {
-        self.z_share == other.z_share
-    }
-}
+// impl<C> PartialEq for SignatureResponse<C>
+// where
+//     C: Ciphersuite,
+// {
+//     // TODO: should this have any constant-time guarantees? I think signature shares are public.
+//     fn eq(&self, other: &Self) -> bool {
+//         self.z_share == other.z_share
+//     }
+// }
 
 /// A participant's signature share, which the coordinator will aggregate with all other signer's
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
+#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct SignatureShare<C: Ciphersuite> {
     /// This participant's signature over the message.
-    pub(crate) signature: SignatureResponse<C>,
+    pub(crate) share: Scalar<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
         feature = "serde",
@@ -109,12 +111,21 @@ impl<C> SignatureShare<C>
 where
     C: Ciphersuite,
 {
-    /// Create a new [`SignatureShare`].
-    pub fn new(signature: SignatureResponse<C>) -> Self {
-        Self {
-            signature,
-            ciphersuite: (),
-        }
+    /// Deserialize [`SignatureShare`] from bytes
+    pub fn from_bytes(
+        bytes: <<C::Group as Group>::Field as Field>::Serialization,
+    ) -> Result<Self, Error<C>> {
+        <<C::Group as Group>::Field>::deserialize(&bytes)
+            .map(|scalar| Self {
+                share: scalar,
+                ciphersuite: (),
+            })
+            .map_err(|e| e.into())
+    }
+
+    /// Serialize [`SignatureShare`] to bytes
+    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+        <<C::Group as Group>::Field>::serialize(&self.share)
     }
 
     /// Tests if a signature share issued by a participant is valid before
@@ -123,7 +134,8 @@ where
     /// This is the final step of [`verify_signature_share`] from the spec.
     ///
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
-    pub(crate) fn verify(
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    fn verify(
         &self,
         identifier: Identifier<C>,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
@@ -131,7 +143,7 @@ where
         lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
     ) -> Result<(), Error<C>> {
-        if (<C::Group>::generator() * self.signature.z_share)
+        if (<C::Group>::generator() * self.share)
             != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
             return Err(Error::InvalidSignatureShare { signer: identifier });
@@ -141,13 +153,35 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ScalarSerialization<C>> for SignatureShare<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<SignatureShare<C>> for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: SignatureShare<C>) -> Self {
+        Self(value.to_bytes())
+    }
+}
+
 impl<C> Debug for SignatureShare<C>
 where
     C: Ciphersuite,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("SignatureShare")
-            .field("signature", &self.signature)
+            .field("share", &hex::encode(self.to_bytes()))
             .finish()
     }
 }
@@ -166,7 +200,7 @@ fn compute_signature_share<C: Ciphersuite>(
         + (lambda_i * key_package.secret_share.0 * challenge.0);
 
     SignatureShare::<C> {
-        signature: SignatureResponse::<C> { z_share },
+        share: z_share,
         ciphersuite: (),
     }
 }

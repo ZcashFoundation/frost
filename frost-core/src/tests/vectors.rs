@@ -147,9 +147,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         )
         .debugless_unwrap();
 
-        let signature_share = SignatureShare::<C>::new(SignatureResponse {
-            z_share: <<C::Group as Group>::Field>::deserialize(&sig_share).unwrap(),
-        });
+        let signature_share = SignatureShare::<C>::from_bytes(sig_share).unwrap();
 
         signature_shares.insert(
             u16::from_str(i).unwrap().try_into().unwrap(),

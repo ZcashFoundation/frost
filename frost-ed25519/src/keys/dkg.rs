@@ -64,8 +64,8 @@ pub fn part1<R: RngCore + CryptoRng>(
 /// must be sent to other participants.
 pub fn part2(
     secret_package: round1::SecretPackage,
-    round1_packages: &[round1::Package],
-) -> Result<(round2::SecretPackage, Vec<round2::Package>), Error> {
+    round1_packages: &HashMap<Identifier, round1::Package>,
+) -> Result<(round2::SecretPackage, HashMap<Identifier, round2::Package>), Error> {
     frost::keys::dkg::part2(secret_package, round1_packages)
 }
 
@@ -80,8 +80,8 @@ pub fn part2(
 /// signatures.
 pub fn part3(
     round2_secret_package: &round2::SecretPackage,
-    round1_packages: &[round1::Package],
-    round2_packages: &[round2::Package],
+    round1_packages: &HashMap<Identifier, round1::Package>,
+    round2_packages: &HashMap<Identifier, round2::Package>,
 ) -> Result<(KeyPackage, PublicKeyPackage), Error> {
     frost::keys::dkg::part3(round2_secret_package, round1_packages, round2_packages)
 }

@@ -42,9 +42,9 @@ fn check_signing_package_recreation() {
 fn check_signature_share_recreation() {
     let signature_share = samples::signature_share();
 
-    let signature_response = signature_share.signature();
+    let encoded = signature_share.to_bytes();
 
-    let new_signature_share = SignatureShare::new(*signature_response);
+    let new_signature_share = SignatureShare::from_bytes(encoded).unwrap();
     assert!(signature_share == new_signature_share);
 }
 

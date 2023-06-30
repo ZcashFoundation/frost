@@ -19,10 +19,9 @@ use helpers::samples;
 #[test]
 fn check_signing_commitments_recreation() {
     let commitments = samples::signing_commitments();
-    let identifier = commitments.identifier();
     let hiding = commitments.hiding();
     let binding = commitments.binding();
-    let new_commitments = SigningCommitments::new(*identifier, *hiding, *binding);
+    let new_commitments = SigningCommitments::new(*hiding, *binding);
     assert!(commitments == new_commitments);
 }
 
@@ -31,14 +30,10 @@ fn check_signing_commitments_recreation() {
 fn check_signing_package_recreation() {
     let signing_package = samples::signing_package();
 
-    let commitments = signing_package
-        .signing_commitments()
-        .values()
-        .cloned()
-        .collect();
+    let commitments = signing_package.signing_commitments();
     let message = signing_package.message();
 
-    let new_signing_package = SigningPackage::new(commitments, message);
+    let new_signing_package = SigningPackage::new(commitments.clone(), message);
     assert!(signing_package == new_signing_package);
 }
 
@@ -47,10 +42,9 @@ fn check_signing_package_recreation() {
 fn check_signature_share_recreation() {
     let signature_share = samples::signature_share();
 
-    let identifier = signature_share.identifier();
-    let signature_response = signature_share.signature();
+    let encoded = signature_share.to_bytes();
 
-    let new_signature_share = SignatureShare::new(*identifier, *signature_response);
+    let new_signature_share = SignatureShare::from_bytes(encoded).unwrap();
     assert!(signature_share == new_signature_share);
 }
 
@@ -106,11 +100,10 @@ fn check_public_key_package_recreation() {
 fn check_round1_package_recreation() {
     let round1_package = samples::round1_package();
 
-    let identifier = round1_package.sender_identifier();
     let vss_commitment = round1_package.commitment();
     let signature = round1_package.proof_of_knowledge();
 
-    let new_round1_package = round1::Package::new(*identifier, vss_commitment.clone(), *signature);
+    let new_round1_package = round1::Package::new(vss_commitment.clone(), *signature);
 
     assert!(round1_package == new_round1_package);
 }
@@ -120,12 +113,9 @@ fn check_round1_package_recreation() {
 fn check_round2_package_recreation() {
     let round2_package = samples::round2_package();
 
-    let sender_identifier = round2_package.sender_identifier();
-    let receiver_identifier = round2_package.receiver_identifier();
     let signing_share = round2_package.secret_share();
 
-    let new_round2_package =
-        round2::Package::new(*sender_identifier, *receiver_identifier, *signing_share);
+    let new_round2_package = round2::Package::new(*signing_share);
 
     assert!(round2_package == new_round2_package);
 }

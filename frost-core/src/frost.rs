@@ -394,7 +394,7 @@ where
     let mut z = <<C::Group as Group>::Field>::zero();
 
     for signature_share in signature_shares.values() {
-        z = z + signature_share.signature.z_share;
+        z = z + signature_share.share;
     }
 
     let signature = Signature {
@@ -424,18 +424,17 @@ where
             // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
             let signer_pubkey = pubkeys
                 .signer_pubkeys
-                .get(&signature_share_identifier)
+                .get(signature_share_identifier)
                 .unwrap();
 
             // Compute Lagrange coefficient.
-            let lambda_i =
-                derive_interpolating_value(&signature_share_identifier, signing_package)?;
+            let lambda_i = derive_interpolating_value(signature_share_identifier, signing_package)?;
 
             let binding_factor = binding_factor_list[*signature_share_identifier].clone();
 
             // Compute the commitment share.
             let R_share = signing_package
-                .signing_commitment(&signature_share_identifier)
+                .signing_commitment(signature_share_identifier)
                 .to_group_commitment_share(&binding_factor);
 
             // Compute relation values to verify this signature share.

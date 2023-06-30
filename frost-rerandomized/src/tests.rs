@@ -1,6 +1,6 @@
 //! Ciphersuite-generic test functions for re-randomized FROST.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::{frost_core::frost, frost_core::Ciphersuite, RandomizedParams};
 use frost_core::{Signature, VerifyingKey};
@@ -30,8 +30,8 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     }
 
     let mut nonces: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
-    let mut commitments: HashMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
-        HashMap::new();
+    let mut commitments: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
+        BTreeMap::new();
 
     let randomizer_params = RandomizedParams::new(&pubkeys, &mut rng);
 
@@ -44,7 +44,6 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _min_signers_.
         let (nonce, commitment) = frost::round1::commit(
-            participant_identifier,
             key_packages
                 .get(&participant_identifier)
                 .unwrap()
@@ -58,10 +57,10 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     // This is what the signature aggregator / coordinator needs to do:
     // - decide what message to sign
     // - take one (unused) commitment per signing participant
-    let mut signature_shares: Vec<frost::round2::SignatureShare<_>> = Vec::new();
+    let mut signature_shares: HashMap<frost::Identifier<_>, frost::round2::SignatureShare<_>> =
+        HashMap::new();
     let message = "message to sign".as_bytes();
-    let comms = commitments.clone().into_values().collect();
-    let signing_package = frost::SigningPackage::new(comms, message);
+    let signing_package = frost::SigningPackage::new(commitments, message);
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
@@ -80,7 +79,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
             randomizer_params.randomizer_point(),
         )
         .unwrap();
-        signature_shares.push(signature_share);
+        signature_shares.insert(*participant_identifier, signature_share);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -91,7 +90,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     // Aggregate (also verifies the signature shares)
     let group_signature_res = crate::aggregate(
         &signing_package,
-        &signature_shares[..],
+        &signature_shares,
         &pubkeys,
         &randomizer_params,
     );
