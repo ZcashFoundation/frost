@@ -227,6 +227,14 @@ impl Ciphersuite for P256Sha256 {
             m,
         ))
     }
+
+    /// HID for FROST(P-256, SHA-256)
+    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(
+            (CONTEXT_STRING.to_owned() + "id").as_bytes(),
+            m,
+        ))
+    }
 }
 
 // Shorthand alias for the ciphersuite

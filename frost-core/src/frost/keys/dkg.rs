@@ -287,7 +287,7 @@ pub fn part2<C: Ciphersuite>(
         let c_ell = challenge::<C>(ell, &R_ell, &phi_ell0).ok_or(Error::DKGNotSupported)?;
 
         if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
-            return Err(Error::InvalidProofOfKnowledge { sender: ell });
+            return Err(Error::InvalidProofOfKnowledge { culprit: ell });
         }
 
         // Round 2, Step 1

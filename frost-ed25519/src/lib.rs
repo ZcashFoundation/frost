@@ -204,6 +204,11 @@ impl Ciphersuite for Ed25519Sha512 {
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"dkg", m]))
     }
+
+    /// HID for FROST(Ed25519, SHA-512)
+    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"id", m]))
+    }
 }
 
 type E = Ed25519Sha512;

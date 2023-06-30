@@ -193,6 +193,11 @@ impl Ciphersuite for Ristretto255Sha512 {
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"dkg", m]))
     }
+
+    /// HID for FROST(ristretto255, SHA-512)
+    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"id", m]))
+    }
 }
 
 type R = Ristretto255Sha512;

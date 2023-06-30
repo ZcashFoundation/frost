@@ -11,7 +11,7 @@ pub use frost_core;
 
 use frost_core::{
     frost::{self, keys::PublicKeyPackage},
-    Ciphersuite, Error, Field, Group, VerifyingKey,
+    Ciphersuite, Error, Field, Group, Scalar, VerifyingKey,
 };
 
 // When pulled into `reddsa`, that has its own sibling `rand_core` import.
@@ -199,6 +199,18 @@ where
         mut rng: R,
     ) -> Self {
         let randomizer = <<C::Group as Group>::Field as Field>::random(&mut rng);
+        Self::from_randomizer(public_key_package, randomizer)
+    }
+
+    /// Create a new RandomizedParams for the given [`PublicKeyPackage`]
+    /// with the given `randomizer`. The `randomizer` MUST be generated uniformly
+    /// at random! Use [`RandomizedParams::new()`] which generates a fresh
+    /// randomizer, unless your application requires generating a randomizer
+    /// outside.
+    pub fn from_randomizer(
+        public_key_package: &PublicKeyPackage<C>,
+        randomizer: Scalar<C>,
+    ) -> Self {
         let randomizer_point = <C::Group as Group>::generator() * randomizer;
 
         let group_public_point = public_key_package.group_public().to_element();

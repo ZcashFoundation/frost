@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::{frost_core::frost, frost_core::Ciphersuite, RandomizedParams};
-use frost_core::{Signature, VerifyingKey};
+use frost_core::{Field, Group, Signature, VerifyingKey};
 use rand_core::{CryptoRng, RngCore};
 
 /// Test re-randomized FROST signing with trusted dealer with a Ciphersuite.
@@ -33,6 +33,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     let mut commitments: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         BTreeMap::new();
 
+    check_from_randomizer(&pubkeys, &mut rng);
     let randomizer_params = RandomizedParams::new(&pubkeys, &mut rng);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -114,4 +115,15 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
         group_signature,
         *randomizer_params.randomized_group_public_key(),
     )
+}
+
+fn check_from_randomizer<C: Ciphersuite, R: RngCore + CryptoRng>(
+    pubkeys: &frost::keys::PublicKeyPackage<C>,
+    mut rng: &mut R,
+) {
+    let randomizer = <<C::Group as Group>::Field as Field>::random(&mut rng);
+
+    let randomizer_params = RandomizedParams::from_randomizer(pubkeys, randomizer);
+
+    assert!(*randomizer_params.randomizer() == randomizer);
 }
