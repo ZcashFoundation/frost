@@ -50,6 +50,11 @@ fn check_sign_with_test_vectors() {
 }
 
 #[test]
+fn check_error_culprit() {
+    frost_core::tests::ciphersuite_generic::check_error_culprit::<Ristretto255Sha512>();
+}
+
+#[test]
 fn check_sign_with_dealer_and_identifiers() {
     let rng = thread_rng();
 
