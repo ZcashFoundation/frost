@@ -375,9 +375,7 @@ where
         let result = evaluate_vss(&self.commitment, self.identifier);
 
         if !(f_result == result) {
-            return Err(Error::InvalidSecretShare {
-                identifier: self.identifier,
-            });
+            return Err(Error::InvalidSecretShare);
         }
 
         let group_public = VerifyingKey {

@@ -23,8 +23,12 @@ ciphersuite) which identifies a specific party. There are no restrictions to
 them other than being unique for each participant and being in the valid range.
 
 In the ZF FROST library, they are either automatically generated incrementally
-during key generation or can be instantiated from a byte array using
-[`Identifier::deserialize()`](https://docs.rs/frost-core/latest/frost_core/frost/struct.Identifier.html#method.deserialize).
+during key generation or converted from a `u16` using a
+[`TryFrom<u16>`](https://docs.rs/frost-core/latest/frost_core/frost/struct.Identifier.html#impl-TryFrom%3Cu16%3E-for-Identifier%3CC%3E).
+
+ZF FROST also allows deriving identifiers from arbitrary byte strings with
+[`Identifier::derive()`](https://docs.rs/frost-core/latest/frost_core/frost/struct.Identifier.html#method.derive).
+This allows deriving identifiers from usernames or emails, for example.
 
 ### _Peer to peer channel_
 

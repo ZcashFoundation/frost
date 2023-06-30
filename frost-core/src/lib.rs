@@ -292,6 +292,17 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         None
     }
 
+    /// Hash function for a FROST ciphersuite, used for deriving identifiers from strings.
+    ///
+    /// This feature is not part of the specification and is just a convenient
+    /// way of creating identifiers. Therefore it can return None if this is not supported by the
+    /// Ciphersuite. This is the default implementation.
+    ///
+    /// Maps arbitrary inputs to non-zero `Self::Scalar` elements of the prime-order group scalar field.
+    fn HID(_m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        None
+    }
+
     /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
     /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
     ///
