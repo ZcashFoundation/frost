@@ -48,3 +48,8 @@ fn check_sign_with_test_vectors() {
         &VECTORS_BIG_IDENTIFIER,
     );
 }
+
+#[test]
+fn check_error_culprit() {
+    frost_core::tests::ciphersuite_generic::check_error_culprit::<Ristretto255Sha512>();
+}
