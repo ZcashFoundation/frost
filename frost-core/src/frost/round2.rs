@@ -11,25 +11,48 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::ScalarSerialization;
 
+// Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
+// be directly encoded with serde, so we use this struct to wrap the scalar.
+#[cfg(feature = "serde")]
+#[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
+struct SignatureShareHelper<C: Ciphersuite>(Scalar<C>);
+
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ScalarSerialization<C>> for SignatureShareHelper<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
+        <<C::Group as Group>::Field>::deserialize(&value.0)
+            .map(|scalar| Self(scalar))
+            .map_err(|e| e.into())
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<SignatureShareHelper<C>> for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: SignatureShareHelper<C>) -> Self {
+        Self(<<C::Group as Group>::Field>::serialize(&value.0))
+    }
+}
+
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
-#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(try_from = "SignatureShareSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "SignatureShareSerialization<C>"))]
 pub struct SignatureShare<C: Ciphersuite> {
     /// This participant's signature over the message.
     pub(crate) share: Scalar<C>,
-    /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    ciphersuite: (),
 }
 
 impl<C> SignatureShare<C>
@@ -41,10 +64,7 @@ where
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error<C>> {
         <<C::Group as Group>::Field>::deserialize(&bytes)
-            .map(|scalar| Self {
-                share: scalar,
-                ciphersuite: (),
-            })
+            .map(|scalar| Self { share: scalar })
             .map_err(|e| e.into())
     }
 
@@ -60,7 +80,7 @@ where
     ///
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
     #[cfg_attr(feature = "internals", visibility::make(pub))]
-    fn verify(
+    pub(crate) fn verify(
         &self,
         identifier: Identifier<C>,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
@@ -81,24 +101,44 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<C> TryFrom<ScalarSerialization<C>> for SignatureShare<C>
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
+struct SignatureShareSerialization<C: Ciphersuite> {
+    share: SignatureShareHelper<C>,
+    /// Ciphersuite ID for serialization
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    ciphersuite: (),
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<SignatureShareSerialization<C>> for SignatureShare<C>
 where
     C: Ciphersuite,
 {
-    type Error = Error<C>;
-
-    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        Self::from_bytes(value.0)
+    fn from(value: SignatureShareSerialization<C>) -> Self {
+        Self {
+            share: value.share.0,
+        }
     }
 }
 
 #[cfg(feature = "serde")]
-impl<C> From<SignatureShare<C>> for ScalarSerialization<C>
+impl<C> From<SignatureShare<C>> for SignatureShareSerialization<C>
 where
     C: Ciphersuite,
 {
     fn from(value: SignatureShare<C>) -> Self {
-        Self(value.to_bytes())
+        Self {
+            share: SignatureShareHelper(value.share),
+            ciphersuite: (),
+        }
     }
 }
 
@@ -126,10 +166,7 @@ fn compute_signature_share<C: Ciphersuite>(
         + (signer_nonces.binding.0 * binding_factor.0)
         + (lambda_i * key_package.secret_share.0 * challenge.0);
 
-    SignatureShare::<C> {
-        share: z_share,
-        ciphersuite: (),
-    }
+    SignatureShare::<C> { share: z_share }
 }
 
 // // Zeroizes `SignatureShare` to be the `Default` value on drop (when it goes out

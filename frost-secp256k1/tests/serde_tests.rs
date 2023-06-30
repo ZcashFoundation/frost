@@ -169,7 +169,7 @@ fn check_signature_share_serialization() {
     assert!(signature_share == decoded_signature_share);
 
     let json = r#"{
-      "signature": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
+      "share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
       "ciphersuite": "FROST(secp256k1, SHA-256)"
     }"#;
     let decoded_commitments: SignatureShare = serde_json::from_str(json).unwrap();
@@ -193,7 +193,7 @@ fn check_signature_share_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "signature": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
+        "share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "extra": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
