@@ -118,17 +118,3 @@ impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
             .finish()
     }
 }
-
-// impl<C> FromHex for Signature<C>
-// where
-//     C: Ciphersuite,
-// {
-//     type Error = &'static str;
-
-//     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-//         match FromHex::from_hex(hex) {
-//             Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed signature encoding"),
-//             Err(_) => Err("invalid hex"),
-//         }
-//     }
-// }

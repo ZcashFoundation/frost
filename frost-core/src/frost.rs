@@ -289,14 +289,6 @@ where
     }
 }
 
-// impl<C> Debug for GroupCommitment<C> where C: Ciphersuite {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         f.debug_tuple("GroupCommitment")
-//             .field(&hex::encode(self.0.compress().to_bytes()))
-//             .finish()
-//     }
-// }
-
 /// Generates the group commitment which is published as part of the joint
 /// Schnorr signature.
 ///
