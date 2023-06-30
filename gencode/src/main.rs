@@ -321,6 +321,7 @@ fn main() -> ExitCode {
             "src/tests/coefficient_commitment.rs",
             "src/tests/proptests.rs",
             "src/tests/vss_commitment.rs",
+            "tests/common_traits_tests.rs",
             "tests/recreation_tests.rs",
             "tests/serde_tests.rs",
             "tests/helpers/samples.rs",

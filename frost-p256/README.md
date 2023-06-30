@@ -17,7 +17,12 @@ use std::collections::{BTreeMap, HashMap};
 let mut rng = thread_rng();
 let max_signers = 5;
 let min_signers = 3;
-let (shares, pubkey_package) = frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng)?;
+let (shares, pubkey_package) = frost::keys::generate_with_dealer(
+    max_signers,
+    min_signers,
+    frost::keys::IdentifierList::Default,
+    &mut rng,
+)?;
 # // ANCHOR_END: tkg_gen
 
 // Verifies the secret shares from the dealer and store them in a HashMap.

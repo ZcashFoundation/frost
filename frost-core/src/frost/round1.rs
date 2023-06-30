@@ -251,7 +251,7 @@ where
 ///
 /// This step can be batched if desired by the implementation. Each
 /// SigningCommitment can be used for exactly *one* signature.
-#[derive(Copy, Clone, Eq, PartialEq, Getters)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningCommitments<C: Ciphersuite> {

@@ -207,6 +207,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         max_signers as u16,
         min_signers as u16,
         share_polynomial_coefficients,
+        &default_identifiers(max_signers as u16),
     )
     .unwrap();
     let secret_shares: HashMap<_, _> = secret_shares

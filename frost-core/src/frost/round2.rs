@@ -11,81 +11,6 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::ScalarSerialization;
 
-/// A representation of a single signature share used in FROST structures and messages.
-// #[derive(Clone, Copy, Getters)]
-// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-// #[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
-// #[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
-// pub struct SignatureResponse<C: Ciphersuite> {
-//     /// The scalar contribution to the group signature.
-//     pub(crate) z_share: Scalar<C>,
-// }
-
-// impl<C> SignatureResponse<C>
-// where
-//     C: Ciphersuite,
-// {
-//     /// Deserialize [`SignatureResponse`] from bytes
-//     pub fn from_bytes(
-//         bytes: <<C::Group as Group>::Field as Field>::Serialization,
-//     ) -> Result<Self, Error<C>> {
-//         <<C::Group as Group>::Field>::deserialize(&bytes)
-//             .map(|scalar| Self { z_share: scalar })
-//             .map_err(|e| e.into())
-//     }
-
-//     /// Serialize [`SignatureResponse`] to bytes
-//     pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-//         <<C::Group as Group>::Field>::serialize(&self.z_share)
-//     }
-// }
-
-// #[cfg(feature = "serde")]
-// impl<C> TryFrom<ScalarSerialization<C>> for SignatureResponse<C>
-// where
-//     C: Ciphersuite,
-// {
-//     type Error = Error<C>;
-
-//     fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-//         Self::from_bytes(value.0)
-//     }
-// }
-
-// #[cfg(feature = "serde")]
-// impl<C> From<SignatureResponse<C>> for ScalarSerialization<C>
-// where
-//     C: Ciphersuite,
-// {
-//     fn from(value: SignatureResponse<C>) -> Self {
-//         Self(value.to_bytes())
-//     }
-// }
-
-// impl<C> Debug for SignatureResponse<C>
-// where
-//     C: Ciphersuite,
-// {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         f.debug_struct("SignatureResponse")
-//             .field("z_share", &hex::encode(self.to_bytes()))
-//             .finish()
-//     }
-// }
-
-// impl<C> Eq for SignatureResponse<C> where C: Ciphersuite {}
-
-// impl<C> PartialEq for SignatureResponse<C>
-// where
-//     C: Ciphersuite,
-// {
-//     // TODO: should this have any constant-time guarantees? I think signature shares are public.
-//     fn eq(&self, other: &Self) -> bool {
-//         self.z_share == other.z_share
-//     }
-// }
-
-/// A participant's signature share, which the coordinator will aggregate with all other signer's
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -146,7 +71,9 @@ where
         if (<C::Group>::generator() * self.share)
             != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
         {
-            return Err(Error::InvalidSignatureShare { culprit: identifier });
+            return Err(Error::InvalidSignatureShare {
+                culprit: identifier,
+            });
         }
 
         Ok(())
