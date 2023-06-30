@@ -5,7 +5,6 @@ use crate::{
     frost::{self, Identifier},
     Error, Field, Group, Signature, VerifyingKey,
 };
-use debugless_unwrap::DebuglessUnwrapErr;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -44,7 +43,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     // Test error cases
 
     assert_eq!(
-        frost::keys::reconstruct::<C>(&[]).debugless_unwrap_err(),
+        frost::keys::reconstruct::<C>(&[]).unwrap_err(),
         Error::IncorrectNumberOfShares
     );
 
@@ -52,7 +51,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     secret_shares[0] = secret_shares[1].clone();
 
     assert_eq!(
-        frost::keys::reconstruct::<C>(&secret_shares).debugless_unwrap_err(),
+        frost::keys::reconstruct::<C>(&secret_shares).unwrap_err(),
         Error::DuplicatedShares
     );
 }
@@ -375,7 +374,7 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
         frost::keys::IdentifierList::Custom(&identifiers),
         &mut rng,
     )
-    .debugless_unwrap_err();
+    .unwrap_err();
     assert_eq!(err, Error::DuplicatedIdentifier);
 
     // Check correct case
@@ -418,7 +417,7 @@ fn check_part2_error<C: Ciphersuite>(
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
     // Corrupt a PoK
     round1_packages[0].proof_of_knowledge.z = round1_packages[0].proof_of_knowledge.z + one;
-    let e = frost::keys::dkg::part2(round1_secret_package, &round1_packages).debugless_unwrap_err();
+    let e = frost::keys::dkg::part2(round1_secret_package, &round1_packages).unwrap_err();
     assert_eq!(e.culprit(), Some(*round1_packages[0].sender_identifier()));
     assert_eq!(
         e,

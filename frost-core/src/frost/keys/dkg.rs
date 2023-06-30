@@ -53,7 +53,7 @@ pub mod round1 {
 
     /// The package that must be broadcast by each participant to all other participants
     /// between the first and second parts of the DKG protocol (round 1).
-    #[derive(Clone, PartialEq, Eq, Getters)]
+    #[derive(Clone, Debug, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
@@ -101,7 +101,7 @@ pub mod round1 {
     /// # Security
     ///
     /// This package MUST NOT be sent to other participants!
-    #[derive(Clone)]
+    #[derive(Clone, PartialEq, Eq)]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
         pub(crate) identifier: Identifier<C>,
@@ -112,6 +112,20 @@ pub mod round1 {
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The total number of signers.
         pub(crate) max_signers: u16,
+    }
+
+    impl<C> std::fmt::Debug for SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("SecretPackage")
+                .field("identifier", &self.identifier)
+                .field("coefficients", &"<redacted>")
+                .field("commitment", &self.commitment)
+                .field("max_signers", &self.max_signers)
+                .finish()
+        }
     }
 }
 
@@ -128,7 +142,7 @@ pub mod round2 {
     /// # Security
     ///
     /// The package must be sent on an *confidential* and *authenticated* channel.
-    #[derive(Clone, PartialEq, Eq, Getters)]
+    #[derive(Clone, Debug, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
@@ -176,6 +190,7 @@ pub mod round2 {
     /// # Security
     ///
     /// This package MUST NOT be sent to other participants!
+    #[derive(Clone, PartialEq, Eq)]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
         pub(crate) identifier: Identifier<C>,
@@ -185,6 +200,20 @@ pub mod round2 {
         pub(crate) secret_share: Scalar<C>,
         /// The total number of signers.
         pub(crate) max_signers: u16,
+    }
+
+    impl<C> std::fmt::Debug for SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("SecretPackage")
+                .field("identifier", &self.identifier)
+                .field("commitment", &self.commitment)
+                .field("secret_share", &"<redacted>")
+                .field("max_signers", &self.max_signers)
+                .finish()
+        }
     }
 }
 
