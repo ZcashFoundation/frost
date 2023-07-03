@@ -25,7 +25,7 @@ where
     }
 
     /// Deserialize from bytes
-    pub fn from_bytes(
+    pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<SigningKey<C>, Error<C>> {
         <<C::Group as Group>::Field as Field>::deserialize(&bytes)
@@ -34,7 +34,7 @@ where
     }
 
     /// Serialize `SigningKey` to bytes
-    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field as Field>::serialize(&self.scalar)
     }
 
