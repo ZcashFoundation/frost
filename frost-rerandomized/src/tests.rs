@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::{frost_core::frost, frost_core::Ciphersuite, RandomizedParams};
-use frost_core::{Signature, VerifyingKey};
+use frost_core::{Field, Group, Signature, VerifyingKey};
 use rand_core::{CryptoRng, RngCore};
 
 /// Test re-randomized FROST signing with trusted dealer with a Ciphersuite.
@@ -18,8 +18,13 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, pubkeys) =
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+    let (shares, pubkeys) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
 
     // Verifies the secret shares from the dealer
     let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
@@ -33,6 +38,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     let mut commitments: HashMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         HashMap::new();
 
+    check_from_randomizer(&pubkeys, &mut rng);
     let randomizer_params = RandomizedParams::new(&pubkeys, &mut rng);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -61,7 +67,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     let mut signature_shares: Vec<frost::round2::SignatureShare<_>> = Vec::new();
     let message = "message to sign".as_bytes();
     let comms = commitments.clone().into_values().collect();
-    let signing_package = frost::SigningPackage::new(comms, message.to_vec());
+    let signing_package = frost::SigningPackage::new(comms, message);
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
@@ -115,4 +121,15 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
         group_signature,
         *randomizer_params.randomized_group_public_key(),
     )
+}
+
+fn check_from_randomizer<C: Ciphersuite, R: RngCore + CryptoRng>(
+    pubkeys: &frost::keys::PublicKeyPackage<C>,
+    mut rng: &mut R,
+) {
+    let randomizer = <<C::Group as Group>::Field as Field>::random(&mut rng);
+
+    let randomizer_params = RandomizedParams::from_randomizer(pubkeys, randomizer);
+
+    assert!(*randomizer_params.randomizer() == randomizer);
 }

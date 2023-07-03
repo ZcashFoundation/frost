@@ -4,6 +4,9 @@ use thiserror::Error;
 
 use crate::{frost::Identifier, Ciphersuite};
 
+#[derive(Error, Debug, Clone, Copy, Eq, PartialEq)]
+pub struct ParticipantError<C: Ciphersuite>(Identifier<C>);
+
 /// An error related to FROST.
 #[non_exhaustive]
 #[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]
@@ -20,6 +23,9 @@ pub enum Error<C: Ciphersuite> {
     /// This identifier is unserializable.
     #[error("Malformed identifier is unserializable.")]
     MalformedIdentifier,
+    /// This identifier is duplicated.
+    #[error("Duplicated identifier.")]
+    DuplicatedIdentifier,
     /// The encoding of a signing key was malformed.
     #[error("Malformed signing key encoding.")]
     MalformedSigningKey,
@@ -45,14 +51,11 @@ pub enum Error<C: Ciphersuite> {
     #[error("Invalid signature share.")]
     InvalidSignatureShare {
         /// The identifier of the signer whose share validation failed.
-        signer: Identifier<C>,
+        culprit: Identifier<C>,
     },
     /// Secret share verification failed.
     #[error("Invalid secret share.")]
-    InvalidSecretShare {
-        /// The identifier of the signer whose share validation failed.
-        identifier: Identifier<C>,
-    },
+    InvalidSecretShare,
     /// Round 1 package not found for Round 2 participant.
     #[error("Round 1 package not found for Round 2 participant.")]
     PackageNotFound,
@@ -69,7 +72,7 @@ pub enum Error<C: Ciphersuite> {
     #[error("The proof of knowledge is not valid.")]
     InvalidProofOfKnowledge {
         /// The identifier of the signer whose share validation failed.
-        sender: Identifier<C>,
+        culprit: Identifier<C>,
     },
     /// Error in scalar Field.
     #[error("Error in scalar Field.")]
@@ -80,6 +83,53 @@ pub enum Error<C: Ciphersuite> {
     /// Error in coefficient commitment deserialization.
     #[error("Invalid coefficient")]
     InvalidCoefficient,
+    /// The ciphersuite does not support deriving identifiers from strings.
+    #[error("The ciphersuite does not support deriving identifiers from strings.")]
+    IdentifierDerivationNotSupported,
+}
+
+impl<C> Error<C>
+where
+    C: Ciphersuite,
+{
+    /// Return the identifier of the participant that caused the error.
+    /// Returns None if not applicable for the error.
+    ///
+    /// This can be used to penalize a participant that does not follow the
+    /// protocol correctly, e.g. removing them from further signings.
+    pub fn culprit(&self) -> Option<Identifier<C>> {
+        // Use an exhaustive match to make sure that if we add new enum items
+        // then we will explicitly check if they should be added here.
+        match self {
+            Error::InvalidSignatureShare {
+                culprit: identifier,
+            }
+            | Error::InvalidProofOfKnowledge {
+                culprit: identifier,
+            } => Some(*identifier),
+            Error::InvalidSecretShare
+            | Error::InvalidMinSigners
+            | Error::InvalidMaxSigners
+            | Error::InvalidCoefficients
+            | Error::MalformedIdentifier
+            | Error::MalformedSigningKey
+            | Error::MalformedVerifyingKey
+            | Error::MalformedSignature
+            | Error::InvalidSignature
+            | Error::DuplicatedShares
+            | Error::IncorrectNumberOfShares
+            | Error::IdentityCommitment
+            | Error::PackageNotFound
+            | Error::IncorrectNumberOfPackages
+            | Error::IncorrectPackage
+            | Error::DKGNotSupported
+            | Error::FieldError(_)
+            | Error::GroupError(_)
+            | Error::DuplicatedIdentifier
+            | Error::InvalidCoefficient
+            | Error::IdentifierDerivationNotSupported => None,
+        }
+    }
 }
 
 /// An error related to a scalar Field.

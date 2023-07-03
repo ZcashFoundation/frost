@@ -206,7 +206,7 @@ fn main() -> ExitCode {
     // ristretto255 as the canonical base.
 
     let original_folder = "frost-ristretto255";
-    let original_strings = &[
+    let mut original_strings: Vec<String> = vec![
         "Ristretto255Sha512",
         "Ristretto group",
         "Ristretto",
@@ -214,9 +214,24 @@ fn main() -> ExitCode {
         "ristretto255_sha512",
         "ristretto255",
         "<R>",
-    ];
+    ]
+    .iter()
+    .map(|x| x.to_string())
+    .collect();
 
-    let docs = read_docs("frost-ristretto255/src/lib.rs", original_strings);
+    // Some test use "sample" values. To make these tests work for another ciphersuites,
+    // these values must be replaced. To make it cleaner, the strings are
+    // specified in JSON files, and appended here to original_strings.
+    let samples: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(format!("{original_folder}/tests/helpers/samples.json")).unwrap(),
+    )
+    .unwrap();
+    for key in &["identifier", "element1", "element2", "scalar1"] {
+        original_strings.push(samples[key].as_str().unwrap().to_owned());
+    }
+    let original_strings: Vec<&str> = original_strings.iter().map(|s| s.as_ref()).collect();
+
+    let docs = read_docs("frost-ristretto255/src/lib.rs", &original_strings);
 
     // To add a new ciphersuite, just copy a tuple and replace the required strings.
     for (folder, replacement_strings) in [
@@ -271,10 +286,30 @@ fn main() -> ExitCode {
             ],
         ),
     ] {
+        // Some test use "sample" values. To make these tests work for another ciphersuites,
+        // these values must be replaced. To make it cleaner, the strings are
+        // specified in JSON files, and appended here to replacement_strings.
+        let mut replacement_strings: Vec<String> =
+            replacement_strings.iter().map(|x| x.to_string()).collect();
+        let samples: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(format!("{folder}/tests/helpers/samples.json")).unwrap(),
+        )
+        .unwrap();
+        for key in &["identifier", "element1", "element2", "scalar1"] {
+            replacement_strings.push(samples[key].as_str().unwrap().to_owned());
+        }
+        let replacement_strings: Vec<&str> =
+            replacement_strings.iter().map(|s| s.as_ref()).collect();
+
         let lib_filename = format!("{folder}/src/lib.rs");
         // Copy the documentation of public items in Rust code, replacing ciphersuite-specific strings inside
         // them in the process.
-        replaced |= write_docs(&docs, &lib_filename, original_strings, replacement_strings);
+        replaced |= write_docs(
+            &docs,
+            &lib_filename,
+            &original_strings,
+            &replacement_strings,
+        );
 
         // Generate files based on a template with simple search & replace.
         for filename in [
@@ -286,12 +321,16 @@ fn main() -> ExitCode {
             "src/tests/coefficient_commitment.rs",
             "src/tests/proptests.rs",
             "src/tests/vss_commitment.rs",
+            "tests/common_traits_tests.rs",
+            "tests/recreation_tests.rs",
+            "tests/serde_tests.rs",
+            "tests/helpers/samples.rs",
         ] {
             replaced |= copy_and_replace(
                 format!("{original_folder}/{filename}").as_str(),
                 format!("{folder}/{filename}").as_str(),
-                original_strings,
-                replacement_strings,
+                &original_strings,
+                &replacement_strings,
                 filename.ends_with(".rs"),
             );
         }

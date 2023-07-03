@@ -15,6 +15,9 @@ use sha2::{Digest, Sha256};
 
 use frost_core::frost;
 
+#[cfg(feature = "serde")]
+use frost_core::serde;
+
 #[cfg(test)]
 mod tests;
 
@@ -167,9 +170,13 @@ const CONTEXT_STRING: &str = "FROST-P256-SHA256-v11";
 
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct P256Sha256;
 
 impl Ciphersuite for P256Sha256 {
+    const ID: &'static str = "FROST(P-256, SHA-256)";
+
     type Group = P256Group;
 
     type HashOutput = [u8; 32];
@@ -218,6 +225,14 @@ impl Ciphersuite for P256Sha256 {
             m,
         ))
     }
+
+    /// HID for FROST(P-256, SHA-256)
+    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(
+            (CONTEXT_STRING.to_owned() + "id").as_bytes(),
+            m,
+        ))
+    }
 }
 
 // Shorthand alias for the ciphersuite
@@ -225,21 +240,24 @@ type P = P256Sha256;
 
 /// A FROST(P-256, SHA-256) participant identifier.
 pub type Identifier = frost::Identifier<P>;
-
 /// FROST(P-256, SHA-256) keys, key generation, key shares.
 pub mod keys {
     use std::collections::HashMap;
 
     use super::*;
 
+    /// The identifier list to use when generating key shares.
+    pub type IdentifierList<'a> = frost::keys::IdentifierList<'a, P>;
+
     /// Allows all participants' keys to be generated using a central, trusted
     /// dealer.
     pub fn generate_with_dealer<RNG: RngCore + CryptoRng>(
         max_signers: u16,
         min_signers: u16,
+        identifiers: IdentifierList,
         mut rng: RNG,
     ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng)
+        frost::keys::generate_with_dealer(max_signers, min_signers, identifiers, &mut rng)
     }
 
     /// Splits an existing key into FROST shares.
@@ -252,9 +270,10 @@ pub mod keys {
         secret: &SigningKey,
         max_signers: u16,
         min_signers: u16,
+        identifiers: IdentifierList,
         rng: &mut R,
     ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
-        frost::keys::split(secret, max_signers, min_signers, rng)
+        frost::keys::split(secret, max_signers, min_signers, identifiers, rng)
     }
 
     /// Recompute the secret from t-of-n secret shares using Lagrange interpolation.

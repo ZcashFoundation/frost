@@ -5,7 +5,7 @@ use rand_core::{CryptoRng, RngCore};
 use crate::{random_nonzero, Ciphersuite, Error, Field, Group, Scalar, Signature, VerifyingKey};
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct SigningKey<C>
 where
     C: Ciphersuite,
@@ -25,7 +25,7 @@ where
     }
 
     /// Deserialize from bytes
-    pub fn from_bytes(
+    pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<SigningKey<C>, Error<C>> {
         <<C::Group as Group>::Field as Field>::deserialize(&bytes)
@@ -34,7 +34,7 @@ where
     }
 
     /// Serialize `SigningKey` to bytes
-    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field as Field>::serialize(&self.scalar)
     }
 
@@ -50,6 +50,15 @@ where
         let z = k + (c.0 * self.scalar);
 
         Signature { R, z }
+    }
+}
+
+impl<C> std::fmt::Debug for SigningKey<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("SigningKey").field(&"<redacted>").finish()
     }
 }
 

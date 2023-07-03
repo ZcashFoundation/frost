@@ -47,18 +47,53 @@ use super::{
 
 /// DKG Round 1 structures.
 pub mod round1 {
+    use derive_getters::Getters;
+    use zeroize::Zeroize;
+
     use super::*;
 
     /// The package that must be broadcast by each participant to all other participants
     /// between the first and second parts of the DKG protocol (round 1).
-    #[derive(Clone)]
+    #[derive(Clone, Debug, PartialEq, Eq, Getters)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The identifier of the participant who is sending the package (i).
-        pub sender_identifier: Identifier<C>,
+        pub(crate) sender_identifier: Identifier<C>,
         /// The public commitment from the participant (C_i)
-        pub commitment: VerifiableSecretSharingCommitment<C>,
+        pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
-        pub proof_of_knowledge: Signature<C>,
+        pub(crate) proof_of_knowledge: Signature<C>,
+        /// Ciphersuite ID for serialization
+        #[cfg_attr(
+            feature = "serde",
+            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+        )]
+        #[cfg_attr(
+            feature = "serde",
+            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+        )]
+        #[getter(skip)]
+        pub(super) ciphersuite: (),
+    }
+
+    impl<C> Package<C>
+    where
+        C: Ciphersuite,
+    {
+        /// Create a new [`Package`] instance.
+        pub fn new(
+            sender_identifier: Identifier<C>,
+            commitment: VerifiableSecretSharingCommitment<C>,
+            proof_of_knowledge: Signature<C>,
+        ) -> Self {
+            Self {
+                sender_identifier,
+                commitment,
+                proof_of_knowledge,
+                ciphersuite: (),
+            }
+        }
     }
 
     /// The secret package that must be kept in memory by the participant
@@ -67,22 +102,50 @@ pub mod round1 {
     /// # Security
     ///
     /// This package MUST NOT be sent to other participants!
-    #[derive(Clone)]
+    #[derive(Clone, PartialEq, Eq)]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
-        pub identifier: Identifier<C>,
+        pub(crate) identifier: Identifier<C>,
         /// Coefficients of the temporary secret polynomial for the participant.
         /// These are (a_{i0}, ..., a_{i(t−1)})) which define the polynomial f_i(x)
-        pub coefficients: Vec<Scalar<C>>,
+        pub(crate) coefficients: Vec<Scalar<C>>,
         /// The public commitment for the participant (C_i)
-        pub commitment: VerifiableSecretSharingCommitment<C>,
+        pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The total number of signers.
-        pub max_signers: u16,
+        pub(crate) max_signers: u16,
+    }
+
+    impl<C> std::fmt::Debug for SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("SecretPackage")
+                .field("identifier", &self.identifier)
+                .field("coefficients", &"<redacted>")
+                .field("commitment", &self.commitment)
+                .field("max_signers", &self.max_signers)
+                .finish()
+        }
+    }
+
+    impl<C> Zeroize for SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        fn zeroize(&mut self) {
+            for i in 0..self.coefficients.len() {
+                self.coefficients[i] = <<C::Group as Group>::Field>::zero();
+            }
+        }
     }
 }
 
 /// DKG Round 2 structures.
 pub mod round2 {
+    use derive_getters::Getters;
+    use zeroize::Zeroize;
+
     use super::*;
 
     /// A package that must be sent by each participant to some other participants
@@ -92,14 +155,46 @@ pub mod round2 {
     /// # Security
     ///
     /// The package must be sent on an *confidential* and *authenticated* channel.
-    #[derive(Clone)]
+    #[derive(Clone, Debug, PartialEq, Eq, Getters)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The identifier of the participant that generated the package (i).
-        pub sender_identifier: Identifier<C>,
+        pub(crate) sender_identifier: Identifier<C>,
         /// The identifier of the participant what will receive the package (ℓ).
-        pub receiver_identifier: Identifier<C>,
+        pub(crate) receiver_identifier: Identifier<C>,
         /// The secret share being sent.
-        pub secret_share: SigningShare<C>,
+        pub(crate) secret_share: SigningShare<C>,
+        /// Ciphersuite ID for serialization
+        #[cfg_attr(
+            feature = "serde",
+            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+        )]
+        #[cfg_attr(
+            feature = "serde",
+            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+        )]
+        #[getter(skip)]
+        pub(super) ciphersuite: (),
+    }
+
+    impl<C> Package<C>
+    where
+        C: Ciphersuite,
+    {
+        /// Create a new [`Package`] instance.
+        pub fn new(
+            sender_identifier: Identifier<C>,
+            receiver_identifier: Identifier<C>,
+            secret_share: SigningShare<C>,
+        ) -> Self {
+            Self {
+                sender_identifier,
+                receiver_identifier,
+                secret_share,
+                ciphersuite: (),
+            }
+        }
     }
 
     /// The secret package that must be kept in memory by the participant
@@ -108,15 +203,39 @@ pub mod round2 {
     /// # Security
     ///
     /// This package MUST NOT be sent to other participants!
+    #[derive(Clone, PartialEq, Eq)]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
-        pub identifier: Identifier<C>,
+        pub(crate) identifier: Identifier<C>,
         /// The public commitment from the participant (C_i)
-        pub commitment: VerifiableSecretSharingCommitment<C>,
+        pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The participant's own secret share (f_i(i)).
-        pub secret_share: Scalar<C>,
+        pub(crate) secret_share: Scalar<C>,
         /// The total number of signers.
-        pub max_signers: u16,
+        pub(crate) max_signers: u16,
+    }
+
+    impl<C> std::fmt::Debug for SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("SecretPackage")
+                .field("identifier", &self.identifier)
+                .field("commitment", &self.commitment)
+                .field("secret_share", &"<redacted>")
+                .field("max_signers", &self.max_signers)
+                .finish()
+        }
+    }
+
+    impl<C> Zeroize for SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        fn zeroize(&mut self) {
+            self.secret_share = <<C::Group as Group>::Field>::zero();
+        }
     }
 }
 
@@ -168,6 +287,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
         sender_identifier: identifier,
         commitment,
         proof_of_knowledge: Signature { R: R_i, z: mu_i },
+        ciphersuite: (),
     };
 
     Ok((secret_package, package))
@@ -221,7 +341,7 @@ pub fn part2<C: Ciphersuite>(
         let c_ell = challenge::<C>(ell, &R_ell, &phi_ell0).ok_or(Error::DKGNotSupported)?;
 
         if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
-            return Err(Error::InvalidProofOfKnowledge { sender: ell });
+            return Err(Error::InvalidProofOfKnowledge { culprit: ell });
         }
 
         // Round 2, Step 1
@@ -235,6 +355,7 @@ pub fn part2<C: Ciphersuite>(
             sender_identifier: secret_package.identifier,
             receiver_identifier: ell,
             secret_share: SigningShare(value),
+            ciphersuite: (),
         });
     }
     let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients);
@@ -346,6 +467,7 @@ pub fn part3<C: Ciphersuite>(
             identifier: round2_secret_package.identifier,
             value: f_ell_i,
             commitment: commitment.clone(),
+            ciphersuite: (),
         };
 
         // Verify the share. We don't need the result.
@@ -390,10 +512,12 @@ pub fn part3<C: Ciphersuite>(
         secret_share: signing_share,
         public: verifying_key,
         group_public,
+        ciphersuite: (),
     };
     let public_key_package = PublicKeyPackage {
         signer_pubkeys: all_verifying_keys,
         group_public,
+        ciphersuite: (),
     };
 
     Ok((key_package, public_key_package))

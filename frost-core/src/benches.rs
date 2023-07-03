@@ -92,14 +92,24 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             |b, (max_signers, min_signers)| {
                 let mut rng = rng.clone();
                 b.iter(|| {
-                    frost::keys::generate_with_dealer::<C, R>(*max_signers, *min_signers, &mut rng)
-                        .unwrap();
+                    frost::keys::generate_with_dealer::<C, R>(
+                        *max_signers,
+                        *min_signers,
+                        frost::keys::IdentifierList::Default,
+                        &mut rng,
+                    )
+                    .unwrap();
                 })
             },
         );
 
-        let (shares, pubkeys) =
-            frost::keys::generate_with_dealer::<C, R>(max_signers, min_signers, rng).unwrap();
+        let (shares, pubkeys) = frost::keys::generate_with_dealer::<C, R>(
+            max_signers,
+            min_signers,
+            frost::keys::IdentifierList::Default,
+            rng,
+        )
+        .unwrap();
 
         // Verifies the secret shares from the dealer
         let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
@@ -146,7 +156,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
 
         let message = "message to sign".as_bytes();
         let comms = commitments.clone().into_values().collect();
-        let signing_package = frost::SigningPackage::new(comms, message.to_vec());
+        let signing_package = frost::SigningPackage::new(comms, message);
 
         group.bench_with_input(
             BenchmarkId::new("Round 2", min_signers),

@@ -2,10 +2,9 @@
 use std::{collections::HashMap, convert::TryFrom};
 
 use crate::{
-    frost::{self},
-    Error, Signature, VerifyingKey,
+    frost::{self, Identifier},
+    Error, Field, Group, Signature, VerifyingKey,
 };
-use debugless_unwrap::DebuglessUnwrapErr;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -20,9 +19,14 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     let coefficients =
         frost::keys::generate_coefficients::<C, _>(min_signers as usize - 1, &mut rng);
 
-    let secret_shares =
-        frost::keys::generate_secret_shares(&secret, max_signers, min_signers, coefficients)
-            .unwrap();
+    let secret_shares = frost::keys::generate_secret_shares(
+        &secret,
+        max_signers,
+        min_signers,
+        coefficients,
+        &frost::keys::default_identifiers(max_signers),
+    )
+    .unwrap();
 
     for secret_share in secret_shares.iter() {
         assert!(secret_share.verify().is_ok());
@@ -31,15 +35,15 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     assert_eq!(
         frost::keys::reconstruct::<C>(&secret_shares)
             .unwrap()
-            .to_bytes()
+            .serialize()
             .as_ref(),
-        secret.to_bytes().as_ref()
+        secret.serialize().as_ref()
     );
 
     // Test error cases
 
     assert_eq!(
-        frost::keys::reconstruct::<C>(&[]).debugless_unwrap_err(),
+        frost::keys::reconstruct::<C>(&[]).unwrap_err(),
         Error::IncorrectNumberOfShares
     );
 
@@ -47,7 +51,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     secret_shares[0] = secret_shares[1].clone();
 
     assert_eq!(
-        frost::keys::reconstruct::<C>(&secret_shares).debugless_unwrap_err(),
+        frost::keys::reconstruct::<C>(&secret_shares).unwrap_err(),
         Error::DuplicatedShares
     );
 }
@@ -62,8 +66,13 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, pubkeys) =
-        frost::keys::generate_with_dealer(max_signers, min_signers, &mut rng).unwrap();
+    let (shares, pubkeys) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
 
     // Verifies the secret shares from the dealer
     let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
@@ -92,8 +101,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Round 1: generating nonces and signing commitments for each participant
     ////////////////////////////////////////////////////////////////////////////
 
-    for participant_index in 1..(min_signers + 1) {
-        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+    for participant_identifier in key_packages.keys().take(min_signers as usize).cloned() {
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _min_signers_.
         let (nonces, commitments) = frost::round1::commit(
@@ -114,7 +122,7 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     let mut signature_shares = Vec::new();
     let message = "message to sign".as_bytes();
     let comms = commitments_map.clone().into_values().collect();
-    let signing_package = frost::SigningPackage::new(comms, message.to_vec());
+    let signing_package = frost::SigningPackage::new(comms, message);
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
@@ -135,6 +143,12 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Aggregation: collects the signing shares from all participants,
     // generates the final signature.
     ////////////////////////////////////////////////////////////////////////////
+
+    check_aggregate_error(
+        signing_package.clone(),
+        signature_shares.clone(),
+        pubkey_package.clone(),
+    );
 
     // Aggregate (also verifies the signature shares)
     let group_signature =
@@ -164,6 +178,24 @@ fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
         group_signature,
         pubkey_package.group_public,
     )
+}
+
+fn check_aggregate_error<C: Ciphersuite + PartialEq>(
+    signing_package: frost::SigningPackage<C>,
+    mut signature_shares: Vec<frost::round2::SignatureShare<C>>,
+    pubkey_package: frost::keys::PublicKeyPackage<C>,
+) {
+    let one = <<C as Ciphersuite>::Group as Group>::Field::one();
+    // Corrupt a share
+    signature_shares[0].signature.z_share = signature_shares[0].signature.z_share + one;
+    let e = frost::aggregate(&signing_package, &signature_shares[..], &pubkey_package).unwrap_err();
+    assert_eq!(e.culprit(), Some(*signature_shares[0].identifier()));
+    assert_eq!(
+        e,
+        Error::InvalidSignatureShare {
+            culprit: *signature_shares[0].identifier()
+        }
+    );
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.
@@ -247,6 +279,7 @@ where
             .remove(&participant_identifier)
             .unwrap();
         let round1_packages = &received_round1_packages[&participant_identifier];
+        check_part2_error(round1_secret_package.clone(), round1_packages.clone());
         let (round2_secret_package, round2_packages) =
             frost::keys::dkg::part2(round1_secret_package, round1_packages).expect("should work");
 
@@ -315,11 +348,109 @@ where
         assert!(verifying_keys_for_participant.signer_pubkeys == verifying_keys);
     }
 
-    let pubkeys = frost::keys::PublicKeyPackage {
-        signer_pubkeys: verifying_keys,
-        group_public: group_public.unwrap(),
-    };
+    let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, group_public.unwrap());
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys)
+}
+
+/// Test FROST signing with trusted dealer with a Ciphersuite, using specified
+/// Identifiers.
+pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + CryptoRng>(
+    mut rng: R,
+) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
+    // Check error case first (repeated identifiers)
+
+    let identifiers: Vec<frost::Identifier<C>> = [1u16, 42, 100, 257, 42]
+        .into_iter()
+        .map(|i| i.try_into().unwrap())
+        .collect();
+
+    let max_signers = 5;
+    let min_signers = 3;
+    let err = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Custom(&identifiers),
+        &mut rng,
+    )
+    .unwrap_err();
+    assert_eq!(err, Error::DuplicatedIdentifier);
+
+    // Check correct case
+
+    let identifiers: Vec<frost::Identifier<C>> = [1u16, 42, 100, 257, 65535]
+        .into_iter()
+        .map(|i| i.try_into().unwrap())
+        .collect();
+
+    let max_signers = 5;
+    let min_signers = 3;
+    let (shares, pubkeys) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Custom(&identifiers),
+        &mut rng,
+    )
+    .unwrap();
+
+    // Check if the specified identifiers were used
+    for id in identifiers {
+        assert!(shares.contains_key(&id));
+    }
+
+    // Do regular testing to make sure it works
+
+    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        HashMap::new();
+    for (k, v) in shares {
+        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+        key_packages.insert(k, key_package);
+    }
+    check_sign(min_signers, key_packages, rng, pubkeys)
+}
+
+fn check_part2_error<C: Ciphersuite>(
+    round1_secret_package: frost::keys::dkg::round1::SecretPackage<C>,
+    mut round1_packages: Vec<frost::keys::dkg::round1::Package<C>>,
+) {
+    let one = <<C as Ciphersuite>::Group as Group>::Field::one();
+    // Corrupt a PoK
+    round1_packages[0].proof_of_knowledge.z = round1_packages[0].proof_of_knowledge.z + one;
+    let e = frost::keys::dkg::part2(round1_secret_package, &round1_packages).unwrap_err();
+    assert_eq!(e.culprit(), Some(*round1_packages[0].sender_identifier()));
+    assert_eq!(
+        e,
+        Error::InvalidProofOfKnowledge {
+            culprit: *round1_packages[0].sender_identifier()
+        }
+    );
+}
+
+/// Test Error culprit method.
+pub fn check_error_culprit<C: Ciphersuite>() {
+    let identifier: frost::Identifier<C> = 42u16.try_into().unwrap();
+
+    let e = Error::InvalidSignatureShare {
+        culprit: identifier,
+    };
+    assert_eq!(e.culprit(), Some(identifier));
+
+    let e = Error::InvalidProofOfKnowledge {
+        culprit: identifier,
+    };
+    assert_eq!(e.culprit(), Some(identifier));
+
+    let e: Error<C> = Error::InvalidSignature;
+    assert_eq!(e.culprit(), None);
+}
+
+/// Test identifier derivation with a Ciphersuite
+pub fn check_identifier_derivation<C: Ciphersuite>() {
+    let id1a = Identifier::<C>::derive("username1".as_bytes()).unwrap();
+    let id1b = Identifier::<C>::derive("username1".as_bytes()).unwrap();
+    let id2 = Identifier::<C>::derive("username2".as_bytes()).unwrap();
+
+    assert!(id1a == id1b);
+    assert!(id1a != id2);
 }

@@ -7,21 +7,49 @@ use std::{
 
 use crate::{Ciphersuite, Error, Field, FieldError, Group, Scalar};
 
+#[cfg(feature = "serde")]
+use crate::ScalarSerialization;
+
 /// A FROST participant identifier.
 ///
 /// The identifier is a field element in the scalar field that the secret polynomial is defined
 /// over, corresponding to some x-coordinate for a polynomial f(x) = y.  MUST NOT be zero in the
 /// field, as f(0) = the shared secret.
 #[derive(Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct Identifier<C: Ciphersuite>(Scalar<C>);
 
 impl<C> Identifier<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new Identifier from a scalar. For internal use only.
+    fn new(scalar: Scalar<C>) -> Result<Self, Error<C>> {
+        if scalar == <<C::Group as Group>::Field>::zero() {
+            Err(FieldError::InvalidZeroScalar.into())
+        } else {
+            Ok(Self(scalar))
+        }
+    }
+
+    /// Derive an Identifier from an arbitrary byte string.
+    ///
+    /// This feature is not part of the specification and is just a convenient
+    /// way of creating identifiers.
+    ///
+    /// Each possible byte string will map to an uniformly random identifier.
+    /// Returns an error if the ciphersuite does not support identifier derivation,
+    /// or if the mapped identifier is zero (which is unpredictable, but should happen
+    /// with negligible probability).
+    pub fn derive(s: &[u8]) -> Result<Self, Error<C>> {
+        let scalar = C::HID(s).ok_or(Error::IdentifierDerivationNotSupported)?;
+        Self::new(scalar)
+    }
+
     /// Serialize the identifier using the ciphersuite encoding.
-    #[cfg_attr(feature = "internals", visibility::make(pub))]
-    pub(crate) fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
     }
 
@@ -31,11 +59,29 @@ where
         buf: &<<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error<C>> {
         let scalar = <<C::Group as Group>::Field>::deserialize(buf)?;
-        if scalar == <<C::Group as Group>::Field>::zero() {
-            Err(FieldError::InvalidZeroScalar.into())
-        } else {
-            Ok(Self(scalar))
-        }
+        Self::new(scalar)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ScalarSerialization<C>> for Identifier<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
+        Self::deserialize(&value.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<Identifier<C>> for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: Identifier<C>) -> Self {
+        Self(value.serialize())
     }
 }
 

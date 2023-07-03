@@ -48,3 +48,13 @@ fn check_sign_with_test_vectors() {
         &VECTORS_BIG_IDENTIFIER,
     );
 }
+
+#[test]
+fn check_sign_with_dealer_and_identifiers() {
+    let rng = thread_rng();
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<
+        Ed448Shake256,
+        _,
+    >(rng);
+}

@@ -9,7 +9,7 @@ pub use frost_core;
 
 use frost_core::{
     frost::{self, keys::PublicKeyPackage},
-    Ciphersuite, Error, Field, Group, VerifyingKey,
+    Ciphersuite, Error, Field, Group, Scalar, VerifyingKey,
 };
 
 // When pulled into `reddsa`, that has its own sibling `rand_core` import.
@@ -34,16 +34,17 @@ pub fn sign<C: Ciphersuite>(
     key_package: &frost::keys::KeyPackage<C>,
     randomizer_point: &<C::Group as Group>::Element,
 ) -> Result<frost::round2::SignatureShare<C>, Error<C>> {
-    let public_key = key_package.group_public.to_element() + *randomizer_point;
+    let public_key = key_package.group_public().to_element() + *randomizer_point;
 
     // Encodes the signing commitment list produced in round one as part of generating [`Rho`], the
     // binding factor.
     let binding_factor_list = frost::compute_binding_factor_list(
         signing_package,
+        key_package.group_public(),
         <C::Group as Group>::serialize(randomizer_point).as_ref(),
     );
 
-    let rho: frost::BindingFactor<C> = binding_factor_list[key_package.identifier].clone();
+    let rho: frost::BindingFactor<C> = binding_factor_list[*key_package.identifier()].clone();
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = frost::compute_group_commitment(signing_package, &binding_factor_list)?;
@@ -104,6 +105,7 @@ where
     // binding factor.
     let binding_factor_list = frost::compute_binding_factor_list(
         signing_package,
+        pubkeys.group_public(),
         <C::Group as Group>::serialize(randomized_params.randomizer_point()).as_ref(),
     );
 
@@ -126,7 +128,7 @@ where
     let mut z = <<C::Group as Group>::Field as Field>::zero();
 
     for signature_share in signature_shares {
-        z = z + signature_share.signature.z_share;
+        z = z + *signature_share.signature().z_share();
     }
 
     z = z + challenge.clone().to_scalar() * randomized_params.randomizer;
@@ -145,19 +147,19 @@ where
             // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
             // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
             let signer_pubkey = pubkeys
-                .signer_pubkeys
-                .get(&signature_share.identifier)
+                .signer_pubkeys()
+                .get(signature_share.identifier())
                 .unwrap();
 
             // Compute Lagrange coefficient.
             let lambda_i =
-                frost::derive_interpolating_value(&signature_share.identifier, signing_package)?;
+                frost::derive_interpolating_value(signature_share.identifier(), signing_package)?;
 
-            let binding_factor = binding_factor_list[signature_share.identifier].clone();
+            let binding_factor = binding_factor_list[*signature_share.identifier()].clone();
 
             // Compute the commitment share.
             let R_share = signing_package
-                .signing_commitment(&signature_share.identifier)
+                .signing_commitment(signature_share.identifier())
                 .to_group_commitment_share(&binding_factor);
 
             // Compute relation values to verify this signature share.
@@ -191,9 +193,21 @@ where
         mut rng: R,
     ) -> Self {
         let randomizer = <<C::Group as Group>::Field as Field>::random(&mut rng);
+        Self::from_randomizer(public_key_package, randomizer)
+    }
+
+    /// Create a new RandomizedParams for the given [`PublicKeyPackage`]
+    /// with the given `randomizer`. The `randomizer` MUST be generated uniformly
+    /// at random! Use [`RandomizedParams::new()`] which generates a fresh
+    /// randomizer, unless your application requires generating a randomizer
+    /// outside.
+    pub fn from_randomizer(
+        public_key_package: &PublicKeyPackage<C>,
+        randomizer: Scalar<C>,
+    ) -> Self {
         let randomizer_point = <C::Group as Group>::generator() * randomizer;
 
-        let group_public_point = public_key_package.group_public.to_element();
+        let group_public_point = public_key_package.group_public().to_element();
 
         let randomized_group_public_point = group_public_point + randomizer_point;
         let randomized_group_public_key = VerifyingKey::new(randomized_group_public_point);
