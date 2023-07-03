@@ -87,15 +87,6 @@ where
     }
 }
 
-// impl<C> Drop for Nonce<C>
-// where
-//     C: Ciphersuite,
-// {
-//     fn drop(&mut self) {
-//         self.zeroize()
-//     }
-// }
-
 #[cfg(any(test, feature = "test-impl"))]
 impl<C> FromHex for Nonce<C>
 where

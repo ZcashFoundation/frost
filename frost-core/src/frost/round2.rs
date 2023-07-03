@@ -177,12 +177,6 @@ fn compute_signature_share<C: Ciphersuite>(
     }
 }
 
-// // Zeroizes `SignatureShare` to be the `Default` value on drop (when it goes out
-// // of scope).  Luckily the derived `Default` includes the `Default` impl of
-// // Scalar, which is four 0u64's under the hood, and u16, which is
-// // 0u16.
-// impl DefaultIsZeroes for SignatureShare {}
-
 /// Performed once by each participant selected for the signing operation.
 ///
 /// Implements [`sign`] from the spec.

@@ -24,12 +24,6 @@ impl<C> VerifyingKey<C>
 where
     C: Ciphersuite,
 {
-    // pub(crate) fn from(scalar: &<<C::Group as Group>::Field as Field>::Scalar) -> Self {
-    //     let element = <C::Group as Group>::generator() * *scalar;
-
-    //     VerifyingKey { element }
-    // }
-
     /// Create a new VerifyingKey from the given element.
     #[cfg(feature = "internals")]
     pub fn new(element: <C::Group as Group>::Element) -> Self {
@@ -132,17 +126,3 @@ where
         Self(value.serialize())
     }
 }
-
-// impl<C: Ciphersuite> From<VerifyingKey<C>> for <C::Group as Group>::ElementSerialization {
-//     fn from(pk: VerifyingKey<C>) -> <C::Group as Group>::ElementSerialization {
-//         pk.bytes.bytes
-//     }
-// }
-
-// impl<C: Ciphersuite> TryFrom<<C::Group as Group>::ElementSerialization> for VerifyingKey<C> {
-//     type Error = Error;
-
-//     fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
-//         VerifyingKeyBytes::from(bytes).try_into()
-//     }
-// }
