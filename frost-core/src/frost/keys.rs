@@ -518,17 +518,20 @@ fn evaluate_vss<C: Ciphersuite>(
 /// When using a central dealer, [`SecretShare`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Clone, Debug, PartialEq, Eq, Getters)]
+#[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant identifier each secret share key package is owned by.
+    #[zeroize(skip)]
     pub(crate) identifier: Identifier<C>,
     /// This participant's secret share.
     pub(crate) secret_share: SigningShare<C>,
     /// This participant's public key.
+    #[zeroize(skip)]
     pub(crate) public: VerifyingShare<C>,
     /// The public signing key that represents the entire group.
+    #[zeroize(skip)]
     pub(crate) group_public: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
