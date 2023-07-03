@@ -55,7 +55,7 @@ where
     C: Ciphersuite,
 {
     /// Deserialize from bytes
-    pub fn from_bytes(
+    pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error<C>> {
         <<C::Group as Group>::Field>::deserialize(&bytes)
@@ -64,7 +64,7 @@ where
     }
 
     /// Serialize to bytes
-    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
     }
 }
@@ -100,7 +100,7 @@ where
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
         match v.try_into() {
-            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed secret encoding"),
+            Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed secret encoding"),
             Err(_) => Err("malformed secret encoding"),
         }
     }
@@ -114,7 +114,7 @@ where
     type Error = Error<C>;
 
     fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        Self::from_bytes(value.0)
+        Self::deserialize(value.0)
     }
 }
 
@@ -124,7 +124,7 @@ where
     C: Ciphersuite,
 {
     fn from(value: SigningShare<C>) -> Self {
-        Self(value.to_bytes())
+        Self(value.serialize())
     }
 }
 
@@ -142,14 +142,14 @@ where
     C: Ciphersuite,
 {
     /// Deserialize from bytes
-    pub fn from_bytes(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
+    pub fn deserialize(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
         <C::Group as Group>::deserialize(&bytes)
             .map(|element| Self(element))
             .map_err(|e| e.into())
     }
 
     /// Serialize to bytes
-    pub fn to_bytes(&self) -> <C::Group as Group>::Serialization {
+    pub fn serialize(&self) -> <C::Group as Group>::Serialization {
         <C::Group as Group>::serialize(&self.0)
     }
 }
@@ -160,7 +160,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("VerifyingShare")
-            .field(&hex::encode(self.to_bytes()))
+            .field(&hex::encode(self.serialize()))
             .finish()
     }
 }
@@ -182,7 +182,7 @@ where
     type Error = Error<C>;
 
     fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
-        Self::from_bytes(value.0)
+        Self::deserialize(value.0)
     }
 }
 
@@ -192,7 +192,7 @@ where
     C: Ciphersuite,
 {
     fn from(value: VerifyingShare<C>) -> Self {
-        Self(value.to_bytes())
+        Self(value.serialize())
     }
 }
 
@@ -518,17 +518,20 @@ fn evaluate_vss<C: Ciphersuite>(
 /// When using a central dealer, [`SecretShare`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Clone, Debug, PartialEq, Eq, Getters)]
+#[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant identifier each secret share key package is owned by.
+    #[zeroize(skip)]
     pub(crate) identifier: Identifier<C>,
     /// This participant's secret share.
     pub(crate) secret_share: SigningShare<C>,
     /// This participant's public key.
+    #[zeroize(skip)]
     pub(crate) public: VerifyingShare<C>,
     /// The public signing key that represents the entire group.
+    #[zeroize(skip)]
     pub(crate) group_public: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(

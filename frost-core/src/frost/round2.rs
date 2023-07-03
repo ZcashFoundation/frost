@@ -44,6 +44,7 @@ where
     }
 }
 
+/// A participant's signature share, which the coordinator will aggregate with all other signer's
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -60,7 +61,7 @@ where
     C: Ciphersuite,
 {
     /// Deserialize [`SignatureShare`] from bytes
-    pub fn from_bytes(
+    pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error<C>> {
         <<C::Group as Group>::Field>::deserialize(&bytes)
@@ -69,7 +70,7 @@ where
     }
 
     /// Serialize [`SignatureShare`] to bytes
-    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.share)
     }
 
@@ -148,7 +149,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("SignatureShare")
-            .field("share", &hex::encode(self.to_bytes()))
+            .field("share", &hex::encode(self.serialize()))
             .finish()
     }
 }
@@ -168,12 +169,6 @@ fn compute_signature_share<C: Ciphersuite>(
 
     SignatureShare::<C> { share: z_share }
 }
-
-// // Zeroizes `SignatureShare` to be the `Default` value on drop (when it goes out
-// // of scope).  Luckily the derived `Default` includes the `Default` impl of
-// // Scalar, which is four 0u64's under the hood, and u16, which is
-// // 0u16.
-// impl DefaultIsZeroes for SignatureShare {}
 
 /// Performed once by each participant selected for the signing operation.
 ///

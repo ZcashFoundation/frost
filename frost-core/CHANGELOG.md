@@ -22,6 +22,7 @@ Entries are listed in reverse chronological order.
 * `commit()` and `preprocess()` no longer take an identifier as input
 * `SignatureResponse` was removed. `SignatureShare` can now be encoded directly with
   `from/to_bytes()`.
+* rename all `to_bytes()`/`from_bytes()` to `serialize()`/`deserialize()`
 
 ## Released
 

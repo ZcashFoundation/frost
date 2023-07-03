@@ -38,7 +38,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
     let secret_key_str = inputs["group_secret_key"].as_str().unwrap();
     let secret_key_bytes = hex::decode(secret_key_str).unwrap();
     let secret_key =
-        SigningKey::from_bytes(secret_key_bytes.try_into().debugless_unwrap()).unwrap();
+        SigningKey::deserialize(secret_key_bytes.try_into().debugless_unwrap()).unwrap();
 
     let message = inputs["message"].as_str().unwrap();
     let message_bytes = hex::decode(message).unwrap();
@@ -147,7 +147,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         )
         .debugless_unwrap();
 
-        let signature_share = SignatureShare::<C>::from_bytes(sig_share).unwrap();
+        let signature_share = SignatureShare::<C>::deserialize(sig_share).unwrap();
 
         signature_shares.insert(
             u16::from_str(i).unwrap().try_into().unwrap(),
@@ -317,7 +317,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     // Check that the generated signature matches the test vector signature
     let group_signature = group_signature_result.unwrap();
-    assert_eq!(group_signature.to_bytes().as_ref(), signature_bytes);
+    assert_eq!(group_signature.serialize().as_ref(), signature_bytes);
 
     // Aggregate the FROST signature from our signature shares
     let group_signature_result =
@@ -328,5 +328,5 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     // Check that the generated signature matches the test vector signature
     let group_signature = group_signature_result.unwrap();
-    assert_eq!(group_signature.to_bytes().as_ref(), signature_bytes);
+    assert_eq!(group_signature.serialize().as_ref(), signature_bytes);
 }

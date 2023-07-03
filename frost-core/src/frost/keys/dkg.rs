@@ -48,6 +48,7 @@ use super::{
 /// DKG Round 1 structures.
 pub mod round1 {
     use derive_getters::Getters;
+    use zeroize::Zeroize;
 
     use super::*;
 
@@ -123,11 +124,23 @@ pub mod round1 {
                 .finish()
         }
     }
+
+    impl<C> Zeroize for SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        fn zeroize(&mut self) {
+            for i in 0..self.coefficients.len() {
+                self.coefficients[i] = <<C::Group as Group>::Field>::zero();
+            }
+        }
+    }
 }
 
 /// DKG Round 2 structures.
 pub mod round2 {
     use derive_getters::Getters;
+    use zeroize::Zeroize;
 
     use super::*;
 
@@ -199,6 +212,15 @@ pub mod round2 {
                 .field("secret_share", &"<redacted>")
                 .field("max_signers", &self.max_signers)
                 .finish()
+        }
+    }
+
+    impl<C> Zeroize for SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        fn zeroize(&mut self) {
+            self.secret_share = <<C::Group as Group>::Field>::zero();
         }
     }
 }

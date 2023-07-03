@@ -36,8 +36,8 @@ fn scalar1() -> Scalar<C> {
 pub fn signing_commitments() -> SigningCommitments {
     let serialized_element1 = <C as Ciphersuite>::Group::serialize(&element1());
     let serialized_element2 = <C as Ciphersuite>::Group::serialize(&element2());
-    let hiding_nonce_commitment = NonceCommitment::from_bytes(serialized_element1).unwrap();
-    let binding_nonce_commitment = NonceCommitment::from_bytes(serialized_element2).unwrap();
+    let hiding_nonce_commitment = NonceCommitment::deserialize(serialized_element1).unwrap();
+    let binding_nonce_commitment = NonceCommitment::deserialize(serialized_element2).unwrap();
 
     SigningCommitments::new(hiding_nonce_commitment, binding_nonce_commitment)
 }
@@ -55,7 +55,7 @@ pub fn signing_package() -> SigningPackage {
 pub fn signature_share() -> SignatureShare {
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
 
-    SignatureShare::from_bytes(serialized_scalar).unwrap()
+    SignatureShare::deserialize(serialized_scalar).unwrap()
 }
 
 /// Generate a sample SecretShare.
@@ -63,7 +63,7 @@ pub fn secret_share() -> SecretShare {
     let identifier = 42u16.try_into().unwrap();
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
-    let signing_share = SigningShare::from_bytes(serialized_scalar).unwrap();
+    let signing_share = SigningShare::deserialize(serialized_scalar).unwrap();
     let vss_commitment =
         VerifiableSecretSharingCommitment::deserialize(vec![serialized_element]).unwrap();
 
@@ -75,10 +75,10 @@ pub fn key_package() -> KeyPackage {
     let identifier = 42u16.try_into().unwrap();
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
-    let signing_share = SigningShare::from_bytes(serialized_scalar).unwrap();
-    let verifying_share = VerifyingShare::from_bytes(serialized_element).unwrap();
+    let signing_share = SigningShare::deserialize(serialized_scalar).unwrap();
+    let verifying_share = VerifyingShare::deserialize(serialized_element).unwrap();
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
-    let verifying_key = VerifyingKey::from_bytes(serialized_element).unwrap();
+    let verifying_key = VerifyingKey::deserialize(serialized_element).unwrap();
 
     KeyPackage::new(identifier, signing_share, verifying_share, verifying_key)
 }
@@ -87,9 +87,9 @@ pub fn key_package() -> KeyPackage {
 pub fn public_key_package() -> PublicKeyPackage {
     let identifier = 42u16.try_into().unwrap();
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
-    let verifying_share = VerifyingShare::from_bytes(serialized_element).unwrap();
+    let verifying_share = VerifyingShare::deserialize(serialized_element).unwrap();
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
-    let verifying_key = VerifyingKey::from_bytes(serialized_element).unwrap();
+    let verifying_key = VerifyingKey::deserialize(serialized_element).unwrap();
     let signer_pubkeys = HashMap::from([(identifier, verifying_share)]);
 
     PublicKeyPackage::new(signer_pubkeys, verifying_key)
@@ -109,7 +109,7 @@ pub fn round1_package() -> round1::Package {
         .unwrap();
     let vss_commitment =
         VerifiableSecretSharingCommitment::deserialize(vec![serialized_element]).unwrap();
-    let signature = Signature::from_bytes(serialized_signature).unwrap();
+    let signature = Signature::deserialize(serialized_signature).unwrap();
 
     round1::Package::new(vss_commitment, signature)
 }
@@ -117,7 +117,7 @@ pub fn round1_package() -> round1::Package {
 /// Generate a sample round2::Package.
 pub fn round2_package() -> round2::Package {
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
-    let signing_share = SigningShare::from_bytes(serialized_scalar).unwrap();
+    let signing_share = SigningShare::deserialize(serialized_scalar).unwrap();
 
     round2::Package::new(signing_share)
 }

@@ -38,9 +38,9 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     assert_eq!(
         frost::keys::reconstruct::<C>(&secret_shares)
             .unwrap()
-            .to_bytes()
+            .serialize()
             .as_ref(),
-        secret.to_bytes().as_ref()
+        secret.serialize().as_ref()
     );
 
     // Test error cases

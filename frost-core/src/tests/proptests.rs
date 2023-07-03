@@ -59,12 +59,12 @@ where
         // The signature data is stored in (refined) byte types, but do a round trip
         // conversion to raw bytes to exercise those code paths.
         let _sig = {
-            let bytes = self.sig.to_bytes();
-            Signature::<C>::from_bytes(bytes)
+            let bytes = self.sig.serialize();
+            Signature::<C>::deserialize(bytes)
         };
 
         // Check that the verification key is a valid key.
-        let _pub_key = VerifyingKey::<C>::from_bytes(self.vk.to_bytes())
+        let _pub_key = VerifyingKey::<C>::deserialize(self.vk.serialize())
             .expect("The test verification key to be well-formed.");
 
         // Check that signature validation has the expected result.
