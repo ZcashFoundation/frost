@@ -26,7 +26,7 @@ where
     C: Ciphersuite,
 {
     /// Deserialize [`SignatureResponse`] from bytes
-    pub fn from_bytes(
+    pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error<C>> {
         <<C::Group as Group>::Field>::deserialize(&bytes)
@@ -35,7 +35,7 @@ where
     }
 
     /// Serialize [`SignatureResponse`] to bytes
-    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.z_share)
     }
 }
@@ -48,7 +48,7 @@ where
     type Error = Error<C>;
 
     fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        Self::from_bytes(value.0)
+        Self::deserialize(value.0)
     }
 }
 
@@ -58,7 +58,7 @@ where
     C: Ciphersuite,
 {
     fn from(value: SignatureResponse<C>) -> Self {
-        Self(value.to_bytes())
+        Self(value.serialize())
     }
 }
 
@@ -68,7 +68,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("SignatureResponse")
-            .field("z_share", &hex::encode(self.to_bytes()))
+            .field("z_share", &hex::encode(self.serialize()))
             .finish()
     }
 }

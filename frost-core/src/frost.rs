@@ -45,7 +45,7 @@ where
     C: Ciphersuite,
 {
     /// Deserializes [`BindingFactor`] from bytes.
-    pub fn from_bytes(
+    pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<Self, Error<C>> {
         <<C::Group as Group>::Field>::deserialize(&bytes)
@@ -54,7 +54,7 @@ where
     }
 
     /// Serializes [`BindingFactor`] to bytes.
-    pub fn to_bytes(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
     }
 }
@@ -65,7 +65,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("BindingFactor")
-            .field(&hex::encode(self.to_bytes()))
+            .field(&hex::encode(self.serialize()))
             .finish()
     }
 }
@@ -140,7 +140,7 @@ where
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
         match v.try_into() {
-            Ok(bytes) => Self::from_bytes(bytes).map_err(|_| "malformed scalar encoding"),
+            Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed scalar encoding"),
             Err(_) => Err("malformed scalar encoding"),
         }
     }

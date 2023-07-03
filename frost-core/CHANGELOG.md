@@ -6,6 +6,8 @@ Entries are listed in reverse chronological order.
 
 ## 0.6.0
 
+* rename all `to_bytes()`/`from_bytes()` to `serialize()`/`deserialize()`
+
 ## Released
 
 ## 0.5.0
