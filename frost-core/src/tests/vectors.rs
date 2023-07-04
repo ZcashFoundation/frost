@@ -1,5 +1,5 @@
 //! Helper function for testing with test vectors.
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use debugless_unwrap::DebuglessUnwrap;
 use hex::{self, FromHex};
@@ -52,26 +52,23 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 
     let mut key_packages: HashMap<Identifier<C>, KeyPackage<C>> = HashMap::new();
 
-    let possible_participants = json_vectors["inputs"]["participants"]
-        .as_object()
+    let possible_participants = json_vectors["inputs"].as_object().unwrap()["participant_shares"]
+        .as_array()
         .unwrap()
         .iter();
 
     let group_public =
         VerifyingKey::<C>::from_hex(inputs["group_public_key"].as_str().unwrap()).unwrap();
 
-    for (i, secret_share) in possible_participants {
+    for secret_share in possible_participants {
+        let i = secret_share["identifier"].as_u64().unwrap() as u16;
         let secret =
             SigningShare::<C>::from_hex(secret_share["participant_share"].as_str().unwrap())
                 .unwrap();
         let signer_public = secret.into();
 
-        let key_package = KeyPackage::<C>::new(
-            u16::from_str(i).unwrap().try_into().unwrap(),
-            secret,
-            signer_public,
-            group_public,
-        );
+        let key_package =
+            KeyPackage::<C>::new(i.try_into().unwrap(), secret, signer_public, group_public);
 
         key_packages.insert(*key_package.identifier(), key_package);
     }
@@ -87,12 +84,9 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
     let mut binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
     let mut binding_factors: HashMap<Identifier<C>, BindingFactor<C>> = HashMap::new();
 
-    for (i, signer) in round_one_outputs["participants"]
-        .as_object()
-        .unwrap()
-        .iter()
-    {
-        let identifier = u16::from_str(i).unwrap().try_into().unwrap();
+    for signer in round_one_outputs["outputs"].as_array().unwrap().iter() {
+        let i = signer["identifier"].as_u64().unwrap() as u16;
+        let identifier = i.try_into().unwrap();
 
         let hiding_nonce_randomness =
             hex::decode(signer["hiding_nonce_randomness"].as_str().unwrap()).unwrap();
@@ -135,27 +129,21 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 
     let mut signature_shares: HashMap<Identifier<C>, SignatureShare<C>> = HashMap::new();
 
-    for (i, signer) in round_two_outputs["participants"]
-        .as_object()
-        .unwrap()
-        .iter()
-    {
+    for signer in round_two_outputs["outputs"].as_array().unwrap().iter() {
+        let i = signer["identifier"].as_u64().unwrap() as u16;
         let sig_share = <<C::Group as Group>::Field as Field>::Serialization::try_from(
             hex::decode(signer["sig_share"].as_str().unwrap()).unwrap(),
         )
         .debugless_unwrap();
 
         let signature_share = SignatureShare::<C>::new(
-            u16::from_str(i).unwrap().try_into().unwrap(),
+            i.try_into().unwrap(),
             SignatureResponse {
                 z_share: <<C::Group as Group>::Field>::deserialize(&sig_share).unwrap(),
             },
         );
 
-        signature_shares.insert(
-            u16::from_str(i).unwrap().try_into().unwrap(),
-            signature_share,
-        );
+        signature_shares.insert(i.try_into().unwrap(), signature_share);
     }
 
     // Final output
