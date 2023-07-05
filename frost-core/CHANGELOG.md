@@ -6,6 +6,22 @@ Entries are listed in reverse chronological order.
 
 ## 0.6.0
 
+* The following structs had a `Identifier` field removed, which affects
+  how they are encoded and instantiated:
+  * `dkg::round1::Package`
+  * `dkg::round2::Package`
+  * `SigningCommitments`
+  * `SignatureShare`
+* The following functions and methods changed parameters from `Vec` to `HashMap`
+  so that callers need to indicate the identifier of the source of each
+  value being passed:
+  * `aggregate()`
+  * `dkg::part2()`
+  * `dkg::part3()`
+  * `SigningPackage::new()`
+* `commit()` and `preprocess()` no longer take an identifier as input
+* `SignatureResponse` was removed. `SignatureShare` can now be encoded directly with
+  `from/to_bytes()`.
 * rename all `to_bytes()`/`from_bytes()` to `serialize()`/`deserialize()`
 
 ## Released

@@ -11,7 +11,7 @@
 //! Sharing, where shares are generated using Shamir Secret Sharing.
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fmt::{self, Debug},
     ops::Index,
 };
@@ -162,14 +162,14 @@ fn derive_interpolating_value<C: Ciphersuite>(
     // Ala the sorting of B, just always sort by identifier in ascending order
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
-    for commitment in signing_package.signing_commitments().values() {
-        if commitment.identifier == *signer_id {
+    for commitment_identifier in signing_package.signing_commitments().keys() {
+        if *commitment_identifier == *signer_id {
             continue;
         }
 
-        num *= commitment.identifier;
+        num *= *commitment_identifier;
 
-        den *= commitment.identifier - *signer_id;
+        den *= *commitment_identifier - *signer_id;
     }
 
     if den == zero {
@@ -189,7 +189,7 @@ fn derive_interpolating_value<C: Ciphersuite>(
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningPackage<C: Ciphersuite> {
     /// The set of commitments participants published in the first round of the
-    /// protocol, ordered by their identifiers.
+    /// protocol.
     signing_commitments: BTreeMap<Identifier<C>, round1::SigningCommitments<C>>,
     /// Message which each participant will sign.
     ///
@@ -224,14 +224,11 @@ where
     ///
     /// The `signing_commitments` are sorted by participant `identifier`.
     pub fn new(
-        signing_commitments: Vec<round1::SigningCommitments<C>>,
+        signing_commitments: BTreeMap<Identifier<C>, round1::SigningCommitments<C>>,
         message: &[u8],
     ) -> SigningPackage<C> {
         SigningPackage {
-            signing_commitments: signing_commitments
-                .into_iter()
-                .map(|s| (s.identifier, s))
-                .collect(),
+            signing_commitments,
             message: message.to_vec(),
             ciphersuite: (),
         }
@@ -261,13 +258,13 @@ where
         binding_factor_input_prefix.extend_from_slice(additional_prefix);
 
         self.signing_commitments()
-            .values()
-            .map(|c| {
+            .keys()
+            .map(|identifier| {
                 let mut binding_factor_input = vec![];
 
                 binding_factor_input.extend_from_slice(&binding_factor_input_prefix);
-                binding_factor_input.extend_from_slice(c.identifier.serialize().as_ref());
-                (c.identifier, binding_factor_input)
+                binding_factor_input.extend_from_slice(identifier.serialize().as_ref());
+                (*identifier, binding_factor_input)
             })
             .collect()
     }
@@ -317,14 +314,14 @@ where
     // Ala the sorting of B, just always sort by identifier in ascending order
     //
     // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
-    for commitment in signing_package.signing_commitments().values() {
+    for (commitment_identifier, commitment) in signing_package.signing_commitments() {
         // The following check prevents a party from accidentally revealing their share.
         // Note that the '&&' operator would be sufficient.
         if identity == commitment.binding.0 || identity == commitment.hiding.0 {
             return Err(Error::IdentityCommitment);
         }
 
-        let binding_factor = binding_factor_list[commitment.identifier].clone();
+        let binding_factor = binding_factor_list[*commitment_identifier].clone();
 
         // Collect the binding commitments and their binding factors for one big
         // multiscalar multiplication at the end.
@@ -349,6 +346,12 @@ where
 /// Aggregates the signature shares to produce a final signature that
 /// can be verified with the group public key.
 ///
+/// `signature_shares` maps the identifier of each participant to the
+/// [`round2::SignatureShare`] they sent. These identifiers must come from whatever mapping
+/// the coordinator has between communication channels and participants, i.e.
+/// they must have assurance that the [`round2::SignatureShare`] came from
+/// the participant with that identifier.
+///
 /// This operation is performed by a coordinator that can communicate with all
 /// the signing participants before publishing the final signature. The
 /// coordinator can be one of the participants or a semi-trusted third party
@@ -360,7 +363,7 @@ where
 /// service attack due to publishing an invalid signature.
 pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
-    signature_shares: &[round2::SignatureShare<C>],
+    signature_shares: &HashMap<Identifier<C>, round2::SignatureShare<C>>,
     pubkeys: &keys::PublicKeyPackage<C>,
 ) -> Result<Signature<C>, Error<C>>
 where
@@ -382,8 +385,8 @@ where
     // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-5.3
     let mut z = <<C::Group as Group>::Field>::zero();
 
-    for signature_share in signature_shares {
-        z = z + signature_share.signature.z_share;
+    for signature_share in signature_shares.values() {
+        z = z + signature_share.share;
     }
 
     let signature = Signature {
@@ -408,27 +411,32 @@ where
         );
 
         // Verify the signature shares.
-        for signature_share in signature_shares {
+        for (signature_share_identifier, signature_share) in signature_shares {
             // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
             // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
             let signer_pubkey = pubkeys
                 .signer_pubkeys
-                .get(&signature_share.identifier)
+                .get(signature_share_identifier)
                 .unwrap();
 
             // Compute Lagrange coefficient.
-            let lambda_i =
-                derive_interpolating_value(&signature_share.identifier, signing_package)?;
+            let lambda_i = derive_interpolating_value(signature_share_identifier, signing_package)?;
 
-            let binding_factor = binding_factor_list[signature_share.identifier].clone();
+            let binding_factor = binding_factor_list[*signature_share_identifier].clone();
 
             // Compute the commitment share.
             let R_share = signing_package
-                .signing_commitment(&signature_share.identifier)
+                .signing_commitment(signature_share_identifier)
                 .to_group_commitment_share(&binding_factor);
 
             // Compute relation values to verify this signature share.
-            signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
+            signature_share.verify(
+                *signature_share_identifier,
+                &R_share,
+                signer_pubkey,
+                lambda_i,
+                &challenge,
+            )?;
         }
 
         // We should never reach here; but we return the verification error to be safe.
