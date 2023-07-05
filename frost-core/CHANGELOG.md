@@ -4,6 +4,10 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 0 7.0
+
+## Released
+
 ## 0.6.0
 
 * The following structs had a `Identifier` field removed, which affects
@@ -23,8 +27,14 @@ Entries are listed in reverse chronological order.
 * `SignatureResponse` was removed. `SignatureShare` can now be encoded directly with
   `from/to_bytes()`.
 * rename all `to_bytes()`/`from_bytes()` to `serialize()`/`deserialize()`
-
-## Released
+* The group public key is now included in the hash inside the binding factor
+  computation. This reflects an upcoming change to the specification:
+  https://github.com/cfrg/draft-irtf-cfrg-frost/pull/439
+* `generate_with_dealer()` was change to allow specifying which identifiers to use
+* Identifiers can now be derive from arbitrary strings with `Identifier::derive()`
+* Added `RandomizerParams::from_randomizer()` to allow specifying a randomizer
+* Added `Error::culprit()` to easily get the identifier of a misbehaving participant
+* Most public types now implement common traits such as Clone and Debug
 
 ## 0.5.0
 
