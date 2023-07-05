@@ -1,6 +1,6 @@
 //! Generate sample, fixed instances of structs for testing.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use frost_core::{Ciphersuite, Element, Group, Scalar};
 use frost_ristretto255::{
@@ -10,7 +10,7 @@ use frost_ristretto255::{
         VerifyingShare,
     },
     round1::{NonceCommitment, SigningCommitments},
-    round2::{SignatureResponse, SignatureShare},
+    round2::SignatureShare,
     Field, Signature, SigningPackage, VerifyingKey,
 };
 
@@ -38,18 +38,14 @@ pub fn signing_commitments() -> SigningCommitments {
     let serialized_element2 = <C as Ciphersuite>::Group::serialize(&element2());
     let hiding_nonce_commitment = NonceCommitment::deserialize(serialized_element1).unwrap();
     let binding_nonce_commitment = NonceCommitment::deserialize(serialized_element2).unwrap();
-    let identifier = 42u16.try_into().unwrap();
 
-    SigningCommitments::new(
-        identifier,
-        hiding_nonce_commitment,
-        binding_nonce_commitment,
-    )
+    SigningCommitments::new(hiding_nonce_commitment, binding_nonce_commitment)
 }
 
 /// Generate a sample SigningPackage.
 pub fn signing_package() -> SigningPackage {
-    let commitments = vec![signing_commitments()];
+    let identifier = 42u16.try_into().unwrap();
+    let commitments = BTreeMap::from([(identifier, signing_commitments())]);
     let message = "hello world".as_bytes();
 
     SigningPackage::new(commitments, message)
@@ -57,11 +53,9 @@ pub fn signing_package() -> SigningPackage {
 
 /// Generate a sample SignatureShare.
 pub fn signature_share() -> SignatureShare {
-    let identifier = 42u16.try_into().unwrap();
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
-    let signature_response = SignatureResponse::deserialize(serialized_scalar).unwrap();
 
-    SignatureShare::new(identifier, signature_response)
+    SignatureShare::deserialize(serialized_scalar).unwrap()
 }
 
 /// Generate a sample SecretShare.
@@ -103,7 +97,6 @@ pub fn public_key_package() -> PublicKeyPackage {
 
 /// Generate a sample round1::Package.
 pub fn round1_package() -> round1::Package {
-    let identifier = 42u16.try_into().unwrap();
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let serialized_signature = serialized_element
@@ -118,14 +111,13 @@ pub fn round1_package() -> round1::Package {
         VerifiableSecretSharingCommitment::deserialize(vec![serialized_element]).unwrap();
     let signature = Signature::deserialize(serialized_signature).unwrap();
 
-    round1::Package::new(identifier, vss_commitment, signature)
+    round1::Package::new(vss_commitment, signature)
 }
 
 /// Generate a sample round2::Package.
 pub fn round2_package() -> round2::Package {
-    let identifier = 42u16.try_into().unwrap();
     let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
     let signing_share = SigningShare::deserialize(serialized_scalar).unwrap();
 
-    round2::Package::new(identifier, identifier, signing_share)
+    round2::Package::new(signing_share)
 }

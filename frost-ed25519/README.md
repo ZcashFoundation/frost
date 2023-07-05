@@ -12,7 +12,7 @@ scenario in a single thread and it abstracts away any communication between peer
 # // ANCHOR: tkg_gen
 use frost_ed25519 as frost;
 use rand::thread_rng;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 let mut rng = thread_rng();
 let max_signers = 5;
@@ -38,7 +38,7 @@ for (identifier, secret_share) in shares {
 }
 
 let mut nonces_map = HashMap::new();
-let mut commitments_map = HashMap::new();
+let mut commitments_map = BTreeMap::new();
 
 ////////////////////////////////////////////////////////////////////////////
 // Round 1: generating nonces and signing commitments for each participant
@@ -52,8 +52,7 @@ for participant_index in 1..(min_signers as u16 + 1) {
     // participant, up to _threshold_.
     # // ANCHOR: round1_commit
     let (nonces, commitments) = frost::round1::commit(
-        participant_identifier,
-        key_package.secret_share(),
+        key_packages[&participant_identifier].secret_share(),
         &mut rng,
     );
     # // ANCHOR_END: round1_commit
@@ -68,14 +67,13 @@ for participant_index in 1..(min_signers as u16 + 1) {
 // This is what the signature aggregator / coordinator needs to do:
 // - decide what message to sign
 // - take one (unused) commitment per signing participant
-let mut signature_shares = Vec::new();
-let commitments_received = commitments_map.clone().into_values().collect();
+let mut signature_shares = HashMap::new();
 # // ANCHOR: round2_package
 let message = "message to sign".as_bytes();
 # // In practice, the SigningPackage must be sent to all participants
 # // involved in the current signing (at least min_signers participants),
 # // using an authenticate channel (and confidential if the message is secret).
-let signing_package = frost::SigningPackage::new(commitments_received, message);
+let signing_package = frost::SigningPackage::new(commitments_map, message);
 # // ANCHOR_END: round2_package
 
 ////////////////////////////////////////////////////////////////////////////
@@ -95,7 +93,7 @@ for participant_identifier in nonces_map.keys() {
 
     // In practice, the signature share must be sent to the Coordinator
     // using an authenticated channel.
-    signature_shares.push(signature_share);
+    signature_shares.insert(*participant_identifier, signature_share);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -105,7 +103,7 @@ for participant_identifier in nonces_map.keys() {
 
 // Aggregate (also verifies the signature shares)
 # // ANCHOR: aggregate
-let group_signature = frost::aggregate(&signing_package, &signature_shares[..], &pubkey_package)?;
+let group_signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)?;
 # // ANCHOR_END: aggregate
 
 

@@ -248,8 +248,6 @@ where
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningCommitments<C: Ciphersuite> {
-    /// The participant identifier.
-    pub(crate) identifier: Identifier<C>,
     /// Commitment to the hiding [`Nonce`].
     pub(crate) hiding: NonceCommitment<C>,
     /// Commitment to the binding [`Nonce`].
@@ -272,13 +270,8 @@ where
     C: Ciphersuite,
 {
     /// Create new SigningCommitments
-    pub fn new(
-        identifier: Identifier<C>,
-        hiding: NonceCommitment<C>,
-        binding: NonceCommitment<C>,
-    ) -> Self {
+    pub fn new(hiding: NonceCommitment<C>, binding: NonceCommitment<C>) -> Self {
         Self {
-            identifier,
             hiding,
             binding,
             ciphersuite: (),
@@ -297,13 +290,12 @@ where
     }
 }
 
-impl<C> From<(Identifier<C>, &SigningNonces<C>)> for SigningCommitments<C>
+impl<C> From<&SigningNonces<C>> for SigningCommitments<C>
 where
     C: Ciphersuite,
 {
-    fn from((identifier, nonces): (Identifier<C>, &SigningNonces<C>)) -> Self {
+    fn from(nonces: &SigningNonces<C>) -> Self {
         Self {
-            identifier,
             hiding: nonces.hiding.clone().into(),
             binding: nonces.binding.clone().into(),
             ciphersuite: (),
@@ -335,8 +327,8 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 ) -> Vec<u8> {
     let mut bytes = vec![];
 
-    for item in signing_commitments.values() {
-        bytes.extend_from_slice(item.identifier.serialize().as_ref());
+    for (item_identifier, item) in signing_commitments {
+        bytes.extend_from_slice(item_identifier.serialize().as_ref());
         bytes.extend_from_slice(<C::Group>::serialize(&item.hiding.0).as_ref());
         bytes.extend_from_slice(<C::Group>::serialize(&item.binding.0).as_ref());
     }
@@ -356,7 +348,6 @@ pub(super) fn encode_group_commitments<C: Ciphersuite>(
 /// for later use, whereas the commitments are published.
 pub fn preprocess<C, R>(
     num_nonces: u8,
-    participant_identifier: Identifier<C>,
     secret: &SigningShare<C>,
     rng: &mut R,
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
@@ -370,7 +361,7 @@ where
 
     for _ in 0..num_nonces {
         let nonces = SigningNonces::new(secret, rng);
-        signing_commitments.push(SigningCommitments::from((participant_identifier, &nonces)));
+        signing_commitments.push(SigningCommitments::from(&nonces));
         signing_nonces.push(nonces);
     }
 
@@ -386,7 +377,6 @@ where
 ///
 /// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-round-one-commitment
 pub fn commit<C, R>(
-    participant_identifier: Identifier<C>,
     secret: &SigningShare<C>,
     rng: &mut R,
 ) -> (SigningNonces<C>, SigningCommitments<C>)
@@ -394,8 +384,7 @@ where
     C: Ciphersuite,
     R: CryptoRng + RngCore,
 {
-    let (mut vec_signing_nonces, mut vec_signing_commitments) =
-        preprocess(1, participant_identifier, secret, rng);
+    let (mut vec_signing_nonces, mut vec_signing_commitments) = preprocess(1, secret, rng);
     (
         vec_signing_nonces.pop().expect("must have 1 element"),
         vec_signing_commitments.pop().expect("must have 1 element"),
