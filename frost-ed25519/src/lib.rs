@@ -2,6 +2,8 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
+use std::collections::HashMap;
+
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT,
     edwards::{CompressedEdwardsY, EdwardsPoint},
@@ -338,15 +340,11 @@ pub mod round1 {
     ///
     /// Generates the signing nonces and commitments to be used in the signing
     /// operation.
-    pub fn commit<RNG>(
-        participant_identifier: frost::Identifier<E>,
-        secret: &SigningShare,
-        rng: &mut RNG,
-    ) -> (SigningNonces, SigningCommitments)
+    pub fn commit<RNG>(secret: &SigningShare, rng: &mut RNG) -> (SigningNonces, SigningCommitments)
     where
         RNG: CryptoRng + RngCore,
     {
-        frost::round1::commit::<E, RNG>(participant_identifier, secret, rng)
+        frost::round1::commit::<E, RNG>(secret, rng)
     }
 }
 
@@ -361,9 +359,6 @@ pub mod round2 {
     /// A FROST(Ed25519, SHA-512) participant's signature share, which the Coordinator will aggregate with all other signer's
     /// shares into the joint signature.
     pub type SignatureShare = frost::round2::SignatureShare<E>;
-
-    /// A representation of a single signature share used in FROST structures and messages.
-    pub type SignatureResponse = frost::round2::SignatureResponse<E>;
 
     /// Performed once by each participant selected for the signing operation.
     ///
@@ -402,7 +397,7 @@ pub type Signature = frost_core::Signature<E>;
 /// service attack due to publishing an invalid signature.
 pub fn aggregate(
     signing_package: &SigningPackage,
-    signature_shares: &[round2::SignatureShare],
+    signature_shares: &HashMap<Identifier, round2::SignatureShare>,
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, Error> {
     frost::aggregate(signing_package, signature_shares, pubkeys)

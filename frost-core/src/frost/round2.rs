@@ -11,77 +11,36 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::ScalarSerialization;
 
-/// A representation of a single signature share used in FROST structures and messages.
-#[derive(Clone, Copy, Getters)]
+// Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
+// be directly encoded with serde, so we use this struct to wrap the scalar.
+#[cfg(feature = "serde")]
+#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
-pub struct SignatureResponse<C: Ciphersuite> {
-    /// The scalar contribution to the group signature.
-    pub(crate) z_share: Scalar<C>,
-}
-
-impl<C> SignatureResponse<C>
-where
-    C: Ciphersuite,
-{
-    /// Deserialize [`SignatureResponse`] from bytes
-    pub fn deserialize(
-        bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error<C>> {
-        <<C::Group as Group>::Field>::deserialize(&bytes)
-            .map(|scalar| Self { z_share: scalar })
-            .map_err(|e| e.into())
-    }
-
-    /// Serialize [`SignatureResponse`] to bytes
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field>::serialize(&self.z_share)
-    }
-}
+struct SignatureShareHelper<C: Ciphersuite>(Scalar<C>);
 
 #[cfg(feature = "serde")]
-impl<C> TryFrom<ScalarSerialization<C>> for SignatureResponse<C>
+impl<C> TryFrom<ScalarSerialization<C>> for SignatureShareHelper<C>
 where
     C: Ciphersuite,
 {
     type Error = Error<C>;
 
     fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        Self::deserialize(value.0)
+        <<C::Group as Group>::Field>::deserialize(&value.0)
+            .map(|scalar| Self(scalar))
+            .map_err(|e| e.into())
     }
 }
 
 #[cfg(feature = "serde")]
-impl<C> From<SignatureResponse<C>> for ScalarSerialization<C>
+impl<C> From<SignatureShareHelper<C>> for ScalarSerialization<C>
 where
     C: Ciphersuite,
 {
-    fn from(value: SignatureResponse<C>) -> Self {
-        Self(value.serialize())
-    }
-}
-
-impl<C> Debug for SignatureResponse<C>
-where
-    C: Ciphersuite,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("SignatureResponse")
-            .field("z_share", &hex::encode(self.serialize()))
-            .finish()
-    }
-}
-
-impl<C> Eq for SignatureResponse<C> where C: Ciphersuite {}
-
-impl<C> PartialEq for SignatureResponse<C>
-where
-    C: Ciphersuite,
-{
-    // TODO: should this have any constant-time guarantees? I think signature shares are public.
-    fn eq(&self, other: &Self) -> bool {
-        self.z_share == other.z_share
+    fn from(value: SignatureShareHelper<C>) -> Self {
+        Self(<<C::Group as Group>::Field>::serialize(&value.0))
     }
 }
 
@@ -90,11 +49,63 @@ where
 #[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
+#[cfg_attr(feature = "serde", serde(try_from = "SignatureShareSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "SignatureShareSerialization<C>"))]
 pub struct SignatureShare<C: Ciphersuite> {
-    /// Represents the participant identifier.
-    pub(crate) identifier: Identifier<C>,
     /// This participant's signature over the message.
-    pub(crate) signature: SignatureResponse<C>,
+    pub(crate) share: Scalar<C>,
+}
+
+impl<C> SignatureShare<C>
+where
+    C: Ciphersuite,
+{
+    /// Deserialize [`SignatureShare`] from bytes
+    pub fn deserialize(
+        bytes: <<C::Group as Group>::Field as Field>::Serialization,
+    ) -> Result<Self, Error<C>> {
+        <<C::Group as Group>::Field>::deserialize(&bytes)
+            .map(|scalar| Self { share: scalar })
+            .map_err(|e| e.into())
+    }
+
+    /// Serialize [`SignatureShare`] to bytes
+    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
+        <<C::Group as Group>::Field>::serialize(&self.share)
+    }
+
+    /// Tests if a signature share issued by a participant is valid before
+    /// aggregating it into a final joint signature to publish.
+    ///
+    /// This is the final step of [`verify_signature_share`] from the spec.
+    ///
+    /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn verify(
+        &self,
+        identifier: Identifier<C>,
+        group_commitment_share: &round1::GroupCommitmentShare<C>,
+        public_key: &frost::keys::VerifyingShare<C>,
+        lambda_i: Scalar<C>,
+        challenge: &Challenge<C>,
+    ) -> Result<(), Error<C>> {
+        if (<C::Group>::generator() * self.share)
+            != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
+        {
+            return Err(Error::InvalidSignatureShare {
+                culprit: identifier,
+            });
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
+struct SignatureShareSerialization<C: Ciphersuite> {
+    share: SignatureShareHelper<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
         feature = "serde",
@@ -107,41 +118,28 @@ pub struct SignatureShare<C: Ciphersuite> {
     ciphersuite: (),
 }
 
-impl<C> SignatureShare<C>
+#[cfg(feature = "serde")]
+impl<C> From<SignatureShareSerialization<C>> for SignatureShare<C>
 where
     C: Ciphersuite,
 {
-    /// Create a new [`SignatureShare`].
-    pub fn new(identifier: Identifier<C>, signature: SignatureResponse<C>) -> Self {
+    fn from(value: SignatureShareSerialization<C>) -> Self {
         Self {
-            identifier,
-            signature,
-            ciphersuite: (),
+            share: value.share.0,
         }
     }
+}
 
-    /// Tests if a signature share issued by a participant is valid before
-    /// aggregating it into a final joint signature to publish.
-    ///
-    /// This is the final step of [`verify_signature_share`] from the spec.
-    ///
-    /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-share-verificatio
-    pub fn verify(
-        &self,
-        group_commitment_share: &round1::GroupCommitmentShare<C>,
-        public_key: &frost::keys::VerifyingShare<C>,
-        lambda_i: Scalar<C>,
-        challenge: &Challenge<C>,
-    ) -> Result<(), Error<C>> {
-        if (<C::Group>::generator() * self.signature.z_share)
-            != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
-        {
-            return Err(Error::InvalidSignatureShare {
-                culprit: self.identifier,
-            });
+#[cfg(feature = "serde")]
+impl<C> From<SignatureShare<C>> for SignatureShareSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: SignatureShare<C>) -> Self {
+        Self {
+            share: SignatureShareHelper(value.share),
+            ciphersuite: (),
         }
-
-        Ok(())
     }
 }
 
@@ -151,8 +149,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("SignatureShare")
-            .field("identifier", &self.identifier)
-            .field("signature", &self.signature)
+            .field("share", &hex::encode(self.serialize()))
             .finish()
     }
 }
@@ -170,11 +167,7 @@ fn compute_signature_share<C: Ciphersuite>(
         + (signer_nonces.binding.0 * binding_factor.0)
         + (lambda_i * key_package.secret_share.0 * challenge.0);
 
-    SignatureShare::<C> {
-        identifier: *key_package.identifier(),
-        signature: SignatureResponse::<C> { z_share },
-        ciphersuite: (),
-    }
+    SignatureShare::<C> { share: z_share }
 }
 
 /// Performed once by each participant selected for the signing operation.

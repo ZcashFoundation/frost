@@ -5,6 +5,8 @@
 #[cfg(any(test, feature = "test-impl"))]
 pub mod tests;
 
+use std::collections::HashMap;
+
 pub use frost_core;
 
 use frost_core::{
@@ -92,7 +94,7 @@ pub fn sign<C: Ciphersuite>(
 /// service attack due to publishing an invalid signature.
 pub fn aggregate<C>(
     signing_package: &frost::SigningPackage<C>,
-    signature_shares: &[frost::round2::SignatureShare<C>],
+    signature_shares: &HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkeys: &frost::keys::PublicKeyPackage<C>,
     randomized_params: &RandomizedParams<C>,
 ) -> Result<frost_core::Signature<C>, Error<C>>
@@ -127,8 +129,8 @@ where
     // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-12.html#section-5.3
     let mut z = <<C::Group as Group>::Field as Field>::zero();
 
-    for signature_share in signature_shares {
-        z = z + *signature_share.signature().z_share();
+    for signature_share in signature_shares.values() {
+        z = z + *signature_share.share();
     }
 
     z = z + challenge.clone().to_scalar() * randomized_params.randomizer;
@@ -143,27 +145,33 @@ where
     // if the aggregate signature is valid (which should be the common case).
     if let Err(err) = verification_result {
         // Verify the signature shares.
-        for signature_share in signature_shares {
+        for (signature_share_identifier, signature_share) in signature_shares {
             // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
             // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
             let signer_pubkey = pubkeys
                 .signer_pubkeys()
-                .get(signature_share.identifier())
+                .get(signature_share_identifier)
                 .unwrap();
 
             // Compute Lagrange coefficient.
             let lambda_i =
-                frost::derive_interpolating_value(signature_share.identifier(), signing_package)?;
+                frost::derive_interpolating_value(signature_share_identifier, signing_package)?;
 
-            let binding_factor = binding_factor_list[*signature_share.identifier()].clone();
+            let binding_factor = binding_factor_list[*signature_share_identifier].clone();
 
             // Compute the commitment share.
             let R_share = signing_package
-                .signing_commitment(signature_share.identifier())
+                .signing_commitment(signature_share_identifier)
                 .to_group_commitment_share(&binding_factor);
 
             // Compute relation values to verify this signature share.
-            signature_share.verify(&R_share, signer_pubkey, lambda_i, &challenge)?;
+            signature_share.verify(
+                *signature_share_identifier,
+                &R_share,
+                signer_pubkey,
+                lambda_i,
+                &challenge,
+            )?;
         }
 
         // We should never reach here; but we return the verification error to be safe.
