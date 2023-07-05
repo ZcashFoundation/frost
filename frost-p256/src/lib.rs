@@ -118,9 +118,9 @@ impl Group for P256Group {
         // Sanity check; either it takes all bytes or a single byte (identity).
         assert!(serialized.len() == fixed_serialized.len() || serialized.len() == 1);
         // Copy to the left of the buffer (i.e. pad the identity with zeroes).
-        // TODO: Note that identity elements shouldn't be serialized in FROST. This will likely become
-        // part of the API and when that happens, we should return an error instead of
-        // doing this padding.
+        // Note that identity elements shouldn't be serialized in FROST, but we
+        // do this padding so that this function doesn't have to return an error.
+        // If this encodes the identity, it will fail when deserializing.
         {
             let (left, _right) = fixed_serialized.split_at_mut(serialized.len());
             left.copy_from_slice(serialized);
@@ -135,7 +135,7 @@ impl Group for P256Group {
         match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
             Some(point) => {
                 if point.is_identity().into() {
-                    // This is actually impossible since the identity is encoded a a single byte
+                    // This is actually impossible since the identity is encoded in a single byte
                     // which will never happen since we receive a 33-byte buffer.
                     // We leave the check for consistency.
                     Err(GroupError::InvalidIdentityElement)

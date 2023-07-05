@@ -148,8 +148,6 @@ where
     }
 }
 
-// TODO: pub struct Lagrange<C: Ciphersuite>(Scalar);
-
 /// Generates the lagrange coefficient for the i'th participant.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 fn derive_interpolating_value<C: Ciphersuite>(
@@ -161,9 +159,6 @@ fn derive_interpolating_value<C: Ciphersuite>(
     let mut num = <<C::Group as Group>::Field>::one();
     let mut den = <<C::Group as Group>::Field>::one();
 
-    // Ala the sorting of B, just always sort by identifier in ascending order
-    //
-    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
     for commitment_identifier in signing_package.signing_commitments().keys() {
         if *commitment_identifier == *signer_id {
             continue;
@@ -178,7 +173,6 @@ fn derive_interpolating_value<C: Ciphersuite>(
         return Err(Error::DuplicatedShares);
     }
 
-    // TODO(dconnolly): return this error if the inversion result == zero
     let lagrange_coeff = num * <<C::Group as Group>::Field>::invert(&den).unwrap();
 
     Ok(lagrange_coeff)
