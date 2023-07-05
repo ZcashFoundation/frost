@@ -4,7 +4,7 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
-## 0 7.0
+## 0.7.0
 
 ## Released
 
@@ -31,7 +31,7 @@ Entries are listed in reverse chronological order.
   computation. This reflects an upcoming change to the specification:
   https://github.com/cfrg/draft-irtf-cfrg-frost/pull/439
 * `generate_with_dealer()` was change to allow specifying which identifiers to use
-* Identifiers can now be derive from arbitrary strings with `Identifier::derive()`
+* Identifiers can now be derived from arbitrary strings with `Identifier::derive()`
 * Added `RandomizerParams::from_randomizer()` to allow specifying a randomizer
 * Added `Error::culprit()` to easily get the identifier of a misbehaving participant
 * Most public types now implement common traits such as Clone and Debug
