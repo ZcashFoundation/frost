@@ -190,7 +190,7 @@ pub fn sign<C: Ciphersuite>(
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &[]);
+        compute_binding_factor_list(signing_package, &key_package.group_public, &[]);
     let binding_factor: frost::BindingFactor<C> =
         binding_factor_list[key_package.identifier].clone();
 

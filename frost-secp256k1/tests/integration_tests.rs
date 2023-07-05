@@ -44,9 +44,23 @@ lazy_static! {
 #[test]
 fn check_sign_with_test_vectors() {
     frost_core::tests::vectors::check_sign_with_test_vectors::<Secp256K1Sha256>(&VECTORS);
+}
+
+#[test]
+fn check_sign_with_test_vectors_with_big_identifiers() {
     frost_core::tests::vectors::check_sign_with_test_vectors::<Secp256K1Sha256>(
         &VECTORS_BIG_IDENTIFIER,
     );
+}
+
+#[test]
+fn check_error_culprit() {
+    frost_core::tests::ciphersuite_generic::check_error_culprit::<Secp256K1Sha256>();
+}
+
+#[test]
+fn check_identifier_derivation() {
+    frost_core::tests::ciphersuite_generic::check_identifier_derivation::<Secp256K1Sha256>();
 }
 
 #[test]

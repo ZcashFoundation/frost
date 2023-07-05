@@ -26,7 +26,8 @@ pub mod round1;
 pub mod round2;
 
 use crate::{
-    scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, Error, Field, Group, Scalar, Signature,
+    scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, Error, Field, Group, Scalar,
+    Signature, VerifyingKey,
 };
 
 pub use self::identifier::Identifier;
@@ -112,12 +113,13 @@ where
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 pub(crate) fn compute_binding_factor_list<C>(
     signing_package: &SigningPackage<C>,
+    group_public: &VerifyingKey<C>,
     additional_prefix: &[u8],
 ) -> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
-    let preimages = signing_package.binding_factor_preimages(additional_prefix);
+    let preimages = signing_package.binding_factor_preimages(group_public, additional_prefix);
 
     BindingFactorList(
         preimages
@@ -244,9 +246,17 @@ where
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub fn binding_factor_preimages(
         &self,
+        group_public: &VerifyingKey<C>,
         additional_prefix: &[u8],
     ) -> Vec<(Identifier<C>, Vec<u8>)> {
         let mut binding_factor_input_prefix = vec![];
+
+        // The length of a serialized verifying key of the same cipersuite does
+        // not change between runs of the protocol, so we don't need to hash to
+        // get a fixed length.
+        //
+        // TODO: when serde serialization merges, change this to be simpler?
+        binding_factor_input_prefix.extend_from_slice(group_public.serialize().as_ref());
 
         // The message is hashed with H4 to force the variable-length message
         // into a fixed-length byte string, same for hashing the variable-sized
@@ -372,7 +382,7 @@ where
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &[]);
+        compute_binding_factor_list(signing_package, &pubkeys.group_public, &[]);
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;

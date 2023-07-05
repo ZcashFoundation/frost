@@ -44,6 +44,10 @@ lazy_static! {
 #[test]
 fn check_sign_with_test_vectors() {
     frost_core::tests::vectors::check_sign_with_test_vectors::<Ristretto255Sha512>(&VECTORS);
+}
+
+#[test]
+fn check_sign_with_test_vectors_with_big_identifiers() {
     frost_core::tests::vectors::check_sign_with_test_vectors::<Ristretto255Sha512>(
         &VECTORS_BIG_IDENTIFIER,
     );
