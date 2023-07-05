@@ -42,6 +42,7 @@ pub fn sign<C: Ciphersuite>(
     // binding factor.
     let binding_factor_list = frost::compute_binding_factor_list(
         signing_package,
+        key_package.group_public(),
         <C::Group as Group>::serialize(randomizer_point).as_ref(),
     );
 
@@ -106,6 +107,7 @@ where
     // binding factor.
     let binding_factor_list = frost::compute_binding_factor_list(
         signing_package,
+        pubkeys.group_public(),
         <C::Group as Group>::serialize(randomized_params.randomizer_point()).as_ref(),
     );
 

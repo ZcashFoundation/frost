@@ -530,7 +530,7 @@ pub struct KeyPackage<C: Ciphersuite> {
     /// This participant's public key.
     #[zeroize(skip)]
     pub(crate) public: VerifyingShare<C>,
-    /// The public signing key that represents the entire group.
+    /// The public verifying key that represents the entire group.
     #[zeroize(skip)]
     pub(crate) group_public: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
