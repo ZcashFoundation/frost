@@ -5,7 +5,7 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.5.0"
+version = "0.6.0"
 authors = [
     "Deirdre Connolly <durumcrustulum@gmail.com>",
     "Chelsea Komlo <me@chelseakomlo.com>",
@@ -23,7 +23,7 @@ features = ["nightly"]
 
 [dependencies]
 curve25519-dalek = { version = "=4.0.0-rc.3", features = ["serde", "rand_core"] }
-frost-core = { path = "../frost-core", version = "0.5.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.6.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
