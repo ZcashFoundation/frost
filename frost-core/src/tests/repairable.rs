@@ -8,12 +8,9 @@ use serde_json::Value;
 
 use crate::{
     frost::{
-        self,
+        self, compute_lagrange_coefficient,
         keys::{
-            repairable::{
-                compute_lagrange_coefficient, repair_share_step_1, repair_share_step_2,
-                repair_share_step_3,
-            },
+            repairable::{repair_share_step_1, repair_share_step_2, repair_share_step_3},
             PublicKeyPackage, SecretShare, SigningShare,
         },
         Identifier,
@@ -58,9 +55,12 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
     // Each helper generates random values for each helper
 
-    let helper_1_deltas = repair_share_step_1(&helpers, helper_1, &mut rng, participant.identifier);
-    let helper_4_deltas = repair_share_step_1(&helpers, helper_4, &mut rng, participant.identifier);
-    let helper_5_deltas = repair_share_step_1(&helpers, helper_5, &mut rng, participant.identifier);
+    let helper_1_deltas =
+        repair_share_step_1(&helpers, helper_1, &mut rng, participant.identifier).unwrap();
+    let helper_4_deltas =
+        repair_share_step_1(&helpers, helper_4, &mut rng, participant.identifier).unwrap();
+    let helper_5_deltas =
+        repair_share_step_1(&helpers, helper_5, &mut rng, participant.identifier).unwrap();
 
     // Each helper calculates their sigma from the random values received from the other helpers
 
@@ -130,10 +130,14 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
     ];
 
     // Generate deltas for helper 4
-    let deltas = repair_share_step_1(&helpers, helper_4, &mut rng, participant.identifier);
+    let deltas = repair_share_step_1(&helpers, helper_4, &mut rng, participant.identifier).unwrap();
 
-    let lagrange_coefficient =
-        compute_lagrange_coefficient(&helpers, participant.identifier, helpers[1]);
+    let lagrange_coefficient = compute_lagrange_coefficient(
+        &helpers.iter().cloned().collect(),
+        Some(participant.identifier),
+        helpers[1],
+    )
+    .unwrap();
 
     let mut rhs = <<C::Group as Group>::Field>::zero();
     for (_k, v) in deltas {
