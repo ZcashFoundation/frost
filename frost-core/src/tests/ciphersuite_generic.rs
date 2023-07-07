@@ -35,8 +35,13 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
         assert!(secret_share.verify().is_ok());
     }
 
+    let key_packages: Vec<_> = secret_shares
+        .iter()
+        .map(|s| frost::keys::KeyPackage::try_from(s.clone()).unwrap())
+        .collect();
+
     assert_eq!(
-        frost::keys::reconstruct::<C>(&secret_shares)
+        frost::keys::reconstruct::<C>(&key_packages)
             .unwrap()
             .serialize()
             .as_ref(),
@@ -53,8 +58,13 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     let mut secret_shares = secret_shares;
     secret_shares[0] = secret_shares[1].clone();
 
+    let key_packages: Vec<_> = secret_shares
+        .iter()
+        .map(|s| frost::keys::KeyPackage::try_from(s.clone()).unwrap())
+        .collect();
+
     assert_eq!(
-        frost::keys::reconstruct::<C>(&secret_shares).unwrap_err(),
+        frost::keys::reconstruct::<C>(&key_packages).unwrap_err(),
         Error::DuplicatedIdentifiers
     );
 }
@@ -89,7 +99,8 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     check_sign(min_signers, key_packages, rng, pubkeys)
 }
 
-fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+/// Test FROST signing with the given shares.
+pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     min_signers: u16,
     key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,

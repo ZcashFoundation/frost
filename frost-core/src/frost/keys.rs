@@ -56,6 +56,18 @@ impl<C> SigningShare<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`SigningShare`] from a scalar.
+    #[cfg(feature = "internals")]
+    pub fn new(scalar: Scalar<C>) -> Self {
+        Self(scalar)
+    }
+
+    /// Get the inner scalar.
+    #[cfg(feature = "internals")]
+    pub fn to_scalar(&self) -> Scalar<C> {
+        self.0
+    }
+
     /// Deserialize from bytes
     pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
@@ -143,6 +155,18 @@ impl<C> VerifyingShare<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`VerifyingShare`] from a element.
+    #[cfg(feature = "internals")]
+    pub fn new(element: Element<C>) -> Self {
+        Self(element)
+    }
+
+    /// Get the inner element.
+    #[cfg(feature = "internals")]
+    pub fn to_element(&self) -> Element<C> {
+        self.0
+    }
+
     /// Deserialize from bytes
     pub fn deserialize(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
         <C::Group as Group>::deserialize(&bytes)
@@ -748,31 +772,31 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 /// The caller is responsible for providing at least `min_signers` shares;
 /// if less than that is provided, a different key will be returned.
 pub fn reconstruct<C: Ciphersuite>(
-    secret_shares: &[SecretShare<C>],
+    key_packages: &[KeyPackage<C>],
 ) -> Result<SigningKey<C>, Error<C>> {
-    if secret_shares.is_empty() {
+    if key_packages.is_empty() {
         return Err(Error::IncorrectNumberOfShares);
     }
 
     let mut secret = <<C::Group as Group>::Field>::zero();
 
-    let xset: BTreeSet<_> = secret_shares
+    let xset: BTreeSet<_> = key_packages
         .iter()
         .map(|s| s.identifier())
         .cloned()
         .collect();
 
-    if xset.len() != secret_shares.len() {
+    if xset.len() != key_packages.len() {
         return Err(Error::DuplicatedIdentifiers);
     }
 
     // Compute the Lagrange coefficients
-    for secret_share in secret_shares.iter() {
+    for key_package in key_packages.iter() {
         let lagrange_coefficient =
-            compute_lagrange_coefficient(&xset, None, secret_share.identifier)?;
+            compute_lagrange_coefficient(&xset, None, key_package.identifier)?;
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
-        secret = secret + (lagrange_coefficient * secret_share.value.0);
+        secret = secret + (lagrange_coefficient * key_package.secret_share.0);
     }
 
     Ok(SigningKey { scalar: secret })
