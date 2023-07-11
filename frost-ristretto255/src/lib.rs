@@ -136,8 +136,8 @@ fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
 
 /// Context string from the ciphersuite in the [spec].
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-1
-const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v11";
+/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.2-1
+const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v1";
 
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -156,35 +156,35 @@ impl Ciphersuite for Ristretto255Sha512 {
 
     /// H1 for FROST(ristretto255, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.1
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.2-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"rho", m])
     }
 
     /// H2 for FROST(ristretto255, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.2
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.2-2.2.2.2
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"chal", m])
     }
 
     /// H3 for FROST(ristretto255, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.3
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.2-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"nonce", m])
     }
 
     /// H4 for FROST(ristretto255, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.4
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.2-2.2.2.4
     fn H4(m: &[u8]) -> Self::HashOutput {
         hash_to_array(&[CONTEXT_STRING.as_bytes(), b"msg", m])
     }
 
     /// H5 for FROST(ristretto255, SHA-512)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-6.2-2.2.2.5
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.2-2.2.2.5
     fn H5(m: &[u8]) -> Self::HashOutput {
         hash_to_array(&[CONTEXT_STRING.as_bytes(), b"com", m])
     }
