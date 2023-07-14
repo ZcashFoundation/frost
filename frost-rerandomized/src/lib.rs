@@ -14,16 +14,15 @@
 #[cfg(any(test, feature = "test-impl"))]
 pub mod tests;
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 
 use derive_getters::Getters;
 pub use frost_core;
 
 use frost_core::{
     frost::{
-        self, compute_lagrange_coefficient,
+        self,
         keys::{KeyPackage, PublicKeyPackage, SigningShare, VerifyingShare},
-        Identifier,
     },
     Ciphersuite, Error, Field, Group, Scalar, VerifyingKey,
 };
@@ -37,26 +36,6 @@ trait Randomize<C> {
     where
         Self: Sized,
         C: Ciphersuite;
-}
-
-// Compute the randomizer share (α^) from the set of `participants` identifiers
-// and the randomizer (α):
-//
-// α^ = α / ∑_{i in participants} ℓ_i(0)
-//
-// where ℓ_i(0) is the Lagrange coefficient for i at 0 (see [`compute_lagrange_coefficient`]).
-fn compute_randomizer_share<C: Ciphersuite>(
-    participants: &BTreeSet<Identifier<C>>,
-    randomizer: &Scalar<C>,
-) -> Result<Scalar<C>, Error<C>> {
-    let lagrange_sum = participants
-        .iter()
-        .map(|i| compute_lagrange_coefficient(participants, None, *i))
-        .reduce(|acc, e| Ok(acc? + e?))
-        .ok_or(Error::IncorrectNumberOfIdentifiers)?;
-    let randomizer_share =
-        *randomizer * <<C::Group as Group>::Field as Field>::invert(&lagrange_sum?)?;
-    Ok(randomizer_share)
 }
 
 impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
@@ -74,12 +53,12 @@ impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
     {
         let verifying_share = self.public();
         let randomized_verifying_share = VerifyingShare::<C>::new(
-            verifying_share.to_element() + randomized_params.randomizer_share_element,
+            verifying_share.to_element() + randomized_params.randomizer_element,
         );
 
         let signing_share = self.secret_share();
         let randomized_signing_share =
-            SigningShare::new(signing_share.to_scalar() + randomized_params.randomizer_share);
+            SigningShare::new(signing_share.to_scalar() + randomized_params.randomizer);
 
         let randomized_key_package = KeyPackage::new(
             *self.identifier(),
@@ -132,13 +111,8 @@ pub fn sign<C: Ciphersuite>(
     key_package: &frost::keys::KeyPackage<C>,
     randomizer: &Scalar<C>,
 ) -> Result<frost::round2::SignatureShare<C>, Error<C>> {
-    let participants: BTreeSet<_> = signing_package
-        .signing_commitments()
-        .keys()
-        .cloned()
-        .collect();
     let randomized_params =
-        RandomizedParams::from_randomizer(key_package.group_public(), &participants, randomizer)?;
+        RandomizedParams::from_randomizer(key_package.group_public(), randomizer)?;
     let randomized_key_package = key_package.randomize(&randomized_params)?;
     frost::round2::sign(signing_package, signer_nonces, &randomized_key_package)
 }
@@ -170,12 +144,8 @@ where
 pub struct RandomizedParams<C: Ciphersuite> {
     /// The randomizer, also called α
     randomizer: frost_core::Scalar<C>,
-    /// The randomizer, also called α^
-    randomizer_share: frost_core::Scalar<C>,
     /// The generator multiplied by the randomizer.
     randomizer_element: <C::Group as Group>::Element,
-    /// The generator multiplied by the randomizer share.
-    randomizer_share_element: <C::Group as Group>::Element,
     /// The randomized group public key. The group public key added to the randomizer element.
     randomized_verifying_key: frost_core::VerifyingKey<C>,
 }
@@ -188,11 +158,10 @@ where
     /// the given `participants`.
     pub fn new<R: RngCore + CryptoRng>(
         group_verifying_key: &VerifyingKey<C>,
-        participants: &BTreeSet<Identifier<C>>,
         mut rng: R,
     ) -> Result<Self, Error<C>> {
         let randomizer = <<C::Group as Group>::Field as Field>::random(&mut rng);
-        Self::from_randomizer(group_verifying_key, participants, &randomizer)
+        Self::from_randomizer(group_verifying_key, &randomizer)
     }
 
     /// Create a new RandomizedParams for the given [`VerifyingKey`] and the
@@ -202,7 +171,6 @@ where
     /// a randomizer outside.
     pub fn from_randomizer(
         group_verifying_key: &VerifyingKey<C>,
-        participants: &BTreeSet<Identifier<C>>,
         randomizer: &Scalar<C>,
     ) -> Result<Self, Error<C>> {
         let randomizer_element = <C::Group as Group>::generator() * *randomizer;
@@ -210,14 +178,9 @@ where
         let randomized_group_public_element = group_public_element + randomizer_element;
         let randomized_verifying_key = VerifyingKey::<C>::new(randomized_group_public_element);
 
-        let randomizer_share = compute_randomizer_share(participants, randomizer)?;
-        let randomizer_share_element = <C::Group as Group>::generator() * randomizer_share;
-
         Ok(Self {
             randomizer: *randomizer,
-            randomizer_share,
             randomizer_element,
-            randomizer_share_element,
             randomized_verifying_key,
         })
     }
