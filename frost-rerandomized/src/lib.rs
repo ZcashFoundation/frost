@@ -40,7 +40,11 @@ trait Randomize<C> {
 }
 
 // Compute the randomizer share (α^) from the set of `participants` identifiers
-// and the randomizer (α).
+// and the randomizer (α):
+//
+// α^ = α / ∑_{i in participants} ℓ_i(0)
+//
+// where ℓ_i(0) is the Lagrange coefficient for i at 0 (see [`compute_lagrange_coefficient`]).
 fn compute_randomizer_share<C: Ciphersuite>(
     participants: &BTreeSet<Identifier<C>>,
     randomizer: &Scalar<C>,
