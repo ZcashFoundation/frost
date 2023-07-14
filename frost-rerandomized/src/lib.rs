@@ -9,11 +9,6 @@
 //! - Each participant should call [`sign`] and send the resulting
 //!   [`SignatureShare`] back to the Coordinator;
 //! - The Coordinator should then call [`aggregate`].
-//!
-//! If participant performance is critical, it's possible for the Coordinator
-//! to send the [`RandomizedParams`] instead of the randomizer, and the
-//! participants can then use [`randomize_key_package`] and the regular
-//! [`frost::round2::sign`]. However this is not recommended.
 #![allow(non_snake_case)]
 
 #[cfg(any(test, feature = "test-impl"))]
@@ -37,6 +32,13 @@ use frost_core::{
 // For the time being, we do not re-export this `rand_core`.
 use rand_core::{CryptoRng, RngCore};
 
+trait Randomize<C> {
+    fn randomize(&self, params: &RandomizedParams<C>) -> Result<Self, Error<C>>
+    where
+        Self: Sized,
+        C: Ciphersuite;
+}
+
 // Compute the randomizer share (α^) from the set of `participants` identifiers
 // and the randomizer (α).
 fn compute_randomizer_share<C: Ciphersuite>(
@@ -53,61 +55,67 @@ fn compute_randomizer_share<C: Ciphersuite>(
     Ok(randomizer_share)
 }
 
-/// Randomize the given [`KeyPackage`] for usage in a rerandomized FROST signing,
-/// using the given [`RandomizedParams`].
-///
-/// It's recommended to use [`sign`] directly which already handles
-/// the key package randomization.
-///
-/// You MUST NOT reuse the randomized key package for more than one signing.
-pub fn randomize_key_package<C: Ciphersuite>(
-    key_package: &KeyPackage<C>,
-    randomized_params: &RandomizedParams<C>,
-) -> Result<KeyPackage<C>, Error<C>> {
-    let verifying_share = key_package.public();
-    let randomized_verifying_share = VerifyingShare::<C>::new(
-        verifying_share.to_element() + randomized_params.randomizer_share_element,
-    );
+impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
+    /// Randomize the given [`KeyPackage`] for usage in a rerandomized FROST signing,
+    /// using the given [`RandomizedParams`].
+    ///
+    /// It's recommended to use [`sign`] directly which already handles
+    /// the key package randomization.
+    ///
+    /// You MUST NOT reuse the randomized key package for more than one signing.
+    fn randomize(&self, randomized_params: &RandomizedParams<C>) -> Result<Self, Error<C>>
+    where
+        Self: Sized,
+        C: Ciphersuite,
+    {
+        let verifying_share = self.public();
+        let randomized_verifying_share = VerifyingShare::<C>::new(
+            verifying_share.to_element() + randomized_params.randomizer_share_element,
+        );
 
-    let signing_share = key_package.secret_share();
-    let randomized_signing_share =
-        SigningShare::new(signing_share.to_scalar() + randomized_params.randomizer_share);
+        let signing_share = self.secret_share();
+        let randomized_signing_share =
+            SigningShare::new(signing_share.to_scalar() + randomized_params.randomizer_share);
 
-    let randomized_key_package = KeyPackage::new(
-        *key_package.identifier(),
-        randomized_signing_share,
-        randomized_verifying_share,
-        randomized_params.randomized_verifying_key,
-    );
-    Ok(randomized_key_package)
+        let randomized_key_package = KeyPackage::new(
+            *self.identifier(),
+            randomized_signing_share,
+            randomized_verifying_share,
+            randomized_params.randomized_verifying_key,
+        );
+        Ok(randomized_key_package)
+    }
 }
 
-/// Randomized the given [`PublicKeyPackage`] for usage in a rerandomized FROST
-/// aggregation, using the given [`RandomizedParams`].
-///
-/// It's recommended to use [`aggregate`] directly which already handles
-/// the public key package randomization.
-pub fn randomize_public_key_package<C: Ciphersuite>(
-    public_key_package: &PublicKeyPackage<C>,
-    randomized_params: &RandomizedParams<C>,
-) -> Result<PublicKeyPackage<C>, Error<C>> {
-    let verifying_shares = public_key_package.signer_pubkeys().clone();
-    let randomized_verifying_shares = verifying_shares
-        .iter()
-        .map(|(identifier, verifying_share)| {
-            (
-                *identifier,
-                VerifyingShare::<C>::new(
-                    verifying_share.to_element() + randomized_params.randomizer_element,
-                ),
-            )
-        })
-        .collect();
+impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
+    /// Randomized the given [`PublicKeyPackage`] for usage in a rerandomized FROST
+    /// aggregation, using the given [`RandomizedParams`].
+    ///
+    /// It's recommended to use [`aggregate`] directly which already handles
+    /// the public key package randomization.
+    fn randomize(&self, randomized_params: &RandomizedParams<C>) -> Result<Self, Error<C>>
+    where
+        Self: Sized,
+        C: Ciphersuite,
+    {
+        let verifying_shares = self.signer_pubkeys().clone();
+        let randomized_verifying_shares = verifying_shares
+            .iter()
+            .map(|(identifier, verifying_share)| {
+                (
+                    *identifier,
+                    VerifyingShare::<C>::new(
+                        verifying_share.to_element() + randomized_params.randomizer_element,
+                    ),
+                )
+            })
+            .collect();
 
-    Ok(PublicKeyPackage::new(
-        randomized_verifying_shares,
-        randomized_params.randomized_verifying_key,
-    ))
+        Ok(PublicKeyPackage::new(
+            randomized_verifying_shares,
+            randomized_params.randomized_verifying_key,
+        ))
+    }
 }
 
 /// Rerandomized FROST signing using the given `randomizer`, which should
@@ -127,7 +135,7 @@ pub fn sign<C: Ciphersuite>(
         .collect();
     let randomized_params =
         RandomizedParams::from_randomizer(key_package.group_public(), &participants, randomizer)?;
-    let randomized_key_package = randomize_key_package(key_package, &randomized_params)?;
+    let randomized_key_package = key_package.randomize(&randomized_params)?;
     frost::round2::sign(signing_package, signer_nonces, &randomized_key_package)
 }
 
@@ -145,7 +153,7 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
-    let randomized_public_key_package = randomize_public_key_package(pubkeys, randomized_params)?;
+    let randomized_public_key_package = pubkeys.randomize(randomized_params)?;
     frost::aggregate(
         signing_package,
         signature_shares,
