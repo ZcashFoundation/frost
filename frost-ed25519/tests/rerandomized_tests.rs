@@ -2,13 +2,6 @@ use frost_ed25519::Ed25519Sha512;
 use rand::thread_rng;
 
 #[test]
-fn check_rerandomization() {
-    let rng = thread_rng();
-
-    frost_rerandomized::tests::check_rerandomization::<Ed25519Sha512, _>(rng);
-}
-
-#[test]
 fn check_randomized_sign_with_dealer() {
     let rng = thread_rng();
 

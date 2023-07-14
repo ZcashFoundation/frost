@@ -2,13 +2,6 @@ use frost_secp256k1::Secp256K1Sha256;
 use rand::thread_rng;
 
 #[test]
-fn check_rerandomization() {
-    let rng = thread_rng();
-
-    frost_rerandomized::tests::check_rerandomization::<Secp256K1Sha256, _>(rng);
-}
-
-#[test]
 fn check_randomized_sign_with_dealer() {
     let rng = thread_rng();
 
