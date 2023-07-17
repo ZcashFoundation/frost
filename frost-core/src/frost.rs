@@ -159,35 +159,36 @@ where
 /// to the given xj.
 ///
 /// If `x` is None, it uses 0 for it (since Identifiers can't be 0)
-pub fn compute_lagrange_coefficient<C: Ciphersuite>(
-    xs: &BTreeSet<Identifier<C>>,
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+fn compute_lagrange_coefficient<C: Ciphersuite>(
+    x_set: &BTreeSet<Identifier<C>>,
     x: Option<Identifier<C>>,
-    xi: Identifier<C>,
+    x_i: Identifier<C>,
 ) -> Result<Scalar<C>, Error<C>> {
-    if xs.is_empty() {
+    if x_set.is_empty() {
         return Err(Error::IncorrectNumberOfIdentifiers);
     }
     let mut num = <<C::Group as Group>::Field>::one();
     let mut den = <<C::Group as Group>::Field>::one();
 
-    let mut xi_found = false;
+    let mut x_i_found = false;
 
-    for xj in xs.iter() {
-        if xi == *xj {
-            xi_found = true;
+    for x_j in x_set.iter() {
+        if x_i == *x_j {
+            x_i_found = true;
             continue;
         }
 
         if let Some(x) = x {
-            num *= x - *xj;
-            den *= xi - *xj;
+            num *= x - *x_j;
+            den *= x_i - *x_j;
         } else {
             // Both signs inverted just to avoid requiring Neg (-*xj)
-            num *= *xj;
-            den *= *xj - xi;
+            num *= *x_j;
+            den *= *x_j - x_i;
         }
     }
-    if !xi_found {
+    if !x_i_found {
         return Err(Error::UnknownIdentifier);
     }
 

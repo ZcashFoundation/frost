@@ -756,20 +756,20 @@ pub fn reconstruct<C: Ciphersuite>(
 
     let mut secret = <<C::Group as Group>::Field>::zero();
 
-    let xset: BTreeSet<_> = secret_shares
+    let identifiers: BTreeSet<_> = secret_shares
         .iter()
         .map(|s| s.identifier())
         .cloned()
         .collect();
 
-    if xset.len() != secret_shares.len() {
+    if identifiers.len() != secret_shares.len() {
         return Err(Error::DuplicatedIdentifiers);
     }
 
     // Compute the Lagrange coefficients
     for secret_share in secret_shares.iter() {
         let lagrange_coefficient =
-            compute_lagrange_coefficient(&xset, None, secret_share.identifier)?;
+            compute_lagrange_coefficient(&identifiers, None, secret_share.identifier)?;
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
         secret = secret + (lagrange_coefficient * secret_share.value.0);
