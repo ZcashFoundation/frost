@@ -195,7 +195,7 @@ pub fn compute_lagrange_coefficient<C: Ciphersuite>(
         * <<C::Group as Group>::Field>::invert(&den).map_err(|_| Error::DuplicatedIdentifiers)?)
 }
 
-/// Generates the lagrange coefficient for the i'th participant.
+/// Generates the lagrange coefficient for the i'th participant (for `signer_id`).
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 fn derive_interpolating_value<C: Ciphersuite>(
     signer_id: &Identifier<C>,
