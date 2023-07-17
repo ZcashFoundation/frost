@@ -171,6 +171,7 @@ pub fn compute_lagrange_coefficient<C: Ciphersuite>(
     let mut den = <<C::Group as Group>::Field>::one();
 
     let mut xi_found = false;
+
     for xj in xs.iter() {
         if xi == *xj {
             xi_found = true;
