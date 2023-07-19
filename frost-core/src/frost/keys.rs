@@ -2,7 +2,7 @@
 #![allow(clippy::type_complexity)]
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap, HashSet},
     convert::TryFrom,
     default::Default,
     fmt::{self, Debug},
@@ -22,6 +22,8 @@ use crate::{
 
 #[cfg(feature = "serde")]
 use crate::{ElementSerialization, ScalarSerialization};
+
+use super::compute_lagrange_coefficient;
 
 pub mod dkg;
 pub mod repairable;
@@ -716,7 +718,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 
     let identifiers_set: HashSet<_> = identifiers.iter().collect();
     if identifiers_set.len() != identifiers.len() {
-        return Err(Error::DuplicatedIdentifier);
+        return Err(Error::DuplicatedIdentifiers);
     }
 
     for id in identifiers {
@@ -754,39 +756,20 @@ pub fn reconstruct<C: Ciphersuite>(
 
     let mut secret = <<C::Group as Group>::Field>::zero();
 
-    // Compute the Lagrange coefficients
-    for (i_idx, i, secret_share) in secret_shares
+    let identifiers: BTreeSet<_> = secret_shares
         .iter()
-        .enumerate()
-        .map(|(idx, s)| (idx, s.identifier, s))
-    {
-        let mut num = <<C::Group as Group>::Field>::one();
-        let mut den = <<C::Group as Group>::Field>::one();
+        .map(|s| s.identifier())
+        .cloned()
+        .collect();
 
-        for (j_idx, j) in secret_shares
-            .iter()
-            .enumerate()
-            .map(|(idx, s)| (idx, s.identifier))
-        {
-            if j_idx == i_idx {
-                continue;
-            }
+    if identifiers.len() != secret_shares.len() {
+        return Err(Error::DuplicatedIdentifiers);
+    }
 
-            // numerator *= j
-            num *= j;
-
-            // denominator *= j - i
-            den *= j - i;
-        }
-
-        // If at this step, the denominator is zero in the scalar field, there must be a duplicate
-        // secret share.
-        if den == <<C::Group as Group>::Field>::zero() {
-            return Err(Error::DuplicatedShares);
-        }
-
-        // Save numerator * 1/denominator in the scalar field
-        let lagrange_coefficient = num * <<C::Group as Group>::Field>::invert(&den).unwrap();
+    // Compute the Lagrange coefficients
+    for secret_share in secret_shares.iter() {
+        let lagrange_coefficient =
+            compute_lagrange_coefficient(&identifiers, None, secret_share.identifier)?;
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
         secret = secret + (lagrange_coefficient * secret_share.value.0);

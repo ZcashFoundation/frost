@@ -4,9 +4,12 @@
 //! The RTS is used to help a signer (participant) repair their lost share. This is achieved
 //! using a subset of the other signers know here as `helpers`.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
-use crate::{frost::Identifier, Ciphersuite, CryptoRng, Field, Group, RngCore, Scalar};
+use crate::{
+    frost::{compute_lagrange_coefficient, Identifier},
+    Ciphersuite, CryptoRng, Error, Field, Group, RngCore, Scalar,
+};
 
 use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSharingCommitment};
 
@@ -22,10 +25,18 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     share_i: &SecretShare<C>,
     rng: &mut R,
     participant: Identifier<C>,
-) -> HashMap<Identifier<C>, Scalar<C>> {
+) -> Result<HashMap<Identifier<C>, Scalar<C>>, Error<C>> {
+    if helpers.is_empty() {
+        return Err(Error::IncorrectNumberOfIdentifiers);
+    }
+    let xset: BTreeSet<_> = helpers.iter().cloned().collect();
+    if xset.len() != helpers.len() {
+        return Err(Error::DuplicatedIdentifiers);
+    }
+
     let rand_val: Vec<Scalar<C>> = generate_coefficients::<C, R>(helpers.len() - 1, rng);
 
-    compute_last_random_value(helpers, share_i, &rand_val, participant)
+    compute_last_random_value(&xset, share_i, &rand_val, participant)
 }
 
 /// Compute the last delta value given the (generated uniformly at random) remaining ones
@@ -33,13 +44,13 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 ///
 /// Returns a HashMap mapping which value should be sent to which participant.
 fn compute_last_random_value<C: Ciphersuite>(
-    helpers: &[Identifier<C>],
+    helpers: &BTreeSet<Identifier<C>>,
     share_i: &SecretShare<C>,
     random_values: &Vec<Scalar<C>>,
     participant: Identifier<C>,
-) -> HashMap<Identifier<C>, Scalar<C>> {
+) -> Result<HashMap<Identifier<C>, Scalar<C>>, Error<C>> {
     // Calculate Lagrange Coefficient for helper_i
-    let zeta_i = compute_lagrange_coefficient(helpers, participant, share_i.identifier);
+    let zeta_i = compute_lagrange_coefficient(helpers, Some(participant), share_i.identifier)?;
 
     let lhs = zeta_i * share_i.value.0;
 
@@ -55,32 +66,9 @@ fn compute_last_random_value<C: Ciphersuite>(
         sum_i_deltas = sum_i_deltas + *v;
     }
 
-    out.insert(helpers[helpers.len() - 1], lhs - sum_i_deltas);
+    out.insert(*helpers.last().unwrap(), lhs - sum_i_deltas);
 
-    out
-}
-
-/// Compute the i-th Lagrange coefficient evaluated at `participant`, i.e.
-/// computes `zeta_i` such that f(participant) is the sum of all `zeta_i * share_i`
-/// for each `i` in `helpers`.
-pub fn compute_lagrange_coefficient<C: Ciphersuite>(
-    helpers: &[Identifier<C>],
-    participant: Identifier<C>,
-    helper_i: Identifier<C>,
-) -> Scalar<C> {
-    let mut num = <<C::Group as Group>::Field>::one();
-    let mut den = <<C::Group as Group>::Field>::one();
-
-    for j in helpers.iter() {
-        if helper_i == *j {
-            continue;
-        }
-
-        num *= participant - *j;
-        den *= helper_i - *j;
-    }
-
-    num * <<C::Group as Group>::Field>::invert(&den).unwrap()
+    Ok(out)
 }
 
 /// Communication round
