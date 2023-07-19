@@ -14,8 +14,8 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
-keywords = ["cryptography", "crypto", "ristretto", "threshold", "signature"]
-description = "A Schnorr signature scheme over the prime-order Ristretto group that supports FROST."
+keywords = ["cryptography", "crypto", "threshold", "signature"]
+description = "A Schnorr signature scheme over the secp256k1 curve that supports FROST."
 
 [package.metadata.docs.rs]
 features = ["nightly"]

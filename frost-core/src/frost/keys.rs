@@ -772,31 +772,31 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 /// The caller is responsible for providing at least `min_signers` shares;
 /// if less than that is provided, a different key will be returned.
 pub fn reconstruct<C: Ciphersuite>(
-    key_packages: &[KeyPackage<C>],
+    secret_shares: &[SecretShare<C>],
 ) -> Result<SigningKey<C>, Error<C>> {
-    if key_packages.is_empty() {
+    if secret_shares.is_empty() {
         return Err(Error::IncorrectNumberOfShares);
     }
 
     let mut secret = <<C::Group as Group>::Field>::zero();
 
-    let xset: BTreeSet<_> = key_packages
+    let identifiers: BTreeSet<_> = secret_shares
         .iter()
         .map(|s| s.identifier())
         .cloned()
         .collect();
 
-    if xset.len() != key_packages.len() {
+    if identifiers.len() != secret_shares.len() {
         return Err(Error::DuplicatedIdentifiers);
     }
 
     // Compute the Lagrange coefficients
-    for key_package in key_packages.iter() {
+    for secret_share in secret_shares.iter() {
         let lagrange_coefficient =
-            compute_lagrange_coefficient(&xset, None, key_package.identifier)?;
+            compute_lagrange_coefficient(&identifiers, None, secret_share.identifier)?;
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
-        secret = secret + (lagrange_coefficient * key_package.secret_share.0);
+        secret = secret + (lagrange_coefficient * secret_share.value.0);
     }
 
     Ok(SigningKey { scalar: secret })

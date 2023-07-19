@@ -288,7 +288,7 @@ pub mod keys {
     ///
     /// The caller is responsible for providing at least `min_signers` shares;
     /// if less than that is provided, a different key will be returned.
-    pub fn reconstruct(secret_shares: &[KeyPackage]) -> Result<SigningKey, Error> {
+    pub fn reconstruct(secret_shares: &[SecretShare]) -> Result<SigningKey, Error> {
         frost::keys::reconstruct(secret_shares)
     }
 
