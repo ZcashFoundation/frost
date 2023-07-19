@@ -9,8 +9,8 @@ use std::collections::HashMap;
 // This is imported separately to make `gencode` work.
 // (if it were below, the position of the import would vary between ciphersuites
 //  after `cargo fmt`)
-use crate::Ed448Shake256;
 use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore, Scalar};
+use crate::{Ed448Shake256, Error};
 
 use super::{SecretShare, VerifiableSecretSharingCommitment};
 
@@ -26,7 +26,7 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     share_i: &SecretShare,
     rng: &mut R,
     participant: Identifier,
-) -> HashMap<Identifier, Scalar> {
+) -> Result<HashMap<Identifier, Scalar>, Error> {
     frost::keys::repairable::repair_share_step_1(helpers, share_i, rng, participant)
 }
 

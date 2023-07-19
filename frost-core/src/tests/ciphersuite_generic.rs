@@ -55,7 +55,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
 
     assert_eq!(
         frost::keys::reconstruct::<C>(&secret_shares).unwrap_err(),
-        Error::DuplicatedShares
+        Error::DuplicatedIdentifiers
     );
 }
 
@@ -372,7 +372,7 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
         &mut rng,
     )
     .unwrap_err();
-    assert_eq!(err, Error::DuplicatedIdentifier);
+    assert_eq!(err, Error::DuplicatedIdentifiers);
 
     // Check correct case
 
