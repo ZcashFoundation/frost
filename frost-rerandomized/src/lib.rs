@@ -1,6 +1,6 @@
-//! Rerandomized FROST implementation.
+//! FROST implementation supporting re-randomizable keys.
 //!
-//! To sign with rerandomized FROST:
+//! To sign with re-randomized FROST:
 //!
 //! - Do Round 1 the same way as regular FROST;
 //! - The Coordinator should generate a [`RandomizedParams`] and send
@@ -31,6 +31,8 @@ use frost_core::{
 // For the time being, we do not re-export this `rand_core`.
 use rand_core::{CryptoRng, RngCore};
 
+/// Randomize the given key type for usage in a FROST signing with re-randomized keys,
+/// using the given [`RandomizedParams`].
 trait Randomize<C> {
     fn randomize(&self, params: &RandomizedParams<C>) -> Result<Self, Error<C>>
     where
@@ -39,7 +41,7 @@ trait Randomize<C> {
 }
 
 impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
-    /// Randomize the given [`KeyPackage`] for usage in a rerandomized FROST signing,
+    /// Randomize the given [`KeyPackage`] for usage in a re-randomized FROST signing,
     /// using the given [`RandomizedParams`].
     ///
     /// It's recommended to use [`sign`] directly which already handles
@@ -71,7 +73,7 @@ impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
 }
 
 impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
-    /// Randomized the given [`PublicKeyPackage`] for usage in a rerandomized FROST
+    /// Randomized the given [`PublicKeyPackage`] for usage in a re-randomized FROST
     /// aggregation, using the given [`RandomizedParams`].
     ///
     /// It's recommended to use [`aggregate`] directly which already handles
@@ -101,7 +103,7 @@ impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
     }
 }
 
-/// Rerandomized FROST signing using the given `randomizer`, which should
+/// Re-randomized FROST signing using the given `randomizer`, which should
 /// be sent from the Coordinator using a confidential channel.
 ///
 /// See [`frost::round2::sign`] for documentation on the other parameters.
@@ -117,7 +119,7 @@ pub fn sign<C: Ciphersuite>(
     frost::round2::sign(signing_package, signer_nonces, &randomized_key_package)
 }
 
-/// Rerandomized FROST signature share aggregation with the given [`RandomizedParams`],
+/// Re-randomized FROST signature share aggregation with the given [`RandomizedParams`],
 /// which can be computed from the previously generated randomizer using
 /// [`RandomizedParams::from_randomizer`].
 ///
@@ -154,7 +156,7 @@ impl<C> RandomizedParams<C>
 where
     C: Ciphersuite,
 {
-    /// Create a new RandomizedParams for the given [`VerifyingKey`] and
+    /// Create a new [`RandomizedParams`] for the given [`VerifyingKey`] and
     /// the given `participants`.
     pub fn new<R: RngCore + CryptoRng>(
         group_verifying_key: &VerifyingKey<C>,
@@ -164,7 +166,7 @@ where
         Self::from_randomizer(group_verifying_key, &randomizer)
     }
 
-    /// Create a new RandomizedParams for the given [`VerifyingKey`] and the
+    /// Create a new [`RandomizedParams`] for the given [`VerifyingKey`] and the
     /// given `participants` for the  given `randomizer`. The `randomizer` MUST
     /// be generated uniformly at random! Use [`RandomizedParams::new()`] which
     /// generates a fresh randomizer, unless your application requires generating
