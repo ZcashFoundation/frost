@@ -96,8 +96,10 @@ pub trait Field: Copy + Clone {
 pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar;
 
 #[cfg(feature = "serde")]
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+/// Helper struct to serialize a Scalar.
 pub(crate) struct ScalarSerialization<C: Ciphersuite>(
-    <<<C as Ciphersuite>::Group as Group>::Field as Field>::Serialization,
+    pub <<<C as Ciphersuite>::Group as Group>::Field as Field>::Serialization,
 );
 
 #[cfg(feature = "serde")]
