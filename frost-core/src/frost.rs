@@ -192,8 +192,10 @@ fn compute_lagrange_coefficient<C: Ciphersuite>(
         return Err(Error::UnknownIdentifier);
     }
 
-    Ok(num
-        * <<C::Group as Group>::Field>::invert(&den).map_err(|_| Error::DuplicatedIdentifiers)?)
+    Ok(
+        num * <<C::Group as Group>::Field>::invert(&den)
+            .map_err(|_| Error::DuplicatedIdentifier)?,
+    )
 }
 
 /// Generates the lagrange coefficient for the i'th participant (for `signer_id`).

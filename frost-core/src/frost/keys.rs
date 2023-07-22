@@ -742,7 +742,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 
     let identifiers_set: HashSet<_> = identifiers.iter().collect();
     if identifiers_set.len() != identifiers.len() {
-        return Err(Error::DuplicatedIdentifiers);
+        return Err(Error::DuplicatedIdentifier);
     }
 
     for id in identifiers {
@@ -787,7 +787,7 @@ pub fn reconstruct<C: Ciphersuite>(
         .collect();
 
     if identifiers.len() != secret_shares.len() {
-        return Err(Error::DuplicatedIdentifiers);
+        return Err(Error::DuplicatedIdentifier);
     }
 
     // Compute the Lagrange coefficients
