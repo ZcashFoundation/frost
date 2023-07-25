@@ -448,3 +448,81 @@ pub fn check_identifier_derivation<C: Ciphersuite>() {
     assert!(id1a == id1b);
     assert!(id1a != id2);
 }
+
+/// Checks the signer's identifier is included in the package
+pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation
+    ////////////////////////////////////////////////////////////////////////////
+
+    let max_signers = 5;
+    let min_signers = 3;
+    let (shares, _pubkeys) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
+
+    // Verifies the secret shares from the dealer
+    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        HashMap::new();
+
+    for (k, v) in shares {
+        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+        key_packages.insert(k, key_package);
+    }
+
+    let mut nonces_map: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
+        HashMap::new();
+    let mut commitments_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
+        BTreeMap::new();
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Round 1: generating nonces and signing commitments for each participant
+    ////////////////////////////////////////////////////////////////////////////
+
+    let id_1 = Identifier::<C>::try_from(1).unwrap();
+    let id_2 = Identifier::<C>::try_from(2).unwrap();
+    let id_3 = Identifier::<C>::try_from(3).unwrap();
+    let key_packages_inc = vec![id_1, id_2, id_3];
+
+    for participant_identifier in key_packages_inc {
+        // The nonces and commitments for each participant is generated. For the purposes
+        let (nonces, commitments) = frost::round1::commit(
+            key_packages
+                .get(&participant_identifier)
+                .unwrap()
+                .secret_share(),
+            &mut rng,
+        );
+        nonces_map.insert(participant_identifier, nonces);
+
+        // Participant with id_1 is excluded from the commitments_map so it is missing from the signing package
+        if participant_identifier == id_1 {
+            continue;
+        }
+        commitments_map.insert(participant_identifier, commitments);
+    }
+
+    // This is what the signature aggregator / coordinator needs to do:
+    // - decide what message to sign
+    // - take one (unused) commitment per signing participant
+    let message = "message to sign".as_bytes();
+    let signing_package = frost::SigningPackage::new(commitments_map, message);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Round 2: Participant with id_1 signs
+    ////////////////////////////////////////////////////////////////////////////
+
+    let key_package_1 = key_packages.get(&id_1).unwrap();
+
+    let nonces_to_use = &nonces_map.get(&id_1).unwrap();
+
+    // Each participant generates their signature share.
+    let signature_share = frost::round2::sign(&signing_package, nonces_to_use, key_package_1);
+
+    assert!(signature_share.is_err());
+    assert!(signature_share == Err(Error::MissingCommitment))
+}

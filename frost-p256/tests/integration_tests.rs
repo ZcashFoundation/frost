@@ -69,3 +69,11 @@ fn check_sign_with_dealer_and_identifiers() {
         rng,
     );
 }
+
+#[test]
+fn check_sign_with_missing_identifier() {
+    let rng = thread_rng();
+    frost_core::tests::ciphersuite_generic::check_sign_with_missing_identifier::<P256Sha256, _>(
+        rng,
+    );
+}

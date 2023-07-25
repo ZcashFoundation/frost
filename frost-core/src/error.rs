@@ -53,6 +53,9 @@ pub enum Error<C: Ciphersuite> {
     /// Commitment equals the identity
     #[error("Commitment equals the identity.")]
     IdentityCommitment,
+    /// The participant's commitment is missing from the Signing Package
+    #[error("The Signing Package must contain the participant's Commitment.")]
+    MissingCommitment,
     /// Signature share verification failed.
     #[error("Invalid signature share.")]
     InvalidSignatureShare {
@@ -125,6 +128,7 @@ where
             | Error::DuplicatedShares
             | Error::IncorrectNumberOfShares
             | Error::IdentityCommitment
+            | Error::MissingCommitment
             | Error::PackageNotFound
             | Error::IncorrectNumberOfPackages
             | Error::IncorrectPackage

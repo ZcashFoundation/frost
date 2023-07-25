@@ -187,6 +187,15 @@ pub fn sign<C: Ciphersuite>(
     signer_nonces: &round1::SigningNonces<C>,
     key_package: &frost::keys::KeyPackage<C>,
 ) -> Result<SignatureShare<C>, Error<C>> {
+    // Validate the signer's commitment is present in the signing package
+    if signing_package
+        .signing_commitments
+        .get(&key_package.identifier)
+        .is_none()
+    {
+        return Err(Error::MissingCommitment);
+    }
+
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
