@@ -489,7 +489,7 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
     let key_packages_inc = vec![id_1, id_2, id_3];
 
     for participant_identifier in key_packages_inc {
-        // The nonces and commitments for each participant is generated. For the purposes
+        // The nonces and commitments for each participant are generated.
         let (nonces, commitments) = frost::round1::commit(
             key_packages
                 .get(&participant_identifier)
