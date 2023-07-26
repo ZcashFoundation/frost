@@ -11,6 +11,8 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::ScalarSerialization;
 
+use super::round1::SigningCommitments;
+
 // Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
 // be directly encoded with serde, so we use this struct to wrap the scalar.
 #[cfg(feature = "serde")]
@@ -188,12 +190,16 @@ pub fn sign<C: Ciphersuite>(
     key_package: &frost::keys::KeyPackage<C>,
 ) -> Result<SignatureShare<C>, Error<C>> {
     // Validate the signer's commitment is present in the signing package
-    if signing_package
+    let commitment = signing_package
         .signing_commitments
         .get(&key_package.identifier)
-        .is_none()
-    {
-        return Err(Error::MissingCommitment);
+        .ok_or(Error::MissingCommitment)?;
+
+    let signing_commitments = SigningCommitments::from(signer_nonces);
+
+    // Validate the signer's commitment exists
+    if &signing_commitments != commitment {
+        return Err(Error::IncorrectCommitment);
     }
 
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the

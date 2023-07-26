@@ -526,3 +526,73 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
     assert!(signature_share.is_err());
     assert!(signature_share == Err(Error::MissingCommitment))
 }
+
+/// Checks the signer's commitment is valid
+pub fn check_sign_with_incorrect_commitments<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation
+    ////////////////////////////////////////////////////////////////////////////
+
+    let max_signers = 5;
+    let min_signers = 3;
+    let (shares, _pubkeys) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
+
+    // Verifies the secret shares from the dealer
+    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        HashMap::new();
+
+    for (k, v) in shares {
+        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+        key_packages.insert(k, key_package);
+    }
+
+    let mut commitments_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
+        BTreeMap::new();
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Round 1: generating nonces and signing commitments for each participant
+    ////////////////////////////////////////////////////////////////////////////
+
+    let id_1 = Identifier::<C>::try_from(1).unwrap();
+    let id_2 = Identifier::<C>::try_from(2).unwrap();
+    let id_3 = Identifier::<C>::try_from(3).unwrap();
+    // let key_packages_inc = vec![id_1, id_2, id_3];
+
+    let (_nonces_1, commitments_1) =
+        frost::round1::commit(key_packages[&id_1].secret_share(), &mut rng);
+
+    let (_nonces_2, commitments_2) =
+        frost::round1::commit(key_packages[&id_2].secret_share(), &mut rng);
+
+    let (nonces_3, _commitments_3) =
+        frost::round1::commit(key_packages[&id_3].secret_share(), &mut rng);
+
+    commitments_map.insert(id_1, commitments_1);
+    commitments_map.insert(id_2, commitments_2);
+    // Invalid commitment for id_3
+    commitments_map.insert(id_3, commitments_1);
+
+    // This is what the signature aggregator / coordinator needs to do:
+    // - decide what message to sign
+    // - take one (unused) commitment per signing participant
+    let message = "message to sign".as_bytes();
+    let signing_package = frost::SigningPackage::new(commitments_map, message);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Round 2: Participant with id_3 signs
+    ////////////////////////////////////////////////////////////////////////////
+
+    let key_package_3 = key_packages.get(&id_3).unwrap();
+
+    // Each participant generates their signature share.
+    let signature_share = frost::round2::sign(&signing_package, &nonces_3, key_package_3);
+
+    assert!(signature_share.is_err());
+    assert!(signature_share == Err(Error::IncorrectCommitment))
+}

@@ -81,3 +81,12 @@ fn check_sign_with_missing_identifier() {
         _,
     >(rng);
 }
+
+#[test]
+fn check_sign_with_incorrect_commitments() {
+    let rng = thread_rng();
+    frost_core::tests::ciphersuite_generic::check_sign_with_incorrect_commitments::<
+        Ristretto255Sha512,
+        _,
+    >(rng);
+}
