@@ -197,7 +197,7 @@ pub fn sign<C: Ciphersuite>(
 
     let signing_commitments = SigningCommitments::from(signer_nonces);
 
-    // Validate the signer's commitment exists
+    // Validate if the signer's commitment exists
     if &signing_commitments != commitment {
         return Err(Error::IncorrectCommitment);
     }
