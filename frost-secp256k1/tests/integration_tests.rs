@@ -24,12 +24,96 @@ fn check_sign_with_dealer() {
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Secp256K1Sha256, _>(rng);
 }
 
+#[test]
+fn check_sign_with_dealer_fails_with_invalid_min_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 1;
+    let max_signers = 3;
+    let error = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Secp256K1Sha256,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_sign_with_dealer_fails_with_min_signers_greater_than_max() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 2;
+    let error: frost_core::Error<Secp256K1Sha256> = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Secp256K1Sha256,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_sign_with_dealer_fails_with_invalid_max_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 1;
+    let error = Error::InvalidMaxSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Secp256K1Sha256,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
 /// This is testing that Shamir's secret sharing to compute and arbitrary
 /// value is working.
 #[test]
 fn check_share_generation_secp256k1_sha256() {
     let rng = thread_rng();
     frost_core::tests::ciphersuite_generic::check_share_generation::<Secp256K1Sha256, _>(rng);
+}
+
+#[test]
+fn check_share_generation_fails_with_invalid_min_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 0;
+    let max_signers = 3;
+    let error = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
+        Secp256K1Sha256,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_share_generation_fails_with_min_signers_greater_than_max() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 2;
+    let error: frost_core::Error<Secp256K1Sha256> = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
+        Secp256K1Sha256,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_share_generation_fails_with_invalid_max_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 0;
+    let error = Error::InvalidMaxSigners;
+
+    frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
+        Secp256K1Sha256,
+        _,
+    >(min_signers, max_signers, error, rng);
 }
 
 lazy_static! {

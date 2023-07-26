@@ -442,6 +442,8 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifiers: IdentifierList<C>,
     rng: &mut R,
 ) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
+    validate_num_of_signers(min_signers, max_signers)?;
+
     let group_public = VerifyingKey::from(key);
 
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
@@ -641,6 +643,25 @@ where
     }
 }
 
+fn validate_num_of_signers<C: Ciphersuite>(
+    min_signers: u16,
+    max_signers: u16,
+) -> Result<(), Error<C>> {
+    if min_signers < 2 {
+        return Err(Error::InvalidMinSigners);
+    }
+
+    if max_signers < 2 {
+        return Err(Error::InvalidMaxSigners);
+    }
+
+    if min_signers > max_signers {
+        return Err(Error::InvalidMinSigners);
+    }
+
+    Ok(())
+}
+
 /// Generate a secret polynomial to use in secret sharing, for the given
 /// secret value. Also validates the given parameters.
 ///
@@ -655,17 +676,7 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
     min_signers: u16,
     mut coefficients: Vec<Scalar<C>>,
 ) -> Result<(Vec<Scalar<C>>, VerifiableSecretSharingCommitment<C>), Error<C>> {
-    if min_signers < 2 {
-        return Err(Error::InvalidMinSigners);
-    }
-
-    if max_signers < 2 {
-        return Err(Error::InvalidMaxSigners);
-    }
-
-    if min_signers > max_signers {
-        return Err(Error::InvalidMinSigners);
-    }
+    validate_num_of_signers(min_signers, max_signers)?;
 
     if coefficients.len() != min_signers as usize - 1 {
         return Err(Error::InvalidCoefficients);

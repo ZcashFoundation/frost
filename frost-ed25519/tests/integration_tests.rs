@@ -24,12 +24,96 @@ fn check_sign_with_dealer() {
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Ed25519Sha512, _>(rng);
 }
 
+#[test]
+fn check_sign_with_dealer_fails_with_invalid_min_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 1;
+    let max_signers = 3;
+    let error = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_sign_with_dealer_fails_with_min_signers_greater_than_max() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 2;
+    let error: frost_core::Error<Ed25519Sha512> = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_sign_with_dealer_fails_with_invalid_max_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 1;
+    let error = Error::InvalidMaxSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
 /// This is testing that Shamir's secret sharing to compute and arbitrary
 /// value is working.
 #[test]
 fn check_share_generation_ed25519_sha512() {
     let rng = thread_rng();
     frost_core::tests::ciphersuite_generic::check_share_generation::<Ed25519Sha512, _>(rng);
+}
+
+#[test]
+fn check_share_generation_fails_with_invalid_min_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 0;
+    let max_signers = 3;
+    let error = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_share_generation_fails_with_min_signers_greater_than_max() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 2;
+    let error: frost_core::Error<Ed25519Sha512> = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_share_generation_fails_with_invalid_max_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 0;
+    let error = Error::InvalidMaxSigners;
+
+    frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(min_signers, max_signers, error, rng);
 }
 
 lazy_static! {
