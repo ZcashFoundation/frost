@@ -72,3 +72,19 @@ fn check_sign_with_dealer_and_identifiers() {
         _,
     >(rng);
 }
+
+#[test]
+fn check_sign_with_missing_identifier() {
+    let rng = thread_rng();
+    frost_core::tests::ciphersuite_generic::check_sign_with_missing_identifier::<Ed25519Sha512, _>(
+        rng,
+    );
+}
+
+#[test]
+fn check_sign_with_incorrect_commitments() {
+    let rng = thread_rng();
+    frost_core::tests::ciphersuite_generic::check_sign_with_incorrect_commitments::<Ed25519Sha512, _>(
+        rng,
+    );
+}
