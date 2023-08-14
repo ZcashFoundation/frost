@@ -51,6 +51,20 @@ where
 
         Signature { R, z }
     }
+
+    /// Creates a SigningKey from a scalar.
+    #[cfg(feature = "internals")]
+    pub fn from_scalar(
+        scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
+    ) -> Self {
+        Self { scalar }
+    }
+
+    /// Return the underlying scalar.
+    #[cfg(feature = "internals")]
+    pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+        self.scalar
+    }
 }
 
 impl<C> std::fmt::Debug for SigningKey<C>

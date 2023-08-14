@@ -25,6 +25,7 @@ sha2 = "0.10.2"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+frost-rerandomized = { path = "../frost-rerandomized", version = "0.6.0", features = ["test-impl"] }
 hex = "0.4.3"
 lazy_static = "1.4"
 proptest = "1.0"
