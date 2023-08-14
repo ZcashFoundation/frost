@@ -101,7 +101,7 @@ where
     //
     // [`binding_factor_for_participant`] in the spec
     //
-    // [`binding_factor_for_participant`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-4.3
+    // [`binding_factor_for_participant`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.3
     fn index(&self, identifier: Identifier<C>) -> &Self::Output {
         &self.0[&identifier]
     }
@@ -421,7 +421,7 @@ where
     //
     // Implements [`aggregate`] from the spec.
     //
-    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-5.3
+    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-5.3
     let mut z = <<C::Group as Group>::Field>::zero();
 
     for signature_share in signature_shares.values() {
