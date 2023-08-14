@@ -56,6 +56,18 @@ impl<C> SigningShare<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`SigningShare`] from a scalar.
+    #[cfg(feature = "internals")]
+    pub fn new(scalar: Scalar<C>) -> Self {
+        Self(scalar)
+    }
+
+    /// Get the inner scalar.
+    #[cfg(feature = "internals")]
+    pub fn to_scalar(&self) -> Scalar<C> {
+        self.0
+    }
+
     /// Deserialize from bytes
     pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
@@ -143,6 +155,18 @@ impl<C> VerifyingShare<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`VerifyingShare`] from a element.
+    #[cfg(feature = "internals")]
+    pub fn new(element: Element<C>) -> Self {
+        Self(element)
+    }
+
+    /// Get the inner element.
+    #[cfg(feature = "internals")]
+    pub fn to_element(&self) -> Element<C> {
+        self.0
+    }
+
     /// Deserialize from bytes
     pub fn deserialize(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
         <C::Group as Group>::deserialize(&bytes)
@@ -718,7 +742,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 
     let identifiers_set: HashSet<_> = identifiers.iter().collect();
     if identifiers_set.len() != identifiers.len() {
-        return Err(Error::DuplicatedIdentifiers);
+        return Err(Error::DuplicatedIdentifier);
     }
 
     for id in identifiers {
@@ -763,7 +787,7 @@ pub fn reconstruct<C: Ciphersuite>(
         .collect();
 
     if identifiers.len() != secret_shares.len() {
-        return Err(Error::DuplicatedIdentifiers);
+        return Err(Error::DuplicatedIdentifier);
     }
 
     // Compute the Lagrange coefficients

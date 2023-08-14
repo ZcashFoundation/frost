@@ -19,6 +19,7 @@ description = "Types and traits to support implementing a re-randomized variant 
 features = ["nightly"]
 
 [dependencies]
+derive-getters = "0.3.0"
 frost-core = { path = "../frost-core", version = "0.6.0", features = ["internals"] }
 rand_core = "0.6"
 
