@@ -1,4 +1,6 @@
 //! Test modules
+#![allow(clippy::indexing_slicing)]
+#![allow(clippy::unwrap_used)]
 
 pub mod batch;
 pub mod ciphersuite_generic;

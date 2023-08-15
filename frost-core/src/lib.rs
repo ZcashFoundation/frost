@@ -4,7 +4,8 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
-// #![deny(clippy::indexing_slicing)]
+#![deny(clippy::indexing_slicing)]
+#![deny(clippy::unwrap_used)]
 
 use std::{
     default::Default,

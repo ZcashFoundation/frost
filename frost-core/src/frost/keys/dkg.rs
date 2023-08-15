@@ -130,8 +130,8 @@ pub mod round1 {
         C: Ciphersuite,
     {
         fn zeroize(&mut self) {
-            for i in 0..self.coefficients.len() {
-                self.coefficients[i] = <<C::Group as Group>::Field>::zero();
+            for c in self.coefficients.iter_mut() {
+                *c = <<C::Group as Group>::Field>::zero();
             }
         }
     }
@@ -260,8 +260,12 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let k = <<C::Group as Group>::Field>::random(&mut rng);
     let R_i = <C::Group>::generator() * k;
-    let c_i = challenge::<C>(identifier, &R_i, &commitment.0[0].0).ok_or(Error::DKGNotSupported)?;
-    let mu_i = k + coefficients[0] * c_i.0;
+    let c_i =
+        challenge::<C>(identifier, &R_i, &commitment.first()?.0).ok_or(Error::DKGNotSupported)?;
+    let a_i0 = *coefficients
+        .get(0)
+        .expect("coefficients must have at least one element");
+    let mu_i = k + a_i0 * c_i.0;
 
     let secret_package = round1::SecretPackage {
         identifier,
@@ -334,7 +338,7 @@ pub fn part2<C: Ciphersuite>(
         // > R_ℓ ? ≟ g^{μ_ℓ} · φ^{-c_ℓ}_{ℓ0}, where c_ℓ = H(ℓ, Φ, φ_{ℓ0}, R_ℓ).
         let R_ell = round1_package.proof_of_knowledge.R;
         let mu_ell = round1_package.proof_of_knowledge.z;
-        let phi_ell0 = round1_package.commitment.0[0].0;
+        let phi_ell0 = round1_package.commitment.first()?.0;
         let c_ell = challenge::<C>(ell, &R_ell, &phi_ell0).ok_or(Error::DKGNotSupported)?;
 
         if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
@@ -483,11 +487,11 @@ pub fn part3<C: Ciphersuite>(
         // Round 2, Step 4
         //
         // > Each P_i calculates [...] the group’s public key Y = ∏^n_{j=1} φ_{j0}.
-        group_public = group_public + commitment.0[0].0;
+        group_public = group_public + commitment.first()?.0;
     }
 
     signing_share = signing_share + round2_secret_package.secret_share;
-    group_public = group_public + round2_secret_package.commitment.0[0].0;
+    group_public = group_public + round2_secret_package.commitment.first()?.0;
 
     let signing_share = SigningShare(signing_share);
     // Round 2, Step 4

@@ -1,5 +1,9 @@
 //! Non-adjacent form (NAF) implementations for fast batch scalar multiplcation
 
+// We expect slicings in this module to never panic due to algorithmic
+// constraints.
+#![allow(clippy::indexing_slicing)]
+
 use std::{
     borrow::Borrow,
     fmt::{Debug, Result},
@@ -166,7 +170,7 @@ pub trait VartimeMultiscalarMul<C: Ciphersuite>: Clone {
             scalars,
             elements.into_iter().map(|e| Some(e.borrow().clone())),
         )
-        .unwrap()
+        .expect("all elements should be Some")
     }
 }
 

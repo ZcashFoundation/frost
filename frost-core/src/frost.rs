@@ -13,7 +13,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     fmt::{self, Debug},
-    ops::Index,
 };
 
 use derive_getters::Getters;
@@ -89,21 +88,10 @@ where
     pub fn iter(&self) -> impl Iterator<Item = (&Identifier<C>, &BindingFactor<C>)> {
         self.0.iter()
     }
-}
 
-impl<C> Index<Identifier<C>> for BindingFactorList<C>
-where
-    C: Ciphersuite,
-{
-    type Output = BindingFactor<C>;
-
-    // Get the binding factor of a participant in the list.
-    //
-    // [`binding_factor_for_participant`] in the spec
-    //
-    // [`binding_factor_for_participant`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.3
-    fn index(&self, identifier: Identifier<C>) -> &Self::Output {
-        &self.0[&identifier]
+    /// Get the [`BindingFactor`] for the given identifier, or None if not found.
+    pub fn get(&self, key: &Identifier<C>) -> Option<&BindingFactor<C>> {
+        self.0.get(key)
     }
 }
 
@@ -267,9 +255,12 @@ where
         }
     }
 
-    /// Get a signing commitment by its participant identifier.
-    pub fn signing_commitment(&self, identifier: &Identifier<C>) -> round1::SigningCommitments<C> {
-        self.signing_commitments[identifier]
+    /// Get a signing commitment by its participant identifier, or None if not found.
+    pub fn signing_commitment(
+        &self,
+        identifier: &Identifier<C>,
+    ) -> Option<round1::SigningCommitments<C>> {
+        self.signing_commitments.get(identifier).copied()
     }
 
     /// Compute the preimages to H1 to compute the per-signer binding factors
@@ -362,7 +353,9 @@ where
             return Err(Error::IdentityCommitment);
         }
 
-        let binding_factor = binding_factor_list[*commitment_identifier].clone();
+        let binding_factor = binding_factor_list
+            .get(commitment_identifier)
+            .ok_or(Error::UnknownIdentifier)?;
 
         // Collect the binding commitments and their binding factors for one big
         // multiscalar multiplication at the end.
@@ -458,17 +451,20 @@ where
             let signer_pubkey = pubkeys
                 .signer_pubkeys
                 .get(signature_share_identifier)
-                .unwrap();
+                .ok_or(Error::UnknownIdentifier)?;
 
             // Compute Lagrange coefficient.
             let lambda_i = derive_interpolating_value(signature_share_identifier, signing_package)?;
 
-            let binding_factor = binding_factor_list[*signature_share_identifier].clone();
+            let binding_factor = binding_factor_list
+                .get(signature_share_identifier)
+                .ok_or(Error::UnknownIdentifier)?;
 
             // Compute the commitment share.
             let R_share = signing_package
                 .signing_commitment(signature_share_identifier)
-                .to_group_commitment_share(&binding_factor);
+                .ok_or(Error::UnknownIdentifier)?
+                .to_group_commitment_share(binding_factor);
 
             // Compute relation values to verify this signature share.
             signature_share.verify(

@@ -39,7 +39,12 @@ where
 
         let R_bytes_len = R_bytes.len();
 
-        R_bytes[..].copy_from_slice(&bytes.as_ref()[0..R_bytes_len]);
+        R_bytes[..].copy_from_slice(
+            bytes
+                .as_ref()
+                .get(0..R_bytes_len)
+                .ok_or(Error::MalformedSignature)?,
+        );
 
         let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 
@@ -50,7 +55,12 @@ where
         let z_bytes_len = z_bytes.len();
 
         // We extract the exact length of bytes we expect, not just the remaining bytes with `bytes[R_bytes_len..]`
-        z_bytes[..].copy_from_slice(&bytes.as_ref()[R_bytes_len..R_bytes_len + z_bytes_len]);
+        z_bytes[..].copy_from_slice(
+            bytes
+                .as_ref()
+                .get(R_bytes_len..R_bytes_len + z_bytes_len)
+                .ok_or(Error::MalformedSignature)?,
+        );
 
         let z_serialization = &z_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 
