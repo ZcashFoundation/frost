@@ -403,6 +403,19 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
+    // Check if signing_package.signing_commitments and signature_shares have
+    // the same set of identifiers, and if they are all in pubkeys.signer_pubkeys.
+    if signing_package.signing_commitments().len() != signature_shares.len() {
+        return Err(Error::UnknownIdentifier);
+    }
+    if !signing_package
+        .signing_commitments()
+        .keys()
+        .all(|id| signature_shares.contains_key(id) && pubkeys.signer_pubkeys().contains_key(id))
+    {
+        return Err(Error::UnknownIdentifier);
+    }
+
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
