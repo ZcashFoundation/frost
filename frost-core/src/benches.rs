@@ -1,4 +1,5 @@
 //! Ciphersuite-generic benchmark functions.
+#![allow(clippy::unwrap_used)]
 
 use std::collections::{BTreeMap, HashMap};
 

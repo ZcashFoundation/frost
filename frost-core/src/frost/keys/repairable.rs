@@ -70,7 +70,10 @@ fn compute_last_random_value<C: Ciphersuite>(
         sum_i_deltas = sum_i_deltas + *v;
     }
 
-    out.insert(*helpers.last().unwrap(), lhs - sum_i_deltas);
+    out.insert(
+        *helpers.last().ok_or(Error::IncorrectNumberOfIdentifiers)?,
+        lhs - sum_i_deltas,
+    );
 
     Ok(out)
 }
