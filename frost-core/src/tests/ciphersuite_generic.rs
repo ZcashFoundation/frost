@@ -206,7 +206,7 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // generates the final signature.
     ////////////////////////////////////////////////////////////////////////////
 
-    check_aggregate_error(
+    check_aggregate_errors(
         signing_package.clone(),
         signature_shares.clone(),
         pubkey_package.clone(),
@@ -242,7 +242,24 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     )
 }
 
-fn check_aggregate_error<C: Ciphersuite + PartialEq>(
+fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
+    signing_package: frost::SigningPackage<C>,
+    signature_shares: HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
+    pubkey_package: frost::keys::PublicKeyPackage<C>,
+) {
+    check_aggregate_corrupted_share(
+        signing_package.clone(),
+        signature_shares.clone(),
+        pubkey_package.clone(),
+    );
+    check_aggregate_invalid_share_identifier_for_signer_pubkeys(
+        signing_package.clone(),
+        signature_shares.clone(),
+        pubkey_package.clone(),
+    );
+}
+
+fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
     signing_package: frost::SigningPackage<C>,
     mut signature_shares: HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
@@ -254,6 +271,26 @@ fn check_aggregate_error<C: Ciphersuite + PartialEq>(
     let e = frost::aggregate(&signing_package, &signature_shares, &pubkey_package).unwrap_err();
     assert_eq!(e.culprit(), Some(id));
     assert_eq!(e, Error::InvalidSignatureShare { culprit: id });
+}
+
+/// Test NCC-E008263-4VP audit finding (PublicKeyPackage).
+/// Note that the SigningPackage part of the finding is not currently reachable
+/// since it's caught by `compute_lagrange_coefficient()`, and the Binding Factor
+/// part can't either since it's caught before by the PublicKeyPackage part.
+fn check_aggregate_invalid_share_identifier_for_signer_pubkeys<C: Ciphersuite + PartialEq>(
+    signing_package: frost::SigningPackage<C>,
+    mut signature_shares: HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
+    pubkey_package: frost::keys::PublicKeyPackage<C>,
+) {
+    let invalid_identifier = Identifier::derive("invalid identifier".as_bytes()).unwrap();
+    // Insert a new share (copied from other existing share) with an invalid identifier
+    signature_shares.insert(
+        invalid_identifier,
+        *signature_shares.values().next().unwrap(),
+    );
+    // Should error, but not panic
+    frost::aggregate(&signing_package, &signature_shares, &pubkey_package)
+        .expect_err("should not work");
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.

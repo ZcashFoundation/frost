@@ -206,8 +206,10 @@ pub fn sign<C: Ciphersuite>(
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
         compute_binding_factor_list(signing_package, &key_package.group_public, &[]);
-    let binding_factor: frost::BindingFactor<C> =
-        binding_factor_list[key_package.identifier].clone();
+    let binding_factor: frost::BindingFactor<C> = binding_factor_list
+        .get(&key_package.identifier)
+        .ok_or(Error::UnknownIdentifier)?
+        .clone();
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
