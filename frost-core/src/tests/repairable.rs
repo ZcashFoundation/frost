@@ -15,7 +15,7 @@ use crate::{
         },
         Identifier,
     },
-    Ciphersuite, Field, Group, Scalar,
+    Ciphersuite, Error, Field, Group, Scalar,
 };
 
 /// We want to test that recover share matches the original share
@@ -209,4 +209,36 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     );
 
     assert!(actual.value == expected.value);
+}
+
+/// Test repair share step 1 fails with invalid numbers of signers.
+pub fn check_repair_share_step_1_fails_with_invalid_min_signers<
+    C: Ciphersuite,
+    R: RngCore + CryptoRng,
+>(
+    mut rng: R,
+) {
+    // Generate shares
+    let max_signers = 3;
+    let min_signers = 2; // This is to make sure this test fails at the right point
+    let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
+        frost::keys::generate_with_dealer(
+            max_signers,
+            min_signers,
+            frost::keys::IdentifierList::Default,
+            &mut rng,
+        )
+        .unwrap();
+
+    let helper = Identifier::try_from(3).unwrap();
+
+    let out = repair_share_step_1(
+        &[helper],
+        &shares[&helper],
+        &mut rng,
+        Identifier::try_from(2).unwrap(),
+    );
+
+    assert!(out.is_err());
+    assert!(out == Err(Error::InvalidMinSigners))
 }

@@ -41,8 +41,8 @@ use crate::{
 
 use super::{
     evaluate_polynomial, evaluate_vss, generate_coefficients, generate_secret_polynomial,
-    KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
-    VerifyingShare,
+    validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
+    VerifiableSecretSharingCommitment, VerifyingShare,
 };
 
 /// DKG Round 1 structures.
@@ -237,6 +237,8 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     min_signers: u16,
     mut rng: R,
 ) -> Result<(round1::SecretPackage<C>, round1::Package<C>), Error<C>> {
+    validate_num_of_signers::<C>(min_signers, max_signers)?;
+
     let secret: SigningKey<C> = SigningKey::new(&mut rng);
 
     // Round 1, Step 1
