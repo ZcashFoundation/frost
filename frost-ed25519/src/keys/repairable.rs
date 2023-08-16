@@ -89,4 +89,13 @@ mod tests {
             &REPAIR_SHARE,
         );
     }
+
+    #[test]
+    fn check_repair_share_step_1_fails_with_invalid_min_signers() {
+        let rng = thread_rng();
+        frost_core::tests::repairable::check_repair_share_step_1_fails_with_invalid_min_signers::<
+            Ed25519Sha512,
+            _,
+        >(rng);
+    }
 }

@@ -59,6 +59,30 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     );
 }
 
+/// Test share generation with a Ciphersuite
+pub fn check_share_generation_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + CryptoRng>(
+    min_signers: u16,
+    max_signers: u16,
+    error: Error<C>,
+    mut rng: R,
+) {
+    let secret = crate::SigningKey::<C>::new(&mut rng);
+
+    // Use arbitrary number of coefficients so tests don't fail for overflow reasons
+    let coefficients = frost::keys::generate_coefficients::<C, _>(3, &mut rng);
+
+    let secret_shares = frost::keys::generate_secret_shares(
+        &secret,
+        max_signers,
+        min_signers,
+        coefficients,
+        &frost::keys::default_identifiers(max_signers),
+    );
+
+    assert!(secret_shares.is_err());
+    assert!(secret_shares == Err(error))
+}
+
 /// Test FROST signing with trusted dealer with a Ciphersuite.
 pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
@@ -87,6 +111,42 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     }
 
     check_sign(min_signers, key_packages, rng, pubkeys)
+}
+
+/// Test FROST signing with trusted dealer fails with invalid numbers of signers.
+pub fn check_sign_with_dealer_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + CryptoRng>(
+    min_signers: u16,
+    max_signers: u16,
+    error: Error<C>,
+    mut rng: R,
+) {
+    let out = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default::<C>,
+        &mut rng,
+    );
+
+    assert!(out.is_err());
+    assert!(out == Err(error))
+}
+
+/// Test DKG part1 fails with invalid numbers of signers.
+pub fn check_dkg_part1_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + CryptoRng>(
+    min_signers: u16,
+    max_signers: u16,
+    error: Error<C>,
+    mut rng: R,
+) {
+    let out = frost::keys::dkg::part1(
+        Identifier::try_from(1).unwrap(),
+        max_signers,
+        min_signers,
+        &mut rng,
+    );
+
+    assert!(out.is_err());
+    assert!(out == Err(error))
 }
 
 /// Test FROST signing with the given shares.
