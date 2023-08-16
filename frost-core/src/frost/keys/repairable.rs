@@ -26,6 +26,10 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     rng: &mut R,
     participant: Identifier<C>,
 ) -> Result<HashMap<Identifier<C>, Scalar<C>>, Error<C>> {
+    if helpers.len() < 2 {
+        return Err(Error::InvalidMinSigners);
+    }
+
     if helpers.is_empty() {
         return Err(Error::IncorrectNumberOfIdentifiers);
     }

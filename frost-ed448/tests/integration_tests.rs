@@ -11,6 +11,48 @@ fn check_sign_with_dkg() {
 }
 
 #[test]
+fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 1;
+    let max_signers = 3;
+    let error = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Ed448Shake256,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_dkg_part1_fails_with_min_signers_greater_than_max() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 2;
+    let error: frost_core::Error<Ed448Shake256> = Error::InvalidMinSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Ed448Shake256,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
+fn check_dkg_part1_fails_with_invalid_signers_max_signers() {
+    let rng = thread_rng();
+
+    let min_signers = 3;
+    let max_signers = 1;
+    let error = Error::InvalidMaxSigners;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
+        Ed448Shake256,
+        _,
+    >(min_signers, max_signers, error, rng);
+}
+
+#[test]
 fn check_rts() {
     let rng = thread_rng();
 

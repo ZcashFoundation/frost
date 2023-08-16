@@ -131,6 +131,24 @@ pub fn check_sign_with_dealer_fails_with_invalid_signers<C: Ciphersuite, R: RngC
     assert!(out == Err(error))
 }
 
+/// Test DKG part1 fails with invalid numbers of signers.
+pub fn check_dkg_part1_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + CryptoRng>(
+    min_signers: u16,
+    max_signers: u16,
+    error: Error<C>,
+    mut rng: R,
+) {
+    let out = frost::keys::dkg::part1(
+        Identifier::try_from(1).unwrap(),
+        max_signers,
+        min_signers,
+        &mut rng,
+    );
+
+    assert!(out.is_err());
+    assert!(out == Err(error))
+}
+
 fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     min_signers: u16,
     key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
