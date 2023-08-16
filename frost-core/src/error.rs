@@ -24,8 +24,8 @@ pub enum Error<C: Ciphersuite> {
     #[error("Malformed identifier is unserializable.")]
     MalformedIdentifier,
     /// This identifier is duplicated.
-    #[error("Duplicated identifiers.")]
-    DuplicatedIdentifiers,
+    #[error("Duplicated identifier.")]
+    DuplicatedIdentifier,
     /// This identifier does not belong to a participant in the signing process.
     #[error("Unknown identifier.")]
     UnknownIdentifier,
@@ -140,7 +140,7 @@ where
             | Error::DKGNotSupported
             | Error::FieldError(_)
             | Error::GroupError(_)
-            | Error::DuplicatedIdentifiers
+            | Error::DuplicatedIdentifier
             | Error::InvalidCoefficient
             | Error::UnknownIdentifier
             | Error::IncorrectNumberOfIdentifiers

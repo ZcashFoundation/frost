@@ -22,14 +22,15 @@ description = "A Schnorr signature scheme over Ed25519 that supports FROST."
 features = ["nightly"]
 
 [dependencies]
-curve25519-dalek = { version = "=4.0.0-rc.3", features = ["serde", "rand_core"] }
+curve25519-dalek = { version = "=4.0.0", features = ["serde", "rand_core"] }
 frost-core = { path = "../frost-core", version = "0.6.0", features = ["test-impl"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
 [dev-dependencies]
 criterion = "0.5"
-ed25519-dalek = "1.0.1"
+frost-rerandomized = { path = "../frost-rerandomized", version = "0.6.0", features = ["test-impl"] }
+ed25519-dalek = "2.0.0"
 hex = "0.4.3"
 lazy_static = "1.4"
 proptest = "1.0"

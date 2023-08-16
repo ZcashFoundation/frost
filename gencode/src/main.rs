@@ -324,6 +324,7 @@ fn main() -> ExitCode {
             "tests/common_traits_tests.rs",
             "tests/integration_tests.rs",
             "tests/recreation_tests.rs",
+            "tests/rerandomized_tests.rs",
             "tests/serde_tests.rs",
             "tests/helpers/samples.rs",
         ] {

@@ -19,7 +19,7 @@ pub fn verify_signature(
     };
     let pub_key = {
         let bytes = group_pubkey.serialize();
-        ed25519_dalek::PublicKey::from_bytes(&bytes).unwrap()
+        ed25519_dalek::VerifyingKey::from_bytes(&bytes).unwrap()
     };
     // Check that signature validation has the expected result.
     assert!(pub_key.verify(msg, &sig).is_ok());

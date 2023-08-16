@@ -56,6 +56,18 @@ impl<C> SigningShare<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`SigningShare`] from a scalar.
+    #[cfg(feature = "internals")]
+    pub fn new(scalar: Scalar<C>) -> Self {
+        Self(scalar)
+    }
+
+    /// Get the inner scalar.
+    #[cfg(feature = "internals")]
+    pub fn to_scalar(&self) -> Scalar<C> {
+        self.0
+    }
+
     /// Deserialize from bytes
     pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
@@ -143,6 +155,18 @@ impl<C> VerifyingShare<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`VerifyingShare`] from a element.
+    #[cfg(feature = "internals")]
+    pub fn new(element: Element<C>) -> Self {
+        Self(element)
+    }
+
+    /// Get the inner element.
+    #[cfg(feature = "internals")]
+    pub fn to_element(&self) -> Element<C> {
+        self.0
+    }
+
     /// Deserialize from bytes
     pub fn deserialize(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
         <C::Group as Group>::deserialize(&bytes)
@@ -378,7 +402,7 @@ where
     /// This also implements `derive_group_info()` from the [spec] (which is very similar),
     /// but only for this participant.
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.2-4
+    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error<C>> {
         let f_result = <C::Group>::generator() * self.value.0;
         let result = evaluate_vss(&self.commitment, self.identifier);
@@ -414,7 +438,7 @@ pub enum IdentifierList<'a, C: Ciphersuite> {
 ///
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
-/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C
+/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C
 pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
@@ -484,7 +508,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
 ///
 /// Implements [`polynomial_evaluate`] from the spec.
 ///
-/// [`polynomial_evaluate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-evaluation-of-a-polynomial
+/// [`polynomial_evaluate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-evaluation-of-a-polynomial
 fn evaluate_polynomial<C: Ciphersuite>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
@@ -714,7 +738,7 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
 ///
 /// Implements [`secret_share_shard`] from the spec.
 ///
-/// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#appendix-C.1
+/// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.1
 pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     secret: &SigningKey<C>,
     max_signers: u16,
@@ -729,7 +753,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 
     let identifiers_set: HashSet<_> = identifiers.iter().collect();
     if identifiers_set.len() != identifiers.len() {
-        return Err(Error::DuplicatedIdentifiers);
+        return Err(Error::DuplicatedIdentifier);
     }
 
     for id in identifiers {
@@ -774,7 +798,7 @@ pub fn reconstruct<C: Ciphersuite>(
         .collect();
 
     if identifiers.len() != secret_shares.len() {
-        return Err(Error::DuplicatedIdentifiers);
+        return Err(Error::DuplicatedIdentifier);
     }
 
     // Compute the Lagrange coefficients

@@ -35,7 +35,7 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     }
     let xset: BTreeSet<_> = helpers.iter().cloned().collect();
     if xset.len() != helpers.len() {
-        return Err(Error::DuplicatedIdentifiers);
+        return Err(Error::DuplicatedIdentifier);
     }
 
     let rand_val: Vec<Scalar<C>> = generate_coefficients::<C, R>(helpers.len() - 1, rng);

@@ -55,7 +55,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
 
     assert_eq!(
         frost::keys::reconstruct::<C>(&secret_shares).unwrap_err(),
-        Error::DuplicatedIdentifiers
+        Error::DuplicatedIdentifier
     );
 }
 
@@ -149,7 +149,8 @@ pub fn check_dkg_part1_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + C
     assert!(out == Err(error))
 }
 
-fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+/// Test FROST signing with the given shares.
+pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     min_signers: u16,
     key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
@@ -432,7 +433,7 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
         &mut rng,
     )
     .unwrap_err();
-    assert_eq!(err, Error::DuplicatedIdentifiers);
+    assert_eq!(err, Error::DuplicatedIdentifier);
 
     // Check correct case
 
