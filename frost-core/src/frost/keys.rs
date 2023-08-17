@@ -787,8 +787,8 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     Ok(secret_shares)
 }
 
-/// Recompute the secret from at least `min_signers` secret shares
-/// using Lagrange interpolation.
+/// Recompute the secret from at least `min_signers` secret shares (inside
+/// [`KeyPackage`]s) using Lagrange interpolation.
 ///
 /// This can be used if for some reason the original key must be restored; e.g.
 /// if threshold signing is not required anymore.
@@ -797,34 +797,46 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 /// able to generate signatures only using the shares, without having to
 /// reconstruct the original key.
 ///
-/// The caller is responsible for providing at least `min_signers` shares;
+/// The caller is responsible for providing at least `min_signers` packages;
 /// if less than that is provided, a different key will be returned.
 pub fn reconstruct<C: Ciphersuite>(
-    secret_shares: &[SecretShare<C>],
+    key_packages: &[KeyPackage<C>],
 ) -> Result<SigningKey<C>, Error<C>> {
-    if secret_shares.is_empty() {
+    if key_packages.is_empty() {
+        return Err(Error::IncorrectNumberOfShares);
+    }
+    // There is no obvious way to get `min_signers` in order to validate the
+    // size of `secret_shares`. Since that is just a best-effort validation,
+    // we don't need to worry too much about adversarial situations where people
+    // lie about min_signers, so just get the minimum value out of all of them.
+    let min_signers = key_packages
+        .iter()
+        .map(|k| k.min_signers)
+        .min()
+        .expect("should not be empty since that was just tested");
+    if key_packages.len() < min_signers as usize {
         return Err(Error::IncorrectNumberOfShares);
     }
 
     let mut secret = <<C::Group as Group>::Field>::zero();
 
-    let identifiers: BTreeSet<_> = secret_shares
+    let identifiers: BTreeSet<_> = key_packages
         .iter()
         .map(|s| s.identifier())
         .cloned()
         .collect();
 
-    if identifiers.len() != secret_shares.len() {
+    if identifiers.len() != key_packages.len() {
         return Err(Error::DuplicatedIdentifier);
     }
 
     // Compute the Lagrange coefficients
-    for secret_share in secret_shares.iter() {
+    for secret_share in key_packages.iter() {
         let lagrange_coefficient =
             compute_lagrange_coefficient(&identifiers, None, secret_share.identifier)?;
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
-        secret = secret + (lagrange_coefficient * secret_share.value.0);
+        secret = secret + (lagrange_coefficient * secret_share.secret_share().0);
     }
 
     Ok(SigningKey { scalar: secret })
