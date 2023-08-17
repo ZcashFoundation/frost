@@ -454,13 +454,13 @@ where
 pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
-    // Check error case first (repeated identifiers)
+    // Check error cases first
+    // Check repeated identifiers
 
     let identifiers: Vec<frost::Identifier<C>> = [1u16, 42, 100, 257, 42]
         .into_iter()
         .map(|i| i.try_into().unwrap())
         .collect();
-
     let max_signers = 5;
     let min_signers = 3;
     let err = frost::keys::generate_with_dealer(
@@ -471,6 +471,23 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
     )
     .unwrap_err();
     assert_eq!(err, Error::DuplicatedIdentifier);
+
+    // Check incorrect number of identifiers
+
+    let identifiers: Vec<frost::Identifier<C>> = [1u16, 42, 100, 257]
+        .into_iter()
+        .map(|i| i.try_into().unwrap())
+        .collect();
+    let max_signers = 5;
+    let min_signers = 3;
+    let err = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Custom(&identifiers),
+        &mut rng,
+    )
+    .unwrap_err();
+    assert_eq!(err, Error::IncorrectNumberOfIdentifiers);
 
     // Check correct case
 

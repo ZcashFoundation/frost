@@ -474,18 +474,25 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
 ) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     validate_num_of_signers(min_signers, max_signers)?;
 
+    if let IdentifierList::Custom(identifiers) = &identifiers {
+        if identifiers.len() != max_signers as usize {
+            return Err(Error::IncorrectNumberOfIdentifiers);
+        }
+    }
+
     let group_public = VerifyingKey::from(key);
 
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
 
-    let default_identifiers = default_identifiers(max_signers);
-    let identifiers = match identifiers {
-        IdentifierList::Custom(identifiers) => identifiers,
-        IdentifierList::Default => &default_identifiers,
+    let secret_shares = match identifiers {
+        IdentifierList::Default => {
+            let identifiers = default_identifiers(max_signers);
+            generate_secret_shares(key, max_signers, min_signers, coefficients, &identifiers)?
+        }
+        IdentifierList::Custom(identifiers) => {
+            generate_secret_shares(key, max_signers, min_signers, coefficients, identifiers)?
+        }
     };
-
-    let secret_shares =
-        generate_secret_shares(key, max_signers, min_signers, coefficients, identifiers)?;
     let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(max_signers as usize);
 
