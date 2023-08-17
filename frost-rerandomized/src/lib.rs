@@ -72,6 +72,7 @@ impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
             randomized_signing_share,
             randomized_verifying_share,
             randomized_params.randomized_verifying_key,
+            *self.min_signers(),
         );
         Ok(randomized_key_package)
     }

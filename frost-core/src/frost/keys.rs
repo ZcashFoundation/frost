@@ -570,6 +570,7 @@ pub struct KeyPackage<C: Ciphersuite> {
     /// The public verifying key that represents the entire group.
     #[zeroize(skip)]
     pub(crate) group_public: VerifyingKey<C>,
+    pub(crate) min_signers: u16,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
         feature = "serde",
@@ -593,12 +594,14 @@ where
         secret_share: SigningShare<C>,
         public: VerifyingShare<C>,
         group_public: VerifyingKey<C>,
+        min_signers: u16,
     ) -> Self {
         Self {
             identifier,
             secret_share,
             public,
             group_public,
+            min_signers,
             ciphersuite: (),
         }
     }
@@ -626,6 +629,7 @@ where
             secret_share: secret_share.value,
             public,
             group_public,
+            min_signers: secret_share.commitment.0.len() as u16,
             ciphersuite: (),
         })
     }

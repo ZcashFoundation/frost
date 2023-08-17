@@ -6,6 +6,9 @@ Entries are listed in reverse chronological order.
 
 ## 0.7.0
 
+* A new `min_signers` field was added to `KeyPackage`, which changes its
+  `new()` method and its serde serialization.
+
 ## Released
 
 ## 0.6.0

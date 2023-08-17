@@ -71,12 +71,14 @@ fn check_key_package_recreation() {
     let signing_share = key_package.secret_share();
     let verifying_share = key_package.public();
     let verifying_key = key_package.group_public();
+    let min_signers = key_package.min_signers();
 
     let new_key_package = KeyPackage::new(
         *identifier,
         *signing_share,
         *verifying_share,
         *verifying_key,
+        *min_signers,
     );
 
     assert!(key_package == new_key_package);

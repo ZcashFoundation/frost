@@ -189,6 +189,10 @@ pub fn sign<C: Ciphersuite>(
     signer_nonces: &round1::SigningNonces<C>,
     key_package: &frost::keys::KeyPackage<C>,
 ) -> Result<SignatureShare<C>, Error<C>> {
+    if signing_package.signing_commitments().len() < key_package.min_signers as usize {
+        return Err(Error::IncorrectNumberOfCommitments);
+    }
+
     // Validate the signer's commitment is present in the signing package
     let commitment = signing_package
         .signing_commitments
