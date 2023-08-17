@@ -8,6 +8,8 @@ Entries are listed in reverse chronological order.
 
 * A new `min_signers` field was added to `KeyPackage`, which changes its
   `new()` method and its serde serialization.
+* `reconstruct()` was changed to take a slice of `KeyPackage`s instead of
+  `SecretShare`s since users are expect to store the former and not the latter.
 
 ## Released
 
