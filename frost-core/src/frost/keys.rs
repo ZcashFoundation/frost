@@ -439,8 +439,7 @@ pub enum IdentifierList<'a, C: Ciphersuite> {
 /// Under the hood, this performs verifiable secret sharing, which itself uses
 /// Shamir secret sharing, from which each share becomes a participant's secret
 /// key. The output from this function is a set of shares along with one single
-/// commitment that participants use to verify the integrity of the share. The
-/// number of signers is limited to 255.
+/// commitment that participants use to verify the integrity of the share.
 ///
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
@@ -631,18 +630,16 @@ where
     }
 }
 
-/// Public data that contains all the signers' public keys as well as the
-/// group public key.
+/// Public data that contains all the signers' verifying shares as well as the
+/// group verifying key.
 ///
 /// Used for verification purposes before publishing a signature.
 #[derive(Clone, Debug, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {
-    /// When performing signing, the coordinator must ensure that they have the
-    /// correct view of participants' public keys to perform verification before
-    /// publishing a signature. `signer_pubkeys` represents all signers for a
-    /// signing operation.
+    /// The verifying shares for all participants. Used to validate signature
+    /// shares they generate.
     pub(crate) signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
     pub(crate) group_public: VerifyingKey<C>,
