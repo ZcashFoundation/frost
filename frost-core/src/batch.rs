@@ -75,7 +75,7 @@ where
     }
 
     /// Performs batch verification, returning `Ok(())` if all signatures were
-    /// valid and `Err` otherwise.
+    /// valid and `Err` otherwise, or if the batch is empty.
     ///
     /// The batch verification equation is:
     ///
@@ -105,6 +105,10 @@ where
     /// [ps]: https://zips.z.cash/protocol/protocol.pdf#reddsabatchverify
     pub fn verify<R: RngCore + CryptoRng>(self, mut rng: R) -> Result<(), Error<C>> {
         let n = self.signatures.len();
+
+        if n == 0 {
+            return Err(Error::InvalidSignature);
+        }
 
         let mut VK_coeffs = Vec::with_capacity(n);
         let mut VKs = Vec::with_capacity(n);
