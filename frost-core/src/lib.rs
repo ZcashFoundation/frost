@@ -87,8 +87,7 @@ pub trait Field: Copy + Clone {
     /// A member function of a [`Field`] that attempts to map a byte array `buf` to a [`Scalar`].
     ///
     /// Fails if the input is not a valid byte representation of an [`Scalar`] of the
-    /// [`Field`]. This function can raise an [`Error`] if deserialization fails or if the
-    /// resulting [`Scalar`] is zero
+    /// [`Field`]. This function can raise an [`Error`] if deserialization fails.
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.1-3.9>
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError>;
