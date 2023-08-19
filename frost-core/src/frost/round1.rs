@@ -103,7 +103,7 @@ where
     }
 }
 
-/// A Ristretto point that is a commitment to a signing nonce share.
+/// A group element that is a commitment to a signing nonce share.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
@@ -312,14 +312,11 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 ///
 /// Implements [`encode_group_commitment_list()`] from the spec.
 ///
-/// Inputs:
-/// - commitment_list = [(j, D_j, E_j), ...], a list of commitments issued by each signer,
-///   where each element in the list indicates the signer identifier and their
-///   two commitment Element values. B MUST be sorted in ascending order
-///   by signer identifier.
+/// `signing_commitments` must contain the sorted map of participants
+/// identifiers to the signing commitments they issued.
 ///
-/// Outputs:
-/// - A byte string containing the serialized representation of B.
+/// Returns a byte string containing the serialized representation of the
+/// commitment list.
 ///
 /// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-list-operations
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
