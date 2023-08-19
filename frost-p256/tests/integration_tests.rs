@@ -187,6 +187,17 @@ fn check_identifier_derivation() {
     frost_core::tests::ciphersuite_generic::check_identifier_derivation::<P256Sha256>();
 }
 
+// Explicit test which is used in a documentation snippet
+#[test]
+#[allow(unused_variables)]
+fn check_identifier_generation() -> Result<(), Error> {
+    // ANCHOR: dkg_identifier
+    let participant_identifier = Identifier::try_from(7u16)?;
+    let participant_identifier = Identifier::derive("alice@example.com".as_bytes())?;
+    // ANCHOR_END: dkg_identifier
+    Ok(())
+}
+
 #[test]
 fn check_sign_with_dealer_and_identifiers() {
     let rng = thread_rng();
