@@ -112,8 +112,8 @@ where
 
         let mut VK_coeffs = Vec::with_capacity(n);
         let mut VKs = Vec::with_capacity(n);
-        let mut R_coeffs = Vec::with_capacity(self.signatures.len());
-        let mut Rs = Vec::with_capacity(self.signatures.len());
+        let mut R_coeffs = Vec::with_capacity(n);
+        let mut Rs = Vec::with_capacity(n);
         let mut P_coeff_acc = <<C::Group as Group>::Field>::zero();
 
         for item in self.signatures.iter() {
