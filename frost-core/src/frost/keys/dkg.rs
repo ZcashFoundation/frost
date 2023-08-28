@@ -36,13 +36,13 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     frost::Identifier, Challenge, Ciphersuite, Element, Error, Field, Group, Scalar, Signature,
-    SigningKey, VerifyingKey,
+    SigningKey,
 };
 
 use super::{
-    evaluate_polynomial, evaluate_vss, generate_coefficients, generate_secret_polynomial,
-    validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
-    VerifiableSecretSharingCommitment, VerifyingShare,
+    compute_public_key_package, evaluate_polynomial, generate_coefficients,
+    generate_secret_polynomial, validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare,
+    SigningShare, VerifiableSecretSharingCommitment,
 };
 
 /// DKG Round 1 structures.
@@ -374,47 +374,6 @@ pub fn part2<C: Ciphersuite>(
     ))
 }
 
-/// Computes the verifying keys of the other participants for the third step
-/// of the DKG protocol.
-fn compute_verifying_keys<C: Ciphersuite>(
-    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
-    round2_secret_package: &round2::SecretPackage<C>,
-) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, Error<C>> {
-    // Round 2, Step 4
-    //
-    // > Any participant can compute the public verification share of any other participant
-    // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
-    let mut others_verifying_keys = HashMap::new();
-
-    // Note that in this loop, "i" refers to the other participant whose public verification share
-    // we are computing, and not the current participant.
-    for i in round1_packages.keys().cloned() {
-        let mut y_i = <C::Group>::identity();
-
-        // We need to iterate through all commitment vectors, including our own,
-        // so chain it manually
-        for commitment in round1_packages
-            .keys()
-            .map(|k| {
-                // Get the commitment vector for this participant
-                Ok::<&VerifiableSecretSharingCommitment<C>, Error<C>>(
-                    &round1_packages
-                        .get(k)
-                        .ok_or(Error::PackageNotFound)?
-                        .commitment,
-                )
-            })
-            // Chain our own commitment vector
-            .chain(iter::once(Ok(&round2_secret_package.commitment)))
-        {
-            y_i = y_i + evaluate_vss(commitment?, i);
-        }
-        let y_i = VerifyingShare(y_i);
-        others_verifying_keys.insert(i, y_i);
-    }
-    Ok(others_verifying_keys)
-}
-
 /// Performs the third and final part of the distributed key generation protocol
 /// for the participant holding the given [`round2::SecretPackage`],
 /// given the received [`round1::Package`]s and [`round2::Package`]s received from
@@ -451,7 +410,6 @@ pub fn part3<C: Ciphersuite>(
     }
 
     let mut signing_share = <<C::Group as Group>::Field>::zero();
-    let mut group_public = <C::Group>::identity();
 
     for (sender_identifier, round2_package) in round2_packages {
         // Round 2, Step 2
@@ -485,44 +443,28 @@ pub fn part3<C: Ciphersuite>(
         // > Each P_i calculates their long-lived private signing share by computing
         // > s_i = ∑^n_{ℓ=1} f_ℓ(i), stores s_i securely, and deletes each f_ℓ(i).
         signing_share = signing_share + f_ell_i.0;
-
-        // Round 2, Step 4
-        //
-        // > Each P_i calculates [...] the group’s public key Y = ∏^n_{j=1} φ_{j0}.
-        group_public = group_public + commitment.first()?.0;
     }
 
     signing_share = signing_share + round2_secret_package.secret_share;
-    group_public = group_public + round2_secret_package.commitment.first()?.0;
-
     let signing_share = SigningShare(signing_share);
-    // Round 2, Step 4
-    //
-    // > Each P_i calculates their public verification share Y_i = g^{s_i}.
-    let verifying_key = signing_share.into();
-    let group_public = VerifyingKey {
-        element: group_public,
-    };
 
-    // Round 2, Step 4
-    //
-    // > Any participant can compute the public verification share of any other participant
-    // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
-    let mut all_verifying_keys = compute_verifying_keys(round1_packages, round2_secret_package)?;
-
-    // Add the participant's own public verification share for consistency
-    all_verifying_keys.insert(round2_secret_package.identifier, verifying_key);
-
+    let commitments = round1_packages
+        .into_iter()
+        .map(|(peer, package)| (*peer, package.commitment.clone()))
+        .chain(iter::once((
+            round2_secret_package.identifier,
+            round2_secret_package.commitment.clone(),
+        )))
+        .collect();
+    let public_key_package = compute_public_key_package(&commitments);
     let key_package = KeyPackage {
         identifier: round2_secret_package.identifier,
         secret_share: signing_share,
-        public: verifying_key,
-        group_public,
-        ciphersuite: (),
-    };
-    let public_key_package = PublicKeyPackage {
-        signer_pubkeys: all_verifying_keys,
-        group_public,
+        public: *public_key_package
+            .signer_pubkeys
+            .get(&round2_secret_package.identifier)
+            .unwrap(),
+        group_public: public_key_package.group_public,
         ciphersuite: (),
     };
 

@@ -28,6 +28,45 @@ use super::compute_lagrange_coefficient;
 pub mod dkg;
 pub mod repairable;
 
+/// Computes a verifying share for a peer given a list of commitments.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn compute_verifying_share<C: Ciphersuite>(
+    peer: Identifier<C>,
+    commitments: &HashMap<Identifier<C>, VerifiableSecretSharingCommitment<C>>,
+) -> VerifyingShare<C> {
+    let mut y_i = <C::Group>::identity();
+    for commitment in commitments.values() {
+        y_i = y_i + evaluate_vss(commitment, peer);
+    }
+    VerifyingShare(y_i)
+}
+
+/// Computes the group public key given a list of commitments.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn compute_public_key<C: Ciphersuite>(
+    commitments: &HashMap<Identifier<C>, VerifiableSecretSharingCommitment<C>>,
+) -> VerifyingKey<C> {
+    let mut group_public = <C::Group>::identity();
+    for commitment in commitments.values() {
+        group_public = group_public + commitment.first().unwrap().value();
+    }
+    VerifyingKey {
+        element: group_public,
+    }
+}
+
+/// Computes the public key package given a list of commitments.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn compute_public_key_package<C: Ciphersuite>(
+    commitments: &HashMap<Identifier<C>, VerifiableSecretSharingCommitment<C>>,
+) -> PublicKeyPackage<C> {
+    let mut verifying_keys = HashMap::new();
+    for peer in commitments.keys() {
+        verifying_keys.insert(*peer, compute_verifying_share(*peer, commitments));
+    }
+    PublicKeyPackage::new(verifying_keys, compute_public_key(commitments))
+}
+
 /// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
 pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
     size: usize,
