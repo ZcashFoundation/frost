@@ -206,7 +206,7 @@ fn main() -> ExitCode {
     // ristretto255 as the canonical base.
 
     let original_folder = "frost-ristretto255";
-    let mut original_strings: Vec<String> = vec![
+    let mut original_strings: Vec<String> = [
         "Ristretto255Sha512",
         "Ristretto group",
         "Ristretto",
