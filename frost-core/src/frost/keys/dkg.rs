@@ -449,7 +449,7 @@ pub fn part3<C: Ciphersuite>(
     let signing_share = SigningShare(signing_share);
 
     let commitments = round1_packages
-        .into_iter()
+        .iter()
         .map(|(peer, package)| (*peer, package.commitment.clone()))
         .chain(iter::once((
             round2_secret_package.identifier,
@@ -463,7 +463,7 @@ pub fn part3<C: Ciphersuite>(
         public: *public_key_package
             .signer_pubkeys
             .get(&round2_secret_package.identifier)
-            .unwrap(),
+            .expect("round2_secret_package.commitment is in the hashmap"),
         group_public: public_key_package.group_public,
         ciphersuite: (),
     };

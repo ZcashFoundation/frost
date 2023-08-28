@@ -48,7 +48,7 @@ pub(crate) fn compute_public_key<C: Ciphersuite>(
 ) -> VerifyingKey<C> {
     let mut group_public = <C::Group>::identity();
     for commitment in commitments.values() {
-        group_public = group_public + commitment.first().unwrap().value();
+        group_public = group_public + commitment.first().expect("valid commitments").value();
     }
     VerifyingKey {
         element: group_public,
