@@ -50,29 +50,23 @@ pub mod round1 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
+    use crate::frost::CiphersuiteHelper;
+
     use super::*;
 
     /// The package that must be broadcast by each participant to all other participants
     /// between the first and second parts of the DKG protocol (round 1).
     #[derive(Clone, Debug, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-    #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The public commitment from the participant (C_i)
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
         pub(crate) proof_of_knowledge: Signature<C>,
         /// Ciphersuite ID for serialization
-        #[cfg_attr(
-            feature = "serde",
-            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-        )]
-        #[cfg_attr(
-            feature = "serde",
-            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-        )]
         #[getter(skip)]
-        pub(super) ciphersuite: (),
+        #[cfg_attr(feature = "serde", serde(flatten))]
+        pub(super) ciphersuite: CiphersuiteHelper<C>,
     }
 
     impl<C> Package<C>
@@ -87,7 +81,7 @@ pub mod round1 {
             Self {
                 commitment,
                 proof_of_knowledge,
-                ciphersuite: (),
+                ciphersuite: Default::default(),
             }
         }
     }
@@ -142,6 +136,8 @@ pub mod round2 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
+    use crate::frost::CiphersuiteHelper;
+
     use super::*;
 
     /// A package that must be sent by each participant to some other participants
@@ -153,21 +149,13 @@ pub mod round2 {
     /// The package must be sent on an *confidential* and *authenticated* channel.
     #[derive(Clone, Debug, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-    #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The secret share being sent.
         pub(crate) secret_share: SigningShare<C>,
         /// Ciphersuite ID for serialization
-        #[cfg_attr(
-            feature = "serde",
-            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-        )]
-        #[cfg_attr(
-            feature = "serde",
-            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-        )]
         #[getter(skip)]
-        pub(super) ciphersuite: (),
+        #[cfg_attr(feature = "serde", serde(flatten))]
+        pub(super) ciphersuite: CiphersuiteHelper<C>,
     }
 
     impl<C> Package<C>
@@ -178,7 +166,7 @@ pub mod round2 {
         pub fn new(secret_share: SigningShare<C>) -> Self {
             Self {
                 secret_share,
-                ciphersuite: (),
+                ciphersuite: Default::default(),
             }
         }
     }
@@ -278,7 +266,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let package = round1::Package {
         commitment,
         proof_of_knowledge: Signature { R: R_i, z: mu_i },
-        ciphersuite: (),
+        ciphersuite: Default::default(),
     };
 
     Ok((secret_package, package))
@@ -358,7 +346,7 @@ pub fn part2<C: Ciphersuite>(
             ell,
             round2::Package {
                 secret_share: SigningShare(value),
-                ciphersuite: (),
+                ciphersuite: Default::default(),
             },
         );
     }
@@ -474,7 +462,7 @@ pub fn part3<C: Ciphersuite>(
             identifier: round2_secret_package.identifier,
             value: f_ell_i,
             commitment: commitment.clone(),
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         };
 
         // Verify the share. We don't need the result.
@@ -518,12 +506,12 @@ pub fn part3<C: Ciphersuite>(
         secret_share: signing_share,
         public: verifying_key,
         group_public,
-        ciphersuite: (),
+        ciphersuite: Default::default(),
     };
     let public_key_package = PublicKeyPackage {
         signer_pubkeys: all_verifying_keys,
         group_public,
-        ciphersuite: (),
+        ciphersuite: Default::default(),
     };
 
     Ok((key_package, public_key_package))

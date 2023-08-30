@@ -50,7 +50,6 @@ where
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[cfg_attr(feature = "serde", serde(try_from = "SignatureShareSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "SignatureShareSerialization<C>"))]
 pub struct SignatureShare<C: Ciphersuite> {
@@ -105,19 +104,11 @@ where
 
 #[cfg(feature = "serde")]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 struct SignatureShareSerialization<C: Ciphersuite> {
     share: SignatureShareHelper<C>,
     /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    ciphersuite: (),
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    ciphersuite: CiphersuiteHelper<C>,
 }
 
 #[cfg(feature = "serde")]
@@ -140,7 +131,7 @@ where
     fn from(value: SignatureShare<C>) -> Self {
         Self {
             share: SignatureShareHelper(value.share),
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         }
     }
 }

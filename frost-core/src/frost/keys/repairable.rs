@@ -124,6 +124,6 @@ pub fn repair_share_step_3<C: Ciphersuite>(
         identifier,
         value: SigningShare(share),
         commitment: commitment.clone(),
-        ciphersuite: (),
+        ciphersuite: Default::default(),
     }
 }

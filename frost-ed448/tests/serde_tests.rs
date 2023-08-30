@@ -47,6 +47,7 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "hiding": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
         "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
+        "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
     assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
 
@@ -54,23 +55,25 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "foo": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
         "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
+        "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
     assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
 
     // Missing field
     let invalid_json = r#"{
-        "foo": "0000000000000000000000000000000000000000000000000000000000000000",
         "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
+        "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
     assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "hiding": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
         "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80",
+        "ciphersuite": "FROST(Ed448, SHAKE256)",
         "extra": 1
       }"#;
-    assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
+    assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_ok());
 }
 
 #[test]
@@ -141,7 +144,7 @@ fn check_signing_package_serialization() {
     }"#;
     assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
       "signing_commitments": {
         "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": {
@@ -155,7 +158,7 @@ fn check_signing_package_serialization() {
       "ciphersuite": "FROST(Ed448, SHAKE256)"
     }
     "#;
-    assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
+    assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_ok());
 }
 
 #[test]
@@ -191,13 +194,13 @@ fn check_signature_share_serialization() {
       }"#;
     assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
         "extra": 1,
         "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
-    assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
+    assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_ok());
 }
 
 #[test]
@@ -256,7 +259,7 @@ fn check_secret_share_serialization() {
       }"#;
     assert!(serde_json::from_str::<SecretShare>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "value": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -266,7 +269,7 @@ fn check_secret_share_serialization() {
         "extra": 1,
         "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
-    assert!(serde_json::from_str::<SecretShare>(invalid_json).is_err());
+    assert!(serde_json::from_str::<SecretShare>(invalid_json).is_ok());
 }
 
 #[test]
@@ -321,7 +324,7 @@ fn check_key_package_serialization() {
       }"#;
     assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "secret_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -330,7 +333,7 @@ fn check_key_package_serialization() {
         "extra_field": 1,
         "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
-    assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
+    assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_ok());
 }
 
 #[test]
@@ -385,7 +388,7 @@ fn check_public_key_package_serialization() {
       }"#;
     assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "signer_pubkeys": {
           "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -394,7 +397,7 @@ fn check_public_key_package_serialization() {
         "extra": 1,
         "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
-    assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());
+    assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_ok());
 }
 
 #[test]
@@ -439,7 +442,7 @@ fn check_round1_package_serialization() {
       }"#;
     assert!(serde_json::from_str::<round1::Package>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "commitment": [
           "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -448,7 +451,7 @@ fn check_round1_package_serialization() {
         "extra": 1,
         "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
-    assert!(serde_json::from_str::<round1::Package>(invalid_json).is_err());
+    assert!(serde_json::from_str::<round1::Package>(invalid_json).is_ok());
 }
 
 #[test]
@@ -484,11 +487,11 @@ fn check_round2_package_serialization() {
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "secret_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
         "extra": 1,
         "ciphersuite": "FROST(Ed448, SHAKE256)"
       }"#;
-    assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
+    assert!(serde_json::from_str::<round2::Package>(invalid_json).is_ok());
 }

@@ -23,7 +23,7 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::{ElementSerialization, ScalarSerialization};
 
-use super::compute_lagrange_coefficient;
+use super::{compute_lagrange_coefficient, CiphersuiteHelper};
 
 pub mod dkg;
 pub mod repairable;
@@ -349,7 +349,6 @@ where
 /// .into(), which under the hood also performs validation.
 #[derive(Clone, Debug, Zeroize, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SecretShare<C: Ciphersuite> {
     /// The participant identifier of this [`SecretShare`].
     #[zeroize(skip)]
@@ -360,16 +359,10 @@ pub struct SecretShare<C: Ciphersuite> {
     /// The commitments to be distributed among signers.
     pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
     /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
     #[getter(skip)]
-    ciphersuite: (),
+    #[zeroize(skip)]
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    ciphersuite: CiphersuiteHelper<C>,
 }
 
 impl<C> SecretShare<C>
@@ -386,7 +379,7 @@ where
             identifier,
             value,
             commitment,
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         }
     }
 
@@ -503,7 +496,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         PublicKeyPackage {
             signer_pubkeys,
             group_public,
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         },
     ))
 }
@@ -556,7 +549,6 @@ fn evaluate_vss<C: Ciphersuite>(
 /// [`KeyPackage`]s, which they store to later use during signing.
 #[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant identifier each secret share key package is owned by.
     #[zeroize(skip)]
@@ -570,16 +562,10 @@ pub struct KeyPackage<C: Ciphersuite> {
     #[zeroize(skip)]
     pub(crate) group_public: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
     #[getter(skip)]
-    ciphersuite: (),
+    #[zeroize(skip)]
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    ciphersuite: CiphersuiteHelper<C>,
 }
 
 impl<C> KeyPackage<C>
@@ -598,7 +584,7 @@ where
             secret_share,
             public,
             group_public,
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         }
     }
 }
@@ -625,7 +611,7 @@ where
             secret_share: secret_share.value,
             public,
             group_public,
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         })
     }
 }
@@ -636,7 +622,6 @@ where
 /// Used for verification purposes before publishing a signature.
 #[derive(Clone, Debug, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {
     /// The verifying shares for all participants. Used to validate signature
     /// shares they generate.
@@ -644,16 +629,9 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     /// The joint public key for the entire group.
     pub(crate) group_public: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
     #[getter(skip)]
-    ciphersuite: (),
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    ciphersuite: CiphersuiteHelper<C>,
 }
 
 impl<C> PublicKeyPackage<C>
@@ -668,7 +646,7 @@ where
         Self {
             signer_pubkeys,
             group_public,
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         }
     }
 }
@@ -769,7 +747,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
             identifier: *id,
             value: SigningShare(value),
             commitment: commitment.clone(),
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         });
     }
 

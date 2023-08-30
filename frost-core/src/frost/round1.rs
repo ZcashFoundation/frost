@@ -17,7 +17,7 @@ use crate::{frost, Ciphersuite, Element, Error, Field, Group, Scalar};
 #[cfg(feature = "serde")]
 use crate::ElementSerialization;
 
-use super::{keys::SigningShare, Identifier};
+use super::{keys::SigningShare, CiphersuiteHelper, Identifier};
 
 /// A scalar that is a signing nonce.
 #[derive(Clone, PartialEq, Eq)]
@@ -246,23 +246,15 @@ where
 /// SigningCommitment can be used for exactly *one* signature.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningCommitments<C: Ciphersuite> {
     /// Commitment to the hiding [`Nonce`].
     pub(crate) hiding: NonceCommitment<C>,
     /// Commitment to the binding [`Nonce`].
     pub(crate) binding: NonceCommitment<C>,
     /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
     #[getter(skip)]
-    ciphersuite: (),
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    ciphersuite: CiphersuiteHelper<C>,
 }
 
 impl<C> SigningCommitments<C>
@@ -274,7 +266,7 @@ where
         Self {
             hiding,
             binding,
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         }
     }
 
@@ -298,7 +290,7 @@ where
         Self {
             hiding: nonces.hiding.clone().into(),
             binding: nonces.binding.clone().into(),
-            ciphersuite: (),
+            ciphersuite: Default::default(),
         }
     }
 }

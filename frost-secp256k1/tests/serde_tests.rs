@@ -47,6 +47,7 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
         "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+        "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
 
@@ -54,23 +55,25 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "foo": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
         "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+        "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
 
     // Missing field
     let invalid_json = r#"{
-        "foo": "0000000000000000000000000000000000000000000000000000000000000000",
         "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+        "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "hiding": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
         "binding": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+        "ciphersuite": "FROST(secp256k1, SHA-256)",
         "extra": 1
       }"#;
-    assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_err());
+    assert!(serde_json::from_str::<SigningCommitments>(invalid_json).is_ok());
 }
 
 #[test]
@@ -141,7 +144,7 @@ fn check_signing_package_serialization() {
     }"#;
     assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
@@ -155,7 +158,7 @@ fn check_signing_package_serialization() {
       "ciphersuite": "FROST(secp256k1, SHA-256)"
     }
     "#;
-    assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
+    assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_ok());
 }
 
 #[test]
@@ -191,13 +194,13 @@ fn check_signature_share_serialization() {
       }"#;
     assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "extra": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
-    assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
+    assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_ok());
 }
 
 #[test]
@@ -256,7 +259,7 @@ fn check_secret_share_serialization() {
       }"#;
     assert!(serde_json::from_str::<SecretShare>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
@@ -266,7 +269,7 @@ fn check_secret_share_serialization() {
         "extra": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
-    assert!(serde_json::from_str::<SecretShare>(invalid_json).is_err());
+    assert!(serde_json::from_str::<SecretShare>(invalid_json).is_ok());
 }
 
 #[test]
@@ -321,7 +324,7 @@ fn check_key_package_serialization() {
       }"#;
     assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "secret_share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
@@ -330,7 +333,7 @@ fn check_key_package_serialization() {
         "extra_field": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
-    assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
+    assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_ok());
 }
 
 #[test]
@@ -385,7 +388,7 @@ fn check_public_key_package_serialization() {
       }"#;
     assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "signer_pubkeys": {
           "000000000000000000000000000000000000000000000000000000000000002a": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
@@ -394,7 +397,7 @@ fn check_public_key_package_serialization() {
         "extra": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
-    assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());
+    assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_ok());
 }
 
 #[test]
@@ -439,7 +442,7 @@ fn check_round1_package_serialization() {
       }"#;
     assert!(serde_json::from_str::<round1::Package>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "commitment": [
           "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
@@ -448,7 +451,7 @@ fn check_round1_package_serialization() {
         "extra": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
-    assert!(serde_json::from_str::<round1::Package>(invalid_json).is_err());
+    assert!(serde_json::from_str::<round1::Package>(invalid_json).is_ok());
 }
 
 #[test]
@@ -484,11 +487,11 @@ fn check_round2_package_serialization() {
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
 
-    // Extra field
+    // Extra field is ignored
     let invalid_json = r#"{
         "secret_share": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9d1c9e899ca306ad27fe1945de0242b81",
         "extra": 1,
         "ciphersuite": "FROST(secp256k1, SHA-256)"
       }"#;
-    assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
+    assert!(serde_json::from_str::<round2::Package>(invalid_json).is_ok());
 }
