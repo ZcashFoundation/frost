@@ -37,7 +37,7 @@ jobs:
       - uses: actions-rs/cargo@v1.0.3
         with:
           command: test
-          args: --all-features
+          args: --release --all-features
 
   clippy:
     name: Clippy
