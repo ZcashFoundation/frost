@@ -7,7 +7,7 @@
 //!   the [`RandomizedParams::randomizer`] to all participants, using a
 //!   confidential channel, along with the regular [`SigningPackage`][frost::SigningPackage];
 //! - Each participant should call [`sign`] and send the resulting
-//!   [`SignatureShare`][frost::SignatureShare] back to the Coordinator;
+//!   [`SignatureShare`][frost::round2::SignatureShare] back to the Coordinator;
 //! - The Coordinator should then call [`aggregate`].
 #![allow(non_snake_case)]
 
