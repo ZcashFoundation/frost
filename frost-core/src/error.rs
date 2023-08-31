@@ -56,7 +56,6 @@ pub enum Error<C: Ciphersuite> {
     /// The participant's commitment is missing from the Signing Package
     #[error("The Signing Package must contain the participant's Commitment.")]
     MissingCommitment,
-
     /// The participant's commitment is incorrect
     #[error("The participant's commitment is incorrect.")]
     IncorrectCommitment,
@@ -99,6 +98,12 @@ pub enum Error<C: Ciphersuite> {
     /// The ciphersuite does not support deriving identifiers from strings.
     #[error("The ciphersuite does not support deriving identifiers from strings.")]
     IdentifierDerivationNotSupported,
+    /// Error serializing value.
+    #[error("Error serializing value.")]
+    SerializationError,
+    /// Error deserializing value.
+    #[error("Error deserializing value.")]
+    DeserializationError,
 }
 
 impl<C> Error<C>
@@ -144,6 +149,8 @@ where
             | Error::InvalidCoefficient
             | Error::UnknownIdentifier
             | Error::IncorrectNumberOfIdentifiers
+            | Error::SerializationError
+            | Error::DeserializationError
             | Error::IdentifierDerivationNotSupported => None,
         }
     }

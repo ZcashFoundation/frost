@@ -8,6 +8,7 @@
   - [Signing](tutorial/signing.md)
   - [Distributed Key Generation](tutorial/dkg.md)
 - [User Documentation](user.md)
+  - [Serialization Format](user/serialization.md)
 - [Terminology](terminology.md)
 - [Developer Documentation](dev.md)
     - [List of Dependencies for Audit](dev/frost-dependencies-for-audit.md)

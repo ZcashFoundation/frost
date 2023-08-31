@@ -12,7 +12,7 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{frost, Ciphersuite, Element, Error, Field, Group, Scalar};
+use crate::{frost, Ciphersuite, Deserialize, Element, Error, Field, Group, Scalar, Serialize};
 
 #[cfg(feature = "serde")]
 use crate::ElementSerialization;
@@ -308,6 +308,22 @@ where
         binding_factor: &frost::BindingFactor<C>,
     ) -> GroupCommitmentShare<C> {
         GroupCommitmentShare::<C>(self.hiding.0 + (self.binding.0 * binding_factor.0))
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<C> SigningCommitments<C>
+where
+    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
+    }
+
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
     }
 }
 
