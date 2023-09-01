@@ -35,6 +35,3 @@ and `new()`  methods allowing the application to encode and decode them as it
 wishes. (Note that fields like `Scalar` and `Element` do have standard byte
 string encodings; the application can encode those byte strings as it wishes,
 as well the structure themselves and things like maps and lists.)
-
-The ZF FROST library supports `serde` in the future, which will make
-this process simpler.
