@@ -16,10 +16,12 @@ keywords = ["cryptography", "threshold", "signature", "schnorr", "randomized"]
 description = "Types and traits to support implementing a re-randomized variant of Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
 
 [package.metadata.docs.rs]
-features = ["nightly"]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 derive-getters = "0.3.0"
+document-features = "0.2.7"
 frost-core = { path = "../frost-core", version = "0.6.0", features = ["internals"] }
 rand_core = "0.6"
 
@@ -28,6 +30,10 @@ rand_core = "0.6"
 [features]
 nightly = []
 default = []
+#! ## Features
+## Enable `serde` support for types that need to be communicated. You
+## can use `serde` to serialize structs with any encoder that supports
+## `serde` (e.g. JSON with `serde_json`).
 serde = ["frost-core/serde"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["frost-core/test-impl"]

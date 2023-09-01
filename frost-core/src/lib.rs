@@ -2,10 +2,13 @@
 // It's emitting false positives; see https://github.com/rust-lang/rust-clippy/issues/9413
 #![allow(clippy::derive_partial_eq_without_eq)]
 #![deny(missing_docs)]
-#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 #![deny(clippy::indexing_slicing)]
 #![deny(clippy::unwrap_used)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+#![doc = document_features::document_features!()]
 
 use std::{
     default::Default,
@@ -98,6 +101,7 @@ pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Sca
 
 #[cfg(feature = "serde")]
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 /// Helper struct to serialize a Scalar.
 pub(crate) struct ScalarSerialization<C: Ciphersuite>(
     pub <<<C as Ciphersuite>::Group as Group>::Field as Field>::Serialization,
@@ -374,6 +378,7 @@ where
 /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-challenge-computa
 /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.2
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn challenge<C>(R: &Element<C>, verifying_key: &Element<C>, msg: &[u8]) -> Challenge<C>
 where
     C: Ciphersuite,

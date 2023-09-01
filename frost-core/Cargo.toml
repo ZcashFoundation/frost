@@ -18,10 +18,12 @@ keywords = ["cryptography", "crypto", "threshold", "signature", "schnorr"]
 description = "Types and traits to support implementing Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
 
 [package.metadata.docs.rs]
-features = ["nightly"]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 byteorder = "1.4"
+document-features = "0.2.7"
 debugless-unwrap = "0.0.4"
 derive-getters = "0.3.0"
 hex = "0.4.3"
@@ -46,9 +48,15 @@ rand_chacha = "0.3"
 serde_json = "1.0"
 
 [features]
-nightly = []
 default = []
+#! ## Features
+## Expose internal types, which do not have SemVer guarantees. This is an advanced
+## feature which can be useful if you need to build a modified version of FROST.
+## The docs won't list them, you will need to check the source code.
 internals = []
+## Enable `serde` support for types that need to be communicated. You
+## can use `serde` to serialize structs with any encoder that supports
+## `serde` (e.g. JSON with `serde_json`).
 serde = ["dep:serde", "dep:serdect"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["proptest", "serde_json", "criterion"]

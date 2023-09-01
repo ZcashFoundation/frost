@@ -15,10 +15,12 @@ keywords = ["cryptography", "crypto", "ristretto", "threshold", "signature"]
 description = "A Schnorr signature scheme over the prime-order Ristretto group that supports FROST."
 
 [package.metadata.docs.rs]
-features = ["nightly"]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 curve25519-dalek = { version = "=4.0.0", features = ["serde", "rand_core"] }
+document-features = "0.2.7"
 frost-core = { path = "../frost-core", version = "0.6.0" }
 rand_core = "0.6"
 sha2 = "0.10.2"
@@ -37,6 +39,10 @@ serde_json = "1.0"
 [features]
 nightly = []
 default = []
+#! ## Features
+## Enable `serde` support for types that need to be communicated. You
+## can use `serde` to serialize structs with any encoder that supports
+## `serde` (e.g. JSON with `serde_json`).
 serde = ["frost-core/serde"]
 
 [lib]
