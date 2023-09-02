@@ -75,7 +75,7 @@ where
     }
 
     /// Performs batch verification, returning `Ok(())` if all signatures were
-    /// valid and `Err` otherwise.
+    /// valid and `Err` otherwise, or if the batch is empty.
     ///
     /// The batch verification equation is:
     ///
@@ -106,10 +106,14 @@ where
     pub fn verify<R: RngCore + CryptoRng>(self, mut rng: R) -> Result<(), Error<C>> {
         let n = self.signatures.len();
 
+        if n == 0 {
+            return Err(Error::InvalidSignature);
+        }
+
         let mut VK_coeffs = Vec::with_capacity(n);
         let mut VKs = Vec::with_capacity(n);
-        let mut R_coeffs = Vec::with_capacity(self.signatures.len());
-        let mut Rs = Vec::with_capacity(self.signatures.len());
+        let mut R_coeffs = Vec::with_capacity(n);
+        let mut Rs = Vec::with_capacity(n);
         let mut P_coeff_acc = <<C::Group as Group>::Field>::zero();
 
         for item in self.signatures.iter() {
