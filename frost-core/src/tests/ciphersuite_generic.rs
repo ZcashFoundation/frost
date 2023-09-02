@@ -425,6 +425,13 @@ where
     // for each signature before being aggregated.
     let mut pubkey_packages_by_participant = HashMap::new();
 
+    check_part3_different_participants(
+        max_signers,
+        round2_secret_packages.clone(),
+        received_round1_packages.clone(),
+        received_round2_packages.clone(),
+    );
+
     // For each participant, perform the third part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=max_signers {
@@ -455,6 +462,43 @@ where
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys)
+}
+
+/// Check that calling dkg::part3() with distinct sets of participants fail.
+fn check_part3_different_participants<C: Ciphersuite>(
+    max_signers: u16,
+    round2_secret_packages: HashMap<Identifier<C>, frost::keys::dkg::round2::SecretPackage<C>>,
+    received_round1_packages: HashMap<
+        Identifier<C>,
+        HashMap<Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+    >,
+    received_round2_packages: HashMap<
+        Identifier<C>,
+        HashMap<Identifier<C>, frost::keys::dkg::round2::Package<C>>,
+    >,
+) {
+    // For each participant, perform the third part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_index in 1..=max_signers {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+
+        // Remove the first package from the map, and reinsert it with an unrelated
+        // Do the same for Round 2 packages
+        let mut received_round2_packages =
+            received_round2_packages[&participant_identifier].clone();
+        let package = received_round2_packages
+            .remove(&received_round2_packages.keys().next().unwrap().clone())
+            .unwrap();
+        received_round2_packages.insert(42u16.try_into().unwrap(), package);
+
+        let r = frost::keys::dkg::part3(
+            &round2_secret_packages[&participant_identifier],
+            &received_round1_packages[&participant_identifier],
+            &received_round2_packages,
+        )
+        .expect_err("Should have failed due to different identifier sets");
+        assert_eq!(r, Error::IncorrectPackage)
+    }
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite, using specified
