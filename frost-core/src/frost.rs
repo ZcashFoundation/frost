@@ -95,7 +95,7 @@ where
 
 /// [`compute_binding_factors`] in the spec
 ///
-/// [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.4
+/// [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.4
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 pub(crate) fn compute_binding_factor_list<C>(
     signing_package: &SigningPackage<C>,
@@ -323,7 +323,7 @@ where
 ///
 /// Implements [`compute_group_commitment`] from the spec.
 ///
-/// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.5
+/// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.5
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 fn compute_group_commitment<C>(
     signing_package: &SigningPackage<C>,

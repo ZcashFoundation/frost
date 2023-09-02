@@ -195,6 +195,10 @@ where
             .map(|P_opt| P_opt.map(|P| LookupTable5::<C, Element<C>>::from(&P)))
             .collect::<Option<Vec<_>>>()?;
 
+        if nafs.len() != lookup_tables.len() {
+            return None;
+        }
+
         let mut r = <C::Group>::identity();
 
         // All NAFs will have the same size, so get it from the first

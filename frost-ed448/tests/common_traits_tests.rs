@@ -6,6 +6,7 @@ use frost_ed448::SigningKey;
 use helpers::samples;
 use rand::thread_rng;
 
+#[allow(clippy::unnecessary_literal_unwrap)]
 fn check_common_traits_for_type<T: Clone + Eq + PartialEq + std::fmt::Debug>(v: T) {
     // Make sure can be debug-printed. This also catches if the Debug does not
     // have an endless recursion (a popular mistake).

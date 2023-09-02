@@ -96,10 +96,10 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
             hex::decode(signer["binding_nonce_randomness"].as_str().unwrap()).unwrap();
         binding_nonces_randomness.insert(identifier, binding_nonce_randomness);
 
-        let signing_nonces = SigningNonces::<C> {
-            hiding: Nonce::<C>::from_hex(signer["hiding_nonce"].as_str().unwrap()).unwrap(),
-            binding: Nonce::<C>::from_hex(signer["binding_nonce"].as_str().unwrap()).unwrap(),
-        };
+        let signing_nonces = SigningNonces::<C>::from_nonces(
+            Nonce::<C>::from_hex(signer["hiding_nonce"].as_str().unwrap()).unwrap(),
+            Nonce::<C>::from_hex(signer["binding_nonce"].as_str().unwrap()).unwrap(),
+        );
 
         signer_nonces.insert(identifier, signing_nonces);
 
