@@ -21,13 +21,14 @@ description = "A Schnorr signature scheme over the secp256k1 curve that supports
 features = ["nightly"]
 
 [dependencies]
-frost-core = { path = "../frost-core", version = "0.6.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.6.0" }
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
 [dev-dependencies]
 criterion = "0.5"
+frost-core = { path = "../frost-core", version = "0.6.0", features = ["test-impl"] }
 frost-rerandomized = { path = "../frost-rerandomized", version = "0.6.0", features = ["test-impl"] }
 hex = "0.4.3"
 lazy_static = "1.4"
