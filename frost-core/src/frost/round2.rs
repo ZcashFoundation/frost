@@ -11,8 +11,6 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::ScalarSerialization;
 
-use super::round1::SigningCommitments;
-
 // Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
 // be directly encoded with serde, so we use this struct to wrap the scalar.
 #[cfg(feature = "serde")]
@@ -195,10 +193,8 @@ pub fn sign<C: Ciphersuite>(
         .get(&key_package.identifier)
         .ok_or(Error::MissingCommitment)?;
 
-    let signing_commitments = SigningCommitments::from(signer_nonces);
-
     // Validate if the signer's commitment exists
-    if &signing_commitments != commitment {
+    if &signer_nonces.commitments != commitment {
         return Err(Error::IncorrectCommitment);
     }
 

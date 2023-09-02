@@ -207,6 +207,12 @@ pub struct SigningNonces<C: Ciphersuite> {
     pub(crate) hiding: Nonce<C>,
     /// The binding [`Nonce`].
     pub(crate) binding: Nonce<C>,
+    /// The commitments to the nonces. This is precomputed to improve
+    /// sign() performance, since it needs to check if the commitments
+    /// to the participant's nonces are included in the commitments sent
+    /// by the Coordinator, and this prevents having to recompute them.
+    #[zeroize(skip)]
+    pub(crate) commitments: SigningCommitments<C>,
 }
 
 impl<C> SigningNonces<C>
@@ -221,12 +227,26 @@ where
     where
         R: CryptoRng + RngCore,
     {
-        // The values of 'hiding' and 'binding' must be non-zero so that commitments are
-        // not the identity.
         let hiding = Nonce::<C>::new(secret, rng);
         let binding = Nonce::<C>::new(secret, rng);
 
-        Self { hiding, binding }
+        Self::from_nonces(hiding, binding)
+    }
+
+    /// Generates a new [`SigningNonces`] from a pair of [`Nonce`]. This is
+    /// useful internally since [`SigningNonces`] precompute the respective
+    /// commitments.
+    #[cfg_attr(test, visibility::make(pub))]
+    pub(crate) fn from_nonces(hiding: Nonce<C>, binding: Nonce<C>) -> Self {
+        let hiding_commitment = (&hiding).into();
+        let binding_commitment = (&binding).into();
+        let commitments = SigningCommitments::new(hiding_commitment, binding_commitment);
+
+        Self {
+            hiding,
+            binding,
+            commitments,
+        }
     }
 
     /// Gets the hiding [`Nonce`]
@@ -295,11 +315,7 @@ where
     C: Ciphersuite,
 {
     fn from(nonces: &SigningNonces<C>) -> Self {
-        Self {
-            hiding: nonces.hiding.clone().into(),
-            binding: nonces.binding.clone().into(),
-            ciphersuite: (),
-        }
+        nonces.commitments
     }
 }
 
