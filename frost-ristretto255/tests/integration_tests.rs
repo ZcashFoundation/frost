@@ -4,6 +4,11 @@ use rand::thread_rng;
 use serde_json::Value;
 
 #[test]
+fn check_zero_key_fails() {
+    frost_core::tests::ciphersuite_generic::check_zero_key_fails::<Ristretto255Sha512>();
+}
+
+#[test]
 fn check_sign_with_dkg() {
     let rng = thread_rng();
 
