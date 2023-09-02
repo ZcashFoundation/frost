@@ -34,6 +34,7 @@ where
         if scalar == <<C::Group as Group>::Field as Field>::zero() {
             return Err(Error::MalformedSigningKey);
         }
+
         Ok(Self { scalar })
     }
 
