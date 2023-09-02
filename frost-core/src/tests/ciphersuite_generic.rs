@@ -6,11 +6,19 @@ use std::{
 
 use crate::{
     frost::{self, Identifier},
-    Error, Field, Group, Signature, VerifyingKey,
+    Error, Field, Group, Signature, SigningKey, VerifyingKey,
 };
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
+
+/// Test if creating a zero SigningKey fails
+pub fn check_zero_key_fails<C: Ciphersuite>() {
+    let zero = <<<C as Ciphersuite>::Group as Group>::Field>::zero();
+    let encoded_zero = <<<C as Ciphersuite>::Group as Group>::Field>::serialize(&zero);
+    let r = SigningKey::<C>::deserialize(encoded_zero);
+    assert_eq!(r, Err(Error::MalformedSigningKey));
+}
 
 /// Test share generation with a Ciphersuite
 pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
