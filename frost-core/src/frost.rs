@@ -97,6 +97,7 @@ where
 ///
 /// [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.4
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 pub(crate) fn compute_binding_factor_list<C>(
     signing_package: &SigningPackage<C>,
     group_public: &VerifyingKey<C>,
@@ -146,6 +147,7 @@ where
 ///
 /// If `x` is None, it uses 0 for it (since Identifiers can't be 0)
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn compute_lagrange_coefficient<C: Ciphersuite>(
     x_set: &BTreeSet<Identifier<C>>,
     x: Option<Identifier<C>>,
@@ -190,6 +192,7 @@ fn compute_lagrange_coefficient<C: Ciphersuite>(
 ///
 /// [`derive_interpolating_value()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-polynomials
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn derive_interpolating_value<C: Ciphersuite>(
     signer_id: &Identifier<C>,
     signing_package: &SigningPackage<C>,
@@ -268,6 +271,7 @@ where
     /// Compute the preimages to H1 to compute the per-signer binding factors
     // We separate this out into its own method so it can be tested
     #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub fn binding_factor_preimages(
         &self,
         group_public: &VerifyingKey<C>,
@@ -325,6 +329,7 @@ where
 ///
 /// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.5
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn compute_group_commitment<C>(
     signing_package: &SigningPackage<C>,
     binding_factor_list: &BindingFactorList<C>,
