@@ -111,6 +111,17 @@ pub mod round1 {
         pub(crate) max_signers: u16,
     }
 
+    impl<C> SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        #[cfg(feature = "internals")]
+        /// Returns the secret coefficients.
+        pub fn coefficients(&self) -> &[Scalar<C>] {
+            &self.coefficients
+        }
+    }
+
     impl<C> std::fmt::Debug for SecretPackage<C>
     where
         C: Ciphersuite,

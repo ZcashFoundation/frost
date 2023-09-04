@@ -97,6 +97,12 @@ where
     pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
     }
+
+    /// Computes the signing share from a list of coefficients.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn from_coefficients(coefficients: &[Scalar<C>], peer: Identifier<C>) -> Self {
+        Self(evaluate_polynomial(peer, coefficients))
+    }
 }
 
 impl<C> Debug for SigningShare<C>
