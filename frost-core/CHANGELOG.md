@@ -6,6 +6,9 @@ Entries are listed in reverse chronological order.
 
 ## 0.7.0
 
+* Challenge hashing during DKG computation was changed to match the paper.
+  This means that code running this version won't interoperate with code
+  running previous versions.
 * A new `min_signers` field was added to `KeyPackage`, which changes its
   `new()` method and its serde serialization.
 

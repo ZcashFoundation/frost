@@ -269,7 +269,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let k = <<C::Group as Group>::Field>::random(&mut rng);
     let R_i = <C::Group>::generator() * k;
     let c_i =
-        challenge::<C>(identifier, &R_i, &commitment.first()?.0).ok_or(Error::DKGNotSupported)?;
+        challenge::<C>(identifier, &commitment.first()?.0, &R_i).ok_or(Error::DKGNotSupported)?;
     let a_i0 = *coefficients
         .get(0)
         .expect("coefficients must have at least one element");
@@ -294,8 +294,8 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Generates the challenge for the proof of knowledge to a secret for the DKG.
 fn challenge<C>(
     identifier: Identifier<C>,
-    R: &Element<C>,
     verifying_key: &Element<C>,
+    R: &Element<C>,
 ) -> Option<Challenge<C>>
 where
     C: Ciphersuite,
@@ -303,8 +303,8 @@ where
     let mut preimage = vec![];
 
     preimage.extend_from_slice(identifier.serialize().as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
     preimage.extend_from_slice(<C::Group>::serialize(verifying_key).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
 
     Some(Challenge(C::HDKG(&preimage[..])?))
 }
@@ -348,7 +348,7 @@ pub fn part2<C: Ciphersuite>(
         let R_ell = round1_package.proof_of_knowledge.R;
         let mu_ell = round1_package.proof_of_knowledge.z;
         let phi_ell0 = round1_package.commitment.first()?.0;
-        let c_ell = challenge::<C>(ell, &R_ell, &phi_ell0).ok_or(Error::DKGNotSupported)?;
+        let c_ell = challenge::<C>(ell, &phi_ell0, &R_ell).ok_or(Error::DKGNotSupported)?;
 
         if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
             return Err(Error::InvalidProofOfKnowledge { culprit: ell });

@@ -28,9 +28,14 @@ where
     pub fn deserialize(
         bytes: <<C::Group as Group>::Field as Field>::Serialization,
     ) -> Result<SigningKey<C>, Error<C>> {
-        <<C::Group as Group>::Field as Field>::deserialize(&bytes)
-            .map(|scalar| SigningKey { scalar })
-            .map_err(|e| e.into())
+        let scalar =
+            <<C::Group as Group>::Field as Field>::deserialize(&bytes).map_err(Error::from)?;
+
+        if scalar == <<C::Group as Group>::Field as Field>::zero() {
+            return Err(Error::MalformedSigningKey);
+        }
+
+        Ok(Self { scalar })
     }
 
     /// Serialize `SigningKey` to bytes

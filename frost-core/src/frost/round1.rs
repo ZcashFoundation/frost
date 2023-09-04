@@ -103,7 +103,7 @@ where
     }
 }
 
-/// A Ristretto point that is a commitment to a signing nonce share.
+/// A group element that is a commitment to a signing nonce share.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
@@ -207,6 +207,12 @@ pub struct SigningNonces<C: Ciphersuite> {
     pub(crate) hiding: Nonce<C>,
     /// The binding [`Nonce`].
     pub(crate) binding: Nonce<C>,
+    /// The commitments to the nonces. This is precomputed to improve
+    /// sign() performance, since it needs to check if the commitments
+    /// to the participant's nonces are included in the commitments sent
+    /// by the Coordinator, and this prevents having to recompute them.
+    #[zeroize(skip)]
+    pub(crate) commitments: SigningCommitments<C>,
 }
 
 impl<C> SigningNonces<C>
@@ -221,12 +227,26 @@ where
     where
         R: CryptoRng + RngCore,
     {
-        // The values of 'hiding' and 'binding' must be non-zero so that commitments are
-        // not the identity.
         let hiding = Nonce::<C>::new(secret, rng);
         let binding = Nonce::<C>::new(secret, rng);
 
-        Self { hiding, binding }
+        Self::from_nonces(hiding, binding)
+    }
+
+    /// Generates a new [`SigningNonces`] from a pair of [`Nonce`]. This is
+    /// useful internally since [`SigningNonces`] precompute the respective
+    /// commitments.
+    #[cfg_attr(test, visibility::make(pub))]
+    pub(crate) fn from_nonces(hiding: Nonce<C>, binding: Nonce<C>) -> Self {
+        let hiding_commitment = (&hiding).into();
+        let binding_commitment = (&binding).into();
+        let commitments = SigningCommitments::new(hiding_commitment, binding_commitment);
+
+        Self {
+            hiding,
+            binding,
+            commitments,
+        }
     }
 
     /// Gets the hiding [`Nonce`]
@@ -295,11 +315,7 @@ where
     C: Ciphersuite,
 {
     fn from(nonces: &SigningNonces<C>) -> Self {
-        Self {
-            hiding: nonces.hiding.clone().into(),
-            binding: nonces.binding.clone().into(),
-            ciphersuite: (),
-        }
+        nonces.commitments
     }
 }
 
@@ -312,14 +328,11 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 ///
 /// Implements [`encode_group_commitment_list()`] from the spec.
 ///
-/// Inputs:
-/// - commitment_list = [(j, D_j, E_j), ...], a list of commitments issued by each signer,
-///   where each element in the list indicates the signer identifier and their
-///   two commitment Element values. B MUST be sorted in ascending order
-///   by signer identifier.
+/// `signing_commitments` must contain the sorted map of participants
+/// identifiers to the signing commitments they issued.
 ///
-/// Outputs:
-/// - A byte string containing the serialized representation of B.
+/// Returns a byte string containing the serialized representation of the
+/// commitment list.
 ///
 /// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-list-operations
 pub(super) fn encode_group_commitments<C: Ciphersuite>(

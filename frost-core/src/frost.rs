@@ -1,14 +1,12 @@
 //! An implementation of FROST (Flexible Round-Optimized Schnorr Threshold)
 //! signatures.
 //!
-//! If you are interested in deploying FROST, please do not hesitate to consult the FROST authors.
+//! For key generation, refer to the [`keys`] module.
+//! For round-specific types and functions, refer to the [`round1`] and
+//! [`round2`] modules.
 //!
-//! This implementation currently only supports key generation using a central
-//! dealer. In the future, we will add support for key generation via a DKG,
-//! as specified in the FROST paper.
-//!
-//! Internally, generate_with_dealer generates keys using Verifiable Secret
-//! Sharing, where shares are generated using Shamir Secret Sharing.
+//! This module contains types and functions not directly related to key
+//! generation and the FROST rounds.
 
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
@@ -78,7 +76,7 @@ impl<C> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
-    /// Create a new [`BindingFactorList`] from a vector of binding factors.
+    /// Create a new [`BindingFactorList`] from a map of identifiers to binding factors.
     #[cfg(feature = "internals")]
     pub fn new(binding_factors: BTreeMap<Identifier<C>, BindingFactor<C>>) -> Self {
         Self(binding_factors)
@@ -97,7 +95,7 @@ where
 
 /// [`compute_binding_factors`] in the spec
 ///
-/// [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.4
+/// [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.4
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 pub(crate) fn compute_binding_factor_list<C>(
     signing_package: &SigningPackage<C>,
@@ -187,6 +185,10 @@ fn compute_lagrange_coefficient<C: Ciphersuite>(
 }
 
 /// Generates the lagrange coefficient for the i'th participant (for `signer_id`).
+///
+/// Implements [`derive_interpolating_value()`] from the spec.
+///
+/// [`derive_interpolating_value()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-polynomials
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 fn derive_interpolating_value<C: Ciphersuite>(
     signer_id: &Identifier<C>,
@@ -276,8 +278,6 @@ where
         // The length of a serialized verifying key of the same cipersuite does
         // not change between runs of the protocol, so we don't need to hash to
         // get a fixed length.
-        //
-        // TODO: when serde serialization merges, change this to be simpler?
         binding_factor_input_prefix.extend_from_slice(group_public.serialize().as_ref());
 
         // The message is hashed with H4 to force the variable-length message
@@ -323,7 +323,7 @@ where
 ///
 /// Implements [`compute_group_commitment`] from the spec.
 ///
-/// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-10.html#section-4.5
+/// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.5
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 fn compute_group_commitment<C>(
     signing_package: &SigningPackage<C>,
@@ -343,9 +343,6 @@ where
 
     let mut binding_elements = Vec::with_capacity(n);
 
-    // Ala the sorting of B, just always sort by identifier in ascending order
-    //
-    // https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#encoding-operations-dep-encoding
     for (commitment_identifier, commitment) in signing_package.signing_commitments() {
         // The following check prevents a party from accidentally revealing their share.
         // Note that the '&&' operator would be sufficient.

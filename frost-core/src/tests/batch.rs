@@ -54,3 +54,10 @@ pub fn bad_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
         }
     }
 }
+
+/// Test if the empty batch fails to validate.
+/// Test case from NCC audit.
+pub fn empty_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(rng: R) {
+    let batch = batch::Verifier::<C>::new();
+    assert!(batch.verify(rng).is_err());
+}

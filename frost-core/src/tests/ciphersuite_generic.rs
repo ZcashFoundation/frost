@@ -8,11 +8,19 @@ use std::{
 
 use crate::{
     frost::{self, Identifier},
-    Error, Field, Group, Signature, VerifyingKey,
+    Error, Field, Group, Signature, SigningKey, VerifyingKey,
 };
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
+
+/// Test if creating a zero SigningKey fails
+pub fn check_zero_key_fails<C: Ciphersuite>() {
+    let zero = <<<C as Ciphersuite>::Group as Group>::Field>::zero();
+    let encoded_zero = <<<C as Ciphersuite>::Group as Group>::Field>::serialize(&zero);
+    let r = SigningKey::<C>::deserialize(encoded_zero);
+    assert_eq!(r, Err(Error::MalformedSigningKey));
+}
 
 /// Test share generation with a Ciphersuite
 pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
@@ -454,6 +462,13 @@ where
     // for each signature before being aggregated.
     let mut pubkey_packages_by_participant = HashMap::new();
 
+    check_part3_different_participants(
+        max_signers,
+        round2_secret_packages.clone(),
+        received_round1_packages.clone(),
+        received_round2_packages.clone(),
+    );
+
     // For each participant, perform the third part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
     for participant_index in 1..=max_signers {
@@ -486,18 +501,55 @@ where
     check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
 }
 
+/// Check that calling dkg::part3() with distinct sets of participants fail.
+fn check_part3_different_participants<C: Ciphersuite>(
+    max_signers: u16,
+    round2_secret_packages: HashMap<Identifier<C>, frost::keys::dkg::round2::SecretPackage<C>>,
+    received_round1_packages: HashMap<
+        Identifier<C>,
+        HashMap<Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+    >,
+    received_round2_packages: HashMap<
+        Identifier<C>,
+        HashMap<Identifier<C>, frost::keys::dkg::round2::Package<C>>,
+    >,
+) {
+    // For each participant, perform the third part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_index in 1..=max_signers {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+
+        // Remove the first package from the map, and reinsert it with an unrelated
+        // Do the same for Round 2 packages
+        let mut received_round2_packages =
+            received_round2_packages[&participant_identifier].clone();
+        let package = received_round2_packages
+            .remove(&received_round2_packages.keys().next().unwrap().clone())
+            .unwrap();
+        received_round2_packages.insert(42u16.try_into().unwrap(), package);
+
+        let r = frost::keys::dkg::part3(
+            &round2_secret_packages[&participant_identifier],
+            &received_round1_packages[&participant_identifier],
+            &received_round2_packages,
+        )
+        .expect_err("Should have failed due to different identifier sets");
+        assert_eq!(r, Error::IncorrectPackage)
+    }
+}
+
 /// Test FROST signing with trusted dealer with a Ciphersuite, using specified
 /// Identifiers.
 pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
-    // Check error case first (repeated identifiers)
+    // Check error cases first
+    // Check repeated identifiers
 
     let identifiers: Vec<frost::Identifier<C>> = [1u16, 42, 100, 257, 42]
         .into_iter()
         .map(|i| i.try_into().unwrap())
         .collect();
-
     let max_signers = 5;
     let min_signers = 3;
     let err = frost::keys::generate_with_dealer(
@@ -508,6 +560,23 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
     )
     .unwrap_err();
     assert_eq!(err, Error::DuplicatedIdentifier);
+
+    // Check incorrect number of identifiers
+
+    let identifiers: Vec<frost::Identifier<C>> = [1u16, 42, 100, 257]
+        .into_iter()
+        .map(|i| i.try_into().unwrap())
+        .collect();
+    let max_signers = 5;
+    let min_signers = 3;
+    let err = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Custom(&identifiers),
+        &mut rng,
+    )
+    .unwrap_err();
+    assert_eq!(err, Error::IncorrectNumberOfIdentifiers);
 
     // Check correct case
 

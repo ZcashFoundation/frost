@@ -5,9 +5,9 @@
 //! - Do Round 1 the same way as regular FROST;
 //! - The Coordinator should generate a [`RandomizedParams`] and send
 //!   the [`RandomizedParams::randomizer`] to all participants, using a
-//!   confidential channel, along with the regular [`SigningPackage`];
+//!   confidential channel, along with the regular [`frost::SigningPackage`];
 //! - Each participant should call [`sign`] and send the resulting
-//!   [`SignatureShare`] back to the Coordinator;
+//!   [`frost::round2::SignatureShare`] back to the Coordinator;
 //! - The Coordinator should then call [`aggregate`].
 #![allow(non_snake_case)]
 
