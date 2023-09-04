@@ -26,7 +26,7 @@ their commitments (a `SigningCommitments`) by calling
 
 The `SigningNonces` must be kept by the participant to use in Round 2, while the
 `SigningCommitments` must be sent to the Coordinator using an [authenticated
-channel](https://frost.zfnd.org/terminology.html#broadcast-channel).
+channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 
 ## Coordinator, Round 2
 
