@@ -11,7 +11,7 @@ use crate::{
         self, compute_lagrange_coefficient,
         keys::{
             repairable::{repair_share_step_1, repair_share_step_2, repair_share_step_3},
-            PublicKeyPackage, SecretShare, SigningShare,
+            KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
         },
         Identifier,
     },

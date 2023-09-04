@@ -40,9 +40,9 @@ use crate::{
 };
 
 use super::{
-    compute_public_key_package, evaluate_polynomial, generate_coefficients,
-    generate_secret_polynomial, validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare,
-    SigningShare, VerifiableSecretSharingCommitment,
+    compute_group_commitment, compute_public_key_package, evaluate_polynomial,
+    generate_coefficients, generate_secret_polynomial, validate_num_of_signers, KeyPackage,
+    PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
 };
 
 /// DKG Round 1 structures.
@@ -447,16 +447,14 @@ pub fn part3<C: Ciphersuite>(
 
     signing_share = signing_share + round2_secret_package.secret_share;
     let signing_share = SigningShare(signing_share);
-
-    let commitments = round1_packages
-        .iter()
-        .map(|(peer, package)| (*peer, package.commitment.clone()))
-        .chain(iter::once((
-            round2_secret_package.identifier,
-            round2_secret_package.commitment.clone(),
-        )))
+    let members = round1_packages.keys().copied().collect();
+    let commitments: Vec<_> = round1_packages
+        .values()
+        .map(|package| package.commitment.clone())
+        .chain(iter::once(round2_secret_package.commitment.clone()))
         .collect();
-    let public_key_package = compute_public_key_package(&commitments);
+    let group_commitment = compute_group_commitment(&commitments);
+    let public_key_package = compute_public_key_package(&members, &group_commitment);
     let key_package = KeyPackage {
         identifier: round2_secret_package.identifier,
         secret_share: signing_share,
