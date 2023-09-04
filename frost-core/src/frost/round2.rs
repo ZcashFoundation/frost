@@ -81,6 +81,7 @@ where
     ///
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
     #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn verify(
         &self,
         identifier: Identifier<C>,
@@ -156,6 +157,7 @@ where
 
 /// Compute the signature share for a signing operation.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn compute_signature_share<C: Ciphersuite>(
     signer_nonces: &round1::SigningNonces<C>,
     binding_factor: BindingFactor<C>,
