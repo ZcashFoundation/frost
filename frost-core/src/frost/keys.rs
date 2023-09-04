@@ -50,7 +50,7 @@ pub(crate) fn compute_verifying_share<C: Ciphersuite>(
     group_commitment: &VerifiableSecretSharingCommitment<C>,
     peer: Identifier<C>,
 ) -> VerifyingShare<C> {
-    VerifyingShare::new(evaluate_vss(group_commitment, peer))
+    VerifyingShare(evaluate_vss(group_commitment, peer))
 }
 
 /// Computes the group public key given the group commitment.
@@ -58,7 +58,9 @@ pub(crate) fn compute_verifying_share<C: Ciphersuite>(
 pub(crate) fn compute_public_key<C: Ciphersuite>(
     group_commitment: &VerifiableSecretSharingCommitment<C>,
 ) -> VerifyingKey<C> {
-    VerifyingKey::new(group_commitment.first().expect("valid commitments").value())
+    VerifyingKey {
+        element: group_commitment.coefficients()[0].value(),
+    }
 }
 
 /// Computes the public key package given a list of commitments.
