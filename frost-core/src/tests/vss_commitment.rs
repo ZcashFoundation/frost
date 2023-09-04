@@ -111,12 +111,51 @@ pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + Crypt
 
 /// Test computing the public key package from a list of commitments.
 pub fn check_compute_public_key_package<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
-    let (secret_shares, public_key) =
-        generate_with_dealer(3, 2, IdentifierList::Default, &mut rng).unwrap();
-    let commitments = secret_shares
-        .iter()
-        .map(|(peer, secret_share)| (*peer, secret_share.commitment().clone()))
-        .collect();
+    const MAX_SIGNERS: u16 = 3;
+    const MIN_SIGNERS: u16 = 2;
+    let identifiers = crate::frost::keys::default_identifiers(MAX_SIGNERS);
+    let mut commitments = std::collections::HashMap::new();
+    let mut verifying_shares = std::collections::HashMap::new();
+    let mut public_key = <C::Group>::identity();
+    for identifier in &identifiers {
+        let (secret_shares_i, public_key_package_i) = generate_with_dealer::<C, _>(
+            MAX_SIGNERS,
+            MIN_SIGNERS,
+            IdentifierList::Custom(&identifiers),
+            &mut rng,
+        )
+        .unwrap();
+        for identifier in &identifiers {
+            let entry = verifying_shares
+                .entry(*identifier)
+                .or_insert_with(|| <C::Group>::identity());
+            *entry = *entry
+                + public_key_package_i
+                    .signer_pubkeys()
+                    .get(identifier)
+                    .unwrap()
+                    .to_element();
+        }
+        public_key = public_key + public_key_package_i.group_public().to_element();
+        commitments.insert(
+            *identifier,
+            secret_shares_i
+                .get(identifier)
+                .unwrap()
+                .commitment()
+                .clone(),
+        );
+    }
     let public_key_package = compute_public_key_package::<C>(&commitments);
-    assert_eq!(public_key, public_key_package);
+    assert!(public_key == public_key_package.group_public().to_element());
+    for identifier in &identifiers {
+        assert!(
+            *verifying_shares.get(identifier).unwrap()
+                == public_key_package
+                    .signer_pubkeys()
+                    .get(identifier)
+                    .unwrap()
+                    .to_element(),
+        )
+    }
 }
