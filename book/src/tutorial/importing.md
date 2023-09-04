@@ -30,7 +30,7 @@ frost-ristretto255 = { version = "0.6.0", features = ["serde"] }
 ```
 
 Note that serde usage is optional. Applications can use different encodings, and
-to suppor that, all structures that need to be transmitted have public getters
+to support that, all structures that need to be transmitted have public getters
 and `new()`  methods allowing the application to encode and decode them as it
 wishes. (Note that fields like `Scalar` and `Element` do have standard byte
 string encodings; the application can encode those byte strings as it wishes,
