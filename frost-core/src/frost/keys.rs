@@ -55,6 +55,7 @@ pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// Return a list of default identifiers (1 to max_signers, inclusive).
+#[cfg_attr(feature = "internals", visibility::make(pub))]
 pub(crate) fn default_identifiers<C: Ciphersuite>(max_signers: u16) -> Vec<Identifier<C>> {
     (1..=max_signers)
         .map(|i| Identifier::<C>::try_from(i).expect("nonzero"))
