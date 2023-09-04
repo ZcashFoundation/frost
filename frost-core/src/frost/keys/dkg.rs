@@ -313,6 +313,30 @@ where
     Some(Challenge(C::HDKG(&preimage[..])?))
 }
 
+/// Verifies the proof of knowledge of the secret coefficients used to generate the
+/// public secret sharing commitment.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn verify_proof_of_knowledge<C: Ciphersuite>(
+    identifier: Identifier<C>,
+    commitment: &VerifiableSecretSharingCommitment<C>,
+    proof_of_knowledge: Signature<C>,
+) -> Result<(), Error<C>> {
+    // Round 1, Step 5
+    //
+    // > Upon receiving C⃗_ℓ, σ_ℓ from participants 1 ≤ ℓ ≤ n, ℓ ≠ i, participant
+    // > P_i verifies σ_ℓ = (R_ℓ, μ_ℓ), aborting on failure, by checking
+    // > R_ℓ ? ≟ g^{μ_ℓ} · φ^{-c_ℓ}_{ℓ0}, where c_ℓ = H(ℓ, Φ, φ_{ℓ0}, R_ℓ).
+    let ell = identifier;
+    let R_ell = proof_of_knowledge.R;
+    let mu_ell = proof_of_knowledge.z;
+    let phi_ell0 = commitment.first()?.0;
+    let c_ell = challenge::<C>(ell, &R_ell, &phi_ell0).ok_or(Error::DKGNotSupported)?;
+    if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
+        return Err(Error::InvalidProofOfKnowledge { culprit: ell });
+    }
+    Ok(())
+}
+
 /// Performs the second part of the distributed key generation protocol
 /// for the participant holding the given [`round1::SecretPackage`],
 /// given the received [`round1::Package`]s received from the other participants.
@@ -344,19 +368,11 @@ pub fn part2<C: Ciphersuite>(
 
     for (sender_identifier, round1_package) in round1_packages {
         let ell = *sender_identifier;
-        // Round 1, Step 5
-        //
-        // > Upon receiving C⃗_ℓ, σ_ℓ from participants 1 ≤ ℓ ≤ n, ℓ ≠ i, participant
-        // > P_i verifies σ_ℓ = (R_ℓ, μ_ℓ), aborting on failure, by checking
-        // > R_ℓ ? ≟ g^{μ_ℓ} · φ^{-c_ℓ}_{ℓ0}, where c_ℓ = H(ℓ, Φ, φ_{ℓ0}, R_ℓ).
-        let R_ell = round1_package.proof_of_knowledge.R;
-        let mu_ell = round1_package.proof_of_knowledge.z;
-        let phi_ell0 = round1_package.commitment.first()?.0;
-        let c_ell = challenge::<C>(ell, &R_ell, &phi_ell0).ok_or(Error::DKGNotSupported)?;
-
-        if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
-            return Err(Error::InvalidProofOfKnowledge { culprit: ell });
-        }
+        verify_proof_of_knowledge(
+            ell,
+            &round1_package.commitment,
+            round1_package.proof_of_knowledge,
+        )?;
 
         // Round 2, Step 1
         //
