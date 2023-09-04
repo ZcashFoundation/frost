@@ -13,8 +13,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 use crate::frost::keys::{
-    compute_group_commitment, compute_public_key_package, generate_with_dealer, reconstruct,
-    IdentifierList, KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifyingShare,
+    compute_group_commitment, generate_with_dealer, reconstruct, IdentifierList, KeyPackage,
+    PublicKeyPackage, SecretShare, SigningShare, VerifyingShare,
 };
 use crate::{Ciphersuite, Field, VerifyingKey};
 
@@ -155,7 +155,7 @@ pub fn check_compute_public_key_package<C: Ciphersuite, R: RngCore + CryptoRng>(
     let public_key_package = PublicKeyPackage::new(verifying_shares, group_public);
     assert_eq!(
         public_key_package,
-        compute_public_key_package(&members, &group_commitment)
+        PublicKeyPackage::from_commitment(&members, &group_commitment)
     );
     let signing_key = reconstruct(&secret_shares[..min_signers as usize]).unwrap();
     assert_eq!(

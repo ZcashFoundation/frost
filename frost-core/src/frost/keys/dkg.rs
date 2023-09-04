@@ -40,9 +40,9 @@ use crate::{
 };
 
 use super::{
-    compute_group_commitment, compute_public_key_package, evaluate_polynomial,
-    generate_coefficients, generate_secret_polynomial, validate_num_of_signers, KeyPackage,
-    PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
+    compute_group_commitment, evaluate_polynomial, generate_coefficients,
+    generate_secret_polynomial, validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare,
+    SigningShare, VerifiableSecretSharingCommitment,
 };
 
 /// DKG Round 1 structures.
@@ -454,7 +454,7 @@ pub fn part3<C: Ciphersuite>(
         .chain(iter::once(round2_secret_package.commitment.clone()))
         .collect();
     let group_commitment = compute_group_commitment(&commitments);
-    let public_key_package = compute_public_key_package(&members, &group_commitment);
+    let public_key_package = PublicKeyPackage::from_commitment(&members, &group_commitment);
     let key_package = KeyPackage {
         identifier: round2_secret_package.identifier,
         secret_share: signing_share,
