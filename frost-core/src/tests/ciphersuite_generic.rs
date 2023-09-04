@@ -119,13 +119,20 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
         key_packages.insert(k, key_package);
     }
-    // Check if it fails with not enough signers. To bypass the min_signers value
-    // check, also reduce the min_signers in KeyPackages.
+    // Check if it fails with not enough signers. Usually this would return an
+    // error before even running the signing procedure, because `KeyPackage`
+    // contains the correct `min_signers` value and the signing procedure checks
+    // if the number of shares is at least `min_signers`. To bypass the check
+    // and test if the protocol itself fails with not enough signers, we modify
+    // the `KeyPackages`s, decrementing their saved `min_signers` value before
+    // running the signing procedure.
     let r = check_sign(
         min_signers - 1,
         key_packages
             .iter()
             .map(|(id, k)| {
+                // Decrement `min_signers` as explained above and use
+                // the updated `KeyPackage`.
                 let mut k = k.clone();
                 k.min_signers -= 1;
                 (*id, k)
