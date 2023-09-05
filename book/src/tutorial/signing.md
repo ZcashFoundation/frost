@@ -88,7 +88,7 @@ with the same `SigningPackage` sent to the participants and the
 ```
 
 The returned signature, a `Signature`, will be a valid signature for the message
-chosen in Round 2 for the group verifying key in the `PublicKeyPackage`.
+in the `SigningPackage` in Round 2 for the group verifying key in the `PublicKeyPackage`.
 
 ```admonish note
 FROST supports identifiable abort: if a participant misbehaves and produces an
