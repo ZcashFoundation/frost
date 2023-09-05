@@ -1,0 +1,18 @@
+[package]
+name = "tss"
+authors = [ "Dev <Dev@analog.one>" ]
+edition = "2021"
+homepage = "https://www.analog.one/"
+license = "Apache-2.0"
+repository = "https://github.com/Analog-Labs/tesseract/"
+version = "0.0.1"
+
+[dependencies]
+anyhow = "1.0.75"
+frost-evm = { git = "https://github.com/analog-labs/frost-evm.git", version = "0.1.0", features = ["serde"] }
+log = "0.4.20"
+rand = "0.8"
+serde = { version = "1.0.183", features = [ "derive" ] }
+
+[dev-dependencies]
+env_logger = "0.10.0"
