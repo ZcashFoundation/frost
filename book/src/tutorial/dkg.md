@@ -20,9 +20,17 @@ the application.) It returns a `round1::SecretPackage` and a `round1::Package`:
 ```rust,no_run,noplayground
 {{#include ../../../frost-ristretto255/dkg.md:dkg_import}}
 
-// create `participant_identifier` somehow
+    // Ask the user which identifier they would like to use. You can create
+    // an identifier from a non-zero u16 or derive from an arbitrary string.
+    // Some fixed examples follow (each participant must choose a different identifier)
+{{#include ../../../frost-ristretto255/tests/integration_tests.rs:dkg_identifier}}
 
 {{#include ../../../frost-ristretto255/dkg.md:dkg_part1}}
+```
+
+```admonish info
+Check the crate documentation for a [full working example](https://docs.rs/frost-ristretto255/latest/frost_ristretto255/keys/dkg/index.html#example); keep in mind it's an artificial
+one since everything runs in the same program.
 ```
 
 The `round1::SecretPackage` must be kept in memory to use in the next round. The
