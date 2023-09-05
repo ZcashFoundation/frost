@@ -8,9 +8,9 @@ In a regular Zcash wallet, the spending key (commonly derived from a seed
 phrase) allows freely spending from the wallet. If the key is lost or gets
 hacked, then the wallet owner will lose access to their funds forever.
 
-With FROST, only shares of the key will exist, between multiple participants.
-During wallet creation, a threshold is set, and only that number of participants
-(or more) can jointly create a transaction that spends funds from the wallet.
+With FROST, only shares of the related spend authorization key will exist, between multiple 
+participants. During wallet creation, a threshold is set, and only that number of
+participants (or more) can jointly create a transaction that spends funds from the wallet.
 
 Some possible applications are:
 
