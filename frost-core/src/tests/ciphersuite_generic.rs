@@ -1,4 +1,6 @@
 //! Ciphersuite-generic test functions.
+#![allow(clippy::type_complexity)]
+
 use std::{
     collections::{BTreeMap, HashMap},
     convert::TryFrom,
@@ -117,8 +119,31 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
         key_packages.insert(k, key_package);
     }
+    // Check if it fails with not enough signers. Usually this would return an
+    // error before even running the signing procedure, because `KeyPackage`
+    // contains the correct `min_signers` value and the signing procedure checks
+    // if the number of shares is at least `min_signers`. To bypass the check
+    // and test if the protocol itself fails with not enough signers, we modify
+    // the `KeyPackages`s, decrementing their saved `min_signers` value before
+    // running the signing procedure.
+    let r = check_sign(
+        min_signers - 1,
+        key_packages
+            .iter()
+            .map(|(id, k)| {
+                // Decrement `min_signers` as explained above and use
+                // the updated `KeyPackage`.
+                let mut k = k.clone();
+                k.min_signers -= 1;
+                (*id, k)
+            })
+            .collect(),
+        &mut rng,
+        pubkeys.clone(),
+    );
+    assert_eq!(r, Err(Error::InvalidSignature));
 
-    check_sign(min_signers, key_packages, rng, pubkeys)
+    check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
 }
 
 /// Test FROST signing with trusted dealer fails with invalid numbers of signers.
@@ -163,7 +188,7 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
-) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
+) -> Result<(Vec<u8>, Signature<C>, VerifyingKey<C>), Error<C>> {
     let mut nonces_map: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
         HashMap::new();
     let mut commitments_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
@@ -201,11 +226,16 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     for participant_identifier in nonces_map.keys() {
         let key_package = key_packages.get(participant_identifier).unwrap();
 
-        let nonces_to_use = &nonces_map.get(participant_identifier).unwrap();
+        let nonces_to_use = nonces_map.get(participant_identifier).unwrap();
+
+        check_sign_errors(
+            signing_package.clone(),
+            nonces_to_use.clone(),
+            key_package.clone(),
+        );
 
         // Each participant generates their signature share.
-        let signature_share =
-            frost::round2::sign(&signing_package, nonces_to_use, key_package).unwrap();
+        let signature_share = frost::round2::sign(&signing_package, nonces_to_use, key_package)?;
         signature_shares.insert(*participant_identifier, signature_share);
     }
 
@@ -221,33 +251,47 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     );
 
     // Aggregate (also verifies the signature shares)
-    let group_signature =
-        frost::aggregate(&signing_package, &signature_shares, &pubkey_package).unwrap();
+    let group_signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)?;
 
     // Check that the threshold signature can be verified by the group public
     // key (the verification key).
-    let is_signature_valid = pubkey_package
+    pubkey_package
         .group_public
-        .verify(message, &group_signature)
-        .is_ok();
-    assert!(is_signature_valid);
+        .verify(message, &group_signature)?;
 
     // Check that the threshold signature can be verified by the group public
     // key (the verification key) from KeyPackage.group_public
     for (participant_identifier, _) in nonces_map.clone() {
         let key_package = key_packages.get(&participant_identifier).unwrap();
 
-        assert!(key_package
-            .group_public
-            .verify(message, &group_signature)
-            .is_ok());
+        key_package.group_public.verify(message, &group_signature)?;
     }
 
-    (
+    Ok((
         message.to_owned(),
         group_signature,
         pubkey_package.group_public,
-    )
+    ))
+}
+
+fn check_sign_errors<C: Ciphersuite + PartialEq>(
+    signing_package: frost::SigningPackage<C>,
+    signing_nonces: frost::round1::SigningNonces<C>,
+    key_package: frost::keys::KeyPackage<C>,
+) {
+    // Check if passing not enough commitments causes an error
+
+    let mut commitments = signing_package.signing_commitments().clone();
+    // Remove one commitment that's not from the key_package owner
+    let id = *commitments
+        .keys()
+        .find(|&&id| id != key_package.identifier)
+        .unwrap();
+    commitments.remove(&id);
+    let signing_package = frost::SigningPackage::new(commitments, signing_package.message());
+
+    let r = frost::round2::sign(&signing_package, &signing_nonces, &key_package);
+    assert_eq!(r, Err(Error::IncorrectNumberOfCommitments));
 }
 
 fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
@@ -461,7 +505,7 @@ where
     let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, group_public.unwrap());
 
     // Proceed with the signing test.
-    check_sign(min_signers, key_packages, rng, pubkeys)
+    check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
 }
 
 /// Check that calling dkg::part3() with distinct sets of participants fail.
@@ -571,7 +615,7 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
         let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
         key_packages.insert(k, key_package);
     }
-    check_sign(min_signers, key_packages, rng, pubkeys)
+    check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
 }
 
 fn check_part2_error<C: Ciphersuite>(
@@ -653,6 +697,7 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
     let id_1 = Identifier::<C>::try_from(1).unwrap();
     let id_2 = Identifier::<C>::try_from(2).unwrap();
     let id_3 = Identifier::<C>::try_from(3).unwrap();
+    let id_4 = Identifier::<C>::try_from(4).unwrap();
     let key_packages_inc = vec![id_1, id_2, id_3];
 
     for participant_identifier in key_packages_inc {
@@ -666,11 +711,14 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
         );
         nonces_map.insert(participant_identifier, nonces);
 
-        // Participant with id_1 is excluded from the commitments_map so it is missing from the signing package
+        // Participant with id_1 is excluded from the commitments_map so it is missing from the signing package.
+        // To prevent sign() from returning an error due to incorrect number of commitments,
+        // add the commitment under another unrelated participant.
         if participant_identifier == id_1 {
-            continue;
+            commitments_map.insert(id_4, commitments);
+        } else {
+            commitments_map.insert(participant_identifier, commitments);
         }
-        commitments_map.insert(participant_identifier, commitments);
     }
 
     // This is what the signature aggregator / coordinator needs to do:
@@ -690,8 +738,7 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
     // Each participant generates their signature share.
     let signature_share = frost::round2::sign(&signing_package, nonces_to_use, key_package_1);
 
-    assert!(signature_share.is_err());
-    assert!(signature_share == Err(Error::MissingCommitment))
+    assert_eq!(signature_share, Err(Error::MissingCommitment))
 }
 
 /// Checks the signer's commitment is valid
