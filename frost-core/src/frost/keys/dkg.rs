@@ -107,6 +107,8 @@ pub mod round1 {
         pub(crate) coefficients: Vec<Scalar<C>>,
         /// The public commitment for the participant (C_i)
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
+        /// The minimum number of signers.
+        pub(crate) min_signers: u16,
         /// The total number of signers.
         pub(crate) max_signers: u16,
     }
@@ -120,6 +122,7 @@ pub mod round1 {
                 .field("identifier", &self.identifier)
                 .field("coefficients", &"<redacted>")
                 .field("commitment", &self.commitment)
+                .field("min_signers", &self.min_signers)
                 .field("max_signers", &self.max_signers)
                 .finish()
         }
@@ -197,6 +200,8 @@ pub mod round2 {
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The participant's own secret share (f_i(i)).
         pub(crate) secret_share: Scalar<C>,
+        /// The minimum number of signers.
+        pub(crate) min_signers: u16,
         /// The total number of signers.
         pub(crate) max_signers: u16,
     }
@@ -210,6 +215,7 @@ pub mod round2 {
                 .field("identifier", &self.identifier)
                 .field("commitment", &self.commitment)
                 .field("secret_share", &"<redacted>")
+                .field("min_signers", &self.min_signers)
                 .field("max_signers", &self.max_signers)
                 .finish()
         }
@@ -273,6 +279,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
         identifier,
         coefficients,
         commitment: commitment.clone(),
+        min_signers,
         max_signers,
     };
     let package = round1::Package {
@@ -368,6 +375,7 @@ pub fn part2<C: Ciphersuite>(
             identifier: secret_package.identifier,
             commitment: secret_package.commitment,
             secret_share: fii,
+            min_signers: secret_package.min_signers,
             max_signers: secret_package.max_signers,
         },
         round2_packages,
@@ -518,6 +526,7 @@ pub fn part3<C: Ciphersuite>(
         secret_share: signing_share,
         public: verifying_key,
         group_public,
+        min_signers: round2_secret_package.min_signers,
         ciphersuite: (),
     };
     let public_key_package = PublicKeyPackage {

@@ -284,6 +284,7 @@ fn check_key_package_serialization() {
         "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "group_public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+        "min_signers": 2,
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
     let decoded_key_package: KeyPackage = serde_json::from_str(json).unwrap();
