@@ -19,7 +19,7 @@ features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-curve25519-dalek = { version = "=4.0.0", features = ["serde", "rand_core"] }
+curve25519-dalek = { version = "=4.1.0", features = ["serde", "rand_core"] }
 document-features = "0.2.7"
 frost-core = { path = "../frost-core", version = "0.6.0" }
 rand_core = "0.6"
