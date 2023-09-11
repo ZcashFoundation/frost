@@ -40,7 +40,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
     let message = inputs["message"].as_str().unwrap();
     let message_bytes = hex::decode(message).unwrap();
 
-    let share_polynomial_coefficients = inputs["share_polynomial_coefficients"]
+    let share_polynomial_coefficients: Vec<_> = inputs["share_polynomial_coefficients"]
         .as_array()
         .unwrap()
         .iter()
@@ -67,8 +67,14 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
                 .unwrap();
         let signer_public = secret.into();
 
-        let key_package =
-            KeyPackage::<C>::new(i.try_into().unwrap(), secret, signer_public, group_public);
+        let min_signers = share_polynomial_coefficients.len() + 1;
+        let key_package = KeyPackage::<C>::new(
+            i.try_into().unwrap(),
+            secret,
+            signer_public,
+            group_public,
+            min_signers as u16,
+        );
 
         key_packages.insert(*key_package.identifier(), key_package);
     }

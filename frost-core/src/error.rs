@@ -59,6 +59,9 @@ pub enum Error<C: Ciphersuite> {
     /// The participant's commitment is incorrect
     #[error("The participant's commitment is incorrect.")]
     IncorrectCommitment,
+    /// Incorrect number of commitments.
+    #[error("Incorrect number of commitments.")]
+    IncorrectNumberOfCommitments,
     /// Signature share verification failed.
     #[error("Invalid signature share.")]
     InvalidSignatureShare {
@@ -149,6 +152,7 @@ where
             | Error::InvalidCoefficient
             | Error::UnknownIdentifier
             | Error::IncorrectNumberOfIdentifiers
+            | Error::IncorrectNumberOfCommitments
             | Error::SerializationError
             | Error::DeserializationError
             | Error::IdentifierDerivationNotSupported => None,
