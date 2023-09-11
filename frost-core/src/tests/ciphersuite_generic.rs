@@ -41,12 +41,14 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     )
     .unwrap();
 
-    for secret_share in secret_shares.iter() {
-        assert!(secret_share.verify().is_ok());
-    }
+    let key_packages: Vec<frost::keys::KeyPackage<C>> = secret_shares
+        .iter()
+        .cloned()
+        .map(|s| s.try_into().unwrap())
+        .collect();
 
     assert_eq!(
-        frost::keys::reconstruct::<C>(&secret_shares)
+        frost::keys::reconstruct::<C>(&key_packages)
             .unwrap()
             .serialize()
             .as_ref(),
@@ -60,11 +62,16 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
         Error::IncorrectNumberOfShares
     );
 
-    let mut secret_shares = secret_shares;
-    secret_shares[0] = secret_shares[1].clone();
+    assert_eq!(
+        frost::keys::reconstruct::<C>(&key_packages[0..1]).unwrap_err(),
+        Error::IncorrectNumberOfShares
+    );
+
+    let mut key_packages = key_packages;
+    key_packages[0] = key_packages[1].clone();
 
     assert_eq!(
-        frost::keys::reconstruct::<C>(&secret_shares).unwrap_err(),
+        frost::keys::reconstruct::<C>(&key_packages).unwrap_err(),
         Error::DuplicatedIdentifier
     );
 }
