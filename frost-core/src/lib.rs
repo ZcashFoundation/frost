@@ -255,10 +255,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// The ciphersuite ID string
     const ID: &'static str;
 
-    /// The short 4-byte ID. Automatically derived as the CRC-32 of the UTF-8
-    /// encoded ID in big endian format.
-    const SHORT_ID: u32 = const_crc32::crc32(Self::ID.as_bytes());
-
     /// The prime order group (or subgroup) that this ciphersuite operates over.
     type Group: Group;
 
@@ -344,6 +340,15 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
 
         public_key.verify_prehashed(c, signature)
     }
+}
+
+// The short 4-byte ID. Derived as the CRC-32 of the UTF-8
+// encoded ID in big endian format.
+const fn short_id<C>() -> [u8; 4]
+where
+    C: Ciphersuite,
+{
+    const_crc32::crc32(C::ID.as_bytes()).to_be_bytes()
 }
 
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
@@ -433,7 +438,7 @@ where
     if s.is_human_readable() {
         C::ID.serialize(s)
     } else {
-        serde::Serialize::serialize(&C::SHORT_ID.to_be_bytes(), s)
+        serde::Serialize::serialize(&short_id::<C>(), s)
     }
 }
 
@@ -453,7 +458,7 @@ where
         }
     } else {
         let buffer: [u8; 4] = serde::de::Deserialize::deserialize(deserializer)?;
-        if buffer != C::SHORT_ID.to_be_bytes() {
+        if buffer != short_id::<C>() {
             Err(serde::de::Error::custom("wrong ciphersuite"))
         } else {
             Ok(())
