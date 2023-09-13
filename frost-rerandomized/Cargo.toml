@@ -29,7 +29,8 @@ rand_core = "0.6"
 
 [features]
 nightly = []
-default = []
+default = ["serialization"]
+serialization = ["serde", "frost-core/serialization"]
 #! ## Features
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
