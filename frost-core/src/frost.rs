@@ -406,14 +406,14 @@ where
     C: Ciphersuite,
 {
     // Check if signing_package.signing_commitments and signature_shares have
-    // the same set of identifiers, and if they are all in pubkeys.signer_pubkeys.
+    // the same set of identifiers, and if they are all in pubkeys.verifying_shares.
     if signing_package.signing_commitments().len() != signature_shares.len() {
         return Err(Error::UnknownIdentifier);
     }
     if !signing_package
         .signing_commitments()
         .keys()
-        .all(|id| signature_shares.contains_key(id) && pubkeys.signer_pubkeys().contains_key(id))
+        .all(|id| signature_shares.contains_key(id) && pubkeys.verifying_shares().contains_key(id))
     {
         return Err(Error::UnknownIdentifier);
     }
@@ -464,7 +464,7 @@ where
             // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
             // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
             let signer_pubkey = pubkeys
-                .signer_pubkeys
+                .verifying_shares
                 .get(signature_share_identifier)
                 .ok_or(Error::UnknownIdentifier)?;
 

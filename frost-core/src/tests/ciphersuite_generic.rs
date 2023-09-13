@@ -311,7 +311,7 @@ fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
         signature_shares.clone(),
         pubkey_package.clone(),
     );
-    check_aggregate_invalid_share_identifier_for_signer_pubkeys(
+    check_aggregate_invalid_share_identifier_for_verifying_shares(
         signing_package.clone(),
         signature_shares.clone(),
         pubkey_package.clone(),
@@ -336,7 +336,7 @@ fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
 /// Note that the SigningPackage part of the finding is not currently reachable
 /// since it's caught by `compute_lagrange_coefficient()`, and the Binding Factor
 /// part can't either since it's caught before by the PublicKeyPackage part.
-fn check_aggregate_invalid_share_identifier_for_signer_pubkeys<C: Ciphersuite + PartialEq>(
+fn check_aggregate_invalid_share_identifier_for_verifying_shares<C: Ciphersuite + PartialEq>(
     signing_package: frost::SigningPackage<C>,
     mut signature_shares: HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
@@ -506,7 +506,7 @@ where
 
     // Test if the set of verifying keys is correct for all participants.
     for verifying_keys_for_participant in pubkey_packages_by_participant.values() {
-        assert!(verifying_keys_for_participant.signer_pubkeys == verifying_keys);
+        assert!(verifying_keys_for_participant.verifying_shares == verifying_keys);
     }
 
     let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, group_public.unwrap());

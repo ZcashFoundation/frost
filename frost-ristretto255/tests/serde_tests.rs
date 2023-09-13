@@ -345,7 +345,7 @@ fn check_public_key_package_serialization() {
     assert!(public_key_package == decoded_public_key_package);
 
     let json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         },
         "group_public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
@@ -359,7 +359,7 @@ fn check_public_key_package_serialization() {
 
     // Invalid identifier
     let invalid_json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "0000000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         },
         "group_public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
@@ -369,7 +369,7 @@ fn check_public_key_package_serialization() {
 
     // Invalid field
     let invalid_json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         },
         "foo": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
@@ -379,7 +379,7 @@ fn check_public_key_package_serialization() {
 
     // Missing field
     let invalid_json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         },
         "ciphersuite": "FROST(ristretto255, SHA-512)"
@@ -388,7 +388,7 @@ fn check_public_key_package_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         },
         "group_public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",

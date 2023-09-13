@@ -530,7 +530,7 @@ pub fn part3<C: Ciphersuite>(
         ciphersuite: (),
     };
     let public_key_package = PublicKeyPackage {
-        signer_pubkeys: all_verifying_keys,
+        verifying_shares: all_verifying_keys,
         group_public,
         ciphersuite: (),
     };

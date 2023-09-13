@@ -492,7 +492,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
             generate_secret_shares(key, max_signers, min_signers, coefficients, identifiers)?
         }
     };
-    let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
+    let mut verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(max_signers as usize);
 
     let mut secret_shares_by_id: HashMap<Identifier<C>, SecretShare<C>> =
@@ -500,7 +500,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     for secret_share in secret_shares {
         let signer_public = secret_share.value.into();
-        signer_pubkeys.insert(secret_share.identifier, signer_public);
+        verifying_shares.insert(secret_share.identifier, signer_public);
 
         secret_shares_by_id.insert(secret_share.identifier, secret_share);
     }
@@ -508,7 +508,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
     Ok((
         secret_shares_by_id,
         PublicKeyPackage {
-            signer_pubkeys,
+            verifying_shares,
             group_public,
             ciphersuite: (),
         },
@@ -651,7 +651,7 @@ where
 pub struct PublicKeyPackage<C: Ciphersuite> {
     /// The verifying shares for all participants. Used to validate signature
     /// shares they generate.
-    pub(crate) signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
+    pub(crate) verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
     pub(crate) group_public: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
@@ -673,11 +673,11 @@ where
 {
     /// Create a new [`PublicKeyPackage`] instance.
     pub fn new(
-        signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
+        verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>>,
         group_public: VerifyingKey<C>,
     ) -> Self {
         Self {
-            signer_pubkeys,
+            verifying_shares,
             group_public,
             ciphersuite: (),
         }

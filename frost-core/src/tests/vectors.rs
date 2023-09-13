@@ -290,12 +290,12 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     assert_eq!(our_signature_shares, signature_shares);
 
-    let signer_pubkeys = key_packages
+    let verifying_shares = key_packages
         .into_iter()
         .map(|(i, key_package)| (i, *key_package.public()))
         .collect();
 
-    let pubkey_package = frost::keys::PublicKeyPackage::new(signer_pubkeys, group_public);
+    let pubkey_package = frost::keys::PublicKeyPackage::new(verifying_shares, group_public);
 
     ////////////////////////////////////////////////////////////////////////////
     // Aggregation:  collects the signing shares from all participants,

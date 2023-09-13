@@ -89,10 +89,10 @@ fn check_key_package_recreation() {
 fn check_public_key_package_recreation() {
     let public_key_package = samples::public_key_package();
 
-    let signer_pubkeys = public_key_package.signer_pubkeys();
+    let verifying_shares = public_key_package.verifying_shares();
     let verifying_key = public_key_package.group_public();
 
-    let new_public_key_package = PublicKeyPackage::new(signer_pubkeys.clone(), *verifying_key);
+    let new_public_key_package = PublicKeyPackage::new(verifying_shares.clone(), *verifying_key);
 
     assert!(public_key_package == new_public_key_package);
 }

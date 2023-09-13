@@ -89,7 +89,7 @@ impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
         Self: Sized,
         C: Ciphersuite,
     {
-        let verifying_shares = self.signer_pubkeys().clone();
+        let verifying_shares = self.verifying_shares().clone();
         let randomized_verifying_shares = verifying_shares
             .iter()
             .map(|(identifier, verifying_share)| {

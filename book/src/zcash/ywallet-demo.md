@@ -88,7 +88,7 @@ package
 
 ```
 Public key package:
-{"signer_pubkeys": ...snip... ,"group_public":"d2bf40ca860fb97e9d6d15d7d25e4f17d2e8ba5dd7069188cbf30b023910a71b","ciphersuite":"FROST(Pallas, BLAKE2b-512)"}
+{"verifying_shares": ...snip... ,"group_public":"d2bf40ca860fb97e9d6d15d7d25e4f17d2e8ba5dd7069188cbf30b023910a71b","ciphersuite":"FROST(Pallas, BLAKE2b-512)"}
 ```
 
 you would need to use
