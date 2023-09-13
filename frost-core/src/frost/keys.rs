@@ -417,11 +417,11 @@ where
             return Err(Error::InvalidSecretShare);
         }
 
-        let group_public = VerifyingKey {
+        let verifying_key = VerifyingKey {
             element: self.commitment.first()?.0,
         };
 
-        Ok((VerifyingShare(result), group_public))
+        Ok((VerifyingShare(result), verifying_key))
     }
 }
 
@@ -479,7 +479,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         }
     }
 
-    let group_public = VerifyingKey::from(key);
+    let verifying_key = VerifyingKey::from(key);
 
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
 
@@ -509,7 +509,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         secret_shares_by_id,
         PublicKeyPackage {
             verifying_shares,
-            group_public,
+            verifying_key,
             ciphersuite: (),
         },
     ))
@@ -575,7 +575,7 @@ pub struct KeyPackage<C: Ciphersuite> {
     pub(crate) public: VerifyingShare<C>,
     /// The public verifying key that represents the entire group.
     #[zeroize(skip)]
-    pub(crate) group_public: VerifyingKey<C>,
+    pub(crate) verifying_key: VerifyingKey<C>,
     pub(crate) min_signers: u16,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
@@ -599,14 +599,14 @@ where
         identifier: Identifier<C>,
         secret_share: SigningShare<C>,
         public: VerifyingShare<C>,
-        group_public: VerifyingKey<C>,
+        verifying_key: VerifyingKey<C>,
         min_signers: u16,
     ) -> Self {
         Self {
             identifier,
             secret_share,
             public,
-            group_public,
+            verifying_key,
             min_signers,
             ciphersuite: (),
         }
@@ -628,13 +628,13 @@ where
     /// dealer, but implementations *MUST* make sure that all participants have
     /// a consistent view of this commitment in practice.
     fn try_from(secret_share: SecretShare<C>) -> Result<Self, Error<C>> {
-        let (public, group_public) = secret_share.verify()?;
+        let (public, verifying_key) = secret_share.verify()?;
 
         Ok(KeyPackage {
             identifier: secret_share.identifier,
             secret_share: secret_share.value,
             public,
-            group_public,
+            verifying_key,
             min_signers: secret_share.commitment.0.len() as u16,
             ciphersuite: (),
         })
@@ -653,7 +653,7 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     /// shares they generate.
     pub(crate) verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
-    pub(crate) group_public: VerifyingKey<C>,
+    pub(crate) verifying_key: VerifyingKey<C>,
     /// Ciphersuite ID for serialization
     #[cfg_attr(
         feature = "serde",
@@ -674,11 +674,11 @@ where
     /// Create a new [`PublicKeyPackage`] instance.
     pub fn new(
         verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>>,
-        group_public: VerifyingKey<C>,
+        verifying_key: VerifyingKey<C>,
     ) -> Self {
         Self {
             verifying_shares,
-            group_public,
+            verifying_key,
             ciphersuite: (),
         }
     }

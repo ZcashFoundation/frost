@@ -283,7 +283,7 @@ fn check_key_package_serialization() {
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "secret_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
         "public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
-        "group_public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        "verifying_key": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "min_signers": 2,
         "ciphersuite": "FROST(P-256, SHA-256)"
       }"#;
@@ -298,7 +298,7 @@ fn check_key_package_serialization() {
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "secret_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
         "public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
-        "group_public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        "verifying_key": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "ciphersuite": "FROST(P-256, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
@@ -308,7 +308,7 @@ fn check_key_package_serialization() {
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "foo": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
         "public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
-        "group_public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        "verifying_key": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "ciphersuite": "FROST(P-256, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
@@ -317,7 +317,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
-        "group_public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        "verifying_key": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "ciphersuite": "FROST(P-256, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
@@ -327,7 +327,7 @@ fn check_key_package_serialization() {
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "secret_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
         "public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
-        "group_public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        "verifying_key": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "extra_field": 1,
         "ciphersuite": "FROST(P-256, SHA-256)"
       }"#;
@@ -348,7 +348,7 @@ fn check_public_key_package_serialization() {
         "verifying_shares": {
           "000000000000000000000000000000000000000000000000000000000000002a": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
         },
-        "group_public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        "verifying_key": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "ciphersuite": "FROST(P-256, SHA-256)"
       }"#;
     let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(json).unwrap();
@@ -362,7 +362,7 @@ fn check_public_key_package_serialization() {
         "verifying_shares": {
           "0000000000000000000000000000000000000000000000000000000000000000": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
         },
-        "group_public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        "verifying_key": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "ciphersuite": "FROST(P-256, SHA-256)"
       }"#;
     assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());
@@ -391,7 +391,7 @@ fn check_public_key_package_serialization() {
         "verifying_shares": {
           "000000000000000000000000000000000000000000000000000000000000002a": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
         },
-        "group_public": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        "verifying_key": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "extra": 1,
         "ciphersuite": "FROST(P-256, SHA-256)"
       }"#;

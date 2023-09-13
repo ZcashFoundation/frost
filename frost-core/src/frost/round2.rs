@@ -207,7 +207,7 @@ pub fn sign<C: Ciphersuite>(
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &key_package.group_public, &[]);
+        compute_binding_factor_list(signing_package, &key_package.verifying_key, &[]);
     let binding_factor: frost::BindingFactor<C> = binding_factor_list
         .get(&key_package.identifier)
         .ok_or(Error::UnknownIdentifier)?
@@ -222,7 +222,7 @@ pub fn sign<C: Ciphersuite>(
     // Compute the per-message challenge.
     let challenge = challenge::<C>(
         &group_commitment.0,
-        &key_package.group_public.element,
+        &key_package.verifying_key.element,
         signing_package.message.as_slice(),
     );
 

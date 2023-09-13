@@ -39,7 +39,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
         BTreeMap::new();
 
     check_from_randomizer(&pubkeys, &mut rng);
-    let randomizer_params = RandomizedParams::new(pubkeys.group_public(), &mut rng);
+    let randomizer_params = RandomizedParams::new(pubkeys.verifying_key(), &mut rng);
     let randomizer = randomizer_params.randomizer();
 
     ////////////////////////////////////////////////////////////////////////////
@@ -108,7 +108,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
         .verify(message, &group_signature)
         .is_ok());
 
-    // Note that key_package.group_public can't be used to verify the signature
+    // Note that key_package.verifying_key can't be used to verify the signature
     // since those are non-randomized.
 
     (
@@ -124,7 +124,7 @@ fn check_from_randomizer<C: Ciphersuite, R: RngCore + CryptoRng>(
 ) {
     let randomizer = Randomizer::new(rng);
 
-    let randomizer_params = RandomizedParams::from_randomizer(pubkeys.group_public(), randomizer);
+    let randomizer_params = RandomizedParams::from_randomizer(pubkeys.verifying_key(), randomizer);
 
     assert!(*randomizer_params.randomizer() == randomizer);
 }

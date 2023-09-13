@@ -100,13 +100,13 @@ where
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 pub(crate) fn compute_binding_factor_list<C>(
     signing_package: &SigningPackage<C>,
-    group_public: &VerifyingKey<C>,
+    verifying_key: &VerifyingKey<C>,
     additional_prefix: &[u8],
 ) -> BindingFactorList<C>
 where
     C: Ciphersuite,
 {
-    let preimages = signing_package.binding_factor_preimages(group_public, additional_prefix);
+    let preimages = signing_package.binding_factor_preimages(verifying_key, additional_prefix);
 
     BindingFactorList(
         preimages
@@ -274,7 +274,7 @@ where
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub fn binding_factor_preimages(
         &self,
-        group_public: &VerifyingKey<C>,
+        verifying_key: &VerifyingKey<C>,
         additional_prefix: &[u8],
     ) -> Vec<(Identifier<C>, Vec<u8>)> {
         let mut binding_factor_input_prefix = vec![];
@@ -282,7 +282,7 @@ where
         // The length of a serialized verifying key of the same cipersuite does
         // not change between runs of the protocol, so we don't need to hash to
         // get a fixed length.
-        binding_factor_input_prefix.extend_from_slice(group_public.serialize().as_ref());
+        binding_factor_input_prefix.extend_from_slice(verifying_key.serialize().as_ref());
 
         // The message is hashed with H4 to force the variable-length message
         // into a fixed-length byte string, same for hashing the variable-sized
@@ -421,7 +421,7 @@ where
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &pubkeys.group_public, &[]);
+        compute_binding_factor_list(signing_package, &pubkeys.verifying_key, &[]);
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
@@ -445,7 +445,7 @@ where
 
     // Verify the aggregate signature
     let verification_result = pubkeys
-        .group_public
+        .verifying_key
         .verify(signing_package.message(), &signature);
 
     // Only if the verification of the aggregate signature failed; verify each share to find the cheater.
@@ -455,7 +455,7 @@ where
         // Compute the per-message challenge.
         let challenge = crate::challenge::<C>(
             &group_commitment.0,
-            &pubkeys.group_public.element,
+            &pubkeys.verifying_key.element,
             signing_package.message().as_slice(),
         );
 

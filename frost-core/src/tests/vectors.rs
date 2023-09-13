@@ -13,7 +13,7 @@ use crate::{
 /// Test vectors for a ciphersuite.
 pub struct TestVectors<C: Ciphersuite> {
     secret_key: SigningKey<C>,
-    group_public: VerifyingKey<C>,
+    verifying_key: VerifyingKey<C>,
     key_packages: HashMap<Identifier<C>, KeyPackage<C>>,
     message_bytes: Vec<u8>,
     share_polynomial_coefficients: Vec<Scalar<C>>,
@@ -57,8 +57,8 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         .unwrap()
         .iter();
 
-    let group_public =
-        VerifyingKey::<C>::from_hex(inputs["group_public_key"].as_str().unwrap()).unwrap();
+    let verifying_key =
+        VerifyingKey::<C>::from_hex(inputs["verifying_key_key"].as_str().unwrap()).unwrap();
 
     for secret_share in possible_participants {
         let i = secret_share["identifier"].as_u64().unwrap() as u16;
@@ -72,7 +72,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
             i.try_into().unwrap(),
             secret,
             signer_public,
-            group_public,
+            verifying_key,
             min_signers as u16,
         );
 
@@ -154,7 +154,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 
     TestVectors {
         secret_key,
-        group_public,
+        verifying_key,
         key_packages,
         message_bytes,
         share_polynomial_coefficients,
@@ -173,7 +173,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     let TestVectors {
         secret_key,
-        group_public,
+        verifying_key,
         key_packages,
         message_bytes,
         share_polynomial_coefficients,
@@ -262,14 +262,14 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     let signing_package = frost::SigningPackage::new(signer_commitments, &message_bytes);
 
     for (identifier, input) in signing_package
-        .binding_factor_preimages(&group_public, &[])
+        .binding_factor_preimages(&verifying_key, &[])
         .iter()
     {
         assert_eq!(*input, binding_factor_inputs[identifier]);
     }
 
     let binding_factor_list: frost::BindingFactorList<C> =
-        compute_binding_factor_list(&signing_package, &group_public, &[]);
+        compute_binding_factor_list(&signing_package, &verifying_key, &[]);
 
     for (identifier, binding_factor) in binding_factor_list.iter() {
         assert_eq!(*binding_factor, binding_factors[identifier]);
@@ -295,7 +295,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         .map(|(i, key_package)| (i, *key_package.public()))
         .collect();
 
-    let pubkey_package = frost::keys::PublicKeyPackage::new(verifying_shares, group_public);
+    let pubkey_package = frost::keys::PublicKeyPackage::new(verifying_shares, verifying_key);
 
     ////////////////////////////////////////////////////////////////////////////
     // Aggregation:  collects the signing shares from all participants,

@@ -70,7 +70,7 @@ fn check_key_package_recreation() {
     let identifier = key_package.identifier();
     let signing_share = key_package.secret_share();
     let verifying_share = key_package.public();
-    let verifying_key = key_package.group_public();
+    let verifying_key = key_package.verifying_key();
     let min_signers = key_package.min_signers();
 
     let new_key_package = KeyPackage::new(
@@ -90,7 +90,7 @@ fn check_public_key_package_recreation() {
     let public_key_package = samples::public_key_package();
 
     let verifying_shares = public_key_package.verifying_shares();
-    let verifying_key = public_key_package.group_public();
+    let verifying_key = public_key_package.verifying_key();
 
     let new_public_key_package = PublicKeyPackage::new(verifying_shares.clone(), *verifying_key);
 
