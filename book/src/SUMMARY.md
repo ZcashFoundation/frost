@@ -8,6 +8,7 @@
   - [Signing](tutorial/signing.md)
   - [Distributed Key Generation](tutorial/dkg.md)
 - [User Documentation](user.md)
+  - [Serialization Format](user/serialization.md)
 - [FROST with Zcash](zcash.md)
   - [Technical Details](zcash/technical-details.md)
   - [Ywallet Demo](zcash/ywallet-demo.md)

@@ -326,6 +326,7 @@ fn main() -> ExitCode {
             "tests/recreation_tests.rs",
             "tests/rerandomized_tests.rs",
             "tests/serde_tests.rs",
+            "tests/serialization_tests.rs",
             "tests/helpers/samples.rs",
         ] {
             replaced |= copy_and_replace(
