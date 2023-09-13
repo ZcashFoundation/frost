@@ -4,6 +4,10 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 0.8.0
+
+## Released
+
 ## 0.7.0
 
 * Challenge hashing during DKG computation was changed to match the paper.
@@ -13,8 +17,12 @@ Entries are listed in reverse chronological order.
   `new()` method and its serde serialization.
 * `reconstruct()` was changed to take a slice of `KeyPackage`s instead of
   `SecretShare`s since users are expect to store the former and not the latter.
+* New `serialize()`/`deserialize()` methods were added so that a default
+  byte-oriented serialization is available for all structs that need to be
+  communicated. It is still possible to use serde with you own encoder. Note
+  that the format will likely change in the next release.
+* Audit findings were addressed.
 
-## Released
 
 ## 0.6.0
 
