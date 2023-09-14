@@ -2,4 +2,4 @@
 source: frost-ed25519/tests/serialization_tests.rs
 expression: "hex::encode(&bytes)"
 ---
-498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0aea38536e
+00ea38536e498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a

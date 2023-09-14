@@ -35,8 +35,8 @@ use std::{collections::HashMap, iter};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    frost::Identifier, Challenge, Ciphersuite, Element, Error, Field, Group, Scalar, Signature,
-    SigningKey, VerifyingKey,
+    frost::Identifier, Challenge, Ciphersuite, Element, Error, Field, Group, Header, Scalar,
+    Signature, SigningKey, VerifyingKey,
 };
 
 use super::{
@@ -60,21 +60,13 @@ pub mod round1 {
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
+        /// Serialization header
+        #[getter(skip)]
+        pub(crate) header: Header<C>,
         /// The public commitment from the participant (C_i)
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
         pub(crate) proof_of_knowledge: Signature<C>,
-        /// Ciphersuite ID for serialization
-        #[cfg_attr(
-            feature = "serde",
-            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-        )]
-        #[cfg_attr(
-            feature = "serde",
-            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-        )]
-        #[getter(skip)]
-        pub(super) ciphersuite: (),
     }
 
     impl<C> Package<C>
@@ -87,9 +79,9 @@ pub mod round1 {
             proof_of_knowledge: Signature<C>,
         ) -> Self {
             Self {
+                header: Header::default(),
                 commitment,
                 proof_of_knowledge,
-                ciphersuite: (),
             }
         }
     }
@@ -178,19 +170,11 @@ pub mod round2 {
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
+        /// Serialization header
+        #[getter(skip)]
+        pub(crate) header: Header<C>,
         /// The secret share being sent.
         pub(crate) signing_share: SigningShare<C>,
-        /// Ciphersuite ID for serialization
-        #[cfg_attr(
-            feature = "serde",
-            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-        )]
-        #[cfg_attr(
-            feature = "serde",
-            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-        )]
-        #[getter(skip)]
-        pub(super) ciphersuite: (),
     }
 
     impl<C> Package<C>
@@ -200,8 +184,8 @@ pub mod round2 {
         /// Create a new [`Package`] instance.
         pub fn new(signing_share: SigningShare<C>) -> Self {
             Self {
+                header: Header::default(),
                 signing_share,
-                ciphersuite: (),
             }
         }
     }
@@ -319,9 +303,9 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
         max_signers,
     };
     let package = round1::Package {
+        header: Header::default(),
         commitment,
         proof_of_knowledge: Signature { R: R_i, z: mu_i },
-        ciphersuite: (),
     };
 
     Ok((secret_package, package))
@@ -400,8 +384,8 @@ pub fn part2<C: Ciphersuite>(
         round2_packages.insert(
             ell,
             round2::Package {
+                header: Header::default(),
                 signing_share: SigningShare(value),
-                ciphersuite: (),
             },
         );
     }
@@ -515,10 +499,10 @@ pub fn part3<C: Ciphersuite>(
         // however the required components are in different places.
         // Build a temporary SecretShare so what we can call verify().
         let secret_share = SecretShare {
+            header: Header::default(),
             identifier: round2_secret_package.identifier,
             signing_share: f_ell_i,
             commitment: commitment.clone(),
-            ciphersuite: (),
         };
 
         // Verify the share. We don't need the result.
@@ -559,17 +543,17 @@ pub fn part3<C: Ciphersuite>(
     all_verifying_shares.insert(round2_secret_package.identifier, verifying_share);
 
     let key_package = KeyPackage {
+        header: Header::default(),
         identifier: round2_secret_package.identifier,
         signing_share,
         verifying_share,
         verifying_key,
         min_signers: round2_secret_package.min_signers,
-        ciphersuite: (),
     };
     let public_key_package = PublicKeyPackage {
+        header: Header::default(),
         verifying_shares: all_verifying_shares,
         verifying_key,
-        ciphersuite: (),
     };
 
     Ok((key_package, public_key_package))

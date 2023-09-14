@@ -12,7 +12,9 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{frost, Ciphersuite, Deserialize, Element, Error, Field, Group, Scalar, Serialize};
+use crate::{
+    frost, Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Scalar, Serialize,
+};
 
 #[cfg(feature = "serde")]
 use crate::ElementSerialization;
@@ -268,21 +270,13 @@ where
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningCommitments<C: Ciphersuite> {
+    /// Serialization header
+    #[getter(skip)]
+    pub(crate) header: Header<C>,
     /// Commitment to the hiding [`Nonce`].
     pub(crate) hiding: NonceCommitment<C>,
     /// Commitment to the binding [`Nonce`].
     pub(crate) binding: NonceCommitment<C>,
-    /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    #[getter(skip)]
-    ciphersuite: (),
 }
 
 impl<C> SigningCommitments<C>
@@ -292,9 +286,9 @@ where
     /// Create new SigningCommitments
     pub fn new(hiding: NonceCommitment<C>, binding: NonceCommitment<C>) -> Self {
         Self {
+            header: Header::default(),
             hiding,
             binding,
-            ciphersuite: (),
         }
     }
 

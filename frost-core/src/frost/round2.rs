@@ -106,17 +106,9 @@ where
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 struct SignatureShareSerialization<C: Ciphersuite> {
+    /// Serialization header
+    pub(crate) header: Header<C>,
     share: SignatureShareHelper<C>,
-    /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    ciphersuite: (),
 }
 
 #[cfg(feature = "serde")]
@@ -138,8 +130,8 @@ where
 {
     fn from(value: SignatureShare<C>) -> Self {
         Self {
+            header: Header::default(),
             share: SignatureShareHelper(value.share),
-            ciphersuite: (),
         }
     }
 }
