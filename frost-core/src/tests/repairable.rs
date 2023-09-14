@@ -144,7 +144,7 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
         rhs = rhs + v;
     }
 
-    let lhs = lagrange_coefficient * helper_4.value.0;
+    let lhs = lagrange_coefficient * helper_4.signing_share.0;
 
     assert!(lhs == rhs)
 }
@@ -208,7 +208,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
         commitment,
     );
 
-    assert!(actual.value == expected.value);
+    assert!(actual.signing_share == expected.signing_share);
 }
 
 /// Test repair share step 1 fails with invalid numbers of signers.

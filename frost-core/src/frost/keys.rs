@@ -355,7 +355,7 @@ pub struct SecretShare<C: Ciphersuite> {
     #[zeroize(skip)]
     pub(crate) identifier: Identifier<C>,
     /// Secret Key.
-    pub(crate) value: SigningShare<C>,
+    pub(crate) signing_share: SigningShare<C>,
     #[zeroize(skip)]
     /// The commitments to be distributed among signers.
     pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
@@ -379,12 +379,12 @@ where
     /// Create a new [`SecretShare`] instance.
     pub fn new(
         identifier: Identifier<C>,
-        value: SigningShare<C>,
+        signing_share: SigningShare<C>,
         commitment: VerifiableSecretSharingCommitment<C>,
     ) -> Self {
         SecretShare {
             identifier,
-            value,
+            signing_share,
             commitment,
             ciphersuite: (),
         }
@@ -392,7 +392,7 @@ where
 
     /// Gets the inner [`SigningShare`] value.
     pub fn secret(&self) -> &SigningShare<C> {
-        &self.value
+        &self.signing_share
     }
 
     /// Verifies that a secret share is consistent with a verifiable secret sharing commitment,
@@ -410,7 +410,7 @@ where
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error<C>> {
-        let f_result = <C::Group>::generator() * self.value.0;
+        let f_result = <C::Group>::generator() * self.signing_share.0;
         let result = evaluate_vss(&self.commitment, self.identifier);
 
         if !(f_result == result) {
@@ -499,7 +499,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         HashMap::with_capacity(max_signers as usize);
 
     for secret_share in secret_shares {
-        let signer_public = secret_share.value.into();
+        let signer_public = secret_share.signing_share.into();
         verifying_shares.insert(secret_share.identifier, signer_public);
 
         secret_shares_by_id.insert(secret_share.identifier, secret_share);
@@ -632,7 +632,7 @@ where
 
         Ok(KeyPackage {
             identifier: secret_share.identifier,
-            signing_share: secret_share.value,
+            signing_share: secret_share.signing_share,
             verifying_share,
             verifying_key,
             min_signers: secret_share.commitment.0.len() as u16,
@@ -778,7 +778,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 
         secret_shares.push(SecretShare {
             identifier: *id,
-            value: SigningShare(value),
+            signing_share: SigningShare(value),
             commitment: commitment.clone(),
             ciphersuite: (),
         });

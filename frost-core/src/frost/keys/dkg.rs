@@ -480,7 +480,7 @@ pub fn part3<C: Ciphersuite>(
         // Build a temporary SecretShare so what we can call verify().
         let secret_share = SecretShare {
             identifier: round2_secret_package.identifier,
-            value: f_ell_i,
+            signing_share: f_ell_i,
             commitment: commitment.clone(),
             ciphersuite: (),
         };

@@ -54,7 +54,7 @@ fn check_secret_share_recreation() {
     let secret_share = samples::secret_share();
 
     let identifier = secret_share.identifier();
-    let value = secret_share.value();
+    let value = secret_share.signing_share();
     let commitment = secret_share.commitment();
 
     let new_secret_share = SecretShare::new(*identifier, *value, commitment.clone());
