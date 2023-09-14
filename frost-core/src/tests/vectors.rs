@@ -213,7 +213,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         );
         assert_eq!(
             key_package.signing_share(),
-            secret_shares[key_package.identifier()].secret()
+            secret_shares[key_package.identifier()].signing_share()
         )
     }
 
@@ -225,7 +225,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         let nonces = signer_nonces.get(&i).unwrap();
 
         // compute nonces from secret and randomness
-        let secret = secret_shares[&i].secret();
+        let secret = secret_shares[&i].signing_share();
 
         let hiding_nonce_randomness = &hiding_nonces_randomness[&i];
         let hiding_nonce = Nonce::nonce_generate_from_random_bytes(

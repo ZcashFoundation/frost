@@ -89,7 +89,7 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     );
 
     // TODO: assert on commitment equality as well once updates have been made to VerifiableSecretSharingCommitment
-    assert!(participant.secret() == participant_recovered_share.secret())
+    assert!(participant.signing_share() == participant_recovered_share.signing_share())
 }
 
 fn generate_scalar_from_byte_string<C: Ciphersuite>(

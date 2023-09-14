@@ -390,11 +390,6 @@ where
         }
     }
 
-    /// Gets the inner [`SigningShare`] value.
-    pub fn secret(&self) -> &SigningShare<C> {
-        &self.signing_share
-    }
-
     /// Verifies that a secret share is consistent with a verifiable secret sharing commitment,
     /// and returns the derived group info for the participant (their public verification share,
     /// and the group public key) if successful.
