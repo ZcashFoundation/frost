@@ -63,7 +63,7 @@ impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
             verifying_share.to_element() + randomized_params.randomizer_element,
         );
 
-        let signing_share = self.secret_share();
+        let signing_share = self.signing_share();
         let randomized_signing_share =
             SigningShare::new(signing_share.to_scalar() + randomized_params.randomizer.0);
 

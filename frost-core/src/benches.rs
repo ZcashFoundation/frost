@@ -130,7 +130,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
                         key_packages
                             .get(&participant_identifier)
                             .unwrap()
-                            .secret_share(),
+                            .signing_share(),
                         rng,
                     );
                 })
@@ -146,7 +146,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
                 key_packages
                     .get(&participant_identifier)
                     .unwrap()
-                    .secret_share(),
+                    .signing_share(),
                 rng,
             );
             nonces.insert(participant_identifier, nonce);

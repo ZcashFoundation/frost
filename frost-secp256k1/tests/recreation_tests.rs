@@ -68,7 +68,7 @@ fn check_key_package_recreation() {
     let key_package = samples::key_package();
 
     let identifier = key_package.identifier();
-    let signing_share = key_package.secret_share();
+    let signing_share = key_package.signing_share();
     let verifying_share = key_package.public();
     let verifying_key = key_package.verifying_key();
     let min_signers = key_package.min_signers();

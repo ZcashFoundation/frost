@@ -54,7 +54,7 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
             key_packages
                 .get(&participant_identifier)
                 .unwrap()
-                .secret_share(),
+                .signing_share(),
             &mut rng,
         );
         nonces.insert(participant_identifier, nonce);

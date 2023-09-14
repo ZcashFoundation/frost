@@ -52,7 +52,7 @@ for participant_index in 1..(min_signers as u16 + 1) {
     // participant, up to _threshold_.
     # // ANCHOR: round1_commit
     let (nonces, commitments) = frost::round1::commit(
-        key_packages[&participant_identifier].secret_share(),
+        key_packages[&participant_identifier].signing_share(),
         &mut rng,
     );
     # // ANCHOR_END: round1_commit

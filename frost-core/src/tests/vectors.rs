@@ -209,10 +209,10 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     for key_package in key_packages.values() {
         assert_eq!(
             *key_package.public(),
-            frost::keys::VerifyingShare::from(*key_package.secret_share())
+            frost::keys::VerifyingShare::from(*key_package.signing_share())
         );
         assert_eq!(
-            key_package.secret_share(),
+            key_package.signing_share(),
             secret_shares[key_package.identifier()].secret()
         )
     }

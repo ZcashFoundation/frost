@@ -212,7 +212,7 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
             key_packages
                 .get(&participant_identifier)
                 .unwrap()
-                .secret_share(),
+                .signing_share(),
             &mut rng,
         );
         nonces_map.insert(participant_identifier, nonces);
@@ -715,7 +715,7 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
             key_packages
                 .get(&participant_identifier)
                 .unwrap()
-                .secret_share(),
+                .signing_share(),
             &mut rng,
         );
         nonces_map.insert(participant_identifier, nonces);
@@ -788,13 +788,13 @@ pub fn check_sign_with_incorrect_commitments<C: Ciphersuite, R: RngCore + Crypto
     // let key_packages_inc = vec![id_1, id_2, id_3];
 
     let (_nonces_1, commitments_1) =
-        frost::round1::commit(key_packages[&id_1].secret_share(), &mut rng);
+        frost::round1::commit(key_packages[&id_1].signing_share(), &mut rng);
 
     let (_nonces_2, commitments_2) =
-        frost::round1::commit(key_packages[&id_2].secret_share(), &mut rng);
+        frost::round1::commit(key_packages[&id_2].signing_share(), &mut rng);
 
     let (nonces_3, _commitments_3) =
-        frost::round1::commit(key_packages[&id_3].secret_share(), &mut rng);
+        frost::round1::commit(key_packages[&id_3].signing_share(), &mut rng);
 
     commitments_map.insert(id_1, commitments_1);
     commitments_map.insert(id_2, commitments_2);

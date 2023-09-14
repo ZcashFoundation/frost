@@ -568,8 +568,8 @@ pub struct KeyPackage<C: Ciphersuite> {
     /// Denotes the participant identifier each secret share key package is owned by.
     #[zeroize(skip)]
     pub(crate) identifier: Identifier<C>,
-    /// This participant's secret share.
-    pub(crate) secret_share: SigningShare<C>,
+    /// This participant's signing share. This is secret.
+    pub(crate) signing_share: SigningShare<C>,
     /// This participant's public key.
     #[zeroize(skip)]
     pub(crate) public: VerifyingShare<C>,
@@ -597,14 +597,14 @@ where
     /// Create a new [`KeyPackage`] instance.
     pub fn new(
         identifier: Identifier<C>,
-        secret_share: SigningShare<C>,
+        signing_share: SigningShare<C>,
         public: VerifyingShare<C>,
         verifying_key: VerifyingKey<C>,
         min_signers: u16,
     ) -> Self {
         Self {
             identifier,
-            secret_share,
+            signing_share,
             public,
             verifying_key,
             min_signers,
@@ -632,7 +632,7 @@ where
 
         Ok(KeyPackage {
             identifier: secret_share.identifier,
-            secret_share: secret_share.value,
+            signing_share: secret_share.value,
             public,
             verifying_key,
             min_signers: secret_share.commitment.0.len() as u16,
@@ -831,12 +831,12 @@ pub fn reconstruct<C: Ciphersuite>(
     }
 
     // Compute the Lagrange coefficients
-    for secret_share in key_packages.iter() {
+    for key_package in key_packages.iter() {
         let lagrange_coefficient =
-            compute_lagrange_coefficient(&identifiers, None, secret_share.identifier)?;
+            compute_lagrange_coefficient(&identifiers, None, key_package.identifier)?;
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
-        secret = secret + (lagrange_coefficient * secret_share.secret_share().0);
+        secret = secret + (lagrange_coefficient * key_package.signing_share().0);
     }
 
     Ok(SigningKey { scalar: secret })
