@@ -159,7 +159,7 @@ pub mod round2 {
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The secret share being sent.
-        pub(crate) secret_share: SigningShare<C>,
+        pub(crate) signing_share: SigningShare<C>,
         /// Ciphersuite ID for serialization
         #[cfg_attr(
             feature = "serde",
@@ -178,9 +178,9 @@ pub mod round2 {
         C: Ciphersuite,
     {
         /// Create a new [`Package`] instance.
-        pub fn new(secret_share: SigningShare<C>) -> Self {
+        pub fn new(signing_share: SigningShare<C>) -> Self {
             Self {
-                secret_share,
+                signing_share,
                 ciphersuite: (),
             }
         }
@@ -364,7 +364,7 @@ pub fn part2<C: Ciphersuite>(
         round2_packages.insert(
             ell,
             round2::Package {
-                secret_share: SigningShare(value),
+                signing_share: SigningShare(value),
                 ciphersuite: (),
             },
         );
@@ -468,7 +468,7 @@ pub fn part3<C: Ciphersuite>(
         // > g^{f_ℓ(i)} ≟ ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk}, aborting if the
         // > check fails.
         let ell = *sender_identifier;
-        let f_ell_i = round2_package.secret_share;
+        let f_ell_i = round2_package.signing_share;
 
         let commitment = &round1_packages
             .get(&ell)

@@ -115,7 +115,7 @@ fn check_round1_package_recreation() {
 fn check_round2_package_recreation() {
     let round2_package = samples::round2_package();
 
-    let signing_share = round2_package.secret_share();
+    let signing_share = round2_package.signing_share();
 
     let new_round2_package = round2::Package::new(*signing_share);
 
