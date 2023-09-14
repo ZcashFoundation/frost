@@ -58,7 +58,7 @@ impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
         Self: Sized,
         C: Ciphersuite,
     {
-        let verifying_share = self.public();
+        let verifying_share = self.verifying_share();
         let randomized_verifying_share = VerifyingShare::<C>::new(
             verifying_share.to_element() + randomized_params.randomizer_element,
         );

@@ -572,7 +572,7 @@ pub struct KeyPackage<C: Ciphersuite> {
     pub(crate) signing_share: SigningShare<C>,
     /// This participant's public key.
     #[zeroize(skip)]
-    pub(crate) public: VerifyingShare<C>,
+    pub(crate) verifying_share: VerifyingShare<C>,
     /// The public verifying key that represents the entire group.
     #[zeroize(skip)]
     pub(crate) verifying_key: VerifyingKey<C>,
@@ -598,14 +598,14 @@ where
     pub fn new(
         identifier: Identifier<C>,
         signing_share: SigningShare<C>,
-        public: VerifyingShare<C>,
+        verifying_share: VerifyingShare<C>,
         verifying_key: VerifyingKey<C>,
         min_signers: u16,
     ) -> Self {
         Self {
             identifier,
             signing_share,
-            public,
+            verifying_share,
             verifying_key,
             min_signers,
             ciphersuite: (),
@@ -628,12 +628,12 @@ where
     /// dealer, but implementations *MUST* make sure that all participants have
     /// a consistent view of this commitment in practice.
     fn try_from(secret_share: SecretShare<C>) -> Result<Self, Error<C>> {
-        let (public, verifying_key) = secret_share.verify()?;
+        let (verifying_share, verifying_key) = secret_share.verify()?;
 
         Ok(KeyPackage {
             identifier: secret_share.identifier,
             signing_share: secret_share.value,
-            public,
+            verifying_share,
             verifying_key,
             min_signers: secret_share.commitment.0.len() as u16,
             ciphersuite: (),

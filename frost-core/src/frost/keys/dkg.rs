@@ -525,7 +525,7 @@ pub fn part3<C: Ciphersuite>(
     let key_package = KeyPackage {
         identifier: round2_secret_package.identifier,
         signing_share,
-        public: verifying_share,
+        verifying_share,
         verifying_key,
         min_signers: round2_secret_package.min_signers,
         ciphersuite: (),

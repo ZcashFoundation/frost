@@ -495,7 +495,7 @@ where
             &received_round2_packages[&participant_identifier],
         )
         .unwrap();
-        verifying_keys.insert(participant_identifier, key_package.public);
+        verifying_keys.insert(participant_identifier, key_package.verifying_share);
         // Test if all verifying_key are equal
         if let Some(previous_verifying_key) = verifying_key {
             assert_eq!(previous_verifying_key, key_package.verifying_key)

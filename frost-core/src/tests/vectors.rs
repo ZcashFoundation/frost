@@ -208,7 +208,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     for key_package in key_packages.values() {
         assert_eq!(
-            *key_package.public(),
+            *key_package.verifying_share(),
             frost::keys::VerifyingShare::from(*key_package.signing_share())
         );
         assert_eq!(
@@ -292,7 +292,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     let verifying_shares = key_packages
         .into_iter()
-        .map(|(i, key_package)| (i, *key_package.public()))
+        .map(|(i, key_package)| (i, *key_package.verifying_share()))
         .collect();
 
     let pubkey_package = frost::keys::PublicKeyPackage::new(verifying_shares, verifying_key);
