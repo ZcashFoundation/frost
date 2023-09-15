@@ -212,7 +212,7 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
             key_packages
                 .get(&participant_identifier)
                 .unwrap()
-                .secret_share(),
+                .signing_share(),
             &mut rng,
         );
         nonces_map.insert(participant_identifier, nonces);
@@ -263,21 +263,23 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Check that the threshold signature can be verified by the group public
     // key (the verification key).
     pubkey_package
-        .group_public
+        .verifying_key
         .verify(message, &group_signature)?;
 
     // Check that the threshold signature can be verified by the group public
-    // key (the verification key) from KeyPackage.group_public
+    // key (the verification key) from KeyPackage.verifying_key
     for (participant_identifier, _) in nonces_map.clone() {
         let key_package = key_packages.get(&participant_identifier).unwrap();
 
-        key_package.group_public.verify(message, &group_signature)?;
+        key_package
+            .verifying_key
+            .verify(message, &group_signature)?;
     }
 
     Ok((
         message.to_owned(),
         group_signature,
-        pubkey_package.group_public,
+        pubkey_package.verifying_key,
     ))
 }
 
@@ -311,10 +313,10 @@ fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
         signature_shares.clone(),
         pubkey_package.clone(),
     );
-    check_aggregate_invalid_share_identifier_for_signer_pubkeys(
-        signing_package.clone(),
-        signature_shares.clone(),
-        pubkey_package.clone(),
+    check_aggregate_invalid_share_identifier_for_verifying_shares(
+        signing_package,
+        signature_shares,
+        pubkey_package,
     );
 }
 
@@ -336,7 +338,7 @@ fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
 /// Note that the SigningPackage part of the finding is not currently reachable
 /// since it's caught by `compute_lagrange_coefficient()`, and the Binding Factor
 /// part can't either since it's caught before by the PublicKeyPackage part.
-fn check_aggregate_invalid_share_identifier_for_signer_pubkeys<C: Ciphersuite + PartialEq>(
+fn check_aggregate_invalid_share_identifier_for_verifying_shares<C: Ciphersuite + PartialEq>(
     signing_package: frost::SigningPackage<C>,
     mut signature_shares: HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
@@ -467,7 +469,7 @@ where
     // Used by the signing test that follows.
     let mut verifying_keys = HashMap::new();
     // The group public key, used by the signing test that follows.
-    let mut group_public = None;
+    let mut verifying_key = None;
     // For each participant, store the set of verifying keys they have computed.
     // This is used to check if the set is correct (the same) for all participants.
     // In practice, if there is a Coordinator, only they need to store the set.
@@ -493,12 +495,12 @@ where
             &received_round2_packages[&participant_identifier],
         )
         .unwrap();
-        verifying_keys.insert(participant_identifier, key_package.public);
-        // Test if all group_public are equal
-        if let Some(previous_group_public) = group_public {
-            assert_eq!(previous_group_public, key_package.group_public)
+        verifying_keys.insert(participant_identifier, key_package.verifying_share);
+        // Test if all verifying_key are equal
+        if let Some(previous_verifying_key) = verifying_key {
+            assert_eq!(previous_verifying_key, key_package.verifying_key)
         }
-        group_public = Some(key_package.group_public);
+        verifying_key = Some(key_package.verifying_key);
         key_packages.insert(participant_identifier, key_package);
         pubkey_packages_by_participant
             .insert(participant_identifier, pubkey_package_for_participant);
@@ -506,10 +508,10 @@ where
 
     // Test if the set of verifying keys is correct for all participants.
     for verifying_keys_for_participant in pubkey_packages_by_participant.values() {
-        assert!(verifying_keys_for_participant.signer_pubkeys == verifying_keys);
+        assert!(verifying_keys_for_participant.verifying_shares == verifying_keys);
     }
 
-    let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, group_public.unwrap());
+    let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, verifying_key.unwrap());
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
@@ -713,7 +715,7 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
             key_packages
                 .get(&participant_identifier)
                 .unwrap()
-                .secret_share(),
+                .signing_share(),
             &mut rng,
         );
         nonces_map.insert(participant_identifier, nonces);
@@ -786,13 +788,13 @@ pub fn check_sign_with_incorrect_commitments<C: Ciphersuite, R: RngCore + Crypto
     // let key_packages_inc = vec![id_1, id_2, id_3];
 
     let (_nonces_1, commitments_1) =
-        frost::round1::commit(key_packages[&id_1].secret_share(), &mut rng);
+        frost::round1::commit(key_packages[&id_1].signing_share(), &mut rng);
 
     let (_nonces_2, commitments_2) =
-        frost::round1::commit(key_packages[&id_2].secret_share(), &mut rng);
+        frost::round1::commit(key_packages[&id_2].signing_share(), &mut rng);
 
     let (nonces_3, _commitments_3) =
-        frost::round1::commit(key_packages[&id_3].secret_share(), &mut rng);
+        frost::round1::commit(key_packages[&id_3].signing_share(), &mut rng);
 
     commitments_map.insert(id_1, commitments_1);
     commitments_map.insert(id_2, commitments_2);

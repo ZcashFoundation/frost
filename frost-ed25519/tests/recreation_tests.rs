@@ -54,7 +54,7 @@ fn check_secret_share_recreation() {
     let secret_share = samples::secret_share();
 
     let identifier = secret_share.identifier();
-    let value = secret_share.value();
+    let value = secret_share.signing_share();
     let commitment = secret_share.commitment();
 
     let new_secret_share = SecretShare::new(*identifier, *value, commitment.clone());
@@ -68,9 +68,9 @@ fn check_key_package_recreation() {
     let key_package = samples::key_package();
 
     let identifier = key_package.identifier();
-    let signing_share = key_package.secret_share();
-    let verifying_share = key_package.public();
-    let verifying_key = key_package.group_public();
+    let signing_share = key_package.signing_share();
+    let verifying_share = key_package.verifying_share();
+    let verifying_key = key_package.verifying_key();
     let min_signers = key_package.min_signers();
 
     let new_key_package = KeyPackage::new(
@@ -89,10 +89,10 @@ fn check_key_package_recreation() {
 fn check_public_key_package_recreation() {
     let public_key_package = samples::public_key_package();
 
-    let signer_pubkeys = public_key_package.signer_pubkeys();
-    let verifying_key = public_key_package.group_public();
+    let verifying_shares = public_key_package.verifying_shares();
+    let verifying_key = public_key_package.verifying_key();
 
-    let new_public_key_package = PublicKeyPackage::new(signer_pubkeys.clone(), *verifying_key);
+    let new_public_key_package = PublicKeyPackage::new(verifying_shares.clone(), *verifying_key);
 
     assert!(public_key_package == new_public_key_package);
 }
@@ -115,7 +115,7 @@ fn check_round1_package_recreation() {
 fn check_round2_package_recreation() {
     let round2_package = samples::round2_package();
 
-    let signing_share = round2_package.secret_share();
+    let signing_share = round2_package.signing_share();
 
     let new_round2_package = round2::Package::new(*signing_share);
 

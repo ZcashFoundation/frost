@@ -58,12 +58,12 @@ impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
         Self: Sized,
         C: Ciphersuite,
     {
-        let verifying_share = self.public();
+        let verifying_share = self.verifying_share();
         let randomized_verifying_share = VerifyingShare::<C>::new(
             verifying_share.to_element() + randomized_params.randomizer_element,
         );
 
-        let signing_share = self.secret_share();
+        let signing_share = self.signing_share();
         let randomized_signing_share =
             SigningShare::new(signing_share.to_scalar() + randomized_params.randomizer.0);
 
@@ -89,7 +89,7 @@ impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
         Self: Sized,
         C: Ciphersuite,
     {
-        let verifying_shares = self.signer_pubkeys().clone();
+        let verifying_shares = self.verifying_shares().clone();
         let randomized_verifying_shares = verifying_shares
             .iter()
             .map(|(identifier, verifying_share)| {
@@ -120,7 +120,7 @@ pub fn sign<C: Ciphersuite>(
     randomizer: Randomizer<C>,
 ) -> Result<frost::round2::SignatureShare<C>, Error<C>> {
     let randomized_params =
-        RandomizedParams::from_randomizer(key_package.group_public(), randomizer);
+        RandomizedParams::from_randomizer(key_package.verifying_key(), randomizer);
     let randomized_key_package = key_package.randomize(&randomized_params)?;
     frost::round2::sign(signing_package, signer_nonces, &randomized_key_package)
 }
@@ -238,9 +238,9 @@ where
         randomizer: Randomizer<C>,
     ) -> Self {
         let randomizer_element = <C::Group as Group>::generator() * randomizer.0;
-        let group_public_element = group_verifying_key.to_element();
-        let randomized_group_public_element = group_public_element + randomizer_element;
-        let randomized_verifying_key = VerifyingKey::<C>::new(randomized_group_public_element);
+        let verifying_key_element = group_verifying_key.to_element();
+        let randomized_verifying_key_element = verifying_key_element + randomizer_element;
+        let randomized_verifying_key = VerifyingKey::<C>::new(randomized_verifying_key_element);
 
         Self {
             randomizer,

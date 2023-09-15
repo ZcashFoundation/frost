@@ -212,7 +212,7 @@ fn check_secret_share_serialization() {
 
     let json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "value": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "commitment": [
           "5866666666666666666666666666666666666666666666666666666666666666"
         ],
@@ -227,7 +227,7 @@ fn check_secret_share_serialization() {
     // Invalid identifier
     let invalid_json = r#"{
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "value": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "commitment": [
           "5866666666666666666666666666666666666666666666666666666666666666"
         ],
@@ -259,7 +259,7 @@ fn check_secret_share_serialization() {
     // Extra field
     let invalid_json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "value": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "commitment": [
           "5866666666666666666666666666666666666666666666666666666666666666"
         ],
@@ -281,9 +281,9 @@ fn check_key_package_serialization() {
 
     let json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "public": "5866666666666666666666666666666666666666666666666666666666666666",
-        "group_public": "5866666666666666666666666666666666666666666666666666666666666666",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "verifying_share": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
         "min_signers": 2,
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
@@ -296,9 +296,9 @@ fn check_key_package_serialization() {
     // Invalid identifier
     let invalid_json = r#"{
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "public": "5866666666666666666666666666666666666666666666666666666666666666",
-        "group_public": "5866666666666666666666666666666666666666666666666666666666666666",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "verifying_share": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
     assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
@@ -307,8 +307,8 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "foo": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "public": "5866666666666666666666666666666666666666666666666666666666666666",
-        "group_public": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_share": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
     assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
@@ -316,8 +316,8 @@ fn check_key_package_serialization() {
     // Missing field
     let invalid_json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "public": "5866666666666666666666666666666666666666666666666666666666666666",
-        "group_public": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_share": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
     assert!(serde_json::from_str::<KeyPackage>(invalid_json).is_err());
@@ -325,9 +325,9 @@ fn check_key_package_serialization() {
     // Extra field
     let invalid_json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "public": "5866666666666666666666666666666666666666666666666666666666666666",
-        "group_public": "5866666666666666666666666666666666666666666666666666666666666666",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "verifying_share": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
         "extra_field": 1,
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
@@ -345,10 +345,10 @@ fn check_public_key_package_serialization() {
     assert!(public_key_package == decoded_public_key_package);
 
     let json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "5866666666666666666666666666666666666666666666666666666666666666"
         },
-        "group_public": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
     let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(json).unwrap();
@@ -359,17 +359,17 @@ fn check_public_key_package_serialization() {
 
     // Invalid identifier
     let invalid_json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "0000000000000000000000000000000000000000000000000000000000000000": "5866666666666666666666666666666666666666666666666666666666666666"
         },
-        "group_public": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
     assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());
 
     // Invalid field
     let invalid_json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "5866666666666666666666666666666666666666666666666666666666666666"
         },
         "foo": "5866666666666666666666666666666666666666666666666666666666666666",
@@ -379,7 +379,7 @@ fn check_public_key_package_serialization() {
 
     // Missing field
     let invalid_json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "5866666666666666666666666666666666666666666666666666666666666666"
         },
         "ciphersuite": "FROST(Ed25519, SHA-512)"
@@ -388,10 +388,10 @@ fn check_public_key_package_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "signer_pubkeys": {
+        "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "5866666666666666666666666666666666666666666666666666666666666666"
         },
-        "group_public": "5866666666666666666666666666666666666666666666666666666666666666",
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
         "extra": 1,
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
@@ -463,7 +463,7 @@ fn check_round2_package_serialization() {
     assert!(round2_package == decoded_round2_package);
 
     let json = r#"{
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;
     let decoded_round2_package: round2::Package = serde_json::from_str(json).unwrap();
@@ -487,7 +487,7 @@ fn check_round2_package_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "extra": 1,
         "ciphersuite": "FROST(Ed25519, SHA-512)"
       }"#;

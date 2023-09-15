@@ -82,13 +82,13 @@ take a bit to compile. It will show a bunch of warnings which is normal.
 cargo build --release --bin sign --features dotenv -- -g
 ```
 
-When prompted for the `ak`, paste the `group_public` value that was printed in
+When prompted for the `ak`, paste the `verifying_key` value that was printed in
 the previous part, inside the Public Key Package. For example, in the following
 package
 
 ```
 Public key package:
-{"signer_pubkeys": ...snip... ,"group_public":"d2bf40ca860fb97e9d6d15d7d25e4f17d2e8ba5dd7069188cbf30b023910a71b","ciphersuite":"FROST(Pallas, BLAKE2b-512)"}
+{"verifying_shares": ...snip... ,"verifying_key":"d2bf40ca860fb97e9d6d15d7d25e4f17d2e8ba5dd7069188cbf30b023910a71b","ciphersuite":"FROST(Pallas, BLAKE2b-512)"}
 ```
 
 you would need to use
