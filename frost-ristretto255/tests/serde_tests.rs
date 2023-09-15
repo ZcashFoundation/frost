@@ -212,7 +212,7 @@ fn check_secret_share_serialization() {
 
     let json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "value": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         ],
@@ -227,7 +227,7 @@ fn check_secret_share_serialization() {
     // Invalid identifier
     let invalid_json = r#"{
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "value": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         ],
@@ -259,7 +259,7 @@ fn check_secret_share_serialization() {
     // Extra field
     let invalid_json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "value": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
         ],
@@ -281,8 +281,8 @@ fn check_key_package_serialization() {
 
     let json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "verifying_share": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "verifying_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "min_signers": 2,
         "ciphersuite": "FROST(ristretto255, SHA-512)"
@@ -296,8 +296,8 @@ fn check_key_package_serialization() {
     // Invalid identifier
     let invalid_json = r#"{
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "verifying_share": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "verifying_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
@@ -307,7 +307,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "foo": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+        "verifying_share": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "verifying_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
@@ -316,7 +316,7 @@ fn check_key_package_serialization() {
     // Missing field
     let invalid_json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+        "verifying_share": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "verifying_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
@@ -325,8 +325,8 @@ fn check_key_package_serialization() {
     // Extra field
     let invalid_json = r#"{
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
-        "public": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "verifying_share": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "verifying_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "extra_field": 1,
         "ciphersuite": "FROST(ristretto255, SHA-512)"
@@ -463,7 +463,7 @@ fn check_round2_package_serialization() {
     assert!(round2_package == decoded_round2_package);
 
     let json = r#"{
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
     let decoded_round2_package: round2::Package = serde_json::from_str(json).unwrap();
@@ -487,7 +487,7 @@ fn check_round2_package_serialization() {
 
     // Extra field
     let invalid_json = r#"{
-        "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
+        "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "extra": 1,
         "ciphersuite": "FROST(ristretto255, SHA-512)"
       }"#;
