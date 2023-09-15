@@ -23,8 +23,8 @@ pub mod round1;
 pub mod round2;
 
 use crate::{
-    scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, Error, Field, Group, Scalar,
-    Signature, VerifyingKey,
+    scalar_mul::VartimeMultiscalarMul, Ciphersuite, Deserialize, Element, Error, Field, Group,
+    Scalar, Serialize, Signature, VerifyingKey,
 };
 
 pub use self::identifier::Identifier;
@@ -303,6 +303,22 @@ where
                 (*identifier, binding_factor_input)
             })
             .collect()
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<C> SigningPackage<C>
+where
+    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
+    }
+
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
     }
 }
 

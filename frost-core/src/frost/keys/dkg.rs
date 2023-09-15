@@ -50,6 +50,8 @@ pub mod round1 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
+    use crate::{Deserialize, Serialize};
+
     use super::*;
 
     /// The package that must be broadcast by each participant to all other participants
@@ -89,6 +91,22 @@ pub mod round1 {
                 proof_of_knowledge,
                 ciphersuite: (),
             }
+        }
+    }
+
+    #[cfg(feature = "serialization")]
+    impl<C> Package<C>
+    where
+        C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    {
+        /// Serialize the struct into a Vec.
+        pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+            Serialize::serialize(&self)
+        }
+
+        /// Deserialize the struct from a slice of bytes.
+        pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+            Deserialize::deserialize(bytes)
         }
     }
 
@@ -145,6 +163,8 @@ pub mod round2 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
+    use crate::{Deserialize, Serialize};
+
     use super::*;
 
     /// A package that must be sent by each participant to some other participants
@@ -183,6 +203,22 @@ pub mod round2 {
                 signing_share,
                 ciphersuite: (),
             }
+        }
+    }
+
+    #[cfg(feature = "serialization")]
+    impl<C> Package<C>
+    where
+        C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    {
+        /// Serialize the struct into a Vec.
+        pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+            Serialize::serialize(&self)
+        }
+
+        /// Deserialize the struct from a slice of bytes.
+        pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+            Deserialize::deserialize(bytes)
         }
     }
 

@@ -101,6 +101,12 @@ pub enum Error<C: Ciphersuite> {
     /// The ciphersuite does not support deriving identifiers from strings.
     #[error("The ciphersuite does not support deriving identifiers from strings.")]
     IdentifierDerivationNotSupported,
+    /// Error serializing value.
+    #[error("Error serializing value.")]
+    SerializationError,
+    /// Error deserializing value.
+    #[error("Error deserializing value.")]
+    DeserializationError,
 }
 
 impl<C> Error<C>
@@ -147,6 +153,8 @@ where
             | Error::UnknownIdentifier
             | Error::IncorrectNumberOfIdentifiers
             | Error::IncorrectNumberOfCommitments
+            | Error::SerializationError
+            | Error::DeserializationError
             | Error::IdentifierDerivationNotSupported => None,
         }
     }

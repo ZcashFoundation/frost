@@ -17,7 +17,8 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, SigningKey, VerifyingKey,
+    frost::Identifier, Ciphersuite, Deserialize, Element, Error, Field, Group, Scalar, Serialize,
+    SigningKey, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]
@@ -420,6 +421,22 @@ where
     }
 }
 
+#[cfg(feature = "serialization")]
+impl<C> SecretShare<C>
+where
+    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
+    }
+
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
+    }
+}
+
 /// The identifier list to use when generating key shares.
 pub enum IdentifierList<'a, C: Ciphersuite> {
     /// Use the default values (1 to max_signers, inclusive).
@@ -608,6 +625,22 @@ where
     }
 }
 
+#[cfg(feature = "serialization")]
+impl<C> KeyPackage<C>
+where
+    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
+    }
+
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
+    }
+}
+
 impl<C> TryFrom<SecretShare<C>> for KeyPackage<C>
 where
     C: Ciphersuite,
@@ -676,6 +709,22 @@ where
             verifying_key,
             ciphersuite: (),
         }
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<C> PublicKeyPackage<C>
+where
+    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
+    }
+
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
     }
 }
 

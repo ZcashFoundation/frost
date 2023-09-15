@@ -4,7 +4,7 @@ edition = "2021"
 # When releasing to crates.io:
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.6.0"
+version = "0.7.0"
 authors = [
     "Deirdre Connolly <durumcrustulum@gmail.com>",
     "Chelsea Komlo <me@chelseakomlo.com>",
@@ -23,10 +23,12 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 byteorder = "1.4"
+const-crc32 = "1.2.0"
 document-features = "0.2.7"
 debugless-unwrap = "0.0.4"
 derive-getters = "0.3.0"
 hex = "0.4.3"
+postcard = { version = "1.0.0", features = ["use-std"], optional = true }
 rand_core = "0.6"
 serde = { version = "1.0.160", features = ["derive"], optional = true }
 serdect = { version = "0.2.0", optional = true }
@@ -48,7 +50,7 @@ rand_chacha = "0.3"
 serde_json = "1.0"
 
 [features]
-default = []
+default = ["serialization"]
 #! ## Features
 ## Expose internal types, which do not have SemVer guarantees. This is an advanced
 ## feature which can be useful if you need to build a modified version of FROST.
@@ -58,6 +60,7 @@ internals = []
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
 serde = ["dep:serde", "dep:serdect"]
+serialization = ["serde", "dep:postcard"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["proptest", "serde_json", "criterion"]
 
