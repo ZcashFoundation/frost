@@ -155,7 +155,7 @@ const CONTEXT_STRING: &str = "FROST-ED448-SHAKE256-v1";
 pub struct Ed448Shake256;
 
 impl Ciphersuite for Ed448Shake256 {
-    const ID: &'static str = "FROST(Ed448, SHAKE256)";
+    const ID: &'static str = CONTEXT_STRING;
 
     type Group = Ed448Group;
 

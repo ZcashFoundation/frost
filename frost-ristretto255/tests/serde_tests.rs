@@ -27,7 +27,7 @@ fn check_signing_commitments_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
@@ -53,7 +53,7 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "foo": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
         "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
@@ -64,7 +64,7 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "foo": "0000000000000000000000000000000000000000000000000000000000000000",
         "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
@@ -100,13 +100,13 @@ fn check_signing_package_serialization() {
     let json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(ristretto255, SHA-512)"
+        "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
       },
       "signing_commitments": {
         "2a00000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(ristretto255, SHA-512)"
+            "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
           },
           "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
@@ -121,13 +121,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(ristretto255, SHA-512)"
+        "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
       },
       "signing_commitments": {
         "0000000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(ristretto255, SHA-512)"
+            "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
           },
           "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
@@ -141,13 +141,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(ristretto255, SHA-512)"
+        "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
       },
       "signing_commitments": {
         "2a00000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(ristretto255, SHA-512)"
+            "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
           },
           "foo": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
@@ -161,13 +161,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(ristretto255, SHA-512)"
+        "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
       },
       "signing_commitments": {
         "2a00000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(ristretto255, SHA-512)"
+            "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
           },
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
         }
@@ -180,13 +180,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(ristretto255, SHA-512)"
+        "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
       },
       "signing_commitments": {
         "2a00000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(ristretto255, SHA-512)"
+            "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
           },
           "hiding": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
@@ -212,7 +212,7 @@ fn check_signature_share_serialization() {
     let json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(ristretto255, SHA-512)"
+        "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
       },
       "share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a"
     }"#;
@@ -226,7 +226,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "foo": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a"
       }"#;
@@ -236,7 +236,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         }
       }"#;
     assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
@@ -245,7 +245,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "extra": 1
@@ -266,7 +266,7 @@ fn check_secret_share_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -284,7 +284,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -298,7 +298,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "foo": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -312,7 +312,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "commitment": [
@@ -325,7 +325,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -350,7 +350,7 @@ fn check_key_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -368,7 +368,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -382,7 +382,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "foo": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -395,7 +395,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "verifying_share": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
@@ -407,7 +407,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -421,7 +421,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 1,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "identifier": "2a00000000000000000000000000000000000000000000000000000000000000",
         "secret_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
@@ -445,7 +445,7 @@ fn check_public_key_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -462,7 +462,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "verifying_shares": {
           "0000000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -475,7 +475,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -488,7 +488,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -500,7 +500,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -524,7 +524,7 @@ fn check_round1_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -541,7 +541,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -554,7 +554,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -566,7 +566,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "commitment": [
           "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
@@ -590,7 +590,7 @@ fn check_round2_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a"
       }"#;
@@ -604,7 +604,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "foo": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a"
       }"#;
@@ -614,7 +614,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         }
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
@@ -623,7 +623,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(ristretto255, SHA-512)"
+          "ciphersuite": "FROST-RISTRETTO255-SHA512-v1"
         },
         "signing_share": "498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a",
         "extra": 1

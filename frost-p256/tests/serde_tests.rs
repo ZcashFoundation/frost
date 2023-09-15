@@ -27,7 +27,7 @@ fn check_signing_commitments_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "hiding": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "binding": "037cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc47669978"
@@ -53,7 +53,7 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "foo": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
         "binding": "037cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc47669978"
@@ -64,7 +64,7 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "foo": "0000000000000000000000000000000000000000000000000000000000000000",
         "binding": "037cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc47669978"
@@ -100,13 +100,13 @@ fn check_signing_package_serialization() {
     let json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(P-256, SHA-256)"
+        "ciphersuite": "FROST-P256-SHA256-v1"
       },
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(P-256, SHA-256)"
+            "ciphersuite": "FROST-P256-SHA256-v1"
           },
           "hiding": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
           "binding": "037cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc47669978"
@@ -121,13 +121,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(P-256, SHA-256)"
+        "ciphersuite": "FROST-P256-SHA256-v1"
       },
       "signing_commitments": {
         "0000000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(P-256, SHA-256)"
+            "ciphersuite": "FROST-P256-SHA256-v1"
           },
           "hiding": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
           "binding": "037cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc47669978"
@@ -141,13 +141,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(P-256, SHA-256)"
+        "ciphersuite": "FROST-P256-SHA256-v1"
       },
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(P-256, SHA-256)"
+            "ciphersuite": "FROST-P256-SHA256-v1"
           },
           "foo": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
           "binding": "037cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc47669978"
@@ -161,13 +161,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(P-256, SHA-256)"
+        "ciphersuite": "FROST-P256-SHA256-v1"
       },
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(P-256, SHA-256)"
+            "ciphersuite": "FROST-P256-SHA256-v1"
           },
           "binding": "037cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc47669978"
         }
@@ -180,13 +180,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(P-256, SHA-256)"
+        "ciphersuite": "FROST-P256-SHA256-v1"
       },
       "signing_commitments": {
         "000000000000000000000000000000000000000000000000000000000000002a": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(P-256, SHA-256)"
+            "ciphersuite": "FROST-P256-SHA256-v1"
           },
           "hiding": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
           "binding": "037cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc47669978"
@@ -212,7 +212,7 @@ fn check_signature_share_serialization() {
     let json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(P-256, SHA-256)"
+        "ciphersuite": "FROST-P256-SHA256-v1"
       },
       "share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1"
     }"#;
@@ -226,7 +226,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "foo": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1"
       }"#;
@@ -236,7 +236,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         }
       }"#;
     assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
@@ -245,7 +245,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
         "extra": 1
@@ -266,7 +266,7 @@ fn check_secret_share_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "signing_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -284,7 +284,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -298,7 +298,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "foo": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -312,7 +312,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "commitment": [
@@ -325,7 +325,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "signing_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -350,7 +350,7 @@ fn check_key_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "signing_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -368,7 +368,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -382,7 +382,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "foo": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -395,7 +395,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "verifying_share": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
@@ -407,7 +407,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "signing_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -421,7 +421,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 1,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "identifier": "000000000000000000000000000000000000000000000000000000000000002a",
         "secret_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
@@ -445,7 +445,7 @@ fn check_public_key_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "verifying_shares": {
           "000000000000000000000000000000000000000000000000000000000000002a": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -462,7 +462,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "verifying_shares": {
           "0000000000000000000000000000000000000000000000000000000000000000": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -475,7 +475,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "verifying_shares": {
           "000000000000000000000000000000000000000000000000000000000000002a": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -488,7 +488,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "verifying_shares": {
           "000000000000000000000000000000000000000000000000000000000000002a": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -500,7 +500,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "verifying_shares": {
           "000000000000000000000000000000000000000000000000000000000000002a": "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -524,7 +524,7 @@ fn check_round1_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "commitment": [
           "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -541,7 +541,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "commitment": [
           "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -554,7 +554,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "commitment": [
           "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -566,7 +566,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "commitment": [
           "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"
@@ -590,7 +590,7 @@ fn check_round2_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "signing_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1"
       }"#;
@@ -604,7 +604,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "foo": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1"
       }"#;
@@ -614,7 +614,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         }
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
@@ -623,7 +623,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(P-256, SHA-256)"
+          "ciphersuite": "FROST-P256-SHA256-v1"
         },
         "signing_share": "aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1",
         "extra": 1

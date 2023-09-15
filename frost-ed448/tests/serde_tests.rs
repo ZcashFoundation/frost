@@ -27,7 +27,7 @@ fn check_signing_commitments_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "hiding": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
         "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
@@ -53,7 +53,7 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "foo": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
         "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
@@ -64,7 +64,7 @@ fn check_signing_commitments_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "foo": "0000000000000000000000000000000000000000000000000000000000000000",
         "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
@@ -100,13 +100,13 @@ fn check_signing_package_serialization() {
     let json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(Ed448, SHAKE256)"
+        "ciphersuite": "FROST-ED448-SHAKE256-v1"
       },
       "signing_commitments": {
         "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(Ed448, SHAKE256)"
+            "ciphersuite": "FROST-ED448-SHAKE256-v1"
           },
           "hiding": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
@@ -121,13 +121,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(Ed448, SHAKE256)"
+        "ciphersuite": "FROST-ED448-SHAKE256-v1"
       },
       "signing_commitments": {
         "0000000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(Ed448, SHAKE256)"
+            "ciphersuite": "FROST-ED448-SHAKE256-v1"
           },
           "hiding": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
@@ -141,13 +141,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(Ed448, SHAKE256)"
+        "ciphersuite": "FROST-ED448-SHAKE256-v1"
       },
       "signing_commitments": {
         "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(Ed448, SHAKE256)"
+            "ciphersuite": "FROST-ED448-SHAKE256-v1"
           },
           "foo": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
@@ -161,13 +161,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(Ed448, SHAKE256)"
+        "ciphersuite": "FROST-ED448-SHAKE256-v1"
       },
       "signing_commitments": {
         "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(Ed448, SHAKE256)"
+            "ciphersuite": "FROST-ED448-SHAKE256-v1"
           },
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
         }
@@ -180,13 +180,13 @@ fn check_signing_package_serialization() {
     let invalid_json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(Ed448, SHAKE256)"
+        "ciphersuite": "FROST-ED448-SHAKE256-v1"
       },
       "signing_commitments": {
         "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": {
           "header": {
             "version": 0,
-            "ciphersuite": "FROST(Ed448, SHAKE256)"
+            "ciphersuite": "FROST-ED448-SHAKE256-v1"
           },
           "hiding": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
@@ -212,7 +212,7 @@ fn check_signature_share_serialization() {
     let json = r#"{
       "header": {
         "version": 0,
-        "ciphersuite": "FROST(Ed448, SHAKE256)"
+        "ciphersuite": "FROST-ED448-SHAKE256-v1"
       },
       "share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00"
     }"#;
@@ -226,7 +226,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "foo": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00"
       }"#;
@@ -236,7 +236,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         }
       }"#;
     assert!(serde_json::from_str::<SignatureShare>(invalid_json).is_err());
@@ -245,7 +245,7 @@ fn check_signature_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
         "extra": 1
@@ -266,7 +266,7 @@ fn check_secret_share_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -284,7 +284,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -298,7 +298,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "foo": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -312,7 +312,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "commitment": [
@@ -325,7 +325,7 @@ fn check_secret_share_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -350,7 +350,7 @@ fn check_key_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -368,7 +368,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "0000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -382,7 +382,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "foo": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -395,7 +395,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "verifying_share": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
@@ -407,7 +407,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "signing_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -421,7 +421,7 @@ fn check_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 1,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "identifier": "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "secret_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
@@ -445,7 +445,7 @@ fn check_public_key_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "verifying_shares": {
           "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -462,7 +462,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "verifying_shares": {
           "0000000000000000000000000000000000000000000000000000000000000000": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -475,7 +475,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "verifying_shares": {
           "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -488,7 +488,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "verifying_shares": {
           "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -500,7 +500,7 @@ fn check_public_key_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "verifying_shares": {
           "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -524,7 +524,7 @@ fn check_round1_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "commitment": [
           "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -541,7 +541,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "commitment": [
           "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -554,7 +554,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "commitment": [
           "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -566,7 +566,7 @@ fn check_round1_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "commitment": [
           "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
@@ -590,7 +590,7 @@ fn check_round2_package_serialization() {
     let json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "signing_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00"
       }"#;
@@ -604,7 +604,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "foo": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00"
       }"#;
@@ -614,7 +614,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         }
       }"#;
     assert!(serde_json::from_str::<round2::Package>(invalid_json).is_err());
@@ -623,7 +623,7 @@ fn check_round2_package_serialization() {
     let invalid_json = r#"{
         "header": {
           "version": 0,
-          "ciphersuite": "FROST(Ed448, SHAKE256)"
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
         },
         "signing_share": "4d83e51cb78150c2380ad9b3a18148166024e4c9db3cdf82466d3153aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2a00",
         "extra": 1

@@ -146,7 +146,7 @@ const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v1";
 pub struct Ristretto255Sha512;
 
 impl Ciphersuite for Ristretto255Sha512 {
-    const ID: &'static str = "FROST(ristretto255, SHA-512)";
+    const ID: &'static str = CONTEXT_STRING;
 
     type Group = RistrettoGroup;
 

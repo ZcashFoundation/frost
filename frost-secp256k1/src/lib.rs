@@ -180,7 +180,7 @@ const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-v1";
 pub struct Secp256K1Sha256;
 
 impl Ciphersuite for Secp256K1Sha256 {
-    const ID: &'static str = "FROST(secp256k1, SHA-256)";
+    const ID: &'static str = CONTEXT_STRING;
 
     type Group = Secp256K1Group;
 
