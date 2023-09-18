@@ -58,6 +58,7 @@ pub mod round1 {
     /// between the first and second parts of the DKG protocol (round 1).
     #[derive(Clone, Debug, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The public commitment from the participant (C_i)
@@ -97,7 +98,7 @@ pub mod round1 {
     #[cfg(feature = "serialization")]
     impl<C> Package<C>
     where
-        C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+        C: Ciphersuite,
     {
         /// Serialize the struct into a Vec.
         pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
@@ -176,6 +177,7 @@ pub mod round2 {
     /// The package must be sent on an *confidential* and *authenticated* channel.
     #[derive(Clone, Debug, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// The secret share being sent.
@@ -209,7 +211,7 @@ pub mod round2 {
     #[cfg(feature = "serialization")]
     impl<C> Package<C>
     where
-        C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+        C: Ciphersuite,
     {
         /// Serialize the struct into a Vec.
         pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
