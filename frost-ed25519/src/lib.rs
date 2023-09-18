@@ -13,6 +13,7 @@ use curve25519_dalek::{
     scalar::Scalar,
     traits::Identity,
 };
+use frost_rerandomized::RandomizedCiphersuite;
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
@@ -206,6 +207,16 @@ impl Ciphersuite for Ed25519Sha512 {
     /// HID for FROST(Ed25519, SHA-512)
     fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"id", m]))
+    }
+}
+
+impl RandomizedCiphersuite for Ed25519Sha512 {
+    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(&[
+            CONTEXT_STRING.as_bytes(),
+            b"randomizer",
+            m,
+        ]))
     }
 }
 

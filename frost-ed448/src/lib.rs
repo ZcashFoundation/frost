@@ -11,6 +11,7 @@ use ed448_goldilocks::{
     curve::{edwards::CompressedEdwardsY, ExtendedPoint},
     Scalar,
 };
+use frost_rerandomized::RandomizedCiphersuite;
 use rand_core::{CryptoRng, RngCore};
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
@@ -201,6 +202,16 @@ impl Ciphersuite for Ed448Shake256 {
     /// HID for FROST(Ed448, SHAKE256)
     fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"id", m]))
+    }
+}
+
+impl RandomizedCiphersuite for Ed448Shake256 {
+    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(&[
+            CONTEXT_STRING.as_bytes(),
+            b"randomizer",
+            m,
+        ]))
     }
 }
 

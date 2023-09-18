@@ -3,7 +3,7 @@
 //! To sign with re-randomized FROST:
 //!
 //! - Do Round 1 the same way as regular FROST;
-//! - The Coordinator should generate a [`RandomizedParams`] and send
+//! - The Coordinator should call [`RandomizedParams::new()`] and send
 //!   the [`RandomizedParams::randomizer`] to all participants, using a
 //!   confidential channel, along with the regular [`frost::SigningPackage`];
 //! - Each participant should call [`sign`] and send the resulting
@@ -23,6 +23,7 @@ use frost_core::{
     frost::{
         self,
         keys::{KeyPackage, PublicKeyPackage, SigningShare, VerifyingShare},
+        SigningPackage,
     },
     Ciphersuite, Error, Field, Group, Scalar, VerifyingKey,
 };
@@ -43,6 +44,12 @@ trait Randomize<C> {
     where
         Self: Sized,
         C: Ciphersuite;
+}
+
+/// A Ciphersuite that supports rerandomization.
+pub trait RandomizedCiphersuite: Ciphersuite {
+    /// A hash function that hashes into a randomizer scalar.
+    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar>;
 }
 
 impl<C: Ciphersuite> Randomize<C> for KeyPackage<C> {
@@ -113,7 +120,7 @@ impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
 /// be sent from the Coordinator using a confidential channel.
 ///
 /// See [`frost::round2::sign`] for documentation on the other parameters.
-pub fn sign<C: Ciphersuite>(
+pub fn sign<C: RandomizedCiphersuite>(
     signing_package: &frost::SigningPackage<C>,
     signer_nonces: &frost::round1::SigningNonces<C>,
     key_package: &frost::keys::KeyPackage<C>,
@@ -158,15 +165,52 @@ pub struct Randomizer<C: Ciphersuite>(Scalar<C>);
 
 impl<C> Randomizer<C>
 where
-    C: Ciphersuite,
+    C: RandomizedCiphersuite,
 {
     /// Create a new random Randomizer.
-    pub fn new<R: RngCore + CryptoRng>(mut rng: R) -> Self {
-        let randomizer = <<C::Group as Group>::Field as Field>::random(&mut rng);
-        Self(randomizer)
+    ///
+    /// The [`SigningPackage`] must be the signing package being used in the
+    /// current FROST signing run. It is hashed into the randomizer calculation,
+    /// which binds it to that specific package.
+    pub fn new<R: RngCore + CryptoRng>(
+        mut rng: R,
+        signing_package: &SigningPackage<C>,
+    ) -> Result<Self, Error<C>> {
+        let rng_randomizer = <<C::Group as Group>::Field as Field>::random(&mut rng);
+        Self::from_randomizer_and_signing_package(rng_randomizer, signing_package)
     }
 
-    /// Create a new Randomizer from the given scalar. It MUST be randomly generated.
+    /// Create a final Randomizer from a random Randomizer and a SigningPackage.
+    /// Function refactored out for testing, should always be private.
+    fn from_randomizer_and_signing_package(
+        rng_randomizer: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
+        signing_package: &SigningPackage<C>,
+    ) -> Result<Randomizer<C>, Error<C>>
+    where
+        C: RandomizedCiphersuite,
+    {
+        let randomizer = C::hash_randomizer(
+            &[
+                <<C::Group as Group>::Field>::serialize(&rng_randomizer).as_ref(),
+                &signing_package.serialize()?,
+            ]
+            .concat(),
+        )
+        .ok_or(Error::SerializationError)?;
+        Ok(Self(randomizer))
+    }
+}
+
+impl<C> Randomizer<C>
+where
+    C: Ciphersuite,
+{
+    /// Create a new Randomizer from the given scalar. It MUST be randomly
+    /// generated.
+    ///
+    /// It is not recommended to use this method unless for compatibility
+    /// reasons with specifications on how the randomizer must be generated. Use
+    /// [`Randomizer::new()`] instead.
     pub fn from_scalar(scalar: Scalar<C>) -> Self {
         Self(scalar)
     }
@@ -221,14 +265,26 @@ pub struct RandomizedParams<C: Ciphersuite> {
 
 impl<C> RandomizedParams<C>
 where
-    C: Ciphersuite,
+    C: RandomizedCiphersuite,
 {
     /// Create a new [`RandomizedParams`] for the given [`VerifyingKey`] and
     /// the given `participants`.
-    pub fn new<R: RngCore + CryptoRng>(group_verifying_key: &VerifyingKey<C>, rng: R) -> Self {
-        Self::from_randomizer(group_verifying_key, Randomizer::new(rng))
+    pub fn new<R: RngCore + CryptoRng>(
+        group_verifying_key: &VerifyingKey<C>,
+        signing_package: &SigningPackage<C>,
+        rng: R,
+    ) -> Result<Self, Error<C>> {
+        Ok(Self::from_randomizer(
+            group_verifying_key,
+            Randomizer::new(rng, signing_package)?,
+        ))
     }
+}
 
+impl<C> RandomizedParams<C>
+where
+    C: Ciphersuite,
+{
     /// Create a new [`RandomizedParams`] for the given [`VerifyingKey`] and the
     /// given `participants` for the  given `randomizer`. The `randomizer` MUST
     /// be generated uniformly at random! Use [`RandomizedParams::new()`] which
