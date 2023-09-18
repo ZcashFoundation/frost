@@ -255,7 +255,7 @@ where
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-ciphersuites
 pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// The ciphersuite ID string. It should be equal to the contextString in
-    /// the spec. For new ciphersuites, this should be a string the identifies
+    /// the spec. For new ciphersuites, this should be a string that identifies
     /// the ciphersuite; it's recommended to use a similar format to the
     /// ciphersuites in the FROST spec, e.g. "FROST-RISTRETTO255-SHA512-v1".
     const ID: &'static str;

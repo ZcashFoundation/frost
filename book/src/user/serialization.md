@@ -4,8 +4,8 @@ With the `serialization` feature, which is enabled by default, all structs that
 need to communicated will have `serialize()` and `deserialize()` methods.
 
 The format is basically the `serde` encoding of the structs using the
-[`postcard`](https://docs.rs/postcard/latest/postcard/) crate. But since this
-a implementation detail, we describe the format as follows:
+[`postcard`](https://docs.rs/postcard/latest/postcard/) crate. But since this is
+an implementation detail, we describe the format as follows:
 
 - Integers are encoded in [varint
   format](https://postcard.jamesmunns.com/wire-format#varint-encoded-integers)
