@@ -8,7 +8,7 @@ use std::collections::{BTreeSet, HashMap};
 
 use crate::{
     frost::{compute_lagrange_coefficient, Identifier},
-    Ciphersuite, CryptoRng, Error, Field, Group, RngCore, Scalar,
+    Ciphersuite, CryptoRng, Error, Field, Group, Header, RngCore, Scalar,
 };
 
 use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSharingCommitment};
@@ -121,9 +121,9 @@ pub fn repair_share_step_3<C: Ciphersuite>(
     }
 
     SecretShare {
+        header: Header::default(),
         identifier,
         signing_share: SigningShare(share),
         commitment: commitment.clone(),
-        ciphersuite: (),
     }
 }

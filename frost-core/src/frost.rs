@@ -24,7 +24,7 @@ pub mod round2;
 
 use crate::{
     scalar_mul::VartimeMultiscalarMul, Ciphersuite, Deserialize, Element, Error, Field, Group,
-    Scalar, Serialize, Signature, VerifyingKey,
+    Header, Scalar, Serialize, Signature, VerifyingKey,
 };
 
 pub use self::identifier::Identifier;
@@ -214,6 +214,9 @@ fn derive_interpolating_value<C: Ciphersuite>(
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningPackage<C: Ciphersuite> {
+    /// Serialization header
+    #[getter(skip)]
+    pub(crate) header: Header<C>,
     /// The set of commitments participants published in the first round of the
     /// protocol.
     signing_commitments: BTreeMap<Identifier<C>, round1::SigningCommitments<C>>,
@@ -229,17 +232,6 @@ pub struct SigningPackage<C: Ciphersuite> {
         )
     )]
     message: Vec<u8>,
-    /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    #[getter(skip)]
-    ciphersuite: (),
 }
 
 impl<C> SigningPackage<C>
@@ -254,9 +246,9 @@ where
         message: &[u8],
     ) -> SigningPackage<C> {
         SigningPackage {
+            header: Header::default(),
             signing_commitments,
             message: message.to_vec(),
-            ciphersuite: (),
         }
     }
 

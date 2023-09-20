@@ -6,6 +6,14 @@ Entries are listed in reverse chronological order.
 
 ## 0.8.0
 
+* Both serde serialization and the default byte-oriented serialization now
+  include a version field (a u8) at the beginning which is always 0 for now. The
+  ciphersuite ID field was moved from the last field to the second field, after
+  the version. Both version and ciphersuite ID are now grouped into a "header"
+  struct, which affects self-describing formats like JSON. The ciphersuite ID
+  string was also changed for all ciphersuites: it is now equal to the
+  `contextString` of each ciphersuite per the FROST spec.
+
 ## Released
 
 ## 0.7.0

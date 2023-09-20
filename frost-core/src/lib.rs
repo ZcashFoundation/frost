@@ -13,6 +13,7 @@
 use std::{
     default::Default,
     fmt::Debug,
+    marker::PhantomData,
     ops::{Add, Mul, Sub},
 };
 
@@ -38,6 +39,7 @@ pub use error::{Error, FieldError, GroupError};
 pub use signature::Signature;
 pub use signing_key::SigningKey;
 pub use verifying_key::VerifyingKey;
+use zeroize::Zeroize;
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
 /// multiplied are defined.
@@ -252,7 +254,10 @@ where
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-ciphersuites
 pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
-    /// The ciphersuite ID string
+    /// The ciphersuite ID string. It should be equal to the contextString in
+    /// the spec. For new ciphersuites, this should be a string that identifies
+    /// the ciphersuite; it's recommended to use a similar format to the
+    /// ciphersuites in the FROST spec, e.g. "FROST-RISTRETTO255-SHA512-v1".
     const ID: &'static str;
 
     /// The prime order group (or subgroup) that this ciphersuite operates over.
@@ -426,6 +431,43 @@ pub(crate) fn random_nonzero<C: Ciphersuite, R: RngCore + CryptoRng>(rng: &mut R
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Zeroize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
+struct Header<C: Ciphersuite> {
+    /// Format version
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::version_deserialize::<_>")
+    )]
+    version: u8,
+    /// Ciphersuite ID
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    ciphersuite: (),
+    #[serde(skip)]
+    phantom: PhantomData<C>,
+}
+
+impl<C> Default for Header<C>
+where
+    C: Ciphersuite,
+{
+    fn default() -> Self {
+        Self {
+            version: Default::default(),
+            ciphersuite: Default::default(),
+            phantom: Default::default(),
+        }
+    }
+}
+
 /// Serialize a placeholder ciphersuite field with the ciphersuite ID string.
 #[cfg(feature = "serde")]
 pub(crate) fn ciphersuite_serialize<S, C>(_: &(), s: S) -> Result<S::Ok, S::Error>
@@ -463,6 +505,23 @@ where
         } else {
             Ok(())
         }
+    }
+}
+
+/// Deserialize a version. For now, since there is a single version 0,
+/// simply validate if it's 0.
+#[cfg(feature = "serde")]
+pub(crate) fn version_deserialize<'de, D>(deserializer: D) -> Result<u8, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let version: u8 = serde::de::Deserialize::deserialize(deserializer)?;
+    if version != 0 {
+        Err(serde::de::Error::custom(
+            "wrong format version, only 0 supported",
+        ))
+    } else {
+        Ok(version)
     }
 }
 
