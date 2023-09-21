@@ -150,6 +150,7 @@ where
 /// A randomizer. A random scalar which is used to randomize the key.
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(crate = "self::serde"))]

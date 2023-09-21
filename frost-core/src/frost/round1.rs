@@ -108,6 +108,7 @@ where
 /// A group element that is a commitment to a signing nonce share.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct NonceCommitment<C: Ciphersuite>(pub(super) Element<C>);
@@ -268,6 +269,7 @@ where
 /// SigningCommitment can be used for exactly *one* signature.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningCommitments<C: Ciphersuite> {
     /// Serialization header
@@ -308,7 +310,7 @@ where
 #[cfg(feature = "serialization")]
 impl<C> SigningCommitments<C>
 where
-    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    C: Ciphersuite,
 {
     /// Serialize the struct into a Vec.
     pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {

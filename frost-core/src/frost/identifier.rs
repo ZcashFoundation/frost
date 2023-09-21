@@ -17,6 +17,7 @@ use crate::ScalarSerialization;
 /// field, as f(0) = the shared secret.
 #[derive(Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct Identifier<C: Ciphersuite>(Scalar<C>);
