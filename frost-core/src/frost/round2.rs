@@ -16,6 +16,7 @@ use crate::ScalarSerialization;
 #[cfg(feature = "serde")]
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 struct SignatureShareHelper<C: Ciphersuite>(Scalar<C>);
@@ -48,6 +49,7 @@ where
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[cfg_attr(feature = "serde", serde(try_from = "SignatureShareSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "SignatureShareSerialization<C>"))]
@@ -104,6 +106,7 @@ where
 
 #[cfg(feature = "serde")]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 struct SignatureShareSerialization<C: Ciphersuite> {
     /// Serialization header

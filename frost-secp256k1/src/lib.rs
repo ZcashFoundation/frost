@@ -21,9 +21,6 @@ use sha2::{Digest, Sha256};
 
 use frost_core::frost;
 
-#[cfg(feature = "serde")]
-use frost_core::serde;
-
 #[cfg(test)]
 mod tests;
 
@@ -175,8 +172,6 @@ const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-v1";
 
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct Secp256K1Sha256;
 
 impl Ciphersuite for Secp256K1Sha256 {

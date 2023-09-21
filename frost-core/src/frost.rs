@@ -212,6 +212,7 @@ fn derive_interpolating_value<C: Ciphersuite>(
 /// each signing party
 #[derive(Clone, Debug, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningPackage<C: Ciphersuite> {
     /// Serialization header
@@ -301,7 +302,7 @@ where
 #[cfg(feature = "serialization")]
 impl<C> SigningPackage<C>
 where
-    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    C: Ciphersuite,
 {
     /// Serialize the struct into a Vec.
     pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {

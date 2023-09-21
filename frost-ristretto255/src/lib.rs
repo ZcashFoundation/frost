@@ -15,9 +15,6 @@ use sha2::{Digest, Sha512};
 
 use frost_core::frost;
 
-#[cfg(feature = "serde")]
-use frost_core::serde;
-
 #[cfg(test)]
 mod tests;
 
@@ -141,8 +138,6 @@ const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v1";
 
 /// An implementation of the FROST(ristretto255, SHA-512) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct Ristretto255Sha512;
 
 impl Ciphersuite for Ristretto255Sha512 {
