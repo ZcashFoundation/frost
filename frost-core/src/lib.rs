@@ -2,14 +2,18 @@
 // It's emitting false positives; see https://github.com/rust-lang/rust-clippy/issues/9413
 #![allow(clippy::derive_partial_eq_without_eq)]
 #![deny(missing_docs)]
-#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 #![deny(clippy::indexing_slicing)]
 #![deny(clippy::unwrap_used)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+#![doc = document_features::document_features!()]
 
 use std::{
     default::Default,
     fmt::Debug,
+    marker::PhantomData,
     ops::{Add, Mul, Sub},
 };
 
@@ -35,6 +39,7 @@ pub use error::{Error, FieldError, GroupError};
 pub use signature::Signature;
 pub use signing_key::SigningKey;
 pub use verifying_key::VerifyingKey;
+use zeroize::Zeroize;
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
 /// multiplied are defined.
@@ -98,6 +103,7 @@ pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Sca
 
 #[cfg(feature = "serde")]
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 /// Helper struct to serialize a Scalar.
 pub(crate) struct ScalarSerialization<C: Ciphersuite>(
     pub <<<C as Ciphersuite>::Group as Group>::Field as Field>::Serialization,
@@ -112,7 +118,7 @@ where
     where
         S: serde::Serializer,
     {
-        serdect::slice::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
+        serdect::array::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
     }
 }
 
@@ -125,7 +131,14 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        let bytes = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
+        // Get size from the size of the zero scalar
+        let zero = <<C::Group as Group>::Field as Field>::zero();
+        let len = <<C::Group as Group>::Field as Field>::serialize(&zero)
+            .as_ref()
+            .len();
+
+        let mut bytes = vec![0u8; len];
+        serdect::array::deserialize_hex_or_bin(&mut bytes[..], deserializer)?;
         let array = bytes
             .try_into()
             .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
@@ -210,7 +223,7 @@ where
     where
         S: serde::Serializer,
     {
-        serdect::slice::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
+        serdect::array::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
     }
 }
 
@@ -223,7 +236,12 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        let bytes = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
+        // Get size from the size of the generator
+        let generator = <C::Group>::generator();
+        let len = <C::Group>::serialize(&generator).as_ref().len();
+
+        let mut bytes = vec![0u8; len];
+        serdect::array::deserialize_hex_or_bin(&mut bytes[..], deserializer)?;
         let array = bytes
             .try_into()
             .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
@@ -236,7 +254,10 @@ where
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-ciphersuites
 pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
-    /// The ciphersuite ID string
+    /// The ciphersuite ID string. It should be equal to the contextString in
+    /// the spec. For new ciphersuites, this should be a string that identifies
+    /// the ciphersuite; it's recommended to use a similar format to the
+    /// ciphersuites in the FROST spec, e.g. "FROST-RISTRETTO255-SHA512-v1".
     const ID: &'static str;
 
     /// The prime order group (or subgroup) that this ciphersuite operates over.
@@ -326,6 +347,15 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     }
 }
 
+// The short 4-byte ID. Derived as the CRC-32 of the UTF-8
+// encoded ID in big endian format.
+const fn short_id<C>() -> [u8; 4]
+where
+    C: Ciphersuite,
+{
+    const_crc32::crc32(C::ID.as_bytes()).to_be_bytes()
+}
+
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
 ///
 /// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-challenge-computa
@@ -374,6 +404,7 @@ where
 /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-challenge-computa
 /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.2
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn challenge<C>(R: &Element<C>, verifying_key: &Element<C>, msg: &[u8]) -> Challenge<C>
 where
     C: Ciphersuite,
@@ -400,6 +431,43 @@ pub(crate) fn random_nonzero<C: Ciphersuite, R: RngCore + CryptoRng>(rng: &mut R
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Zeroize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
+struct Header<C: Ciphersuite> {
+    /// Format version
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::version_deserialize::<_>")
+    )]
+    version: u8,
+    /// Ciphersuite ID
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
+    )]
+    ciphersuite: (),
+    #[serde(skip)]
+    phantom: PhantomData<C>,
+}
+
+impl<C> Default for Header<C>
+where
+    C: Ciphersuite,
+{
+    fn default() -> Self {
+        Self {
+            version: Default::default(),
+            ciphersuite: Default::default(),
+            phantom: Default::default(),
+        }
+    }
+}
+
 /// Serialize a placeholder ciphersuite field with the ciphersuite ID string.
 #[cfg(feature = "serde")]
 pub(crate) fn ciphersuite_serialize<S, C>(_: &(), s: S) -> Result<S::Ok, S::Error>
@@ -407,7 +475,13 @@ where
     S: serde::Serializer,
     C: Ciphersuite,
 {
-    s.serialize_str(C::ID)
+    use serde::Serialize;
+
+    if s.is_human_readable() {
+        C::ID.serialize(s)
+    } else {
+        serde::Serialize::serialize(&short_id::<C>(), s)
+    }
 }
 
 /// Deserialize a placeholder ciphersuite field, checking if it's the ciphersuite ID string.
@@ -417,10 +491,72 @@ where
     D: serde::Deserializer<'de>,
     C: Ciphersuite,
 {
-    let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
-    if s != C::ID {
-        Err(serde::de::Error::custom("wrong ciphersuite"))
+    if deserializer.is_human_readable() {
+        let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+        if s != C::ID {
+            Err(serde::de::Error::custom("wrong ciphersuite"))
+        } else {
+            Ok(())
+        }
     } else {
-        Ok(())
+        let buffer: [u8; 4] = serde::de::Deserialize::deserialize(deserializer)?;
+        if buffer != short_id::<C>() {
+            Err(serde::de::Error::custom("wrong ciphersuite"))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// Deserialize a version. For now, since there is a single version 0,
+/// simply validate if it's 0.
+#[cfg(feature = "serde")]
+pub(crate) fn version_deserialize<'de, D>(deserializer: D) -> Result<u8, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let version: u8 = serde::de::Deserialize::deserialize(deserializer)?;
+    if version != 0 {
+        Err(serde::de::Error::custom(
+            "wrong format version, only 0 supported",
+        ))
+    } else {
+        Ok(version)
+    }
+}
+
+// Default byte-oriented serialization for structs that need to be communicated.
+//
+// Note that we still manually implement these methods in each applicable type,
+// instead of making these traits `pub` and asking users to import the traits.
+// The reason is that ciphersuite traits would need to re-export these traits,
+// parametrized with the ciphersuite, but trait aliases are not currently
+// supported: <https://github.com/rust-lang/rust/issues/41517>
+
+#[cfg(feature = "serialization")]
+trait Serialize<C: Ciphersuite> {
+    /// Serialize the struct into a Vec.
+    fn serialize(&self) -> Result<Vec<u8>, Error<C>>;
+}
+
+#[cfg(feature = "serialization")]
+trait Deserialize<C: Ciphersuite> {
+    /// Deserialize the struct from a slice of bytes.
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>>
+    where
+        Self: std::marker::Sized;
+}
+
+#[cfg(feature = "serialization")]
+impl<T: serde::Serialize, C: Ciphersuite> Serialize<C> for T {
+    fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        postcard::to_stdvec(self).map_err(|_| Error::SerializationError)
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<T: for<'de> serde::Deserialize<'de>, C: Ciphersuite> Deserialize<C> for T {
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        postcard::from_bytes(bytes).map_err(|_| Error::DeserializationError)
     }
 }

@@ -11,7 +11,7 @@ use crate::{
         self, compute_lagrange_coefficient,
         keys::{
             repairable::{repair_share_step_1, repair_share_step_2, repair_share_step_3},
-            KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
+            PublicKeyPackage, SecretShare, SigningShare,
         },
         Identifier,
     },
@@ -89,7 +89,7 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     );
 
     // TODO: assert on commitment equality as well once updates have been made to VerifiableSecretSharingCommitment
-    assert!(participant.secret() == participant_recovered_share.secret())
+    assert!(participant.signing_share() == participant_recovered_share.signing_share())
 }
 
 fn generate_scalar_from_byte_string<C: Ciphersuite>(
@@ -144,7 +144,7 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
         rhs = rhs + v;
     }
 
-    let lhs = lagrange_coefficient * helper_4.value.0;
+    let lhs = lagrange_coefficient * helper_4.signing_share.0;
 
     assert!(lhs == rhs)
 }
@@ -208,7 +208,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
         commitment,
     );
 
-    assert!(actual.value == expected.value);
+    assert!(actual.signing_share == expected.signing_share);
 }
 
 /// Test repair share step 1 fails with invalid numbers of signers.

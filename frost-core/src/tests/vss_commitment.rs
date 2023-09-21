@@ -10,13 +10,9 @@ use crate::{
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
-use std::collections::HashMap;
 
-use crate::frost::keys::{
-    compute_group_commitment, generate_with_dealer, reconstruct, IdentifierList, KeyPackage,
-    PublicKeyPackage, SecretShare, SigningShare, VerifyingShare,
-};
-use crate::{Ciphersuite, Field, VerifyingKey};
+use crate::frost::keys::{generate_with_dealer, IdentifierList, PublicKeyPackage};
+use crate::Ciphersuite;
 
 /// Test serialize VerifiableSecretSharingCommitment
 pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
@@ -120,49 +116,12 @@ pub fn check_compute_public_key_package<C: Ciphersuite, R: RngCore + CryptoRng>(
     let (secret_shares, public_key_package) =
         generate_with_dealer::<C, _>(max_signers, min_signers, IdentifierList::Default, &mut rng)
             .unwrap();
-    let commitments: Vec<_> = secret_shares
-        .values()
-        .map(|secret_share| secret_share.commitment().clone())
-        .collect();
+
     let members = secret_shares.keys().copied().collect();
-    let group_commitment = compute_group_commitment(&commitments);
-    let mut group_public = VerifyingKey::new(<C::Group>::identity());
-    let mut signing_shares = HashMap::new();
-    let mut verifying_shares = HashMap::new();
-    for _ in 0..max_signers {
-        group_public = VerifyingKey::new(
-            group_public.to_element() + public_key_package.group_public().to_element(),
-        );
-        for (id, verifying_share) in public_key_package.signer_pubkeys() {
-            let entry = verifying_shares
-                .entry(*id)
-                .or_insert_with(|| VerifyingShare::new(<C::Group>::identity()));
-            *entry = VerifyingShare::new(entry.to_element() + verifying_share.to_element());
-        }
-        for (id, secret_share) in &secret_shares {
-            let entry = signing_shares
-                .entry(*id)
-                .or_insert_with(|| SigningShare::<C>::new(<C::Group as Group>::Field::zero()));
-            *entry = SigningShare::new(entry.to_scalar() + secret_share.value().to_scalar());
-        }
-    }
-    let secret_shares = signing_shares
-        .iter()
-        .map(|(id, signing_share)| {
-            SecretShare::new(*id, signing_share.clone(), group_commitment.clone())
-        })
-        .collect::<Vec<_>>();
-    let public_key_package = PublicKeyPackage::new(verifying_shares, group_public);
+    let group_commitment = secret_shares.values().next().unwrap().commitment().clone();
+
     assert_eq!(
         public_key_package,
-        PublicKeyPackage::from_commitment(&members, &group_commitment)
+        PublicKeyPackage::from_commitment(&members, &group_commitment).unwrap()
     );
-    let signing_key = reconstruct(&secret_shares[..min_signers as usize]).unwrap();
-    assert_eq!(
-        *public_key_package.group_public(),
-        VerifyingKey::from(signing_key)
-    );
-    for secret_share in secret_shares {
-        KeyPackage::try_from(secret_share).unwrap();
-    }
 }

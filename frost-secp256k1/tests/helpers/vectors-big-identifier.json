@@ -14,7 +14,7 @@
       257
     ],
     "group_secret_key": "0d004150d27c3bf2a42f312683d35fac7394b1e9e318249c1bfe7f0795a83114",
-    "group_public_key": "02f37c34b66ced1fb51c34a90bdae006901f10625cc06c4f64663b0eae87d87b4f",
+    "verifying_key_key": "02f37c34b66ced1fb51c34a90bdae006901f10625cc06c4f64663b0eae87d87b4f",
     "message": "74657374",
     "share_polynomial_coefficients": [
       "fbf85eadae3058ea14f19148bb72b45e4399c0b16028acaf0395c9b03c823579"

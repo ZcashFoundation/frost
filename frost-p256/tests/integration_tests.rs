@@ -4,6 +4,11 @@ use rand::thread_rng;
 use serde_json::Value;
 
 #[test]
+fn check_zero_key_fails() {
+    frost_core::tests::ciphersuite_generic::check_zero_key_fails::<P256Sha256>();
+}
+
+#[test]
 fn check_sign_with_dkg() {
     let rng = thread_rng();
 
@@ -185,6 +190,17 @@ fn check_error_culprit() {
 #[test]
 fn check_identifier_derivation() {
     frost_core::tests::ciphersuite_generic::check_identifier_derivation::<P256Sha256>();
+}
+
+// Explicit test which is used in a documentation snippet
+#[test]
+#[allow(unused_variables)]
+fn check_identifier_generation() -> Result<(), Error> {
+    // ANCHOR: dkg_identifier
+    let participant_identifier = Identifier::try_from(7u16)?;
+    let participant_identifier = Identifier::derive("alice@example.com".as_bytes())?;
+    // ANCHOR_END: dkg_identifier
+    Ok(())
 }
 
 #[test]

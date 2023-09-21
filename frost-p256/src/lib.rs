@@ -1,6 +1,9 @@
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
+#![doc = document_features::document_features!()]
 
 use std::collections::HashMap;
 
@@ -177,7 +180,7 @@ const CONTEXT_STRING: &str = "FROST-P256-SHA256-v1";
 pub struct P256Sha256;
 
 impl Ciphersuite for P256Sha256 {
-    const ID: &'static str = "FROST(P-256, SHA-256)";
+    const ID: &'static str = CONTEXT_STRING;
 
     type Group = P256Group;
 
@@ -289,7 +292,7 @@ pub mod keys {
     ///
     /// The caller is responsible for providing at least `min_signers` shares;
     /// if less than that is provided, a different key will be returned.
-    pub fn reconstruct(secret_shares: &[SecretShare]) -> Result<SigningKey, Error> {
+    pub fn reconstruct(secret_shares: &[KeyPackage]) -> Result<SigningKey, Error> {
         frost::keys::reconstruct(secret_shares)
     }
 

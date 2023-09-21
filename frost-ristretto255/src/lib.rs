@@ -146,7 +146,7 @@ const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v1";
 pub struct Ristretto255Sha512;
 
 impl Ciphersuite for Ristretto255Sha512 {
-    const ID: &'static str = "FROST(ristretto255, SHA-512)";
+    const ID: &'static str = CONTEXT_STRING;
 
     type Group = RistrettoGroup;
 
@@ -251,7 +251,7 @@ pub mod keys {
     ///
     /// The caller is responsible for providing at least `min_signers` shares;
     /// if less than that is provided, a different key will be returned.
-    pub fn reconstruct(secret_shares: &[SecretShare]) -> Result<SigningKey, Error> {
+    pub fn reconstruct(secret_shares: &[KeyPackage]) -> Result<SigningKey, Error> {
         frost::keys::reconstruct(secret_shares)
     }
 

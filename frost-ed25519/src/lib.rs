@@ -1,6 +1,9 @@
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
+#![doc = document_features::document_features!()]
 
 use std::collections::HashMap;
 
@@ -157,7 +160,7 @@ const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v1";
 pub struct Ed25519Sha512;
 
 impl Ciphersuite for Ed25519Sha512 {
-    const ID: &'static str = "FROST(Ed25519, SHA-512)";
+    const ID: &'static str = CONTEXT_STRING;
 
     type Group = Ed25519Group;
 
@@ -263,7 +266,7 @@ pub mod keys {
     ///
     /// The caller is responsible for providing at least `min_signers` shares;
     /// if less than that is provided, a different key will be returned.
-    pub fn reconstruct(secret_shares: &[SecretShare]) -> Result<SigningKey, Error> {
+    pub fn reconstruct(secret_shares: &[KeyPackage]) -> Result<SigningKey, Error> {
         frost::keys::reconstruct(secret_shares)
     }
 

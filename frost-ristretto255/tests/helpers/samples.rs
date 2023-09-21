@@ -80,7 +80,7 @@ pub fn key_package() -> KeyPackage {
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let verifying_key = VerifyingKey::deserialize(serialized_element).unwrap();
 
-    KeyPackage::new(identifier, signing_share, verifying_share, verifying_key)
+    KeyPackage::new(identifier, signing_share, verifying_share, verifying_key, 2)
 }
 
 /// Generate a sample PublicKeyPackage.
@@ -90,9 +90,9 @@ pub fn public_key_package() -> PublicKeyPackage {
     let verifying_share = VerifyingShare::deserialize(serialized_element).unwrap();
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let verifying_key = VerifyingKey::deserialize(serialized_element).unwrap();
-    let signer_pubkeys = HashMap::from([(identifier, verifying_share)]);
+    let verifying_shares = HashMap::from([(identifier, verifying_share)]);
 
-    PublicKeyPackage::new(signer_pubkeys, verifying_key)
+    PublicKeyPackage::new(verifying_shares, verifying_key)
 }
 
 /// Generate a sample round1::Package.

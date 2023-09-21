@@ -4,8 +4,12 @@ edition = "2021"
 # When releasing to crates.io:
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.6.0"
-authors = ["Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>", "Conrado Gouvea <conradoplg@gmail.com>"]
+version = "0.7.0"
+authors = [
+    "Deirdre Connolly <durumcrustulum@gmail.com>",
+    "Chelsea Komlo <me@chelseakomlo.com>",
+    "Conrado Gouvea <conradoplg@gmail.com>",
+]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/frost"
@@ -14,18 +18,22 @@ keywords = ["cryptography", "crypto", "threshold", "signature", "schnorr"]
 description = "Types and traits to support implementing Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
 
 [package.metadata.docs.rs]
-features = ["nightly"]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 byteorder = "1.4"
+const-crc32 = "1.2.0"
+document-features = "0.2.7"
 debugless-unwrap = "0.0.4"
 derive-getters = "0.3.0"
-hex = { version = "0.4.3", features = ["serde"] }
+hex = "0.4.3"
+postcard = { version = "1.0.0", features = ["use-std"], optional = true }
 rand_core = "0.6"
 serde = { version = "1.0.160", features = ["derive"], optional = true }
 serdect = { version = "0.2.0", optional = true }
 thiserror = "1.0"
-visibility = "0.0.1"
+visibility = "0.1.0"
 zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
 itertools = "0.11.0"
 
@@ -42,10 +50,17 @@ rand_chacha = "0.3"
 serde_json = "1.0"
 
 [features]
-nightly = []
-default = []
+default = ["serialization"]
+#! ## Features
+## Expose internal types, which do not have SemVer guarantees. This is an advanced
+## feature which can be useful if you need to build a modified version of FROST.
+## The docs won't list them, you will need to check the source code.
 internals = []
+## Enable `serde` support for types that need to be communicated. You
+## can use `serde` to serialize structs with any encoder that supports
+## `serde` (e.g. JSON with `serde_json`).
 serde = ["dep:serde", "dep:serdect"]
+serialization = ["serde", "dep:postcard"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["proptest", "serde_json", "criterion"]
 

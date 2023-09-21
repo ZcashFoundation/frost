@@ -17,7 +17,8 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    frost::Identifier, Ciphersuite, Element, Error, Field, Group, Scalar, SigningKey, VerifyingKey,
+    frost::Identifier, Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Scalar,
+    Serialize, SigningKey, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]
@@ -30,18 +31,30 @@ pub mod repairable;
 
 /// Sum the commitments from all peers into a group commitment.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
-pub(crate) fn compute_group_commitment<C: Ciphersuite>(
+pub(crate) fn sum_commitments<C: Ciphersuite>(
     commitments: &[VerifiableSecretSharingCommitment<C>],
-) -> VerifiableSecretSharingCommitment<C> {
-    let mut group_commitment =
-        vec![CoefficientCommitment(<C::Group>::identity()); commitments[0].0.len()];
+) -> Result<VerifiableSecretSharingCommitment<C>, Error<C>> {
+    let mut group_commitment = vec![
+        CoefficientCommitment(<C::Group>::identity());
+        commitments
+            .get(0)
+            .ok_or(Error::IncorrectCommitment)?
+            .0
+            .len()
+    ];
     for commitment in commitments {
-        for i in 0..group_commitment.len() {
-            group_commitment[i] =
-                CoefficientCommitment(group_commitment[i].value() + commitment.0[i].value());
+        for (i, c) in group_commitment.iter_mut().enumerate() {
+            *c = CoefficientCommitment(
+                c.value()
+                    + commitment
+                        .0
+                        .get(i)
+                        .ok_or(Error::IncorrectCommitment)?
+                        .value(),
+            );
         }
     }
-    VerifiableSecretSharingCommitment(group_commitment)
+    Ok(VerifiableSecretSharingCommitment(group_commitment))
 }
 
 /// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
@@ -388,25 +401,17 @@ where
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SecretShare<C: Ciphersuite> {
+    /// Serialization header
+    #[getter(skip)]
+    pub(crate) header: Header<C>,
     /// The participant identifier of this [`SecretShare`].
     #[zeroize(skip)]
     pub(crate) identifier: Identifier<C>,
     /// Secret Key.
-    pub(crate) value: SigningShare<C>,
+    pub(crate) signing_share: SigningShare<C>,
     #[zeroize(skip)]
     /// The commitments to be distributed among signers.
     pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
-    /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    #[getter(skip)]
-    ciphersuite: (),
 }
 
 impl<C> SecretShare<C>
@@ -416,20 +421,15 @@ where
     /// Create a new [`SecretShare`] instance.
     pub fn new(
         identifier: Identifier<C>,
-        value: SigningShare<C>,
+        signing_share: SigningShare<C>,
         commitment: VerifiableSecretSharingCommitment<C>,
     ) -> Self {
         SecretShare {
+            header: Header::default(),
             identifier,
-            value,
+            signing_share,
             commitment,
-            ciphersuite: (),
         }
-    }
-
-    /// Gets the inner [`SigningShare`] value.
-    pub fn secret(&self) -> &SigningShare<C> {
-        &self.value
     }
 
     /// Verifies that a secret share is consistent with a verifiable secret sharing commitment,
@@ -447,18 +447,34 @@ where
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error<C>> {
-        let f_result = <C::Group>::generator() * self.value.0;
+        let f_result = <C::Group>::generator() * self.signing_share.0;
         let result = evaluate_vss(&self.commitment, self.identifier);
 
         if !(f_result == result) {
             return Err(Error::InvalidSecretShare);
         }
 
-        let group_public = VerifyingKey {
+        let verifying_key = VerifyingKey {
             element: self.commitment.first()?.0,
         };
 
-        Ok((VerifyingShare(result), group_public))
+        Ok((VerifyingShare(result), verifying_key))
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<C> SecretShare<C>
+where
+    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
+    }
+
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
     }
 }
 
@@ -510,27 +526,34 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
 ) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     validate_num_of_signers(min_signers, max_signers)?;
 
-    let group_public = VerifyingKey::from(key);
+    if let IdentifierList::Custom(identifiers) = &identifiers {
+        if identifiers.len() != max_signers as usize {
+            return Err(Error::IncorrectNumberOfIdentifiers);
+        }
+    }
+
+    let verifying_key = VerifyingKey::from(key);
 
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
 
-    let default_identifiers = default_identifiers(max_signers);
-    let identifiers = match identifiers {
-        IdentifierList::Custom(identifiers) => identifiers,
-        IdentifierList::Default => &default_identifiers,
+    let secret_shares = match identifiers {
+        IdentifierList::Default => {
+            let identifiers = default_identifiers(max_signers);
+            generate_secret_shares(key, max_signers, min_signers, coefficients, &identifiers)?
+        }
+        IdentifierList::Custom(identifiers) => {
+            generate_secret_shares(key, max_signers, min_signers, coefficients, identifiers)?
+        }
     };
-
-    let secret_shares =
-        generate_secret_shares(key, max_signers, min_signers, coefficients, identifiers)?;
-    let mut signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>> =
+    let mut verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>> =
         HashMap::with_capacity(max_signers as usize);
 
     let mut secret_shares_by_id: HashMap<Identifier<C>, SecretShare<C>> =
         HashMap::with_capacity(max_signers as usize);
 
     for secret_share in secret_shares {
-        let signer_public = secret_share.value.into();
-        signer_pubkeys.insert(secret_share.identifier, signer_public);
+        let signer_public = secret_share.signing_share.into();
+        verifying_shares.insert(secret_share.identifier, signer_public);
 
         secret_shares_by_id.insert(secret_share.identifier, secret_share);
     }
@@ -538,9 +561,9 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
     Ok((
         secret_shares_by_id,
         PublicKeyPackage {
-            signer_pubkeys,
-            group_public,
-            ciphersuite: (),
+            header: Header::default(),
+            verifying_shares,
+            verifying_key,
         },
     ))
 }
@@ -595,28 +618,21 @@ fn evaluate_vss<C: Ciphersuite>(
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct KeyPackage<C: Ciphersuite> {
+    /// Serialization header
+    #[getter(skip)]
+    pub(crate) header: Header<C>,
     /// Denotes the participant identifier each secret share key package is owned by.
     #[zeroize(skip)]
     pub(crate) identifier: Identifier<C>,
-    /// This participant's secret share.
-    pub(crate) secret_share: SigningShare<C>,
+    /// This participant's signing share. This is secret.
+    pub(crate) signing_share: SigningShare<C>,
     /// This participant's public key.
     #[zeroize(skip)]
-    pub(crate) public: VerifyingShare<C>,
+    pub(crate) verifying_share: VerifyingShare<C>,
     /// The public verifying key that represents the entire group.
     #[zeroize(skip)]
-    pub(crate) group_public: VerifyingKey<C>,
-    /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    #[getter(skip)]
-    ciphersuite: (),
+    pub(crate) verifying_key: VerifyingKey<C>,
+    pub(crate) min_signers: u16,
 }
 
 impl<C> KeyPackage<C>
@@ -626,17 +642,35 @@ where
     /// Create a new [`KeyPackage`] instance.
     pub fn new(
         identifier: Identifier<C>,
-        secret_share: SigningShare<C>,
-        public: VerifyingShare<C>,
-        group_public: VerifyingKey<C>,
+        signing_share: SigningShare<C>,
+        verifying_share: VerifyingShare<C>,
+        verifying_key: VerifyingKey<C>,
+        min_signers: u16,
     ) -> Self {
         Self {
+            header: Header::default(),
             identifier,
-            secret_share,
-            public,
-            group_public,
-            ciphersuite: (),
+            signing_share,
+            verifying_share,
+            verifying_key,
+            min_signers,
         }
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<C> KeyPackage<C>
+where
+    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
+    }
+
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
     }
 }
 
@@ -655,14 +689,15 @@ where
     /// dealer, but implementations *MUST* make sure that all participants have
     /// a consistent view of this commitment in practice.
     fn try_from(secret_share: SecretShare<C>) -> Result<Self, Error<C>> {
-        let (public, group_public) = secret_share.verify()?;
+        let (verifying_share, verifying_key) = secret_share.verify()?;
 
         Ok(KeyPackage {
+            header: Header::default(),
             identifier: secret_share.identifier,
-            secret_share: secret_share.value,
-            public,
-            group_public,
-            ciphersuite: (),
+            signing_share: secret_share.signing_share,
+            verifying_share,
+            verifying_key,
+            min_signers: secret_share.commitment.0.len() as u16,
         })
     }
 }
@@ -675,22 +710,14 @@ where
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {
+    /// Serialization header
+    #[getter(skip)]
+    pub(crate) header: Header<C>,
     /// The verifying shares for all participants. Used to validate signature
     /// shares they generate.
-    pub(crate) signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
+    pub(crate) verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
-    pub(crate) group_public: VerifyingKey<C>,
-    /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    #[getter(skip)]
-    ciphersuite: (),
+    pub(crate) verifying_key: VerifyingKey<C>,
 }
 
 impl<C> PublicKeyPackage<C>
@@ -699,27 +726,48 @@ where
 {
     /// Create a new [`PublicKeyPackage`] instance.
     pub fn new(
-        signer_pubkeys: HashMap<Identifier<C>, VerifyingShare<C>>,
-        group_public: VerifyingKey<C>,
+        verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>>,
+        verifying_key: VerifyingKey<C>,
     ) -> Self {
         Self {
-            signer_pubkeys,
-            group_public,
-            ciphersuite: (),
+            header: Header::default(),
+            verifying_shares,
+            verifying_key,
         }
     }
 
-    /// Computes the public key package given a list of commitments.
-    #[cfg_attr(feature = "internals", visibility::make(pub))]
-    pub(crate) fn from_commitment(
+    /// Computes the public key package given a
+    /// [`VerifiableSecretSharingCommitment`]. This is useful in scenarios where
+    /// the commitments are published somewhere and it's desirable to recreate
+    /// the public key package from them.
+    pub fn from_commitment(
         members: &BTreeSet<Identifier<C>>,
         commitment: &VerifiableSecretSharingCommitment<C>,
-    ) -> PublicKeyPackage<C> {
+    ) -> Result<PublicKeyPackage<C>, Error<C>> {
         let mut verifying_keys = HashMap::new();
         for peer in members {
             verifying_keys.insert(*peer, VerifyingShare::from_commitment(commitment, *peer));
         }
-        PublicKeyPackage::new(verifying_keys, VerifyingKey::from_commitment(commitment))
+        Ok(PublicKeyPackage::new(
+            verifying_keys,
+            VerifyingKey::from_commitment(commitment)?,
+        ))
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<C> PublicKeyPackage<C>
+where
+    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
+    }
+
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
     }
 }
 
@@ -816,18 +864,18 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
         let value = evaluate_polynomial(*id, &coefficients);
 
         secret_shares.push(SecretShare {
+            header: Header::default(),
             identifier: *id,
-            value: SigningShare(value),
+            signing_share: SigningShare(value),
             commitment: commitment.clone(),
-            ciphersuite: (),
         });
     }
 
     Ok(secret_shares)
 }
 
-/// Recompute the secret from at least `min_signers` secret shares
-/// using Lagrange interpolation.
+/// Recompute the secret from at least `min_signers` secret shares (inside
+/// [`KeyPackage`]s) using Lagrange interpolation.
 ///
 /// This can be used if for some reason the original key must be restored; e.g.
 /// if threshold signing is not required anymore.
@@ -836,34 +884,46 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
 /// able to generate signatures only using the shares, without having to
 /// reconstruct the original key.
 ///
-/// The caller is responsible for providing at least `min_signers` shares;
+/// The caller is responsible for providing at least `min_signers` packages;
 /// if less than that is provided, a different key will be returned.
 pub fn reconstruct<C: Ciphersuite>(
-    secret_shares: &[SecretShare<C>],
+    key_packages: &[KeyPackage<C>],
 ) -> Result<SigningKey<C>, Error<C>> {
-    if secret_shares.is_empty() {
+    if key_packages.is_empty() {
+        return Err(Error::IncorrectNumberOfShares);
+    }
+    // There is no obvious way to get `min_signers` in order to validate the
+    // size of `secret_shares`. Since that is just a best-effort validation,
+    // we don't need to worry too much about adversarial situations where people
+    // lie about min_signers, so just get the minimum value out of all of them.
+    let min_signers = key_packages
+        .iter()
+        .map(|k| k.min_signers)
+        .min()
+        .expect("should not be empty since that was just tested");
+    if key_packages.len() < min_signers as usize {
         return Err(Error::IncorrectNumberOfShares);
     }
 
     let mut secret = <<C::Group as Group>::Field>::zero();
 
-    let identifiers: BTreeSet<_> = secret_shares
+    let identifiers: BTreeSet<_> = key_packages
         .iter()
         .map(|s| s.identifier())
         .cloned()
         .collect();
 
-    if identifiers.len() != secret_shares.len() {
+    if identifiers.len() != key_packages.len() {
         return Err(Error::DuplicatedIdentifier);
     }
 
     // Compute the Lagrange coefficients
-    for secret_share in secret_shares.iter() {
+    for key_package in key_packages.iter() {
         let lagrange_coefficient =
-            compute_lagrange_coefficient(&identifiers, None, secret_share.identifier)?;
+            compute_lagrange_coefficient(&identifiers, None, key_package.identifier)?;
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
-        secret = secret + (lagrange_coefficient * secret_share.value.0);
+        secret = secret + (lagrange_coefficient * key_package.signing_share().0);
     }
 
     Ok(SigningKey { scalar: secret })

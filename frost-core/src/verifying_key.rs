@@ -81,10 +81,14 @@ where
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(crate) fn from_commitment(
         commitment: &crate::frost::keys::VerifiableSecretSharingCommitment<C>,
-    ) -> VerifyingKey<C> {
-        VerifyingKey {
-            element: commitment.coefficients()[0].value(),
-        }
+    ) -> Result<VerifyingKey<C>, Error<C>> {
+        Ok(VerifyingKey {
+            element: commitment
+                .coefficients()
+                .first()
+                .ok_or(Error::IncorrectCommitment)?
+                .value(),
+        })
     }
 }
 

@@ -1,0 +1,5 @@
+---
+source: frost-ristretto255/tests/serialization_tests.rs
+expression: "hex::encode(&bytes)"
+---
+00d76ecff501e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d7640e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76498d4e9311420c903913a56c94a694b8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a

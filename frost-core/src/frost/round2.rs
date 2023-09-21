@@ -11,8 +11,6 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::ScalarSerialization;
 
-use super::round1::SigningCommitments;
-
 // Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
 // be directly encoded with serde, so we use this struct to wrap the scalar.
 #[cfg(feature = "serde")]
@@ -83,6 +81,7 @@ where
     ///
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
     #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn verify(
         &self,
         identifier: Identifier<C>,
@@ -107,17 +106,9 @@ where
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 struct SignatureShareSerialization<C: Ciphersuite> {
+    /// Serialization header
+    pub(crate) header: Header<C>,
     share: SignatureShareHelper<C>,
-    /// Ciphersuite ID for serialization
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-    )]
-    #[cfg_attr(
-        feature = "serde",
-        serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-    )]
-    ciphersuite: (),
 }
 
 #[cfg(feature = "serde")]
@@ -139,8 +130,8 @@ where
 {
     fn from(value: SignatureShare<C>) -> Self {
         Self {
+            header: Header::default(),
             share: SignatureShareHelper(value.share),
-            ciphersuite: (),
         }
     }
 }
@@ -158,6 +149,7 @@ where
 
 /// Compute the signature share for a signing operation.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn compute_signature_share<C: Ciphersuite>(
     signer_nonces: &round1::SigningNonces<C>,
     binding_factor: BindingFactor<C>,
@@ -167,7 +159,7 @@ fn compute_signature_share<C: Ciphersuite>(
 ) -> SignatureShare<C> {
     let z_share: <<C::Group as Group>::Field as Field>::Scalar = signer_nonces.hiding.0
         + (signer_nonces.binding.0 * binding_factor.0)
-        + (lambda_i * key_package.secret_share.0 * challenge.0);
+        + (lambda_i * key_package.signing_share.0 * challenge.0);
 
     SignatureShare::<C> { share: z_share }
 }
@@ -189,23 +181,25 @@ pub fn sign<C: Ciphersuite>(
     signer_nonces: &round1::SigningNonces<C>,
     key_package: &frost::keys::KeyPackage<C>,
 ) -> Result<SignatureShare<C>, Error<C>> {
+    if signing_package.signing_commitments().len() < key_package.min_signers as usize {
+        return Err(Error::IncorrectNumberOfCommitments);
+    }
+
     // Validate the signer's commitment is present in the signing package
     let commitment = signing_package
         .signing_commitments
         .get(&key_package.identifier)
         .ok_or(Error::MissingCommitment)?;
 
-    let signing_commitments = SigningCommitments::from(signer_nonces);
-
     // Validate if the signer's commitment exists
-    if &signing_commitments != commitment {
+    if &signer_nonces.commitments != commitment {
         return Err(Error::IncorrectCommitment);
     }
 
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &key_package.group_public, &[]);
+        compute_binding_factor_list(signing_package, &key_package.verifying_key, &[]);
     let binding_factor: frost::BindingFactor<C> = binding_factor_list
         .get(&key_package.identifier)
         .ok_or(Error::UnknownIdentifier)?
@@ -220,7 +214,7 @@ pub fn sign<C: Ciphersuite>(
     // Compute the per-message challenge.
     let challenge = challenge::<C>(
         &group_commitment.0,
-        &key_package.group_public.element,
+        &key_package.verifying_key.element,
         signing_package.message.as_slice(),
     );
 

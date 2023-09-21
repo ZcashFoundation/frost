@@ -4,9 +4,33 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
-## 0.7.0
+## 0.8.0
+
+* Both serde serialization and the default byte-oriented serialization now
+  include a version field (a u8) at the beginning which is always 0 for now. The
+  ciphersuite ID field was moved from the last field to the second field, after
+  the version. Both version and ciphersuite ID are now grouped into a "header"
+  struct, which affects self-describing formats like JSON. The ciphersuite ID
+  string was also changed for all ciphersuites: it is now equal to the
+  `contextString` of each ciphersuite per the FROST spec.
 
 ## Released
+
+## 0.7.0
+
+* Challenge hashing during DKG computation was changed to match the paper.
+  This means that code running this version won't interoperate with code
+  running previous versions.
+* A new `min_signers` field was added to `KeyPackage`, which changes its
+  `new()` method and its serde serialization.
+* `reconstruct()` was changed to take a slice of `KeyPackage`s instead of
+  `SecretShare`s since users are expect to store the former and not the latter.
+* New `serialize()`/`deserialize()` methods were added so that a default
+  byte-oriented serialization is available for all structs that need to be
+  communicated. It is still possible to use serde with you own encoder. Note
+  that the format will likely change in the next release.
+* Audit findings were addressed.
+
 
 ## 0.6.0
 

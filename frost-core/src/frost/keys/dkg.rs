@@ -35,20 +35,22 @@ use std::{collections::HashMap, iter};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    frost::Identifier, Challenge, Ciphersuite, Element, Error, Field, Group, Scalar, Signature,
-    SigningKey,
+    frost::Identifier, Challenge, Ciphersuite, Element, Error, Field, Group, Header, Scalar,
+    Signature, SigningKey,
 };
 
 use super::{
-    compute_group_commitment, evaluate_polynomial, generate_coefficients,
-    generate_secret_polynomial, validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare,
-    SigningShare, VerifiableSecretSharingCommitment,
+    evaluate_polynomial, generate_coefficients, generate_secret_polynomial, sum_commitments,
+    validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
+    VerifiableSecretSharingCommitment,
 };
 
 /// DKG Round 1 structures.
 pub mod round1 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
+
+    use crate::{Deserialize, Serialize};
 
     use super::*;
 
@@ -58,21 +60,13 @@ pub mod round1 {
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
+        /// Serialization header
+        #[getter(skip)]
+        pub(crate) header: Header<C>,
         /// The public commitment from the participant (C_i)
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
         pub(crate) proof_of_knowledge: Signature<C>,
-        /// Ciphersuite ID for serialization
-        #[cfg_attr(
-            feature = "serde",
-            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-        )]
-        #[cfg_attr(
-            feature = "serde",
-            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-        )]
-        #[getter(skip)]
-        pub(super) ciphersuite: (),
     }
 
     impl<C> Package<C>
@@ -85,10 +79,26 @@ pub mod round1 {
             proof_of_knowledge: Signature<C>,
         ) -> Self {
             Self {
+                header: Header::default(),
                 commitment,
                 proof_of_knowledge,
-                ciphersuite: (),
             }
+        }
+    }
+
+    #[cfg(feature = "serialization")]
+    impl<C> Package<C>
+    where
+        C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    {
+        /// Serialize the struct into a Vec.
+        pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+            Serialize::serialize(&self)
+        }
+
+        /// Deserialize the struct from a slice of bytes.
+        pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+            Deserialize::deserialize(bytes)
         }
     }
 
@@ -107,6 +117,8 @@ pub mod round1 {
         pub(crate) coefficients: Vec<Scalar<C>>,
         /// The public commitment for the participant (C_i)
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
+        /// The minimum number of signers.
+        pub(crate) min_signers: u16,
         /// The total number of signers.
         pub(crate) max_signers: u16,
     }
@@ -131,6 +143,7 @@ pub mod round1 {
                 .field("identifier", &self.identifier)
                 .field("coefficients", &"<redacted>")
                 .field("commitment", &self.commitment)
+                .field("min_signers", &self.min_signers)
                 .field("max_signers", &self.max_signers)
                 .finish()
         }
@@ -153,6 +166,8 @@ pub mod round2 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
+    use crate::{Deserialize, Serialize};
+
     use super::*;
 
     /// A package that must be sent by each participant to some other participants
@@ -166,19 +181,11 @@ pub mod round2 {
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
-        /// The secret share being sent.
-        pub(crate) secret_share: SigningShare<C>,
-        /// Ciphersuite ID for serialization
-        #[cfg_attr(
-            feature = "serde",
-            serde(serialize_with = "crate::ciphersuite_serialize::<_, C>")
-        )]
-        #[cfg_attr(
-            feature = "serde",
-            serde(deserialize_with = "crate::ciphersuite_deserialize::<_, C>")
-        )]
+        /// Serialization header
         #[getter(skip)]
-        pub(super) ciphersuite: (),
+        pub(crate) header: Header<C>,
+        /// The secret share being sent.
+        pub(crate) signing_share: SigningShare<C>,
     }
 
     impl<C> Package<C>
@@ -186,11 +193,27 @@ pub mod round2 {
         C: Ciphersuite,
     {
         /// Create a new [`Package`] instance.
-        pub fn new(secret_share: SigningShare<C>) -> Self {
+        pub fn new(signing_share: SigningShare<C>) -> Self {
             Self {
-                secret_share,
-                ciphersuite: (),
+                header: Header::default(),
+                signing_share,
             }
+        }
+    }
+
+    #[cfg(feature = "serialization")]
+    impl<C> Package<C>
+    where
+        C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    {
+        /// Serialize the struct into a Vec.
+        pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+            Serialize::serialize(&self)
+        }
+
+        /// Deserialize the struct from a slice of bytes.
+        pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+            Deserialize::deserialize(bytes)
         }
     }
 
@@ -208,6 +231,8 @@ pub mod round2 {
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The participant's own secret share (f_i(i)).
         pub(crate) secret_share: Scalar<C>,
+        /// The minimum number of signers.
+        pub(crate) min_signers: u16,
         /// The total number of signers.
         pub(crate) max_signers: u16,
     }
@@ -221,6 +246,7 @@ pub mod round2 {
                 .field("identifier", &self.identifier)
                 .field("commitment", &self.commitment)
                 .field("secret_share", &"<redacted>")
+                .field("min_signers", &self.min_signers)
                 .field("max_signers", &self.max_signers)
                 .finish()
         }
@@ -274,7 +300,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let k = <<C::Group as Group>::Field>::random(&mut rng);
     let R_i = <C::Group>::generator() * k;
     let c_i =
-        challenge::<C>(identifier, &R_i, &commitment.first()?.0).ok_or(Error::DKGNotSupported)?;
+        challenge::<C>(identifier, &commitment.first()?.0, &R_i).ok_or(Error::DKGNotSupported)?;
     let a_i0 = *coefficients
         .get(0)
         .expect("coefficients must have at least one element");
@@ -284,12 +310,13 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
         identifier,
         coefficients,
         commitment: commitment.clone(),
+        min_signers,
         max_signers,
     };
     let package = round1::Package {
+        header: Header::default(),
         commitment,
         proof_of_knowledge: Signature { R: R_i, z: mu_i },
-        ciphersuite: (),
     };
 
     Ok((secret_package, package))
@@ -298,8 +325,8 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Generates the challenge for the proof of knowledge to a secret for the DKG.
 fn challenge<C>(
     identifier: Identifier<C>,
-    R: &Element<C>,
     verifying_key: &Element<C>,
+    R: &Element<C>,
 ) -> Option<Challenge<C>>
 where
     C: Ciphersuite,
@@ -307,8 +334,8 @@ where
     let mut preimage = vec![];
 
     preimage.extend_from_slice(identifier.serialize().as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
     preimage.extend_from_slice(<C::Group>::serialize(verifying_key).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
 
     Some(Challenge(C::HDKG(&preimage[..])?))
 }
@@ -368,6 +395,7 @@ pub fn part2<C: Ciphersuite>(
 
     for (sender_identifier, round1_package) in round1_packages {
         let ell = *sender_identifier;
+        // Round 1, Step 5
         verify_proof_of_knowledge(
             ell,
             &round1_package.commitment,
@@ -384,8 +412,8 @@ pub fn part2<C: Ciphersuite>(
         round2_packages.insert(
             ell,
             round2::Package {
-                secret_share: SigningShare(value),
-                ciphersuite: (),
+                header: Header::default(),
+                signing_share: SigningShare(value),
             },
         );
     }
@@ -395,6 +423,7 @@ pub fn part2<C: Ciphersuite>(
             identifier: secret_package.identifier,
             commitment: secret_package.commitment,
             secret_share: fii,
+            min_signers: secret_package.min_signers,
             max_signers: secret_package.max_signers,
         },
         round2_packages,
@@ -445,7 +474,7 @@ pub fn part3<C: Ciphersuite>(
         // > g^{f_ℓ(i)} ≟ ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk}, aborting if the
         // > check fails.
         let ell = *sender_identifier;
-        let f_ell_i = round2_package.secret_share;
+        let f_ell_i = round2_package.signing_share;
 
         let commitment = &round1_packages
             .get(&ell)
@@ -456,10 +485,10 @@ pub fn part3<C: Ciphersuite>(
         // however the required components are in different places.
         // Build a temporary SecretShare so what we can call verify().
         let secret_share = SecretShare {
+            header: Header::default(),
             identifier: round2_secret_package.identifier,
-            value: f_ell_i,
+            signing_share: f_ell_i,
             commitment: commitment.clone(),
-            ciphersuite: (),
         };
 
         // Verify the share. We don't need the result.
@@ -480,17 +509,18 @@ pub fn part3<C: Ciphersuite>(
         .map(|package| package.commitment.clone())
         .chain(iter::once(round2_secret_package.commitment.clone()))
         .collect();
-    let group_commitment = compute_group_commitment(&commitments);
-    let public_key_package = PublicKeyPackage::from_commitment(&members, &group_commitment);
+    let group_commitment = sum_commitments(&commitments)?;
+    let public_key_package = PublicKeyPackage::from_commitment(&members, &group_commitment)?;
     let key_package = KeyPackage {
+        header: Header::default(),
         identifier: round2_secret_package.identifier,
-        secret_share: signing_share,
-        public: *public_key_package
-            .signer_pubkeys
+        signing_share,
+        verifying_share: *public_key_package
+            .verifying_shares()
             .get(&round2_secret_package.identifier)
             .expect("round2_secret_package.commitment is in the hashmap"),
-        group_public: public_key_package.group_public,
-        ciphersuite: (),
+        verifying_key: public_key_package.verifying_key,
+        min_signers: round2_secret_package.min_signers,
     };
 
     Ok((key_package, public_key_package))

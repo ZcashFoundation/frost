@@ -5,7 +5,7 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "0.6.0"
+version = "0.7.0"
 authors = [
         "Deirdre Connolly <durumcrustulum@gmail.com>",
         "Chelsea Komlo <me@chelseakomlo.com>",
@@ -19,17 +19,21 @@ keywords = ["cryptography", "crypto", "threshold", "signature"]
 description = "A Schnorr signature scheme over the NIST P-256 curve that supports FROST."
 
 [package.metadata.docs.rs]
-features = ["nightly"]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
+document-features = "0.2.7"
 p256 = { version = "0.13.0", features = ["hash2curve"] }
-frost-core = { path = "../frost-core", version = "0.6.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.7.0" }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
 [dev-dependencies]
 criterion = "0.5"
-frost-rerandomized = { path = "../frost-rerandomized", version = "0.6.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "0.7.0", features = ["test-impl"] }
+frost-rerandomized = { path = "../frost-rerandomized", version = "0.7.0", features = ["test-impl"] }
+insta = { version = "1.31.0", features = ["yaml"] }
 hex = "0.4.3"
 lazy_static = "1.4"
 proptest = "1.0"
@@ -39,7 +43,12 @@ serde_json = "1.0"
 
 [features]
 nightly = []
-default = []
+default = ["serialization"]
+serialization = ["serde", "frost-core/serialization"]
+#! ## Features
+## Enable `serde` support for types that need to be communicated. You
+## can use `serde` to serialize structs with any encoder that supports
+## `serde` (e.g. JSON with `serde_json`).
 serde = ["frost-core/serde"]
 
 [lib]

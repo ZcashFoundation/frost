@@ -13,7 +13,7 @@ use crate::{
 /// Test vectors for a ciphersuite.
 pub struct TestVectors<C: Ciphersuite> {
     secret_key: SigningKey<C>,
-    group_public: VerifyingKey<C>,
+    verifying_key: VerifyingKey<C>,
     key_packages: HashMap<Identifier<C>, KeyPackage<C>>,
     message_bytes: Vec<u8>,
     share_polynomial_coefficients: Vec<Scalar<C>>,
@@ -40,7 +40,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
     let message = inputs["message"].as_str().unwrap();
     let message_bytes = hex::decode(message).unwrap();
 
-    let share_polynomial_coefficients = inputs["share_polynomial_coefficients"]
+    let share_polynomial_coefficients: Vec<_> = inputs["share_polynomial_coefficients"]
         .as_array()
         .unwrap()
         .iter()
@@ -57,8 +57,8 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         .unwrap()
         .iter();
 
-    let group_public =
-        VerifyingKey::<C>::from_hex(inputs["group_public_key"].as_str().unwrap()).unwrap();
+    let verifying_key =
+        VerifyingKey::<C>::from_hex(inputs["verifying_key_key"].as_str().unwrap()).unwrap();
 
     for secret_share in possible_participants {
         let i = secret_share["identifier"].as_u64().unwrap() as u16;
@@ -67,8 +67,14 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
                 .unwrap();
         let signer_public = secret.into();
 
-        let key_package =
-            KeyPackage::<C>::new(i.try_into().unwrap(), secret, signer_public, group_public);
+        let min_signers = share_polynomial_coefficients.len() + 1;
+        let key_package = KeyPackage::<C>::new(
+            i.try_into().unwrap(),
+            secret,
+            signer_public,
+            verifying_key,
+            min_signers as u16,
+        );
 
         key_packages.insert(*key_package.identifier(), key_package);
     }
@@ -96,10 +102,10 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
             hex::decode(signer["binding_nonce_randomness"].as_str().unwrap()).unwrap();
         binding_nonces_randomness.insert(identifier, binding_nonce_randomness);
 
-        let signing_nonces = SigningNonces::<C> {
-            hiding: Nonce::<C>::from_hex(signer["hiding_nonce"].as_str().unwrap()).unwrap(),
-            binding: Nonce::<C>::from_hex(signer["binding_nonce"].as_str().unwrap()).unwrap(),
-        };
+        let signing_nonces = SigningNonces::<C>::from_nonces(
+            Nonce::<C>::from_hex(signer["hiding_nonce"].as_str().unwrap()).unwrap(),
+            Nonce::<C>::from_hex(signer["binding_nonce"].as_str().unwrap()).unwrap(),
+        );
 
         signer_nonces.insert(identifier, signing_nonces);
 
@@ -148,7 +154,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 
     TestVectors {
         secret_key,
-        group_public,
+        verifying_key,
         key_packages,
         message_bytes,
         share_polynomial_coefficients,
@@ -167,7 +173,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     let TestVectors {
         secret_key,
-        group_public,
+        verifying_key,
         key_packages,
         message_bytes,
         share_polynomial_coefficients,
@@ -202,12 +208,12 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     for key_package in key_packages.values() {
         assert_eq!(
-            *key_package.public(),
-            frost::keys::VerifyingShare::from(*key_package.secret_share())
+            *key_package.verifying_share(),
+            frost::keys::VerifyingShare::from(*key_package.signing_share())
         );
         assert_eq!(
-            key_package.secret_share(),
-            secret_shares[key_package.identifier()].secret()
+            key_package.signing_share(),
+            secret_shares[key_package.identifier()].signing_share()
         )
     }
 
@@ -219,7 +225,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         let nonces = signer_nonces.get(&i).unwrap();
 
         // compute nonces from secret and randomness
-        let secret = secret_shares[&i].secret();
+        let secret = secret_shares[&i].signing_share();
 
         let hiding_nonce_randomness = &hiding_nonces_randomness[&i];
         let hiding_nonce = Nonce::nonce_generate_from_random_bytes(
@@ -256,14 +262,14 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     let signing_package = frost::SigningPackage::new(signer_commitments, &message_bytes);
 
     for (identifier, input) in signing_package
-        .binding_factor_preimages(&group_public, &[])
+        .binding_factor_preimages(&verifying_key, &[])
         .iter()
     {
         assert_eq!(*input, binding_factor_inputs[identifier]);
     }
 
     let binding_factor_list: frost::BindingFactorList<C> =
-        compute_binding_factor_list(&signing_package, &group_public, &[]);
+        compute_binding_factor_list(&signing_package, &verifying_key, &[]);
 
     for (identifier, binding_factor) in binding_factor_list.iter() {
         assert_eq!(*binding_factor, binding_factors[identifier]);
@@ -284,12 +290,12 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     assert_eq!(our_signature_shares, signature_shares);
 
-    let signer_pubkeys = key_packages
+    let verifying_shares = key_packages
         .into_iter()
-        .map(|(i, key_package)| (i, *key_package.public()))
+        .map(|(i, key_package)| (i, *key_package.verifying_share()))
         .collect();
 
-    let pubkey_package = frost::keys::PublicKeyPackage::new(signer_pubkeys, group_public);
+    let pubkey_package = frost::keys::PublicKeyPackage::new(verifying_shares, verifying_key);
 
     ////////////////////////////////////////////////////////////////////////////
     // Aggregation:  collects the signing shares from all participants,
