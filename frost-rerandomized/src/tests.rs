@@ -2,14 +2,14 @@
 
 use std::collections::BTreeMap;
 
-use crate::{frost_core::frost, frost_core::Ciphersuite, RandomizedParams, Randomizer};
-use frost_core::{Signature, VerifyingKey};
+use crate::{frost_core::frost, RandomizedCiphersuite, RandomizedParams, Randomizer};
+use frost_core::{frost::SigningPackage, Field, Group, Signature, VerifyingKey};
 use rand_core::{CryptoRng, RngCore};
 
 /// Test re-randomized FROST signing with trusted dealer with a Ciphersuite.
 /// Returns the signed message, generated signature, and the randomized public key
 /// so that the caller can verify the signature with their own implementation.
-pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_randomized_sign_with_dealer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
     ////////////////////////////////////////////////////////////////////////////
@@ -39,10 +39,6 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     let mut commitments: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         BTreeMap::new();
 
-    check_from_randomizer(&pubkeys, &mut rng);
-    let randomizer_params = RandomizedParams::new(pubkeys.verifying_key(), &mut rng);
-    let randomizer = randomizer_params.randomizer();
-
     ////////////////////////////////////////////////////////////////////////////
     // Round 1: generating nonces and signing commitments for each participant
     ////////////////////////////////////////////////////////////////////////////
@@ -69,6 +65,11 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
         BTreeMap::new();
     let message = "message to sign".as_bytes();
     let signing_package = frost::SigningPackage::new(commitments, message);
+
+    check_randomizer(&pubkeys, &signing_package, &mut rng);
+    let randomizer_params =
+        RandomizedParams::new(pubkeys.verifying_key(), &signing_package, &mut rng).unwrap();
+    let randomizer = randomizer_params.randomizer();
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
@@ -119,13 +120,56 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     )
 }
 
-fn check_from_randomizer<C: Ciphersuite, R: RngCore + CryptoRng>(
+fn check_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
     pubkeys: &frost::keys::PublicKeyPackage<C>,
-    rng: &mut R,
+    signing_package: &frost::SigningPackage<C>,
+    mut rng: &mut R,
 ) {
-    let randomizer = Randomizer::new(rng);
+    check_from_randomizer(&mut rng, signing_package, pubkeys);
+
+    check_from_randomizer_and_signing_package(&mut rng, signing_package);
+}
+
+fn check_from_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
+    rng: &mut R,
+    signing_package: &SigningPackage<C>,
+    pubkeys: &frost::keys::PublicKeyPackage<C>,
+) {
+    let randomizer = Randomizer::new(rng, signing_package).unwrap();
 
     let randomizer_params = RandomizedParams::from_randomizer(pubkeys.verifying_key(), randomizer);
 
     assert!(*randomizer_params.randomizer() == randomizer);
+}
+
+fn check_from_randomizer_and_signing_package<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
+    mut rng: &mut R,
+    signing_package: &SigningPackage<C>,
+) {
+    let rng_randomizer1 = <<C::Group as Group>::Field as Field>::random(&mut rng);
+    let rng_randomizer2 = <<C::Group as Group>::Field as Field>::random(&mut rng);
+
+    let randomizer1 =
+        Randomizer::from_randomizer_and_signing_package(rng_randomizer1, signing_package);
+    let randomizer2 =
+        Randomizer::from_randomizer_and_signing_package(rng_randomizer1, signing_package);
+
+    // Make sure same inputs lead to same randomizer (and that equality works)
+    assert!(randomizer1 == randomizer2);
+
+    let randomizer2 =
+        Randomizer::from_randomizer_and_signing_package(rng_randomizer2, signing_package);
+
+    // Make sure that different rng_randomizers lead to different randomizers
+    assert!(randomizer1 != randomizer2);
+
+    let signing_package2 = SigningPackage::new(
+        signing_package.signing_commitments().clone(),
+        "fresh new message".as_bytes(),
+    );
+    let randomizer2 =
+        Randomizer::from_randomizer_and_signing_package(rng_randomizer1, &signing_package2);
+
+    // Make sure that different packages lead to different randomizers
+    assert!(randomizer1 != randomizer2);
 }
