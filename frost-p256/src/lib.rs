@@ -7,6 +7,7 @@
 
 use std::collections::BTreeMap;
 
+use frost_rerandomized::RandomizedCiphersuite;
 use p256::{
     elliptic_curve::{
         hash2curve::{hash_to_field, ExpandMsgXmd},
@@ -230,6 +231,15 @@ impl Ciphersuite for P256Sha256 {
     fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "id").as_bytes(),
+            m,
+        ))
+    }
+}
+
+impl RandomizedCiphersuite for P256Sha256 {
+    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(
+            (CONTEXT_STRING.to_owned() + "randomizer").as_bytes(),
             m,
         ))
     }
