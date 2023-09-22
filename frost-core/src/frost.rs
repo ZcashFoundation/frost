@@ -9,7 +9,7 @@
 //! generation and the FROST rounds.
 
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet},
     fmt::{self, Debug},
 };
 
@@ -408,7 +408,7 @@ where
 /// service attack due to publishing an invalid signature.
 pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
-    signature_shares: &HashMap<Identifier<C>, round2::SignatureShare<C>>,
+    signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
     pubkeys: &keys::PublicKeyPackage<C>,
 ) -> Result<Signature<C>, Error<C>>
 where

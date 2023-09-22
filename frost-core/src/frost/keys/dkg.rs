@@ -30,7 +30,7 @@
 //! [Feldman's VSS]: https://www.cs.umd.edu/~gasarch/TOPICS/secretsharing/feldmanVSS.pdf
 //! [secure broadcast channel]: https://frost.zfnd.org/terminology.html#broadcast-channel
 
-use std::{collections::HashMap, iter};
+use std::{collections::BTreeMap, iter};
 
 use rand_core::{CryptoRng, RngCore};
 
@@ -346,11 +346,11 @@ where
 /// must be sent to each participant who has the given identifier in the map key.
 pub fn part2<C: Ciphersuite>(
     secret_package: round1::SecretPackage<C>,
-    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
+    round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
 ) -> Result<
     (
         round2::SecretPackage<C>,
-        HashMap<Identifier<C>, round2::Package<C>>,
+        BTreeMap<Identifier<C>, round2::Package<C>>,
     ),
     Error<C>,
 > {
@@ -358,7 +358,7 @@ pub fn part2<C: Ciphersuite>(
         return Err(Error::IncorrectNumberOfPackages);
     }
 
-    let mut round2_packages = HashMap::new();
+    let mut round2_packages = BTreeMap::new();
 
     for (sender_identifier, round1_package) in round1_packages {
         let ell = *sender_identifier;
@@ -407,14 +407,14 @@ pub fn part2<C: Ciphersuite>(
 /// Computes the verifying shares of the other participants for the third step
 /// of the DKG protocol.
 fn compute_verifying_shares<C: Ciphersuite>(
-    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
+    round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
     round2_secret_package: &round2::SecretPackage<C>,
-) -> Result<HashMap<Identifier<C>, VerifyingShare<C>>, Error<C>> {
+) -> Result<BTreeMap<Identifier<C>, VerifyingShare<C>>, Error<C>> {
     // Round 2, Step 4
     //
     // > Any participant can compute the public verification share of any other participant
     // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
-    let mut others_verifying_shares = HashMap::new();
+    let mut others_verifying_shares = BTreeMap::new();
 
     // Note that in this loop, "i" refers to the other participant whose public verification share
     // we are computing, and not the current participant.
@@ -464,8 +464,8 @@ fn compute_verifying_shares<C: Ciphersuite>(
 /// signatures.
 pub fn part3<C: Ciphersuite>(
     round2_secret_package: &round2::SecretPackage<C>,
-    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
-    round2_packages: &HashMap<Identifier<C>, round2::Package<C>>,
+    round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
+    round2_packages: &BTreeMap<Identifier<C>, round2::Package<C>>,
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
     if round1_packages.len() != (round2_secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);

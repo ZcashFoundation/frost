@@ -1,6 +1,6 @@
 //! Ciphersuite-generic test functions for re-randomized FROST.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use crate::{frost_core::frost, frost_core::Ciphersuite, RandomizedParams, Randomizer};
 use frost_core::{Signature, VerifyingKey};
@@ -27,14 +27,15 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     .unwrap();
 
     // Verifies the secret shares from the dealer
-    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-        HashMap::new();
+    let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        BTreeMap::new();
 
     for (k, v) in shares {
         key_packages.insert(k, frost::keys::KeyPackage::try_from(v).unwrap());
     }
 
-    let mut nonces: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> = HashMap::new();
+    let mut nonces: BTreeMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
+        BTreeMap::new();
     let mut commitments: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         BTreeMap::new();
 
@@ -64,8 +65,8 @@ pub fn check_randomized_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>
     // This is what the signature aggregator / coordinator needs to do:
     // - decide what message to sign
     // - take one (unused) commitment per signing participant
-    let mut signature_shares: HashMap<frost::Identifier<_>, frost::round2::SignatureShare<_>> =
-        HashMap::new();
+    let mut signature_shares: BTreeMap<frost::Identifier<_>, frost::round2::SignatureShare<_>> =
+        BTreeMap::new();
     let message = "message to sign".as_bytes();
     let signing_package = frost::SigningPackage::new(commitments, message);
 

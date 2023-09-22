@@ -8,7 +8,7 @@ channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 
 To generate the key shares, the dealer calls
 [`generate_with_dealer()`](https://docs.rs/frost-ristretto255/latest/frost_ristretto255/keys/fn.generate_with_dealer.html).
-It returns a `HashMap` mapping the (automatically generated) `Identifier`s to
+It returns a `BTreeMap` mapping the (automatically generated) `Identifier`s to
 their respective `SecretShare`s, and a `PublicKeyPackage` which contains the
 `VerifyingShare` for each participant and the group public key (`VerifyingKey`).
 

@@ -12,7 +12,7 @@ scenario in a single thread and it abstracts away any communication between peer
 # // ANCHOR: tkg_gen
 use frost_p256 as frost;
 use rand::thread_rng;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 let mut rng = thread_rng();
 let max_signers = 5;
@@ -25,10 +25,10 @@ let (shares, pubkey_package) = frost::keys::generate_with_dealer(
 )?;
 # // ANCHOR_END: tkg_gen
 
-// Verifies the secret shares from the dealer and store them in a HashMap.
+// Verifies the secret shares from the dealer and store them in a BTreeMap.
 // In practice, the KeyPackages must be sent to its respective participants
 // through a confidential and authenticated channel.
-let mut key_packages: HashMap<_, _> = HashMap::new();
+let mut key_packages: BTreeMap<_, _> = BTreeMap::new();
 
 for (identifier, secret_share) in shares {
     # // ANCHOR: tkg_verify
@@ -37,7 +37,7 @@ for (identifier, secret_share) in shares {
     key_packages.insert(identifier, key_package);
 }
 
-let mut nonces_map = HashMap::new();
+let mut nonces_map = BTreeMap::new();
 let mut commitments_map = BTreeMap::new();
 
 ////////////////////////////////////////////////////////////////////////////
@@ -67,7 +67,7 @@ for participant_index in 1..(min_signers as u16 + 1) {
 // This is what the signature aggregator / coordinator needs to do:
 // - decide what message to sign
 // - take one (unused) commitment per signing participant
-let mut signature_shares = HashMap::new();
+let mut signature_shares = BTreeMap::new();
 # // ANCHOR: round2_package
 let message = "message to sign".as_bytes();
 # // In practice, the SigningPackage must be sent to all participants

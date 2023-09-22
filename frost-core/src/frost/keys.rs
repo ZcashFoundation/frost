@@ -2,7 +2,7 @@
 #![allow(clippy::type_complexity)]
 
 use std::{
-    collections::{BTreeSet, HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashSet},
     convert::TryFrom,
     default::Default,
     fmt::{self, Debug},
@@ -458,7 +458,7 @@ pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     min_signers: u16,
     identifiers: IdentifierList<C>,
     rng: &mut R,
-) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
+) -> Result<(BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     let mut bytes = [0; 64];
     rng.fill_bytes(&mut bytes);
 
@@ -479,7 +479,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
     min_signers: u16,
     identifiers: IdentifierList<C>,
     rng: &mut R,
-) -> Result<(HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
+) -> Result<(BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     validate_num_of_signers(min_signers, max_signers)?;
 
     if let IdentifierList::Custom(identifiers) = &identifiers {
@@ -501,11 +501,9 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
             generate_secret_shares(key, max_signers, min_signers, coefficients, identifiers)?
         }
     };
-    let mut verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>> =
-        HashMap::with_capacity(max_signers as usize);
+    let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
 
-    let mut secret_shares_by_id: HashMap<Identifier<C>, SecretShare<C>> =
-        HashMap::with_capacity(max_signers as usize);
+    let mut secret_shares_by_id: BTreeMap<Identifier<C>, SecretShare<C>> = BTreeMap::new();
 
     for secret_share in secret_shares {
         let signer_public = secret_share.signing_share.into();
@@ -673,7 +671,7 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     pub(crate) header: Header<C>,
     /// The verifying shares for all participants. Used to validate signature
     /// shares they generate.
-    pub(crate) verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>>,
+    pub(crate) verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
     pub(crate) verifying_key: VerifyingKey<C>,
 }
@@ -684,7 +682,7 @@ where
 {
     /// Create a new [`PublicKeyPackage`] instance.
     pub fn new(
-        verifying_shares: HashMap<Identifier<C>, VerifyingShare<C>>,
+        verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>>,
         verifying_key: VerifyingKey<C>,
     ) -> Self {
         Self {

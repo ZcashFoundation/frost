@@ -1,6 +1,6 @@
 //! Test for Repairable Threshold Scheme
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
@@ -28,7 +28,7 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
+    let (shares, _pubkeys): (BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::generate_with_dealer(
             max_signers,
             min_signers,
@@ -106,7 +106,7 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
+    let (shares, _pubkeys): (BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::generate_with_dealer(
             max_signers,
             min_signers,
@@ -176,7 +176,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     // Generate shares
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
+    let (shares, _pubkeys): (BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::generate_with_dealer(
             max_signers,
             min_signers,
@@ -221,7 +221,7 @@ pub fn check_repair_share_step_1_fails_with_invalid_min_signers<
     // Generate shares
     let max_signers = 3;
     let min_signers = 2; // This is to make sure this test fails at the right point
-    let (shares, _pubkeys): (HashMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
+    let (shares, _pubkeys): (BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) =
         frost::keys::generate_with_dealer(
             max_signers,
             min_signers,

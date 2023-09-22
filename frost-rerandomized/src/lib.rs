@@ -14,7 +14,7 @@
 #[cfg(any(test, feature = "test-impl"))]
 pub mod tests;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use derive_getters::Getters;
 pub use frost_core;
@@ -132,7 +132,7 @@ pub fn sign<C: Ciphersuite>(
 /// See [`frost::aggregate`] for documentation on the other parameters.
 pub fn aggregate<C>(
     signing_package: &frost::SigningPackage<C>,
-    signature_shares: &HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
+    signature_shares: &BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkeys: &frost::keys::PublicKeyPackage<C>,
     randomized_params: &RandomizedParams<C>,
 ) -> Result<frost_core::Signature<C>, Error<C>>
