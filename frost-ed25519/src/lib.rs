@@ -18,9 +18,6 @@ use sha2::{Digest, Sha512};
 
 use frost_core::frost;
 
-#[cfg(feature = "serde")]
-use frost_core::serde;
-
 #[cfg(test)]
 mod tests;
 
@@ -155,8 +152,6 @@ const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v1";
 
 /// An implementation of the FROST(Ed25519, SHA-512) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct Ed25519Sha512;
 
 impl Ciphersuite for Ed25519Sha512 {

@@ -49,6 +49,7 @@ pub(crate) fn default_identifiers<C: Ciphersuite>(max_signers: u16) -> Vec<Ident
 /// A secret scalar value representing a signer's share of the group secret.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct SigningShare<C: Ciphersuite>(pub(crate) Scalar<C>);
@@ -146,6 +147,7 @@ where
 /// A public group element that represents a single signer's public verification share.
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct VerifyingShare<C>(pub(super) Element<C>)
@@ -229,6 +231,7 @@ where
 /// verifiable secret sharing for a Shamir secret share.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct CoefficientCommitment<C: Ciphersuite>(pub(crate) Element<C>);
@@ -302,6 +305,7 @@ where
 /// ensure that they received the correct (and same) value.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 pub struct VerifiableSecretSharingCommitment<C: Ciphersuite>(
     pub(crate) Vec<CoefficientCommitment<C>>,
 );
@@ -350,6 +354,7 @@ where
 /// .into(), which under the hood also performs validation.
 #[derive(Clone, Debug, Zeroize, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SecretShare<C: Ciphersuite> {
     /// Serialization header
@@ -416,7 +421,7 @@ where
 #[cfg(feature = "serialization")]
 impl<C> SecretShare<C>
 where
-    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    C: Ciphersuite,
 {
     /// Serialize the struct into a Vec.
     pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
@@ -565,6 +570,7 @@ fn evaluate_vss<C: Ciphersuite>(
 /// [`KeyPackage`]s, which they store to later use during signing.
 #[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct KeyPackage<C: Ciphersuite> {
     /// Serialization header
@@ -610,7 +616,7 @@ where
 #[cfg(feature = "serialization")]
 impl<C> KeyPackage<C>
 where
-    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    C: Ciphersuite,
 {
     /// Serialize the struct into a Vec.
     pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
@@ -657,6 +663,7 @@ where
 /// Used for verification purposes before publishing a signature.
 #[derive(Clone, Debug, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {
     /// Serialization header
@@ -689,7 +696,7 @@ where
 #[cfg(feature = "serialization")]
 impl<C> PublicKeyPackage<C>
 where
-    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    C: Ciphersuite,
 {
     /// Serialize the struct into a Vec.
     pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
