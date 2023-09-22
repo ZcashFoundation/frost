@@ -20,7 +20,7 @@
 //! - The repairable.rs module (it uses the frost-core docs as canonical)
 
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     env, fs,
     io::Write,
     iter::zip,
@@ -115,7 +115,7 @@ fn write_docs(
     let original_code = code.clone();
 
     // Map documentations by their identifiers
-    let docs: HashMap<String, (String, String, usize, usize)> =
+    let docs: BTreeMap<String, (String, String, usize, usize)> =
         docs.iter().map(|x| (x.0.clone(), x.clone())).collect();
 
     // To be able to replace the documentation properly, start from the end, which

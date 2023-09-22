@@ -4,7 +4,7 @@
 //! The RTS is used to help a signer (participant) repair their lost share. This is achieved
 //! using a subset of the other signers know here as `helpers`.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 // This is imported separately to make `gencode` work.
 // (if it were below, the position of the import would vary between ciphersuites
@@ -20,13 +20,13 @@ use super::{SecretShare, VerifiableSecretSharingCommitment};
 /// where `helpers` contains the identifiers of all the helpers (including `helper_i`), and `share_i`
 /// is the share of `helper_i`.
 ///
-/// Returns a HashMap mapping which value should be sent to which participant.
+/// Returns a BTreeMap mapping which value should be sent to which participant.
 pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     helpers: &[Identifier],
     share_i: &SecretShare,
     rng: &mut R,
     participant: Identifier,
-) -> Result<HashMap<Identifier, Scalar>, Error> {
+) -> Result<BTreeMap<Identifier, Scalar>, Error> {
     frost::keys::repairable::repair_share_step_1(helpers, share_i, rng, participant)
 }
 
