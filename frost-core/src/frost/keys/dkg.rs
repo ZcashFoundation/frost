@@ -515,7 +515,11 @@ pub fn part3<C: Ciphersuite>(
 
     signing_share = signing_share + round2_secret_package.secret_share;
     let signing_share = SigningShare(signing_share);
-    let members = round1_packages.keys().copied().collect();
+    let members = round1_packages
+        .keys()
+        .copied()
+        .chain(iter::once(round2_secret_package.identifier))
+        .collect();
     let commitments: Vec<_> = round1_packages
         .values()
         .map(|package| package.commitment.clone())
