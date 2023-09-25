@@ -40,7 +40,7 @@ use crate::{
 };
 
 use super::{
-    evaluate_polynomial, generate_coefficients, generate_secret_polynomial, sum_commitments,
+    evaluate_polynomial, generate_coefficients, generate_secret_polynomial,
     validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
     VerifiableSecretSharingCommitment,
 };
@@ -128,8 +128,8 @@ pub mod round1 {
     where
         C: Ciphersuite,
     {
-        #[cfg(feature = "internals")]
         /// Returns the secret coefficients.
+        #[cfg(feature = "internals")]
         pub fn coefficients(&self) -> &[Scalar<C>] {
             &self.coefficients
         }
@@ -292,7 +292,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let (coefficients, commitment) =
         generate_secret_polynomial(&secret, max_signers, min_signers, coefficients)?;
     let proof_of_knowledge =
-        construct_proof_of_knowledge(identifier, &coefficients, &commitment, &mut rng)?;
+        compute_proof_of_knowledge(identifier, &coefficients, &commitment, &mut rng)?;
 
     let secret_package = round1::SecretPackage {
         identifier,
@@ -328,10 +328,10 @@ where
     Some(Challenge(C::HDKG(&preimage[..])?))
 }
 
-/// Constructs the proof of knowledge of the secret coefficients used to generate
+/// Compute the proof of knowledge of the secret coefficients used to generate
 /// the public secret sharing commitment.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
-pub(crate) fn construct_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
     commitment: &VerifiableSecretSharingCommitment<C>,
@@ -517,26 +517,26 @@ pub fn part3<C: Ciphersuite>(
 
     signing_share = signing_share + round2_secret_package.secret_share;
     let signing_share = SigningShare(signing_share);
-    let members = round1_packages
-        .keys()
-        .copied()
-        .chain(iter::once(round2_secret_package.identifier))
+    // Round 2, Step 4
+    //
+    // > Each P_i calculates their public verification share Y_i = g^{s_i}.
+    let verifying_share = signing_share.into();
+
+    let commitments: BTreeMap<_, _> = round1_packages
+        .iter()
+        .map(|(id, package)| (*id, &package.commitment))
+        .chain(iter::once((
+            round2_secret_package.identifier,
+            &round2_secret_package.commitment,
+        )))
         .collect();
-    let commitments: Vec<_> = round1_packages
-        .values()
-        .map(|package| package.commitment.clone())
-        .chain(iter::once(round2_secret_package.commitment.clone()))
-        .collect();
-    let group_commitment = sum_commitments(&commitments)?;
-    let public_key_package = PublicKeyPackage::from_commitment(&members, &group_commitment)?;
+    let public_key_package = PublicKeyPackage::from_dkg_commitments(&commitments)?;
+
     let key_package = KeyPackage {
         header: Header::default(),
         identifier: round2_secret_package.identifier,
         signing_share,
-        verifying_share: *public_key_package
-            .verifying_shares()
-            .get(&round2_secret_package.identifier)
-            .expect("round2_secret_package.commitment is in the hashmap"),
+        verifying_share,
         verifying_key: public_key_package.verifying_key,
         min_signers: round2_secret_package.min_signers,
     };

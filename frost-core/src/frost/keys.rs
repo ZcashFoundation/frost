@@ -29,10 +29,11 @@ use super::compute_lagrange_coefficient;
 pub mod dkg;
 pub mod repairable;
 
-/// Sum the commitments from all peers into a group commitment.
+/// Sum the commitments from all participants in a distributed key generation
+/// run into a single group commitment.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 pub(crate) fn sum_commitments<C: Ciphersuite>(
-    commitments: &[VerifiableSecretSharingCommitment<C>],
+    commitments: &[&VerifiableSecretSharingCommitment<C>],
 ) -> Result<VerifiableSecretSharingCommitment<C>, Error<C>> {
     let mut group_commitment = vec![
         CoefficientCommitment(<C::Group>::identity());
@@ -220,10 +221,21 @@ where
     /// Computes a verifying share for a peer given the group commitment.
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(crate) fn from_commitment(
+        identifier: Identifier<C>,
         commitment: &VerifiableSecretSharingCommitment<C>,
-        peer: Identifier<C>,
     ) -> VerifyingShare<C> {
-        VerifyingShare(evaluate_vss(commitment, peer))
+        // DKG Round 2, Step 4
+        //
+        // > Any participant can compute the public verification share of any
+        // > other participant by calculating
+        // > Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
+        //
+        // Rewriting the equation by moving the product over j to further inside
+        // the equation:
+        // Y_i = ∏_{k=0}^{t−1} (∏_{j=1}^n φ_{jk})^{i^k mod q}
+        // i.e. we can operate on the sum of all φ_j commitments, which is
+        // what is passed to the functions.
+        VerifyingShare(evaluate_vss(identifier, commitment))
     }
 }
 
@@ -385,7 +397,8 @@ where
     }
 
     /// Returns the coefficient commitments.
-    pub fn coefficients(&self) -> &[CoefficientCommitment<C>] {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn coefficients(&self) -> &[CoefficientCommitment<C>] {
         &self.0
     }
 }
@@ -453,7 +466,7 @@ where
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error<C>> {
         let f_result = <C::Group>::generator() * self.signing_share.0;
-        let result = evaluate_vss(&self.commitment, self.identifier);
+        let result = evaluate_vss(self.identifier, &self.commitment);
 
         if !(f_result == result) {
             return Err(Error::InvalidSecretShare);
@@ -596,11 +609,13 @@ fn evaluate_polynomial<C: Ciphersuite>(
 }
 
 /// Evaluates the right-hand side of the VSS verification equation, namely
-/// ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk} using `identifier` as `i` and the
-/// `commitment` as the commitment vector φ_ℓ
+/// ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk} (multiplicative notation) using
+/// `identifier` as `i` and the `commitment` as the commitment vector φ_ℓ.
+///
+/// This is also used in Round 2, Step 4 of the DKG.
 fn evaluate_vss<C: Ciphersuite>(
-    commitment: &VerifiableSecretSharingCommitment<C>,
     identifier: Identifier<C>,
+    commitment: &VerifiableSecretSharingCommitment<C>,
 ) -> Element<C> {
     let i = identifier;
 
@@ -741,22 +756,36 @@ where
         }
     }
 
-    /// Computes the public key package given a
-    /// [`VerifiableSecretSharingCommitment`]. This is useful in scenarios where
-    /// the commitments are published somewhere and it's desirable to recreate
-    /// the public key package from them.
+    /// Computes the public key package given a list of participant identifiers
+    /// and a [`VerifiableSecretSharingCommitment`]. This is useful in scenarios
+    /// where the commitments are published somewhere and it's desirable to
+    /// recreate the public key package from them.
     pub fn from_commitment(
-        members: &BTreeSet<Identifier<C>>,
+        identifiers: &BTreeSet<Identifier<C>>,
         commitment: &VerifiableSecretSharingCommitment<C>,
     ) -> Result<PublicKeyPackage<C>, Error<C>> {
-        let mut verifying_keys = HashMap::new();
-        for peer in members {
-            verifying_keys.insert(*peer, VerifyingShare::from_commitment(commitment, *peer));
-        }
+        let verifying_keys: BTreeMap<_, _> = identifiers
+            .iter()
+            .map(|id| (*id, VerifyingShare::from_commitment(*id, commitment)))
+            .collect();
         Ok(PublicKeyPackage::new(
             verifying_keys,
             VerifyingKey::from_commitment(commitment)?,
         ))
+    }
+
+    /// Computes the public key package given a map of participant identifiers
+    /// and their [`VerifiableSecretSharingCommitment`] from a distributed key
+    /// generation process. This is useful in scenarios where the commitments
+    /// are published somewhere and it's desirable to recreate the public key
+    /// package from them.
+    pub fn from_dkg_commitments(
+        commitments: &BTreeMap<Identifier<C>, &VerifiableSecretSharingCommitment<C>>,
+    ) -> Result<PublicKeyPackage<C>, Error<C>> {
+        let identifiers: BTreeSet<_> = commitments.keys().copied().collect();
+        let commitments: Vec<_> = commitments.values().copied().collect();
+        let group_commitment = sum_commitments(&commitments)?;
+        Self::from_commitment(&identifiers, &group_commitment)
     }
 }
 
