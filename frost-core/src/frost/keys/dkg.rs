@@ -289,22 +289,8 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, &mut rng);
     let (coefficients, commitment) =
         generate_secret_polynomial(&secret, max_signers, min_signers, coefficients)?;
-
-    // Round 1, Step 2
-    //
-    // > Every P_i computes a proof of knowledge to the corresponding secret
-    // > a_{i0} by calculating σ_i = (R_i, μ_i), such that k ← Z_q, R_i = g^k,
-    // > c_i = H(i, Φ, g^{a_{i0}} , R_i), μ_i = k + a_{i0} · c_i, with Φ being
-    // > a context string to prevent replay attacks.
-
-    let k = <<C::Group as Group>::Field>::random(&mut rng);
-    let R_i = <C::Group>::generator() * k;
-    let c_i =
-        challenge::<C>(identifier, &commitment.first()?.0, &R_i).ok_or(Error::DKGNotSupported)?;
-    let a_i0 = *coefficients
-        .get(0)
-        .expect("coefficients must have at least one element");
-    let mu_i = k + a_i0 * c_i.0;
+    let proof_of_knowledge =
+        construct_proof_of_knowledge(identifier, &coefficients, &commitment, &mut rng)?;
 
     let secret_package = round1::SecretPackage {
         identifier,
@@ -316,7 +302,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let package = round1::Package {
         header: Header::default(),
         commitment,
-        proof_of_knowledge: Signature { R: R_i, z: mu_i },
+        proof_of_knowledge,
     };
 
     Ok((secret_package, package))
@@ -338,6 +324,32 @@ where
     preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
 
     Some(Challenge(C::HDKG(&preimage[..])?))
+}
+
+/// Constructs the proof of knowledge of the secret coefficients used to generate
+/// the public secret sharing commitment.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn construct_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>(
+    identifier: Identifier<C>,
+    coefficients: &[Scalar<C>],
+    commitment: &VerifiableSecretSharingCommitment<C>,
+    mut rng: R,
+) -> Result<Signature<C>, Error<C>> {
+    // Round 1, Step 2
+    //
+    // > Every P_i computes a proof of knowledge to the corresponding secret
+    // > a_{i0} by calculating σ_i = (R_i, μ_i), such that k ← Z_q, R_i = g^k,
+    // > c_i = H(i, Φ, g^{a_{i0}} , R_i), μ_i = k + a_{i0} · c_i, with Φ being
+    // > a context string to prevent replay attacks.
+    let k = <<C::Group as Group>::Field>::random(&mut rng);
+    let R_i = <C::Group>::generator() * k;
+    let c_i =
+        challenge::<C>(identifier, &R_i, &commitment.first()?.0).ok_or(Error::DKGNotSupported)?;
+    let a_i0 = *coefficients
+        .get(0)
+        .expect("coefficients must have at least one element");
+    let mu_i = k + a_i0 * c_i.0;
+    Ok(Signature { R: R_i, z: mu_i })
 }
 
 /// Verifies the proof of knowledge of the secret coefficients used to generate the
