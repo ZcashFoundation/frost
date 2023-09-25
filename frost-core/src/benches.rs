@@ -1,7 +1,7 @@
 //! Ciphersuite-generic benchmark functions.
 #![allow(clippy::unwrap_used)]
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use criterion::{BenchmarkId, Criterion, Throughput};
 use rand_core::{CryptoRng, RngCore};
@@ -113,8 +113,8 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
         .unwrap();
 
         // Verifies the secret shares from the dealer
-        let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-            HashMap::new();
+        let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+            BTreeMap::new();
 
         for (k, v) in shares {
             key_packages.insert(k, frost::keys::KeyPackage::try_from(v).unwrap());
@@ -137,7 +137,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             },
         );
 
-        let mut nonces: HashMap<_, _> = HashMap::new();
+        let mut nonces: BTreeMap<_, _> = BTreeMap::new();
         let mut commitments: BTreeMap<_, _> = BTreeMap::new();
 
         for participant_index in 1..=min_signers {
@@ -173,7 +173,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
             },
         );
 
-        let mut signature_shares = HashMap::new();
+        let mut signature_shares = BTreeMap::new();
         for participant_identifier in nonces.keys() {
             let key_package = key_packages.get(participant_identifier).unwrap();
             let nonces_to_use = &nonces.get(participant_identifier).unwrap();

@@ -1,6 +1,6 @@
 //! Generate sample, fixed instances of structs for testing.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use frost_core::{Ciphersuite, Element, Group, Scalar};
 use frost_ed25519::{
@@ -90,7 +90,7 @@ pub fn public_key_package() -> PublicKeyPackage {
     let verifying_share = VerifyingShare::deserialize(serialized_element).unwrap();
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
     let verifying_key = VerifyingKey::deserialize(serialized_element).unwrap();
-    let verifying_shares = HashMap::from([(identifier, verifying_share)]);
+    let verifying_shares = BTreeMap::from([(identifier, verifying_share)]);
 
     PublicKeyPackage::new(verifying_shares, verifying_key)
 }

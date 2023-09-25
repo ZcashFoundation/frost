@@ -9,7 +9,7 @@
 //! generation and the FROST rounds.
 
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet},
     fmt::{self, Debug},
 };
 
@@ -212,6 +212,7 @@ fn derive_interpolating_value<C: Ciphersuite>(
 /// each signing party
 #[derive(Clone, Debug, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningPackage<C: Ciphersuite> {
     /// Serialization header
@@ -301,7 +302,7 @@ where
 #[cfg(feature = "serialization")]
 impl<C> SigningPackage<C>
 where
-    C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+    C: Ciphersuite,
 {
     /// Serialize the struct into a Vec.
     pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
@@ -407,7 +408,7 @@ where
 /// service attack due to publishing an invalid signature.
 pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
-    signature_shares: &HashMap<Identifier<C>, round2::SignatureShare<C>>,
+    signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
     pubkeys: &keys::PublicKeyPackage<C>,
 ) -> Result<Signature<C>, Error<C>>
 where

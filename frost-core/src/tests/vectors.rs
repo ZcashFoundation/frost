@@ -1,5 +1,5 @@
 //! Helper function for testing with test vectors.
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use debugless_unwrap::DebuglessUnwrap;
 use hex::{self, FromHex};
@@ -14,16 +14,16 @@ use crate::{
 pub struct TestVectors<C: Ciphersuite> {
     secret_key: SigningKey<C>,
     verifying_key: VerifyingKey<C>,
-    key_packages: HashMap<Identifier<C>, KeyPackage<C>>,
+    key_packages: BTreeMap<Identifier<C>, KeyPackage<C>>,
     message_bytes: Vec<u8>,
     share_polynomial_coefficients: Vec<Scalar<C>>,
-    hiding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>>,
-    binding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>>,
-    signer_nonces: HashMap<Identifier<C>, SigningNonces<C>>,
+    hiding_nonces_randomness: BTreeMap<Identifier<C>, Vec<u8>>,
+    binding_nonces_randomness: BTreeMap<Identifier<C>, Vec<u8>>,
+    signer_nonces: BTreeMap<Identifier<C>, SigningNonces<C>>,
     signer_commitments: BTreeMap<Identifier<C>, SigningCommitments<C>>,
-    binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>>,
-    binding_factors: HashMap<Identifier<C>, BindingFactor<C>>,
-    signature_shares: HashMap<Identifier<C>, SignatureShare<C>>,
+    binding_factor_inputs: BTreeMap<Identifier<C>, Vec<u8>>,
+    binding_factors: BTreeMap<Identifier<C>, BindingFactor<C>>,
+    signature_shares: BTreeMap<Identifier<C>, SignatureShare<C>>,
     signature_bytes: Vec<u8>,
 }
 
@@ -50,7 +50,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         })
         .collect();
 
-    let mut key_packages: HashMap<Identifier<C>, KeyPackage<C>> = HashMap::new();
+    let mut key_packages: BTreeMap<Identifier<C>, KeyPackage<C>> = BTreeMap::new();
 
     let possible_participants = json_vectors["inputs"].as_object().unwrap()["participant_shares"]
         .as_array()
@@ -83,12 +83,12 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 
     let round_one_outputs = &json_vectors["round_one_outputs"];
 
-    let mut hiding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
-    let mut binding_nonces_randomness: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
-    let mut signer_nonces: HashMap<Identifier<C>, SigningNonces<C>> = HashMap::new();
+    let mut hiding_nonces_randomness: BTreeMap<Identifier<C>, Vec<u8>> = BTreeMap::new();
+    let mut binding_nonces_randomness: BTreeMap<Identifier<C>, Vec<u8>> = BTreeMap::new();
+    let mut signer_nonces: BTreeMap<Identifier<C>, SigningNonces<C>> = BTreeMap::new();
     let mut signer_commitments: BTreeMap<Identifier<C>, SigningCommitments<C>> = BTreeMap::new();
-    let mut binding_factor_inputs: HashMap<Identifier<C>, Vec<u8>> = HashMap::new();
-    let mut binding_factors: HashMap<Identifier<C>, BindingFactor<C>> = HashMap::new();
+    let mut binding_factor_inputs: BTreeMap<Identifier<C>, Vec<u8>> = BTreeMap::new();
+    let mut binding_factors: BTreeMap<Identifier<C>, BindingFactor<C>> = BTreeMap::new();
 
     for signer in round_one_outputs["outputs"].as_array().unwrap().iter() {
         let i = signer["identifier"].as_u64().unwrap() as u16;
@@ -132,7 +132,7 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
 
     let round_two_outputs = &json_vectors["round_two_outputs"];
 
-    let mut signature_shares: HashMap<Identifier<C>, SignatureShare<C>> = HashMap::new();
+    let mut signature_shares: BTreeMap<Identifier<C>, SignatureShare<C>> = BTreeMap::new();
 
     for signer in round_two_outputs["outputs"].as_array().unwrap().iter() {
         let i = signer["identifier"].as_u64().unwrap() as u16;
@@ -201,7 +201,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         &default_identifiers(max_signers as u16),
     )
     .unwrap();
-    let secret_shares: HashMap<_, _> = secret_shares
+    let secret_shares: BTreeMap<_, _> = secret_shares
         .iter()
         .map(|share| (share.identifier, share))
         .collect();
@@ -275,7 +275,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         assert_eq!(*binding_factor, binding_factors[identifier]);
     }
 
-    let mut our_signature_shares = HashMap::new();
+    let mut our_signature_shares = BTreeMap::new();
 
     // Each participant generates their signature share
     for identifier in signer_nonces.keys() {

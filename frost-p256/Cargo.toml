@@ -26,6 +26,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 document-features = "0.2.7"
 p256 = { version = "0.13.0", features = ["hash2curve"] }
 frost-core = { path = "../frost-core", version = "0.7.0" }
+frost-rerandomized = { path = "../frost-rerandomized", version = "0.7.0" }
 rand_core = "0.6"
 sha2 = "0.10.2"
 

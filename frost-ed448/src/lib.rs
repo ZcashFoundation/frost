@@ -5,12 +5,13 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use ed448_goldilocks::{
     curve::{edwards::CompressedEdwardsY, ExtendedPoint},
     Scalar,
 };
+use frost_rerandomized::RandomizedCiphersuite;
 use rand_core::{CryptoRng, RngCore};
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
@@ -18,9 +19,6 @@ use sha3::{
 };
 
 use frost_core::frost;
-
-#[cfg(feature = "serde")]
-use frost_core::serde;
 
 #[cfg(test)]
 mod tests;
@@ -150,8 +148,6 @@ const CONTEXT_STRING: &str = "FROST-ED448-SHAKE256-v1";
 
 /// An implementation of the FROST(Ed448, SHAKE256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct Ed448Shake256;
 
 impl Ciphersuite for Ed448Shake256 {
@@ -209,6 +205,16 @@ impl Ciphersuite for Ed448Shake256 {
     }
 }
 
+impl RandomizedCiphersuite for Ed448Shake256 {
+    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(&[
+            CONTEXT_STRING.as_bytes(),
+            b"randomizer",
+            m,
+        ]))
+    }
+}
+
 type E = Ed448Shake256;
 
 /// A FROST(Ed448, SHAKE256) participant identifier.
@@ -217,7 +223,7 @@ pub type Identifier = frost::Identifier<E>;
 /// FROST(Ed448, SHAKE256) keys, key generation, key shares.
 pub mod keys {
     use super::*;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     /// The identifier list to use when generating key shares.
     pub type IdentifierList<'a> = frost::keys::IdentifierList<'a, E>;
@@ -229,7 +235,7 @@ pub mod keys {
         min_signers: u16,
         identifiers: IdentifierList,
         mut rng: RNG,
-    ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
+    ) -> Result<(BTreeMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
         frost::keys::generate_with_dealer(max_signers, min_signers, identifiers, &mut rng)
     }
 
@@ -245,7 +251,7 @@ pub mod keys {
         min_signers: u16,
         identifiers: IdentifierList,
         rng: &mut R,
-    ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
+    ) -> Result<(BTreeMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
         frost::keys::split(secret, max_signers, min_signers, identifiers, rng)
     }
 
@@ -394,7 +400,7 @@ pub type Signature = frost_core::Signature<E>;
 /// service attack due to publishing an invalid signature.
 pub fn aggregate(
     signing_package: &SigningPackage,
-    signature_shares: &HashMap<Identifier, round2::SignatureShare>,
+    signature_shares: &BTreeMap<Identifier, round2::SignatureShare>,
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, Error> {
     frost::aggregate(signing_package, signature_shares, pubkeys)

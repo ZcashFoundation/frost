@@ -4,7 +4,7 @@
 //! The RTS is used to help a signer (participant) repair their lost share. This is achieved
 //! using a subset of the other signers know here as `helpers`.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     frost::{compute_lagrange_coefficient, Identifier},
@@ -19,13 +19,13 @@ use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSh
 /// where `helpers` contains the identifiers of all the helpers (including `helper_i`), and `share_i`
 /// is the share of `helper_i`.
 ///
-/// Returns a HashMap mapping which value should be sent to which participant.
+/// Returns a BTreeMap mapping which value should be sent to which participant.
 pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     helpers: &[Identifier<C>],
     share_i: &SecretShare<C>,
     rng: &mut R,
     participant: Identifier<C>,
-) -> Result<HashMap<Identifier<C>, Scalar<C>>, Error<C>> {
+) -> Result<BTreeMap<Identifier<C>, Scalar<C>>, Error<C>> {
     if helpers.len() < 2 {
         return Err(Error::InvalidMinSigners);
     }
@@ -46,19 +46,19 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Compute the last delta value given the (generated uniformly at random) remaining ones
 /// since they all must add up to `zeta_i * share_i`.
 ///
-/// Returns a HashMap mapping which value should be sent to which participant.
+/// Returns a BTreeMap mapping which value should be sent to which participant.
 fn compute_last_random_value<C: Ciphersuite>(
     helpers: &BTreeSet<Identifier<C>>,
     share_i: &SecretShare<C>,
     random_values: &Vec<Scalar<C>>,
     participant: Identifier<C>,
-) -> Result<HashMap<Identifier<C>, Scalar<C>>, Error<C>> {
+) -> Result<BTreeMap<Identifier<C>, Scalar<C>>, Error<C>> {
     // Calculate Lagrange Coefficient for helper_i
     let zeta_i = compute_lagrange_coefficient(helpers, Some(participant), share_i.identifier)?;
 
     let lhs = zeta_i * share_i.signing_share.0;
 
-    let mut out: HashMap<Identifier<C>, Scalar<C>> = helpers
+    let mut out: BTreeMap<Identifier<C>, Scalar<C>> = helpers
         .iter()
         .copied()
         .zip(random_values.iter().copied())

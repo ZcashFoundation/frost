@@ -30,7 +30,7 @@
 //! [Feldman's VSS]: https://www.cs.umd.edu/~gasarch/TOPICS/secretsharing/feldmanVSS.pdf
 //! [secure broadcast channel]: https://frost.zfnd.org/terminology.html#broadcast-channel
 
-use std::{collections::HashMap, iter};
+use std::{collections::BTreeMap, iter};
 
 use rand_core::{CryptoRng, RngCore};
 
@@ -58,6 +58,7 @@ pub mod round1 {
     /// between the first and second parts of the DKG protocol (round 1).
     #[derive(Clone, Debug, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// Serialization header
@@ -89,7 +90,7 @@ pub mod round1 {
     #[cfg(feature = "serialization")]
     impl<C> Package<C>
     where
-        C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+        C: Ciphersuite,
     {
         /// Serialize the struct into a Vec.
         pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
@@ -179,6 +180,7 @@ pub mod round2 {
     /// The package must be sent on an *confidential* and *authenticated* channel.
     #[derive(Clone, Debug, PartialEq, Eq, Getters)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct Package<C: Ciphersuite> {
         /// Serialization header
@@ -204,7 +206,7 @@ pub mod round2 {
     #[cfg(feature = "serialization")]
     impl<C> Package<C>
     where
-        C: Ciphersuite + serde::Serialize + for<'de> serde::Deserialize<'de>,
+        C: Ciphersuite,
     {
         /// Serialize the struct into a Vec.
         pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
@@ -391,11 +393,11 @@ pub(crate) fn verify_proof_of_knowledge<C: Ciphersuite>(
 /// must be sent to each participant who has the given identifier in the map key.
 pub fn part2<C: Ciphersuite>(
     secret_package: round1::SecretPackage<C>,
-    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
+    round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
 ) -> Result<
     (
         round2::SecretPackage<C>,
-        HashMap<Identifier<C>, round2::Package<C>>,
+        BTreeMap<Identifier<C>, round2::Package<C>>,
     ),
     Error<C>,
 > {
@@ -403,7 +405,7 @@ pub fn part2<C: Ciphersuite>(
         return Err(Error::IncorrectNumberOfPackages);
     }
 
-    let mut round2_packages = HashMap::new();
+    let mut round2_packages = BTreeMap::new();
 
     for (sender_identifier, round1_package) in round1_packages {
         let ell = *sender_identifier;
@@ -461,8 +463,8 @@ pub fn part2<C: Ciphersuite>(
 /// signatures.
 pub fn part3<C: Ciphersuite>(
     round2_secret_package: &round2::SecretPackage<C>,
-    round1_packages: &HashMap<Identifier<C>, round1::Package<C>>,
-    round2_packages: &HashMap<Identifier<C>, round2::Package<C>>,
+    round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
+    round2_packages: &BTreeMap<Identifier<C>, round2::Package<C>>,
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
     if round1_packages.len() != (round2_secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);

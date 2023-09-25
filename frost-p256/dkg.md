@@ -27,7 +27,7 @@ they can proceed to sign messages with FROST.
 ```rust
 # // ANCHOR: dkg_import
 use rand::thread_rng;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use frost_p256 as frost;
 
@@ -44,12 +44,12 @@ let min_signers = 3;
 // Keep track of each participant's round 1 secret package.
 // In practice each participant will keep its copy; no one
 // will have all the participant's packages.
-let mut round1_secret_packages = HashMap::new();
+let mut round1_secret_packages = BTreeMap::new();
 
 // Keep track of all round 1 packages sent to the given participant.
 // This is used to simulate the broadcast; in practice the packages
 // will be sent through some communication channel.
-let mut received_round1_packages = HashMap::new();
+let mut received_round1_packages = BTreeMap::new();
 
 // For each participant, perform the first part of the DKG protocol.
 // In practice, each participant will perform this on their own environments.
@@ -69,7 +69,7 @@ for participant_index in 1..=max_signers {
     round1_secret_packages.insert(participant_identifier, round1_secret_package);
 
     // "Send" the round 1 package to all other participants. In this
-    // test this is simulated using a HashMap; in practice this will be
+    // test this is simulated using a BTreeMap; in practice this will be
     // sent through some communication channel.
     for receiver_participant_index in 1..=max_signers {
         if receiver_participant_index == participant_index {
@@ -80,7 +80,7 @@ for participant_index in 1..=max_signers {
             .expect("should be nonzero");
         received_round1_packages
             .entry(receiver_participant_identifier)
-            .or_insert_with(HashMap::new)
+            .or_insert_with(BTreeMap::new)
             .insert(participant_identifier, round1_package.clone());
     }
 }
@@ -92,12 +92,12 @@ for participant_index in 1..=max_signers {
 // Keep track of each participant's round 2 secret package.
 // In practice each participant will keep its copy; no one
 // will have all the participant's packages.
-let mut round2_secret_packages = HashMap::new();
+let mut round2_secret_packages = BTreeMap::new();
 
 // Keep track of all round 2 packages sent to the given participant.
 // This is used to simulate the broadcast; in practice the packages
 // will be sent through some communication channel.
-let mut received_round2_packages = HashMap::new();
+let mut received_round2_packages = BTreeMap::new();
 
 // For each participant, perform the second part of the DKG protocol.
 // In practice, each participant will perform this on their own environments.
@@ -117,14 +117,14 @@ for participant_index in 1..=max_signers {
     round2_secret_packages.insert(participant_identifier, round2_secret_package);
 
     // "Send" the round 2 package to all other participants. In this
-    // test this is simulated using a HashMap; in practice this will be
+    // test this is simulated using a BTreeMap; in practice this will be
     // sent through some communication channel.
     // Note that, in contrast to the previous part, here each other participant
     // gets its own specific package.
     for (receiver_identifier, round2_package) in round2_packages {
         received_round2_packages
             .entry(receiver_identifier)
-            .or_insert_with(HashMap::new)
+            .or_insert_with(BTreeMap::new)
             .insert(participant_identifier, round2_package);
     }
 }
@@ -136,13 +136,13 @@ for participant_index in 1..=max_signers {
 // Keep track of each participant's long-lived key package.
 // In practice each participant will keep its copy; no one
 // will have all the participant's packages.
-let mut key_packages = HashMap::new();
+let mut key_packages = BTreeMap::new();
 
 // Keep track of each participant's public key package.
 // In practice, if there is a Coordinator, only they need to store the set.
 // If there is not, then all candidates must store their own sets.
 // All participants will have the same exact public key package.
-let mut pubkey_packages = HashMap::new();
+let mut pubkey_packages = BTreeMap::new();
 
 // For each participant, perform the third part of the DKG protocol.
 // In practice, each participant will perform this on their own environments.

@@ -5,8 +5,9 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
+use frost_rerandomized::RandomizedCiphersuite;
 use p256::{
     elliptic_curve::{
         hash2curve::{hash_to_field, ExpandMsgXmd},
@@ -19,9 +20,6 @@ use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
 
 use frost_core::frost;
-
-#[cfg(feature = "serde")]
-use frost_core::serde;
 
 #[cfg(test)]
 mod tests;
@@ -175,8 +173,6 @@ const CONTEXT_STRING: &str = "FROST-P256-SHA256-v1";
 
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "self::serde"))]
 pub struct P256Sha256;
 
 impl Ciphersuite for P256Sha256 {
@@ -240,6 +236,15 @@ impl Ciphersuite for P256Sha256 {
     }
 }
 
+impl RandomizedCiphersuite for P256Sha256 {
+    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+        Some(hash_to_scalar(
+            (CONTEXT_STRING.to_owned() + "randomizer").as_bytes(),
+            m,
+        ))
+    }
+}
+
 // Shorthand alias for the ciphersuite
 type P = P256Sha256;
 
@@ -247,7 +252,7 @@ type P = P256Sha256;
 pub type Identifier = frost::Identifier<P>;
 /// FROST(P-256, SHA-256) keys, key generation, key shares.
 pub mod keys {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     use super::*;
 
@@ -261,7 +266,7 @@ pub mod keys {
         min_signers: u16,
         identifiers: IdentifierList,
         mut rng: RNG,
-    ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
+    ) -> Result<(BTreeMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
         frost::keys::generate_with_dealer(max_signers, min_signers, identifiers, &mut rng)
     }
 
@@ -277,7 +282,7 @@ pub mod keys {
         min_signers: u16,
         identifiers: IdentifierList,
         rng: &mut R,
-    ) -> Result<(HashMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
+    ) -> Result<(BTreeMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
         frost::keys::split(secret, max_signers, min_signers, identifiers, rng)
     }
 
@@ -426,7 +431,7 @@ pub type Signature = frost_core::Signature<P>;
 /// service attack due to publishing an invalid signature.
 pub fn aggregate(
     signing_package: &SigningPackage,
-    signature_shares: &HashMap<Identifier, round2::SignatureShare>,
+    signature_shares: &BTreeMap<Identifier, round2::SignatureShare>,
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, Error> {
     frost::aggregate(signing_package, signature_shares, pubkeys)

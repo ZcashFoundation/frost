@@ -58,7 +58,7 @@ calls
 [`dkg::part2()`](https://docs.rs/frost-ristretto255/latest/frost_ristretto255/keys/dkg/fn.part2.html)
 passing their own previously created `round1::SecretPackage` and the list of
 received `round1::Packages`. It returns a `round2::SecretPackage` and a
-`HashMap` mapping other participants's `Identifier`s to `round2::Package`s:
+`BTreeMap` mapping other participants's `Identifier`s to `round2::Package`s:
 
 ```rust,no_run,noplayground
 {{#include ../../../frost-ristretto255/dkg.md:dkg_part2}}

@@ -1,10 +1,7 @@
 //! Ciphersuite-generic test functions.
 #![allow(clippy::type_complexity)]
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    convert::TryFrom,
-};
+use std::{collections::BTreeMap, convert::TryFrom};
 
 use crate::{
     frost::{self, Identifier},
@@ -119,8 +116,8 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     .unwrap();
 
     // Verifies the secret shares from the dealer
-    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-        HashMap::new();
+    let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        BTreeMap::new();
 
     for (k, v) in shares {
         let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
@@ -192,12 +189,12 @@ pub fn check_dkg_part1_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + C
 /// Test FROST signing with the given shares.
 pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     min_signers: u16,
-    key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
+    key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) -> Result<(Vec<u8>, Signature<C>, VerifyingKey<C>), Error<C>> {
-    let mut nonces_map: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
-        HashMap::new();
+    let mut nonces_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
+        BTreeMap::new();
     let mut commitments_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         BTreeMap::new();
 
@@ -222,7 +219,7 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // This is what the signature aggregator / coordinator needs to do:
     // - decide what message to sign
     // - take one (unused) commitment per signing participant
-    let mut signature_shares = HashMap::new();
+    let mut signature_shares = BTreeMap::new();
     let message = "message to sign".as_bytes();
     let signing_package = frost::SigningPackage::new(commitments_map, message);
 
@@ -305,7 +302,7 @@ fn check_sign_errors<C: Ciphersuite + PartialEq>(
 
 fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
     signing_package: frost::SigningPackage<C>,
-    signature_shares: HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
+    signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) {
     check_aggregate_corrupted_share(
@@ -322,7 +319,7 @@ fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
 
 fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
     signing_package: frost::SigningPackage<C>,
-    mut signature_shares: HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
+    mut signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) {
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
@@ -340,7 +337,7 @@ fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
 /// part can't either since it's caught before by the PublicKeyPackage part.
 fn check_aggregate_invalid_share_identifier_for_verifying_shares<C: Ciphersuite + PartialEq>(
     signing_package: frost::SigningPackage<C>,
-    mut signature_shares: HashMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
+    mut signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) {
     let invalid_identifier = Identifier::derive("invalid identifier".as_bytes()).unwrap();
@@ -371,18 +368,18 @@ where
     // Keep track of each participant's round 1 secret package.
     // In practice each participant will keep its copy; no one
     // will have all the participant's packages.
-    let mut round1_secret_packages: HashMap<
+    let mut round1_secret_packages: BTreeMap<
         frost::Identifier<C>,
         frost::keys::dkg::round1::SecretPackage<C>,
-    > = HashMap::new();
+    > = BTreeMap::new();
 
     // Keep track of all round 1 packages sent to the given participant.
     // This is used to simulate the broadcast; in practice the packages
     // will be sent through some communication channel.
-    let mut received_round1_packages: HashMap<
+    let mut received_round1_packages: BTreeMap<
         frost::Identifier<C>,
-        HashMap<frost::Identifier<C>, frost::keys::dkg::round1::Package<C>>,
-    > = HashMap::new();
+        BTreeMap<frost::Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+    > = BTreeMap::new();
 
     // For each participant, perform the first part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
@@ -397,7 +394,7 @@ where
         round1_secret_packages.insert(participant_identifier, round1_secret_package);
 
         // "Send" the round 1 package to all other participants. In this
-        // test this is simulated using a HashMap; in practice this will be
+        // test this is simulated using a BTreeMap; in practice this will be
         // sent through some communication channel.
         for receiver_participant_index in 1..=max_signers {
             if receiver_participant_index == participant_index {
@@ -408,7 +405,7 @@ where
                 .expect("should be nonzero");
             received_round1_packages
                 .entry(receiver_participant_identifier)
-                .or_insert_with(HashMap::new)
+                .or_insert_with(BTreeMap::new)
                 .insert(participant_identifier, round1_package.clone());
         }
     }
@@ -420,12 +417,12 @@ where
     // Keep track of each participant's round 2 secret package.
     // In practice each participant will keep its copy; no one
     // will have all the participant's packages.
-    let mut round2_secret_packages = HashMap::new();
+    let mut round2_secret_packages = BTreeMap::new();
 
     // Keep track of all round 2 packages sent to the given participant.
     // This is used to simulate the broadcast; in practice the packages
     // will be sent through some communication channel.
-    let mut received_round2_packages = HashMap::new();
+    let mut received_round2_packages = BTreeMap::new();
 
     // For each participant, perform the second part of the DKG protocol.
     // In practice, each participant will perform this on their own environments.
@@ -444,14 +441,14 @@ where
         round2_secret_packages.insert(participant_identifier, round2_secret_package);
 
         // "Send" the round 2 package to all other participants. In this
-        // test this is simulated using a HashMap; in practice this will be
+        // test this is simulated using a BTreeMap; in practice this will be
         // sent through some communication channel.
         // Note that, in contrast to the previous part, here each other participant
         // gets its own specific package.
         for (receiver_identifier, round2_package) in round2_packages {
             received_round2_packages
                 .entry(receiver_identifier)
-                .or_insert_with(HashMap::new)
+                .or_insert_with(BTreeMap::new)
                 .insert(participant_identifier, round2_package);
         }
     }
@@ -463,11 +460,11 @@ where
     // Keep track of each participant's long-lived key package.
     // In practice each participant will keep its copy; no one
     // will have all the participant's packages.
-    let mut key_packages = HashMap::new();
+    let mut key_packages = BTreeMap::new();
 
     // Map of the verifying key of each participant.
     // Used by the signing test that follows.
-    let mut verifying_keys = HashMap::new();
+    let mut verifying_keys = BTreeMap::new();
     // The group public key, used by the signing test that follows.
     let mut verifying_key = None;
     // For each participant, store the set of verifying keys they have computed.
@@ -476,7 +473,7 @@ where
     // If there is not, then all candidates must store their own sets.
     // The verifying keys are used to verify the signature shares produced
     // for each signature before being aggregated.
-    let mut pubkey_packages_by_participant = HashMap::new();
+    let mut pubkey_packages_by_participant = BTreeMap::new();
 
     check_part3_different_participants(
         max_signers,
@@ -520,14 +517,14 @@ where
 /// Check that calling dkg::part3() with distinct sets of participants fail.
 fn check_part3_different_participants<C: Ciphersuite>(
     max_signers: u16,
-    round2_secret_packages: HashMap<Identifier<C>, frost::keys::dkg::round2::SecretPackage<C>>,
-    received_round1_packages: HashMap<
+    round2_secret_packages: BTreeMap<Identifier<C>, frost::keys::dkg::round2::SecretPackage<C>>,
+    received_round1_packages: BTreeMap<
         Identifier<C>,
-        HashMap<Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+        BTreeMap<Identifier<C>, frost::keys::dkg::round1::Package<C>>,
     >,
-    received_round2_packages: HashMap<
+    received_round2_packages: BTreeMap<
         Identifier<C>,
-        HashMap<Identifier<C>, frost::keys::dkg::round2::Package<C>>,
+        BTreeMap<Identifier<C>, frost::keys::dkg::round2::Package<C>>,
     >,
 ) {
     // For each participant, perform the third part of the DKG protocol.
@@ -618,8 +615,8 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
 
     // Do regular testing to make sure it works
 
-    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-        HashMap::new();
+    let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        BTreeMap::new();
     for (k, v) in shares {
         let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
         key_packages.insert(k, key_package);
@@ -629,7 +626,7 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
 
 fn check_part2_error<C: Ciphersuite>(
     round1_secret_package: frost::keys::dkg::round1::SecretPackage<C>,
-    mut round1_packages: HashMap<frost::Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+    mut round1_packages: BTreeMap<frost::Identifier<C>, frost::keys::dkg::round1::Package<C>>,
 ) {
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
     // Corrupt a PoK
@@ -686,16 +683,16 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
     .unwrap();
 
     // Verifies the secret shares from the dealer
-    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-        HashMap::new();
+    let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        BTreeMap::new();
 
     for (k, v) in shares {
         let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
         key_packages.insert(k, key_package);
     }
 
-    let mut nonces_map: HashMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
-        HashMap::new();
+    let mut nonces_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
+        BTreeMap::new();
     let mut commitments_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
         BTreeMap::new();
 
@@ -767,8 +764,8 @@ pub fn check_sign_with_incorrect_commitments<C: Ciphersuite, R: RngCore + Crypto
     .unwrap();
 
     // Verifies the secret shares from the dealer
-    let mut key_packages: HashMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-        HashMap::new();
+    let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        BTreeMap::new();
 
     for (k, v) in shares {
         let key_package = frost::keys::KeyPackage::try_from(v).unwrap();

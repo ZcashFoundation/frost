@@ -11,6 +11,7 @@ use crate::ElementSerialization;
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
 #[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
 pub struct VerifyingKey<C>
