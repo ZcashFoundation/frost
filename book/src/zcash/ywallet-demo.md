@@ -11,6 +11,14 @@ the transaction plan with a command line tool, using FROST.
 
 This tutorial assumes familiarity with the command line.
 
+This tutorial uses:
+1. RedPallas
+2. YWallet
+3. Sprout
+4. [Sapling](https://docs.rs/reddsa/0.5.1/reddsa/sapling/index.html)
+5. Trusted dealer journey
+6. [frost-ed25519 crate](https://crates.io/crates/frost-ed25519)
+
 ## Setting up
 
 Install `cargo` and `git`.
@@ -20,9 +28,25 @@ Install `cargo` and `git`.
 Clone the repositories:
 
 ```
-git clone --branch add-redpallas https://github.com/ZcashFoundation/frost-zcash-demo.git
+git clone https://github.com/ZcashFoundation/frost-zcash-demo.git
 git clone --branch frost-demo https://github.com/ZcashFoundation/zwallet.git
+git clone https://github.com/ZcashFoundation/zcash.git
 ```
+
+Then:
+
+```
+./zcash/zcutil/fetch-params.sh
+```
+
+
+Download sprout and sapling:
+
+[Sprout params](https://download.z.cash/downloads/sprout-groth16.params)
+
+[Sapling-spend params](https://download.z.cash/downloads/sapling-spend.params)
+
+[Sapling-output params](https://download.z.cash/downloads/sapling-output.params)
 
 ## Generating FROST key shares
 
@@ -120,11 +144,7 @@ funds become spendable (this may take ~10 minutes). You can check if the funds
 are spendable by clicking the arrow button and checking "Spendable Balance"
 
 ```admonish warning
-The address being show by Ywallet is an unified address that includes both
-an Orchard and Sapling address. For the demo to work, you need to receive funds
-in you Orchard address. Whether that will happens depend on multiple factors
-so it's probably easier to just use the Orchard-only address printed by the
-signer.
+The address being show by Ywallet is a unified address that includes both an Orchard and Sapling address. For the demo to work, you need to receive funds in you Orchard address. Whether that will happen depends on multiple factors so it's probably easier to use just the Orchard-only address printed by the signer.
 ```
 
 ## Creating the transaction
