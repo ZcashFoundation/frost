@@ -29,7 +29,7 @@ Clone the repositories:
 
 ```
 git clone https://github.com/ZcashFoundation/frost-zcash-demo.git
-git clone --branch frost-demo https://github.com/ZcashFoundation/zwallet.git
+git clone --recurse-submodules --branch frost-demo https://github.com/ZcashFoundation/zwallet.git
 git clone https://github.com/ZcashFoundation/zcash.git
 ```
 
@@ -103,7 +103,7 @@ We can finally generate a new wallet. Run the following command; it will
 take a bit to compile. It will show a bunch of warnings which is normal.
 
 ```
-cargo build --release --bin sign --features dotenv -- -g
+cargo run --release --bin sign --features dotenv -- -g
 ```
 
 When prompted for the `ak`, paste the `verifying_key` value that was printed in
