@@ -39,7 +39,7 @@ pub(crate) fn sum_commitments<C: Ciphersuite>(
         CoefficientCommitment(<C::Group>::identity());
         commitments
             .get(0)
-            .ok_or(Error::IncorrectCommitment)?
+            .ok_or(Error::IncorrectNumberOfCommitments)?
             .0
             .len()
     ];
@@ -50,7 +50,7 @@ pub(crate) fn sum_commitments<C: Ciphersuite>(
                     + commitment
                         .0
                         .get(i)
-                        .ok_or(Error::IncorrectCommitment)?
+                        .ok_or(Error::IncorrectNumberOfCommitments)?
                         .value(),
             );
         }
