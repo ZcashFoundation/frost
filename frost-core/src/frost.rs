@@ -406,6 +406,8 @@ where
 /// signature, if the coordinator themselves is a signer and misbehaves, they
 /// can avoid that step. However, at worst, this results in a denial of
 /// service attack due to publishing an invalid signature.
+
+#[cfg(feature = "cheater-detection")]
 pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
     signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
@@ -503,6 +505,81 @@ where
         // We should never reach here; but we return the verification error to be safe.
         return Err(err);
     }
+
+    Ok(signature)
+}
+
+/// Aggregates the signature shares to produce a final signature that
+/// can be verified with the group public key.
+///
+/// `signature_shares` maps the identifier of each participant to the
+/// [`round2::SignatureShare`] they sent. These identifiers must come from whatever mapping
+/// the coordinator has between communication channels and participants, i.e.
+/// they must have assurance that the [`round2::SignatureShare`] came from
+/// the participant with that identifier.
+///
+/// This operation is performed by a coordinator that can communicate with all
+/// the signing participants before publishing the final signature. The
+/// coordinator can be one of the participants or a semi-trusted third party
+/// (who is trusted to not perform denial of service attacks, but does not learn
+/// any secret information). Note that because the coordinator is trusted to
+/// report misbehaving parties in order to avoid publishing an invalid
+/// signature, if the coordinator themselves is a signer and misbehaves, they
+/// can avoid that step. However, at worst, this results in a denial of
+/// service attack due to publishing an invalid signature.
+
+#[cfg(not(feature = "cheater-detection"))]
+pub fn aggregate<C>(
+    signing_package: &SigningPackage<C>,
+    signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
+    pubkeys: &keys::PublicKeyPackage<C>,
+) -> Result<Signature<C>, Error<C>>
+where
+    C: Ciphersuite,
+{
+    // Check if signing_package.signing_commitments and signature_shares have
+    // the same set of identifiers
+
+    if signing_package.signing_commitments().len() != signature_shares.len() {
+        return Err(Error::UnknownIdentifier);
+    }
+    if !signing_package
+        .signing_commitments()
+        .keys()
+        .all(|id| signature_shares.contains_key(id))
+    {
+        return Err(Error::UnknownIdentifier);
+    }
+
+    // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
+    // binding factor.
+    let binding_factor_list: BindingFactorList<C> =
+        compute_binding_factor_list(signing_package, &pubkeys.verifying_key, &[]);
+
+    // Compute the group commitment from signing commitments produced in round one.
+    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
+
+    // The aggregation of the signature shares by summing them up, resulting in
+    // a plain Schnorr signature.
+    //
+    // Implements [`aggregate`] from the spec.
+    //
+    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-5.3
+    let mut z = <<C::Group as Group>::Field>::zero();
+
+    for signature_share in signature_shares.values() {
+        z = z + signature_share.share;
+    }
+
+    let signature = Signature {
+        R: group_commitment.0,
+        z,
+    };
+
+    // Verify the aggregate signature
+    pubkeys
+        .verifying_key
+        .verify(signing_package.message(), &signature)?;
 
     Ok(signature)
 }

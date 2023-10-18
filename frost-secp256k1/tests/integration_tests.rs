@@ -8,6 +8,15 @@ fn check_zero_key_fails() {
     frost_core::tests::ciphersuite_generic::check_zero_key_fails::<Secp256K1Sha256>();
 }
 
+#[cfg(feature = "cheater-detection")]
+#[test]
+fn check_sign_with_dkg() {
+    let rng = thread_rng();
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Secp256K1Sha256, _>(rng);
+}
+
+#[cfg(not(feature = "cheater-detection"))]
 #[test]
 fn check_sign_with_dkg() {
     let rng = thread_rng();
@@ -64,6 +73,15 @@ fn check_rts() {
     frost_core::tests::repairable::check_rts::<Secp256K1Sha256, _>(rng);
 }
 
+#[cfg(feature = "cheater-detection")]
+#[test]
+fn check_sign_with_dealer() {
+    let rng = thread_rng();
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Secp256K1Sha256, _>(rng);
+}
+
+#[cfg(not(feature = "cheater-detection"))]
 #[test]
 fn check_sign_with_dealer() {
     let rng = thread_rng();
@@ -205,6 +223,18 @@ fn check_identifier_generation() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature = "cheater-detection")]
+#[test]
+fn check_sign_with_dealer_and_identifiers() {
+    let rng = thread_rng();
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<
+        Secp256K1Sha256,
+        _,
+    >(rng);
+}
+
+#[cfg(not(feature = "cheater-detection"))]
 #[test]
 fn check_sign_with_dealer_and_identifiers() {
     let rng = thread_rng();

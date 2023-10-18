@@ -48,6 +48,7 @@ serialization = ["serde", "frost-core/serialization"]
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
 serde = ["frost-core/serde"]
+cheater-detection = ["frost-core/cheater-detection"]
 
 [lib]
 # Disables non-criterion benchmark which is not used; prevents errors
