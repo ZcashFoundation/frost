@@ -405,7 +405,7 @@ where
                 .expect("should be nonzero");
             received_round1_packages
                 .entry(receiver_participant_identifier)
-                .or_insert_with(BTreeMap::new)
+                .or_default()
                 .insert(participant_identifier, round1_package.clone());
         }
     }
