@@ -32,7 +32,7 @@ where
 {
     fn from((vk, sig, msg): (VerifyingKey<C>, Signature<C>, &'msg M)) -> Self {
         // Compute c now to avoid dependency on the msg lifetime.
-        let c = crate::challenge(&sig.R, &vk.element, msg.as_ref());
+        let c = crate::challenge(&sig.R, &vk, msg.as_ref());
 
         Self { vk, sig, c }
     }

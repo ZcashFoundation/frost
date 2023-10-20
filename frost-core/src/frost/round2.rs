@@ -217,7 +217,7 @@ pub fn sign<C: Ciphersuite>(
     // Compute the per-message challenge.
     let challenge = challenge::<C>(
         &group_commitment.0,
-        &key_package.verifying_key.element,
+        &key_package.verifying_key,
         signing_package.message.as_slice(),
     );
 

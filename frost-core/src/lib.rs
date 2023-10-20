@@ -341,7 +341,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
     ) -> Result<(), Error<Self>> {
-        let c = crate::challenge::<Self>(&signature.R, &public_key.element, msg);
+        let c = crate::challenge::<Self>(&signature.R, public_key, msg);
 
         public_key.verify_prehashed(c, signature)
     }
@@ -405,14 +405,14 @@ where
 /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.2
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-fn challenge<C>(R: &Element<C>, verifying_key: &Element<C>, msg: &[u8]) -> Challenge<C>
+fn challenge<C>(R: &Element<C>, verifying_key: &VerifyingKey<C>, msg: &[u8]) -> Challenge<C>
 where
     C: Ciphersuite,
 {
     let mut preimage = vec![];
 
     preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(verifying_key).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(&verifying_key.element).as_ref());
     preimage.extend_from_slice(msg);
 
     Challenge(C::H2(&preimage[..]))
