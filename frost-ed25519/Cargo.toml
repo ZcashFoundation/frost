@@ -45,7 +45,7 @@ serde_json = "1.0"
 
 [features]
 nightly = []
-default = ["serialization"]
+default = ["serialization", "cheater-detection"]
 serialization = ["serde", "frost-core/serialization"]
 #! ## Features
 ## Enable `serde` support for types that need to be communicated. You
