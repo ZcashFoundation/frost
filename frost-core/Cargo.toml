@@ -50,7 +50,7 @@ rand_chacha = "0.3"
 serde_json = "1.0"
 
 [features]
-default = ["serialization"]
+default = ["serialization", "cheater-detection"]
 #! ## Features
 ## Expose internal types, which do not have SemVer guarantees. This is an advanced
 ## feature which can be useful if you need to build a modified version of FROST.
@@ -63,7 +63,7 @@ serde = ["dep:serde", "dep:serdect"]
 serialization = ["serde", "dep:postcard"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["proptest", "serde_json", "criterion"]
-# Enables cheater detection
+# Enable cheater detection
 cheater-detection = []
 
 [lib]
