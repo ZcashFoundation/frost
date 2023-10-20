@@ -26,8 +26,9 @@ where
     C: Ciphersuite,
 {
     /// Create a new VerifyingKey from the given element.
-    #[cfg(feature = "internals")]
-    pub fn new(element: <C::Group as Group>::Element) -> Self {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn new(element: <C::Group as Group>::Element) -> Self {
         Self { element }
     }
 

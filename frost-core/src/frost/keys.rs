@@ -390,10 +390,12 @@ where
         Ok(Self(coefficient_commitments))
     }
 
-    /// Get the first commitment (which is equivalent to the VerifyingKey),
-    /// or an error if the vector is empty.
-    pub(crate) fn first(&self) -> Result<CoefficientCommitment<C>, Error<C>> {
-        self.0.get(0).ok_or(Error::MissingCommitment).copied()
+    /// Get the VerifyingKey matching this commitment vector (which is the first
+    /// element in the vector), or an error if the vector is empty.
+    pub(crate) fn verifying_key(&self) -> Result<VerifyingKey<C>, Error<C>> {
+        Ok(VerifyingKey::new(
+            self.0.get(0).ok_or(Error::MissingCommitment)?.0,
+        ))
     }
 
     /// Returns the coefficient commitments.
@@ -472,11 +474,7 @@ where
             return Err(Error::InvalidSecretShare);
         }
 
-        let verifying_key = VerifyingKey {
-            element: self.commitment.first()?.0,
-        };
-
-        Ok((VerifyingShare(result), verifying_key))
+        Ok((VerifyingShare(result), self.commitment.verifying_key()?))
     }
 }
 
