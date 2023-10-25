@@ -4,7 +4,7 @@
 use std::{collections::BTreeMap, convert::TryFrom};
 
 use crate::{
-    frost::{self, Identifier},
+    frost::{self, keys::PublicKeyPackage, Identifier},
     Error, Field, Group, Signature, SigningKey, VerifyingKey,
 };
 use rand_core::{CryptoRng, RngCore};
@@ -191,7 +191,7 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     min_signers: u16,
     key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
-    pubkey_package: frost::keys::PublicKeyPackage<C>,
+    pubkey_package: PublicKeyPackage<C>,
 ) -> Result<(Vec<u8>, Signature<C>, VerifyingKey<C>), Error<C>> {
     let mut nonces_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
         BTreeMap::new();
@@ -247,6 +247,13 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Aggregation: collects the signing shares from all participants,
     // generates the final signature.
     ////////////////////////////////////////////////////////////////////////////
+
+    #[cfg(not(feature = "cheater-detection"))]
+    let pubkey_package = PublicKeyPackage {
+        header: pubkey_package.header,
+        verifying_shares: BTreeMap::new(),
+        verifying_key: pubkey_package.verifying_key,
+    };
 
     check_aggregate_errors(
         signing_package.clone(),
@@ -305,11 +312,13 @@ fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
     signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) {
+    #[cfg(feature = "cheater-detection")]
     check_aggregate_corrupted_share(
         signing_package.clone(),
         signature_shares.clone(),
         pubkey_package.clone(),
     );
+
     check_aggregate_invalid_share_identifier_for_verifying_shares(
         signing_package,
         signature_shares,

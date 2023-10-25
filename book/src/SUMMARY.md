@@ -15,3 +15,5 @@
 - [Terminology](terminology.md)
 - [Developer Documentation](dev.md)
     - [List of Dependencies for Audit](dev/frost-dependencies-for-audit.md)
+    - [Release Checklist](dev/release-checklist.md)
+    - [Developer Guide](dev/developer-guide.md)

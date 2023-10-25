@@ -13,6 +13,7 @@ Entries are listed in reverse chronological order.
   struct, which affects self-describing formats like JSON. The ciphersuite ID
   string was also changed for all ciphersuites: it is now equal to the
   `contextString` of each ciphersuite per the FROST spec.
+* An option to disable cheater detection during aggregation of signatures has been added.
 * Added `PublicKeyPackage::from_commitment()` and
   `PublicKeyPackage::from_dkg_commitments` to create a `PublicKeyPackage` from
   the commitments generated in trusted dealer or distributed key generation.
