@@ -44,9 +44,9 @@ Download Sprout and Sapling parameters:
 
 [Sprout params](https://download.z.cash/downloads/sprout-groth16.params)
 
-[Sapling-spend params](https://download.z.cash/downloads/sapling-spend.params)
+[Sapling spend params](https://download.z.cash/downloads/sapling-spend.params)
 
-[Sapling-output params](https://download.z.cash/downloads/sapling-output.params)
+[Sapling output params](https://download.z.cash/downloads/sapling-output.params)
 
 ## Generating FROST key shares
 
