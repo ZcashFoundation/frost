@@ -3,6 +3,15 @@
 This tutorial explaing how to run the FROST demo using Ywallet that was
 [presented during Zcon4](https://www.youtube.com/watch?v=xvzESdDtczo).
 
+## Information
+
+1. The Trusted Dealer journey
+2. RedPallas
+3. YWallet
+4. Sprout
+5. [Sapling](https://docs.rs/reddsa/0.5.1/reddsa/sapling/index.html)
+6. [frost-ed25519 crate](https://crates.io/crates/frost-ed25519)
+
 Ywallet supports [offline
 signing](https://ywallet.app/advanced/offline_signature/), which allows having a
 view-only account that can generate a transaction plan, which can be signed by
@@ -10,14 +19,6 @@ a offline wallet also running Ywallet. The demo uses this mechanism but signs
 the transaction plan with a command line tool, using FROST.
 
 This tutorial assumes familiarity with the command line.
-
-This tutorial uses:
-1. RedPallas
-2. YWallet
-3. Sprout
-4. [Sapling](https://docs.rs/reddsa/0.5.1/reddsa/sapling/index.html)
-5. Trusted dealer journey
-6. [frost-ed25519 crate](https://crates.io/crates/frost-ed25519)
 
 ## Setting up
 
@@ -32,8 +33,6 @@ git clone https://github.com/ZcashFoundation/frost-zcash-demo.git
 git clone --recurse-submodules --branch frost-demo https://github.com/ZcashFoundation/zwallet.git
 git clone https://github.com/ZcashFoundation/zcash.git
 ```
-
-Then:
 
 Download Sprout and Sapling parameters:
 
