@@ -406,6 +406,7 @@ where
 /// signature, if the coordinator themselves is a signer and misbehaves, they
 /// can avoid that step. However, at worst, this results in a denial of
 /// service attack due to publishing an invalid signature.
+
 pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
     signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
@@ -419,11 +420,12 @@ where
     if signing_package.signing_commitments().len() != signature_shares.len() {
         return Err(Error::UnknownIdentifier);
     }
-    if !signing_package
-        .signing_commitments()
-        .keys()
-        .all(|id| signature_shares.contains_key(id) && pubkeys.verifying_shares().contains_key(id))
-    {
+    if !signing_package.signing_commitments().keys().all(|id| {
+        #[cfg(feature = "cheater-detection")]
+        return signature_shares.contains_key(id) && pubkeys.verifying_shares().contains_key(id);
+        #[cfg(not(feature = "cheater-detection"))]
+        return signature_shares.contains_key(id);
+    }) {
         return Err(Error::UnknownIdentifier);
     }
 
@@ -460,6 +462,7 @@ where
     // Only if the verification of the aggregate signature failed; verify each share to find the cheater.
     // This approach is more efficient since we don't need to verify all shares
     // if the aggregate signature is valid (which should be the common case).
+    #[cfg(feature = "cheater-detection")]
     if let Err(err) = verification_result {
         // Compute the per-message challenge.
         let challenge = crate::challenge::<C>(
@@ -503,6 +506,9 @@ where
         // We should never reach here; but we return the verification error to be safe.
         return Err(err);
     }
+
+    #[cfg(not(feature = "cheater-detection"))]
+    verification_result?;
 
     Ok(signature)
 }

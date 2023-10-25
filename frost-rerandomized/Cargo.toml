@@ -29,7 +29,7 @@ rand_core = "0.6"
 
 [features]
 nightly = []
-default = ["serialization"]
+default = ["serialization", "cheater-detection"]
 serialization = ["serde", "frost-core/serialization"]
 #! ## Features
 ## Enable `serde` support for types that need to be communicated. You
@@ -38,3 +38,5 @@ serialization = ["serde", "frost-core/serialization"]
 serde = ["frost-core/serde"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["frost-core/test-impl"]
+## Enable cheater detection
+cheater-detection = ["frost-core/cheater-detection"]

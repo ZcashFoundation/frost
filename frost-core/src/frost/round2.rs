@@ -88,12 +88,12 @@ where
         &self,
         identifier: Identifier<C>,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
-        public_key: &frost::keys::VerifyingShare<C>,
+        verifying_share: &frost::keys::VerifyingShare<C>,
         lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
     ) -> Result<(), Error<C>> {
         if (<C::Group>::generator() * self.share)
-            != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
+            != (group_commitment_share.0 + (verifying_share.0 * challenge.0 * lambda_i))
         {
             return Err(Error::InvalidSignatureShare {
                 culprit: identifier,
