@@ -40,7 +40,7 @@ Then:
 ```
 
 
-Download sprout and sapling:
+Download Sprout and Sapling parameters:
 
 [Sprout params](https://download.z.cash/downloads/sprout-groth16.params)
 
