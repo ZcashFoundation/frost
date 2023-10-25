@@ -35,11 +35,6 @@ git clone https://github.com/ZcashFoundation/zcash.git
 
 Then:
 
-```
-./zcash/zcutil/fetch-params.sh
-```
-
-
 Download Sprout and Sapling parameters:
 
 [Sprout params](https://download.z.cash/downloads/sprout-groth16.params)
