@@ -467,7 +467,7 @@ where
         // Compute the per-message challenge.
         let challenge = crate::challenge::<C>(
             &group_commitment.0,
-            &pubkeys.verifying_key.element,
+            &pubkeys.verifying_key,
             signing_package.message().as_slice(),
         );
 

@@ -40,9 +40,9 @@ use crate::{
 };
 
 use super::{
-    evaluate_polynomial, evaluate_vss, generate_coefficients, generate_secret_polynomial,
+    evaluate_polynomial, generate_coefficients, generate_secret_polynomial,
     validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
-    VerifiableSecretSharingCommitment, VerifyingShare,
+    VerifiableSecretSharingCommitment,
 };
 
 /// DKG Round 1 structures.
@@ -122,6 +122,17 @@ pub mod round1 {
         pub(crate) min_signers: u16,
         /// The total number of signers.
         pub(crate) max_signers: u16,
+    }
+
+    impl<C> SecretPackage<C>
+    where
+        C: Ciphersuite,
+    {
+        /// Returns the secret coefficients.
+        #[cfg(feature = "internals")]
+        pub fn coefficients(&self) -> &[Scalar<C>] {
+            &self.coefficients
+        }
     }
 
     impl<C> std::fmt::Debug for SecretPackage<C>
@@ -280,22 +291,8 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, &mut rng);
     let (coefficients, commitment) =
         generate_secret_polynomial(&secret, max_signers, min_signers, coefficients)?;
-
-    // Round 1, Step 2
-    //
-    // > Every P_i computes a proof of knowledge to the corresponding secret
-    // > a_{i0} by calculating σ_i = (R_i, μ_i), such that k ← Z_q, R_i = g^k,
-    // > c_i = H(i, Φ, g^{a_{i0}} , R_i), μ_i = k + a_{i0} · c_i, with Φ being
-    // > a context string to prevent replay attacks.
-
-    let k = <<C::Group as Group>::Field>::random(&mut rng);
-    let R_i = <C::Group>::generator() * k;
-    let c_i =
-        challenge::<C>(identifier, &commitment.first()?.0, &R_i).ok_or(Error::DKGNotSupported)?;
-    let a_i0 = *coefficients
-        .get(0)
-        .expect("coefficients must have at least one element");
-    let mu_i = k + a_i0 * c_i.0;
+    let proof_of_knowledge =
+        compute_proof_of_knowledge(identifier, &coefficients, &commitment, &mut rng)?;
 
     let secret_package = round1::SecretPackage {
         identifier,
@@ -307,7 +304,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let package = round1::Package {
         header: Header::default(),
         commitment,
-        proof_of_knowledge: Signature { R: R_i, z: mu_i },
+        proof_of_knowledge,
     };
 
     Ok((secret_package, package))
@@ -316,7 +313,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Generates the challenge for the proof of knowledge to a secret for the DKG.
 fn challenge<C>(
     identifier: Identifier<C>,
-    verifying_key: &Element<C>,
+    verifying_key: &VerifyingKey<C>,
     R: &Element<C>,
 ) -> Option<Challenge<C>>
 where
@@ -325,10 +322,60 @@ where
     let mut preimage = vec![];
 
     preimage.extend_from_slice(identifier.serialize().as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(verifying_key).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(&verifying_key.element).as_ref());
     preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
 
     Some(Challenge(C::HDKG(&preimage[..])?))
+}
+
+/// Compute the proof of knowledge of the secret coefficients used to generate
+/// the public secret sharing commitment.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>(
+    identifier: Identifier<C>,
+    coefficients: &[Scalar<C>],
+    commitment: &VerifiableSecretSharingCommitment<C>,
+    mut rng: R,
+) -> Result<Signature<C>, Error<C>> {
+    // Round 1, Step 2
+    //
+    // > Every P_i computes a proof of knowledge to the corresponding secret
+    // > a_{i0} by calculating σ_i = (R_i, μ_i), such that k ← Z_q, R_i = g^k,
+    // > c_i = H(i, Φ, g^{a_{i0}} , R_i), μ_i = k + a_{i0} · c_i, with Φ being
+    // > a context string to prevent replay attacks.
+    let k = <<C::Group as Group>::Field>::random(&mut rng);
+    let R_i = <C::Group>::generator() * k;
+    let c_i = challenge::<C>(identifier, &commitment.verifying_key()?, &R_i)
+        .ok_or(Error::DKGNotSupported)?;
+    let a_i0 = *coefficients
+        .get(0)
+        .expect("coefficients must have at least one element");
+    let mu_i = k + a_i0 * c_i.0;
+    Ok(Signature { R: R_i, z: mu_i })
+}
+
+/// Verifies the proof of knowledge of the secret coefficients used to generate the
+/// public secret sharing commitment.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn verify_proof_of_knowledge<C: Ciphersuite>(
+    identifier: Identifier<C>,
+    commitment: &VerifiableSecretSharingCommitment<C>,
+    proof_of_knowledge: Signature<C>,
+) -> Result<(), Error<C>> {
+    // Round 1, Step 5
+    //
+    // > Upon receiving C⃗_ℓ, σ_ℓ from participants 1 ≤ ℓ ≤ n, ℓ ≠ i, participant
+    // > P_i verifies σ_ℓ = (R_ℓ, μ_ℓ), aborting on failure, by checking
+    // > R_ℓ ? ≟ g^{μ_ℓ} · φ^{-c_ℓ}_{ℓ0}, where c_ℓ = H(ℓ, Φ, φ_{ℓ0}, R_ℓ).
+    let ell = identifier;
+    let R_ell = proof_of_knowledge.R;
+    let mu_ell = proof_of_knowledge.z;
+    let phi_ell0 = commitment.verifying_key()?;
+    let c_ell = challenge::<C>(ell, &phi_ell0, &R_ell).ok_or(Error::DKGNotSupported)?;
+    if R_ell != <C::Group>::generator() * mu_ell - phi_ell0.element * c_ell.0 {
+        return Err(Error::InvalidProofOfKnowledge { culprit: ell });
+    }
+    Ok(())
 }
 
 /// Performs the second part of the distributed key generation protocol
@@ -363,18 +410,11 @@ pub fn part2<C: Ciphersuite>(
     for (sender_identifier, round1_package) in round1_packages {
         let ell = *sender_identifier;
         // Round 1, Step 5
-        //
-        // > Upon receiving C⃗_ℓ, σ_ℓ from participants 1 ≤ ℓ ≤ n, ℓ ≠ i, participant
-        // > P_i verifies σ_ℓ = (R_ℓ, μ_ℓ), aborting on failure, by checking
-        // > R_ℓ ? ≟ g^{μ_ℓ} · φ^{-c_ℓ}_{ℓ0}, where c_ℓ = H(ℓ, Φ, φ_{ℓ0}, R_ℓ).
-        let R_ell = round1_package.proof_of_knowledge.R;
-        let mu_ell = round1_package.proof_of_knowledge.z;
-        let phi_ell0 = round1_package.commitment.first()?.0;
-        let c_ell = challenge::<C>(ell, &phi_ell0, &R_ell).ok_or(Error::DKGNotSupported)?;
-
-        if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
-            return Err(Error::InvalidProofOfKnowledge { culprit: ell });
-        }
+        verify_proof_of_knowledge(
+            ell,
+            &round1_package.commitment,
+            round1_package.proof_of_knowledge,
+        )?;
 
         // Round 2, Step 1
         //
@@ -402,47 +442,6 @@ pub fn part2<C: Ciphersuite>(
         },
         round2_packages,
     ))
-}
-
-/// Computes the verifying shares of the other participants for the third step
-/// of the DKG protocol.
-fn compute_verifying_shares<C: Ciphersuite>(
-    round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
-    round2_secret_package: &round2::SecretPackage<C>,
-) -> Result<BTreeMap<Identifier<C>, VerifyingShare<C>>, Error<C>> {
-    // Round 2, Step 4
-    //
-    // > Any participant can compute the public verification share of any other participant
-    // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
-    let mut others_verifying_shares = BTreeMap::new();
-
-    // Note that in this loop, "i" refers to the other participant whose public verification share
-    // we are computing, and not the current participant.
-    for i in round1_packages.keys().cloned() {
-        let mut y_i = <C::Group>::identity();
-
-        // We need to iterate through all commitment vectors, including our own,
-        // so chain it manually
-        for commitment in round1_packages
-            .keys()
-            .map(|k| {
-                // Get the commitment vector for this participant
-                Ok::<&VerifiableSecretSharingCommitment<C>, Error<C>>(
-                    &round1_packages
-                        .get(k)
-                        .ok_or(Error::PackageNotFound)?
-                        .commitment,
-                )
-            })
-            // Chain our own commitment vector
-            .chain(iter::once(Ok(&round2_secret_package.commitment)))
-        {
-            y_i = y_i + evaluate_vss(commitment?, i);
-        }
-        let y_i = VerifyingShare(y_i);
-        others_verifying_shares.insert(i, y_i);
-    }
-    Ok(others_verifying_shares)
 }
 
 /// Performs the third and final part of the distributed key generation protocol
@@ -481,7 +480,6 @@ pub fn part3<C: Ciphersuite>(
     }
 
     let mut signing_share = <<C::Group as Group>::Field>::zero();
-    let mut verifying_key = <C::Group>::identity();
 
     for (sender_identifier, round2_package) in round2_packages {
         // Round 2, Step 2
@@ -515,47 +513,32 @@ pub fn part3<C: Ciphersuite>(
         // > Each P_i calculates their long-lived private signing share by computing
         // > s_i = ∑^n_{ℓ=1} f_ℓ(i), stores s_i securely, and deletes each f_ℓ(i).
         signing_share = signing_share + f_ell_i.0;
-
-        // Round 2, Step 4
-        //
-        // > Each P_i calculates [...] the group’s public key Y = ∏^n_{j=1} φ_{j0}.
-        verifying_key = verifying_key + commitment.first()?.0;
     }
 
     signing_share = signing_share + round2_secret_package.secret_share;
-    verifying_key = verifying_key + round2_secret_package.commitment.first()?.0;
-
     let signing_share = SigningShare(signing_share);
     // Round 2, Step 4
     //
     // > Each P_i calculates their public verification share Y_i = g^{s_i}.
     let verifying_share = signing_share.into();
-    let verifying_key = VerifyingKey {
-        element: verifying_key,
-    };
 
-    // Round 2, Step 4
-    //
-    // > Any participant can compute the public verification share of any other participant
-    // > by calculating Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
-    let mut all_verifying_shares =
-        compute_verifying_shares(round1_packages, round2_secret_package)?;
-
-    // Add the participant's own public verification share for consistency
-    all_verifying_shares.insert(round2_secret_package.identifier, verifying_share);
+    let commitments: BTreeMap<_, _> = round1_packages
+        .iter()
+        .map(|(id, package)| (*id, &package.commitment))
+        .chain(iter::once((
+            round2_secret_package.identifier,
+            &round2_secret_package.commitment,
+        )))
+        .collect();
+    let public_key_package = PublicKeyPackage::from_dkg_commitments(&commitments)?;
 
     let key_package = KeyPackage {
         header: Header::default(),
         identifier: round2_secret_package.identifier,
         signing_share,
         verifying_share,
-        verifying_key,
+        verifying_key: public_key_package.verifying_key,
         min_signers: round2_secret_package.min_signers,
-    };
-    let public_key_package = PublicKeyPackage {
-        header: Header::default(),
-        verifying_shares: all_verifying_shares,
-        verifying_key,
     };
 
     Ok((key_package, public_key_package))

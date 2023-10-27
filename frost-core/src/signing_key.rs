@@ -50,7 +50,7 @@ where
         let R = <C::Group>::generator() * k;
 
         // Generate Schnorr challenge
-        let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self).element, msg);
+        let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self), msg);
 
         let z = k + (c.0 * self.scalar);
 

@@ -11,6 +11,7 @@ use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
 
+use crate::frost::keys::{generate_with_dealer, IdentifierList, PublicKeyPackage};
 use crate::Ciphersuite;
 
 /// Test serialize VerifiableSecretSharingCommitment
@@ -106,4 +107,21 @@ pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + Crypt
     let vss_value = VerifiableSecretSharingCommitment::<C>::deserialize(data);
 
     assert!(vss_value.is_err());
+}
+
+/// Test computing the public key package from a list of commitments.
+pub fn check_compute_public_key_package<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+    let max_signers = 3;
+    let min_signers = 2;
+    let (secret_shares, public_key_package) =
+        generate_with_dealer::<C, _>(max_signers, min_signers, IdentifierList::Default, &mut rng)
+            .unwrap();
+
+    let members = secret_shares.keys().copied().collect();
+    let group_commitment = secret_shares.values().next().unwrap().commitment().clone();
+
+    assert_eq!(
+        public_key_package,
+        PublicKeyPackage::from_commitment(&members, &group_commitment).unwrap()
+    );
 }
