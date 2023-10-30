@@ -18,7 +18,7 @@ use sha3::{
     Shake256,
 };
 
-use frost_core::frost;
+use frost_core as frost;
 
 #[cfg(test)]
 mod tests;

@@ -4,8 +4,11 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
-## 0.8.0
+## 1.0.0-rc.0
 
+* The `frost-core::frost` module contents were merged into `frost-core`, thus
+  eliminating the `frost` module. You can adapt any calling code with e.g.
+  changing `use frost_core::frost::*` to `use frost-core::*`.
 * Both serde serialization and the default byte-oriented serialization now
   include a version field (a u8) at the beginning which is always 0 for now. The
   ciphersuite ID field was moved from the last field to the second field, after

@@ -17,8 +17,8 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    frost::Identifier, Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Scalar,
-    Serialize, SigningKey, VerifyingKey,
+    Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Identifier, Scalar, Serialize,
+    SigningKey, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]

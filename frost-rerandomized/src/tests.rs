@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use crate::{frost_core::frost, RandomizedCiphersuite, RandomizedParams, Randomizer};
-use frost_core::{frost::SigningPackage, Field, Group, Signature, VerifyingKey};
+use crate::{frost_core as frost, RandomizedCiphersuite, RandomizedParams, Randomizer};
+use frost_core::{Field, Group, Signature, SigningPackage, VerifyingKey};
 use rand_core::{CryptoRng, RngCore};
 
 /// Test re-randomized FROST signing with trusted dealer with a Ciphersuite.

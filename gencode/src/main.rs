@@ -194,7 +194,7 @@ fn main() -> ExitCode {
 
     // Copy the frost-core repairable docs into ristretto255.
     // This will then be copied later down into the other ciphersuites.
-    let repairable_docs = read_docs("frost-core/src/frost/keys/repairable.rs", &[]);
+    let repairable_docs = read_docs("frost-core/src/keys/repairable.rs", &[]);
     replaced |= write_docs(
         &repairable_docs,
         "frost-ristretto255/src/keys/repairable.rs",

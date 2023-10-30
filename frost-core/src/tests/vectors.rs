@@ -5,9 +5,9 @@ use debugless_unwrap::DebuglessUnwrap;
 use hex::{self, FromHex};
 use serde_json::Value;
 
+use crate as frost;
 use crate::{
-    frost::{self, keys::*, round1::*, round2::*, *},
-    Ciphersuite, Field, Group, Scalar, SigningKey, VerifyingKey,
+    keys::*, round1::*, round2::*, Ciphersuite, Field, Group, Scalar, SigningKey, VerifyingKey, *,
 };
 
 /// Test vectors for a ciphersuite.

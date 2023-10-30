@@ -6,7 +6,8 @@ use std::collections::BTreeMap;
 use criterion::{BenchmarkId, Criterion, Throughput};
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{batch, frost, Ciphersuite, Signature, SigningKey, VerifyingKey};
+use crate as frost;
+use crate::{batch, Ciphersuite, Signature, SigningKey, VerifyingKey};
 
 struct Item<C: Ciphersuite> {
     vk: VerifyingKey<C>,
