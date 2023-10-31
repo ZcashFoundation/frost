@@ -20,12 +20,9 @@ use derive_getters::Getters;
 pub use frost_core;
 
 use frost_core::{
-    frost::{
-        self,
-        keys::{KeyPackage, PublicKeyPackage, SigningShare, VerifyingShare},
-        SigningPackage,
-    },
-    Ciphersuite, Error, Field, Group, Scalar, VerifyingKey,
+    self as frost,
+    keys::{KeyPackage, PublicKeyPackage, SigningShare, VerifyingShare},
+    Ciphersuite, Error, Field, Group, Scalar, SigningPackage, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]

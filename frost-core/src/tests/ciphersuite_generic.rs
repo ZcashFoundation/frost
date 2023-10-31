@@ -3,9 +3,9 @@
 
 use std::{collections::BTreeMap, convert::TryFrom};
 
+use crate as frost;
 use crate::{
-    frost::{self, keys::PublicKeyPackage, Identifier},
-    Error, Field, Group, Signature, SigningKey, VerifyingKey,
+    keys::PublicKeyPackage, Error, Field, Group, Identifier, Signature, SigningKey, VerifyingKey,
 };
 use rand_core::{CryptoRng, RngCore};
 

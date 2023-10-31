@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::{frost::Identifier, Ciphersuite};
+use crate::{Ciphersuite, Identifier};
 
 #[derive(Error, Debug, Clone, Copy, Eq, PartialEq)]
 pub struct ParticipantError<C: Ciphersuite>(Identifier<C>);

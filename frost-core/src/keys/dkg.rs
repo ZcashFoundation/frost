@@ -35,8 +35,8 @@ use std::{collections::BTreeMap, iter};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    frost::Identifier, Challenge, Ciphersuite, Element, Error, Field, Group, Header, Scalar,
-    Signature, SigningKey, VerifyingKey,
+    Challenge, Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, Signature,
+    SigningKey, VerifyingKey,
 };
 
 use super::{

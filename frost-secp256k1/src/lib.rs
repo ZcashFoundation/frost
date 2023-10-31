@@ -20,7 +20,7 @@ use k256::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
 
-use frost_core::frost;
+use frost_core as frost;
 
 #[cfg(test)]
 mod tests;

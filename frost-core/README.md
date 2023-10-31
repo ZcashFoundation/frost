@@ -2,12 +2,20 @@
 
 Base traits and types in Rust that implement ['Two-Round Threshold Schnorr Signatures with
 FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/) generically for
-`frost-core::Ciphersuite` implementations.
+[`Ciphersuite`] implementations.
+
+For key generation, refer to the [`keys`] module. For round-specific
+types and functions, refer to the [`round1`] and [`round2`] modules. This module
+contains types and functions not directly related to key generation and the
+FROST rounds.
+
 
 ## Status ⚠
 
-The FROST specification is not yet finalized, and this codebase has not yet been audited or
-released. The APIs and types in `frost-core` are subject to change.
+The FROST specification is not yet finalized, though no significant changes are
+expected at this point. This code base has been audited by NCC. The APIs and
+types in `frost-core` are subject to change during the release candidate phase,
+and will follow SemVer guarantees after 1.0.0.
 
 ## Usage
 

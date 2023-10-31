@@ -2,10 +2,9 @@
 
 use std::fmt::{self, Debug};
 
+use crate as frost;
 use crate::{
-    challenge,
-    frost::{self, round1, *},
-    Challenge, Ciphersuite, Error, Field, Group,
+    challenge, Challenge, Ciphersuite, Error, Field, Group, {round1, *},
 };
 
 #[cfg(feature = "serde")]

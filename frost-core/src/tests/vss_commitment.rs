@@ -3,7 +3,7 @@
 use std::convert::TryFrom;
 
 use crate::{
-    frost::keys::{CoefficientCommitment, VerifiableSecretSharingCommitment},
+    keys::{CoefficientCommitment, VerifiableSecretSharingCommitment},
     tests::helpers::generate_element,
     Group,
 };
@@ -11,7 +11,7 @@ use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
 
-use crate::frost::keys::{generate_with_dealer, IdentifierList, PublicKeyPackage};
+use crate::keys::{generate_with_dealer, IdentifierList, PublicKeyPackage};
 use crate::Ciphersuite;
 
 /// Test serialize VerifiableSecretSharingCommitment

@@ -82,7 +82,7 @@ where
     /// Computes the group public key given the group commitment.
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(crate) fn from_commitment(
-        commitment: &crate::frost::keys::VerifiableSecretSharingCommitment<C>,
+        commitment: &crate::keys::VerifiableSecretSharingCommitment<C>,
     ) -> Result<VerifyingKey<C>, Error<C>> {
         Ok(VerifyingKey {
             element: commitment

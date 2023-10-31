@@ -12,9 +12,8 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{
-    frost, Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Scalar, Serialize,
-};
+use crate as frost;
+use crate::{Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Scalar, Serialize};
 
 #[cfg(feature = "serde")]
 use crate::ElementSerialization;
