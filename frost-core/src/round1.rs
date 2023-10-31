@@ -13,10 +13,13 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
 use crate as frost;
-use crate::{Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Scalar, Serialize};
+use crate::{
+    serialization::{Deserialize, Serialize},
+    Ciphersuite, Element, Error, Field, Group, Header, Scalar,
+};
 
 #[cfg(feature = "serde")]
-use crate::ElementSerialization;
+use crate::serialization::ElementSerialization;
 
 use super::{keys::SigningShare, Identifier};
 

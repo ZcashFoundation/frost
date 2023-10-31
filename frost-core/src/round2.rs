@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[cfg(feature = "serde")]
-use crate::ScalarSerialization;
+use crate::serialization::ScalarSerialization;
 
 // Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
 // be directly encoded with serde, so we use this struct to wrap the scalar.

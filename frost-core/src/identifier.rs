@@ -8,7 +8,7 @@ use std::{
 use crate::{Ciphersuite, Error, Field, FieldError, Group, Scalar};
 
 #[cfg(feature = "serde")]
-use crate::ScalarSerialization;
+use crate::serialization::ScalarSerialization;
 
 /// A FROST participant identifier.
 ///
