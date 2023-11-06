@@ -306,6 +306,7 @@ pub mod keys {
 
     pub mod dkg;
     pub mod repairable;
+    pub mod resharing;
 }
 
 /// FROST(ristretto255, SHA-512) Round 1 functionality and types.

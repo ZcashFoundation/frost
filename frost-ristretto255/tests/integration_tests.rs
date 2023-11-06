@@ -65,6 +65,15 @@ fn check_rts() {
 }
 
 #[test]
+fn check_vsr() {
+    // let rng = thread_rng();
+    use rand::SeedableRng;
+    let rng = rand::rngs::StdRng::seed_from_u64(0);
+
+    frost_core::tests::resharing::check_vsr::<Ristretto255Sha512, _>(rng);
+}
+
+#[test]
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 
