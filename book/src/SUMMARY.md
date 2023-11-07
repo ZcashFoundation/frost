@@ -7,6 +7,7 @@
   - [Trusted Dealer Key Generation](tutorial/trusted-dealer.md)
   - [Signing](tutorial/signing.md)
   - [Distributed Key Generation](tutorial/dkg.md)
+  - [Key Resharing](tutorial/resharing.md)
 - [User Documentation](user.md)
   - [Serialization Format](user/serialization.md)
 - [FROST with Zcash](zcash.md)
