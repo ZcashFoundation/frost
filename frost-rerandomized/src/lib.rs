@@ -28,7 +28,7 @@ use frost_core::{
 #[cfg(feature = "serde")]
 use frost_core::serde;
 #[cfg(feature = "serde")]
-use frost_core::ScalarSerialization;
+use frost_core::serialization::ScalarSerialization;
 
 // When pulled into `reddsa`, that has its own sibling `rand_core` import.
 // For the time being, we do not re-export this `rand_core`.

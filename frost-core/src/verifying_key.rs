@@ -6,7 +6,7 @@ use hex::FromHex;
 use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
 
 #[cfg(feature = "serde")]
-use crate::ElementSerialization;
+use crate::serialization::ElementSerialization;
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq, Eq)]

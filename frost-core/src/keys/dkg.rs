@@ -50,7 +50,7 @@ pub mod round1 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
-    use crate::{Deserialize, Serialize};
+    use crate::serialization::{Deserialize, Serialize};
 
     use super::*;
 
@@ -167,7 +167,7 @@ pub mod round2 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
-    use crate::{Deserialize, Serialize};
+    use crate::serialization::{Deserialize, Serialize};
 
     use super::*;
 

@@ -9,6 +9,8 @@ Entries are listed in reverse chronological order.
 * The `frost-core::frost` module contents were merged into `frost-core`, thus
   eliminating the `frost` module. You can adapt any calling code with e.g.
   changing `use frost_core::frost::*` to `use frost-core::*`.
+* `Challenge`, `BindingFactor`, `BindingFactorList` and `GroupCommitment`
+  are no longer public (you can use them with the `internals` feature).
 * Both serde serialization and the default byte-oriented serialization now
   include a version field (a u8) at the beginning which is always 0 for now. The
   ciphersuite ID field was moved from the last field to the second field, after
