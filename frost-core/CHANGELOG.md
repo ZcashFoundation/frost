@@ -22,6 +22,7 @@ Entries are listed in reverse chronological order.
 * Added `PublicKeyPackage::from_commitment()` and
   `PublicKeyPackage::from_dkg_commitments` to create a `PublicKeyPackage` from
   the commitments generated in trusted dealer or distributed key generation.
+* Ciphersuite crates now re-export `serde` if enabled.
 
 ## Released
 
