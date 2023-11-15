@@ -4,6 +4,9 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+
+## Released
+
 ## 1.0.0-rc.0
 
 * The `frost-core::frost` module contents were merged into `frost-core`, thus
@@ -23,8 +26,10 @@ Entries are listed in reverse chronological order.
   `PublicKeyPackage::from_dkg_commitments` to create a `PublicKeyPackage` from
   the commitments generated in trusted dealer or distributed key generation.
 * Ciphersuite crates now re-export `serde` if enabled.
-
-## Released
+* Convert all `HashMaps` to `BTreeMaps`.
+* Update some field names in `KeyPackage`, `Package`, `SecretShare` and `PublicKeyPackage`.
+* Add generate Randomizer by hashing `SigningPackage`
+* Add postcard-serde-encoded serialization as the default
 
 ## 0.7.0
 
