@@ -421,13 +421,13 @@ pub fn part2<C: Ciphersuite>(
         // > Each P_i securely sends to each other participant P_ℓ a secret share (ℓ, f_i(ℓ)),
         // > deleting f_i and each share afterward except for (i, f_i(i)),
         // > which they keep for themselves.
-        let value = evaluate_polynomial(ell, &secret_package.coefficients);
+        let signing_share = SigningShare::from_coefficients(&secret_package.coefficients, ell);
 
         round2_packages.insert(
             ell,
             round2::Package {
                 header: Header::default(),
-                signing_share: SigningShare(value),
+                signing_share,
             },
         );
     }
