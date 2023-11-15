@@ -25,15 +25,15 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 curve25519-dalek = { version = "=4.1.1", features = ["rand_core"] }
 document-features = "0.2.7"
-frost-core = { path = "../frost-core", version = "1.0.0-rc.0", features = ["test-impl"] }
-frost-rerandomized = { path = "../frost-rerandomized", version = "0.7.0" }
+frost-core = { path = "../frost-core", version = "1.0.0-rc.0" }
+frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0-rc.0" }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
 [dev-dependencies]
 criterion = "0.5"
-frost-core = { path = "../frost-core", version = "0.7.0", features = ["test-impl"] }
-frost-rerandomized = { path = "../frost-rerandomized", version = "0.7.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "1.0.0-rc.0", features = ["test-impl"] }
+frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0-rc.0", features = ["test-impl"] }
 ed25519-dalek = "2.0.0"
 insta = { version = "1.31.0", features = ["yaml"] }
 hex = "0.4.3"
