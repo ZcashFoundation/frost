@@ -271,7 +271,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     let binding_factor_list: frost::BindingFactorList<C> =
         compute_binding_factor_list(&signing_package, &verifying_key, &[]);
 
-    for (identifier, binding_factor) in binding_factor_list.iter() {
+    for (identifier, binding_factor) in binding_factor_list.0.iter() {
         assert_eq!(*binding_factor, binding_factors[identifier]);
     }
 
