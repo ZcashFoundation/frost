@@ -185,15 +185,6 @@ impl<C> BindingFactor<C>
 where
     C: Ciphersuite,
 {
-    /// Deserializes [`BindingFactor`] from bytes.
-    pub fn deserialize(
-        bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error<C>> {
-        <<C::Group as Group>::Field>::deserialize(&bytes)
-            .map(|scalar| Self(scalar))
-            .map_err(|e| e.into())
-    }
-
     /// Serializes [`BindingFactor`] to bytes.
     pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
@@ -225,11 +216,6 @@ where
     #[cfg(feature = "internals")]
     pub fn new(binding_factors: BTreeMap<Identifier<C>, BindingFactor<C>>) -> Self {
         Self(binding_factors)
-    }
-
-    /// Return iterator through all factors.
-    pub fn iter(&self) -> impl Iterator<Item = (&Identifier<C>, &BindingFactor<C>)> {
-        self.0.iter()
     }
 
     /// Get the [`BindingFactor`] for the given identifier, or None if not found.
@@ -273,8 +259,11 @@ where
 
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
+
         match v.try_into() {
-            Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed scalar encoding"),
+            Ok(bytes) => <<C::Group as Group>::Field>::deserialize(&bytes)
+                .map(|scalar| Self(scalar))
+                .map_err(|_| "malformed scalar encoding"),
             Err(_) => Err("malformed scalar encoding"),
         }
     }
