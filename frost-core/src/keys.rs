@@ -894,12 +894,12 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     }
 
     for id in identifiers {
-        let value = evaluate_polynomial(*id, &coefficients);
+        let signing_share = SigningShare::from_coefficients(&coefficients, *id);
 
         secret_shares.push(SecretShare {
             header: Header::default(),
             identifier: *id,
-            signing_share: SigningShare(value),
+            signing_share,
             commitment: commitment.clone(),
         });
     }
