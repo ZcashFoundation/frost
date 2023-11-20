@@ -54,6 +54,11 @@ where
         Self::nonce_generate_from_random_bytes(secret, random_bytes)
     }
 
+    /// Negate `Nonce`.
+    pub fn negate(&mut self) {
+        self.0 = <<C::Group as Group>::Field>::negate(&self.0);
+    }
+
     /// Generates a nonce from the given random bytes.
     /// This function allows testing and MUST NOT be made public.
     pub(crate) fn nonce_generate_from_random_bytes(
@@ -316,6 +321,12 @@ where
     /// Deserialize the struct from a slice of bytes.
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         Deserialize::deserialize(bytes)
+    }
+
+    /// Negate `SigningShare`.
+    pub fn negate_nonces(&mut self) {
+        self.binding.negate();
+        self.hiding.negate();
     }
 }
 

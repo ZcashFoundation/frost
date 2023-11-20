@@ -69,7 +69,6 @@ where
     C: Ciphersuite,
 {
     /// Creates a challenge from a scalar.
-    #[cfg(feature = "internals")]
     pub fn from_scalar(
         scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
     ) -> Self {
@@ -77,7 +76,6 @@ where
     }
 
     /// Return the underlying scalar.
-    #[cfg(feature = "internals")]
     pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
         self.0
     }
@@ -465,6 +463,11 @@ where
     pub fn to_element(self) -> <C::Group as Group>::Element {
         self.0
     }
+
+    /// Check if group commitment is odd
+    pub fn y_is_odd(&self) -> bool {
+        <C::Group as Group>::y_is_odd(&self.0)
+    }
 }
 
 /// Generates the group commitment which is published as part of the joint
@@ -585,6 +588,15 @@ where
         z = z + signature_share.share;
     }
 
+    if <C>::is_need_tweaking() {
+        let challenge = <C>::challenge(
+            &group_commitment.0,
+            &pubkeys.verifying_key,
+            signing_package.message().as_slice(),
+        );
+        z = <C>::aggregate_tweak_z(z, &challenge, &pubkeys.verifying_key.element);
+    }
+
     let signature = Signature {
         R: group_commitment.0,
         z,
@@ -601,7 +613,7 @@ where
     #[cfg(feature = "cheater-detection")]
     if let Err(err) = verification_result {
         // Compute the per-message challenge.
-        let challenge = crate::challenge::<C>(
+        let challenge = <C>::challenge(
             &group_commitment.0,
             &pubkeys.verifying_key,
             signing_package.message().as_slice(),
@@ -636,6 +648,8 @@ where
                 signer_pubkey,
                 lambda_i,
                 &challenge,
+                &group_commitment,
+                &pubkeys.verifying_key,
             )?;
         }
 

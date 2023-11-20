@@ -1,4 +1,5 @@
 use std::fmt::{self, Debug};
+use derive_getters::Getters;
 
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
@@ -9,7 +10,7 @@ use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
 use crate::serialization::ElementSerialization;
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
@@ -33,9 +34,13 @@ where
     }
 
     /// Return the underlying element.
-    #[cfg(feature = "internals")]
     pub fn to_element(self) -> <C::Group as Group>::Element {
         self.element
+    }
+
+    /// Check if VerifyingKey is odd
+    pub fn y_is_odd(&self) -> bool {
+        <C::Group as Group>::y_is_odd(&self.element)
     }
 
     /// Deserialize from bytes
@@ -63,9 +68,15 @@ where
         //                 h * ( z * B - c * A - R) == 0
         //
         // where h is the cofactor
+        let mut R = signature.R;
+        let mut vk = self.element;
+        if <C>::is_need_tweaking() {
+            R = <C>::tweaked_R(&signature.R);
+            vk = <C>::tweaked_public_key(&self.element);
+        }
         let zB = C::Group::generator() * signature.z;
-        let cA = self.element * challenge.0;
-        let check = (zB - cA - signature.R) * C::Group::cofactor();
+        let cA = vk * challenge.0;
+        let check = (zB - cA - R) * C::Group::cofactor();
 
         if check == C::Group::identity() {
             Ok(())

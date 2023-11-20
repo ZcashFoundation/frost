@@ -290,6 +290,19 @@ fn main() -> ExitCode {
                 "<S>",
             ],
         ),
+        (
+            "frost-secp256k1-tr",
+            &[
+                "Secp256K1Sha256",
+                "secp256k1 curve",
+                "Secp256K1",
+                "FROST(secp256k1, SHA-256)",
+                "FROST-secp256k1-SHA256-TR-v1",
+                "secp256k1_sha256",
+                "secp256k1",
+                "<S>",
+            ],
+        ),
     ] {
         // Some test use "sample" values. To make these tests work for another ciphersuites,
         // these values must be replaced. To make it cleaner, the strings are

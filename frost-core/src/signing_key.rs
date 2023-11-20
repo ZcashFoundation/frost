@@ -2,7 +2,7 @@
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{random_nonzero, Ciphersuite, Error, Field, Group, Scalar, Signature, VerifyingKey};
+use crate::{random_nonzero, Ciphersuite, Error, Field, Group, Scalar, Signature, VerifyingKey, Challenge};
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -45,14 +45,21 @@ where
 
     /// Create a signature `msg` using this `SigningKey`.
     pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<C> {
-        let k = random_nonzero::<C, R>(&mut rng);
-
+        let public = VerifyingKey::<C>::from(*self);
+        let mut secret = self.scalar;
+        if <C>::is_need_tweaking() {
+            secret = <C>::tweaked_secret_key(secret, &public.element);
+        }
+        let mut k = random_nonzero::<C, R>(&mut rng);
         let R = <C::Group>::generator() * k;
+        if <C>::is_need_tweaking() {
+            k = <C>::tweaked_nonce(k, &R);
+        }
 
         // Generate Schnorr challenge
-        let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self), msg);
+        let c: Challenge<C> = <C>::challenge(&R, &public, msg);
 
-        let z = k + (c.0 * self.scalar);
+        let z = k + (c.0 * secret);
 
         Signature { R, z }
     }
