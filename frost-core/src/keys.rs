@@ -297,6 +297,12 @@ impl<C> CoefficientCommitment<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new CoefficientCommitment.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn new(value: Element<C>) -> Self {
+        Self(value)
+    }
+
     /// returns serialized element
     pub fn serialize(&self) -> <C::Group as Group>::Serialization {
         <C::Group>::serialize(&self.0)
@@ -306,7 +312,7 @@ where
     pub fn deserialize(
         coefficient: <C::Group as Group>::Serialization,
     ) -> Result<CoefficientCommitment<C>, Error<C>> {
-        Ok(Self(<C::Group as Group>::deserialize(&coefficient)?))
+        Ok(Self::new(<C::Group as Group>::deserialize(&coefficient)?))
     }
 
     /// Returns inner element value
@@ -371,6 +377,12 @@ impl<C> VerifiableSecretSharingCommitment<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new VerifiableSecretSharingCommitment.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn new(coefficients: Vec<CoefficientCommitment<C>>) -> Self {
+        Self(coefficients)
+    }
+
     /// Returns serialized coefficent commitments
     pub fn serialize(&self) -> Vec<<C::Group as Group>::Serialization> {
         self.0
@@ -388,7 +400,7 @@ where
             coefficient_commitments.push(CoefficientCommitment::<C>::deserialize(cc)?);
         }
 
-        Ok(Self(coefficient_commitments))
+        Ok(Self::new(coefficient_commitments))
     }
 
     /// Get the VerifyingKey matching this commitment vector (which is the first
