@@ -22,20 +22,20 @@ features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-byteorder = "1.4"
-const-crc32 = "1.2.0"
+byteorder = { version = "1.4", default-features = false }
+const-crc32 = { version = "1.2.0", package = "const-crc32-nostd" }
 document-features = "0.2.7"
 debugless-unwrap = "0.0.4"
 derive-getters = "0.3.0"
-hex = "0.4.3"
-postcard = { version = "1.0.0", features = ["use-std"], optional = true }
-rand_core = "0.6"
-serde = { version = "1.0.160", features = ["derive"], optional = true }
+hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
+postcard = { version = "1.0.0", features = ["alloc"], optional = true }
+rand_core = { version = "0.6", default-features = false }
+serde = { version = "1.0.160", default-features = false, features = ["derive"], optional = true }
 serdect = { version = "0.2.0", optional = true }
-thiserror = "1.0"
+thiserror = { version = "1.0", package = "thiserror-nostd-notrait", default-features = false }
 visibility = "0.1.0"
 zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
-itertools = "0.12.0"
+itertools = { version = "0.12.0", default-features = false }
 
 # Test dependencies used with the test-impl feature
 proptest = { version = "1.0", optional = true }

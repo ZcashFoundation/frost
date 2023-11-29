@@ -1,12 +1,14 @@
 //! Ciphersuite-generic test functions.
 #![allow(clippy::type_complexity)]
 
-use std::{collections::BTreeMap, convert::TryFrom};
+use alloc::collections::BTreeMap;
 
 use crate as frost;
 use crate::{
     keys::PublicKeyPackage, Error, Field, Group, Identifier, Signature, SigningKey, VerifyingKey,
 };
+use alloc::borrow::ToOwned;
+use alloc::vec::Vec;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::Ciphersuite;
@@ -365,7 +367,7 @@ pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>)
 where
-    C::Group: std::cmp::PartialEq,
+    C::Group: core::cmp::PartialEq,
 {
     ////////////////////////////////////////////////////////////////////////////
     // Key generation, Round 1

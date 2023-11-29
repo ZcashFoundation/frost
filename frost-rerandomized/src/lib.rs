@@ -9,12 +9,15 @@
 //! - Each participant should call [`sign`] and send the resulting
 //!   [`frost::round2::SignatureShare`] back to the Coordinator;
 //! - The Coordinator should then call [`aggregate`].
+#![no_std]
 #![allow(non_snake_case)]
+
+extern crate alloc;
 
 #[cfg(any(test, feature = "test-impl"))]
 pub mod tests;
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use derive_getters::Getters;
 pub use frost_core;

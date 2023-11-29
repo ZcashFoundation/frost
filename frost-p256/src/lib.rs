@@ -1,3 +1,4 @@
+#![no_std]
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
@@ -5,7 +6,10 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
-use std::collections::BTreeMap;
+extern crate alloc;
+
+use alloc::borrow::ToOwned;
+use alloc::collections::BTreeMap;
 
 use frost_rerandomized::RandomizedCiphersuite;
 use p256::{
@@ -252,8 +256,6 @@ type P = P256Sha256;
 pub type Identifier = frost::Identifier<P>;
 /// FROST(P-256, SHA-256) keys, key generation, key shares.
 pub mod keys {
-    use std::collections::BTreeMap;
-
     use super::*;
 
     /// The identifier list to use when generating key shares.

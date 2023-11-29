@@ -4,6 +4,11 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* Add no-std support to all crates except frost-ed448. Note that you don't need
+  to use `default-features = false`; there is no `std` feature that is enabled
+  by default. Also note that it always links to an external `alloc` crate (i.e.
+  there is no `alloc` feature either).
+
 ## Released
 
 ## 1.0.0

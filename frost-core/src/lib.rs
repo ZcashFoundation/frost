@@ -1,3 +1,4 @@
+#![no_std]
 #![allow(non_snake_case)]
 // It's emitting false positives; see https://github.com/rust-lang/rust-clippy/issues/9413
 #![allow(clippy::derive_partial_eq_without_eq)]
@@ -10,11 +11,15 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
-use std::{
+#[macro_use]
+extern crate alloc;
+
+use core::marker::PhantomData;
+
+use alloc::{
     collections::{BTreeMap, BTreeSet},
-    default::Default,
     fmt::{self, Debug},
-    marker::PhantomData,
+    vec::Vec,
 };
 
 use derive_getters::Getters;
@@ -87,7 +92,7 @@ impl<C> Debug for Challenge<C>
 where
     C: Ciphersuite,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_tuple("Secret")
             .field(&hex::encode(<<C::Group as Group>::Field>::serialize(
                 &self.0,
@@ -111,7 +116,7 @@ fn challenge<C>(R: &Element<C>, verifying_key: &VerifyingKey<C>, msg: &[u8]) -> 
 where
     C: Ciphersuite,
 {
-    let mut preimage = vec![];
+    let mut preimage = Vec::new();
 
     preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
     preimage.extend_from_slice(<C::Group>::serialize(&verifying_key.element).as_ref());
@@ -153,7 +158,7 @@ struct Header<C: Ciphersuite> {
         serde(deserialize_with = "crate::serialization::ciphersuite_deserialize::<_, C>")
     )]
     ciphersuite: (),
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     phantom: PhantomData<C>,
 }
 
@@ -404,7 +409,7 @@ where
         verifying_key: &VerifyingKey<C>,
         additional_prefix: &[u8],
     ) -> Vec<(Identifier<C>, Vec<u8>)> {
-        let mut binding_factor_input_prefix = vec![];
+        let mut binding_factor_input_prefix = Vec::new();
 
         // The length of a serialized verifying key of the same cipersuite does
         // not change between runs of the protocol, so we don't need to hash to
@@ -423,7 +428,7 @@ where
         self.signing_commitments()
             .keys()
             .map(|identifier| {
-                let mut binding_factor_input = vec![];
+                let mut binding_factor_input = Vec::new();
 
                 binding_factor_input.extend_from_slice(&binding_factor_input_prefix);
                 binding_factor_input.extend_from_slice(identifier.serialize().as_ref());

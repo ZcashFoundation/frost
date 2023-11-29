@@ -1,10 +1,11 @@
 //! Traits used to abstract Ciphersuites.
 
-use std::{
+use core::{
     fmt::Debug,
     ops::{Add, Mul, Sub},
 };
 
+use alloc::vec::Vec;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{Error, FieldError, GroupError, Signature, VerifyingKey};

@@ -1,6 +1,6 @@
 //! FROST Round 2 functionality and types, for signature share generation
 
-use std::fmt::{self, Debug};
+use core::fmt::{self, Debug};
 
 use crate as frost;
 use crate::{
@@ -81,6 +81,7 @@ where
     /// This is the final step of [`verify_signature_share`] from the spec.
     ///
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
+    #[cfg(feature = "cheater-detection")]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn verify(

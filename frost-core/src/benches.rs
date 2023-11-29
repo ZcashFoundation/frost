@@ -1,10 +1,12 @@
 //! Ciphersuite-generic benchmark functions.
 #![allow(clippy::unwrap_used)]
 
-use std::collections::BTreeMap;
+use core::iter;
+
+use alloc::{collections::BTreeMap, format, vec::Vec};
+use rand_core::{CryptoRng, RngCore};
 
 use criterion::{BenchmarkId, Criterion, Throughput};
-use rand_core::{CryptoRng, RngCore};
 
 use crate as frost;
 use crate::{batch, Ciphersuite, Signature, SigningKey, VerifyingKey};
@@ -18,7 +20,7 @@ fn sigs_with_distinct_keys<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
     rng: &mut R,
 ) -> impl Iterator<Item = Item<C>> {
     let mut rng = rng.clone();
-    std::iter::repeat_with(move || {
+    iter::repeat_with(move || {
         let msg = b"Bench";
         let sk = SigningKey::new(&mut rng);
         let vk = VerifyingKey::from(&sk);

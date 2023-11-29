@@ -1,6 +1,6 @@
 //! FROST participant identifiers
 
-use std::{
+use core::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
 };
@@ -117,7 +117,7 @@ impl<C> Ord for Identifier<C>
 where
     C: Ciphersuite,
 {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         let serialized_self = <<C::Group as Group>::Field>::little_endian_serialize(&self.0);
         let serialized_other = <<C::Group as Group>::Field>::little_endian_serialize(&other.0);
         // The default cmp uses lexicographic order; so we need the elements in big endian
@@ -133,12 +133,12 @@ impl<C> PartialOrd for Identifier<C>
 where
     C: Ciphersuite,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<C> std::ops::Mul<Scalar<C>> for Identifier<C>
+impl<C> core::ops::Mul<Scalar<C>> for Identifier<C>
 where
     C: Ciphersuite,
 {
@@ -149,7 +149,7 @@ where
     }
 }
 
-impl<C> std::ops::MulAssign<Identifier<C>> for Scalar<C>
+impl<C> core::ops::MulAssign<Identifier<C>> for Scalar<C>
 where
     C: Ciphersuite,
 {
@@ -158,7 +158,7 @@ where
     }
 }
 
-impl<C> std::ops::Sub for Identifier<C>
+impl<C> core::ops::Sub for Identifier<C>
 where
     C: Ciphersuite,
 {

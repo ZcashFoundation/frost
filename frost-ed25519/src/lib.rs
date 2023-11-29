@@ -1,3 +1,4 @@
+#![no_std]
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
@@ -5,7 +6,9 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
-use std::collections::BTreeMap;
+extern crate alloc;
+
+use alloc::collections::BTreeMap;
 
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT,
@@ -227,8 +230,6 @@ pub type Identifier = frost::Identifier<E>;
 
 /// FROST(Ed25519, SHA-512) keys, key generation, key shares.
 pub mod keys {
-    use std::collections::BTreeMap;
-
     use super::*;
 
     /// The identifier list to use when generating key shares.
