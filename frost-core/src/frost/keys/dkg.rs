@@ -265,6 +265,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     min_signers: u16,
     mut rng: R,
 ) -> Result<(round1::SecretPackage<C>, round1::Package<C>), Error<C>> {
+
     validate_num_of_signers::<C>(min_signers, max_signers)?;
 
     let secret: SigningKey<C> = SigningKey::new(&mut rng);
@@ -278,6 +279,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     // > Every participant P_i computes a public commitment
     // > C⃗_i = 〈φ_{i0}, ..., φ_{i(t−1)}〉, where φ_{ij} = g^{a_{ij}}, 0 ≤ j ≤ t − 1
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, &mut rng);
+
     let (coefficients, commitment) =
         generate_secret_polynomial(&secret, max_signers, min_signers, coefficients)?;
 
@@ -390,6 +392,7 @@ pub fn part2<C: Ciphersuite>(
                 signing_share: SigningShare(value),
             },
         );
+
     }
     let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients);
     Ok((
@@ -526,6 +529,7 @@ pub fn part3<C: Ciphersuite>(
     verifying_key = verifying_key + round2_secret_package.commitment.first()?.0;
 
     let signing_share = SigningShare(signing_share);
+
     // Round 2, Step 4
     //
     // > Each P_i calculates their public verification share Y_i = g^{s_i}.
