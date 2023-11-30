@@ -265,7 +265,6 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     min_signers: u16,
     mut rng: R,
 ) -> Result<(round1::SecretPackage<C>, round1::Package<C>), Error<C>> {
-
     validate_num_of_signers::<C>(min_signers, max_signers)?;
 
     let secret: SigningKey<C> = SigningKey::new(&mut rng);
@@ -392,7 +391,6 @@ pub fn part2<C: Ciphersuite>(
                 signing_share: SigningShare(value),
             },
         );
-
     }
     let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients);
     Ok((
