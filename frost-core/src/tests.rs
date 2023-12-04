@@ -9,4 +9,5 @@ pub mod helpers;
 pub mod proptests;
 pub mod repairable;
 pub mod vectors;
+pub mod vectors_dkg;
 pub mod vss_commitment;
