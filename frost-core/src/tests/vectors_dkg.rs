@@ -184,7 +184,7 @@ fn build_public_key_package<C: Ciphersuite>(json_vectors: &Value) -> PublicKeyPa
     }
 }
 
-/// TODO documentation for test
+/// Test DKG with the given test vectors for a ciphersuite
 pub fn check_dkg_keygen<C: Ciphersuite>(json_vectors: &Value) {
     let DKGTestVectors {
         secret,
