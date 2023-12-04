@@ -120,7 +120,7 @@ where
     C: Ciphersuite,
 {
     if deserializer.is_human_readable() {
-        let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+        let s: String = serde::de::Deserialize::deserialize(deserializer)?;
         if s != C::ID {
             Err(serde::de::Error::custom("wrong ciphersuite"))
         } else {
