@@ -4,8 +4,16 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
-## 0.8.0
 
+## Released
+
+## 1.0.0-rc.0
+
+* The `frost-core::frost` module contents were merged into `frost-core`, thus
+  eliminating the `frost` module. You can adapt any calling code with e.g.
+  changing `use frost_core::frost::*` to `use frost-core::*`.
+* `Challenge`, `BindingFactor`, `BindingFactorList` and `GroupCommitment`
+  are no longer public (you can use them with the `internals` feature).
 * Both serde serialization and the default byte-oriented serialization now
   include a version field (a u8) at the beginning which is always 0 for now. The
   ciphersuite ID field was moved from the last field to the second field, after
@@ -13,8 +21,16 @@ Entries are listed in reverse chronological order.
   struct, which affects self-describing formats like JSON. The ciphersuite ID
   string was also changed for all ciphersuites: it is now equal to the
   `contextString` of each ciphersuite per the FROST spec.
-
-## Released
+* Add an option to disable cheater detection during aggregation of signatures.
+* Add `PublicKeyPackage::from_commitment()` and
+  `PublicKeyPackage::from_dkg_commitments` to create a `PublicKeyPackage` from
+  the commitments generated in trusted dealer or distributed key generation.
+* Ciphersuite crates now re-export `serde` if enabled.
+* Convert all `HashMaps` to `BTreeMaps`.
+* Update some field names in `KeyPackage`, `Package`, `SecretShare` and `PublicKeyPackage`.
+* Add generate Randomizer by hashing `SigningPackage`
+* Add postcard-serde-encoded serialization as the default
+* Remove `BindingFactor::deserialize()` and `BindingFactorList::iter()`
 
 ## 0.7.0
 

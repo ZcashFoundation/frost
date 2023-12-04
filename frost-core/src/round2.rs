@@ -2,14 +2,13 @@
 
 use std::fmt::{self, Debug};
 
+use crate as frost;
 use crate::{
-    challenge,
-    frost::{self, round1, *},
-    Challenge, Ciphersuite, Error, Field, Group,
+    challenge, Challenge, Ciphersuite, Error, Field, Group, {round1, *},
 };
 
 #[cfg(feature = "serde")]
-use crate::ScalarSerialization;
+use crate::serialization::ScalarSerialization;
 
 // Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
 // be directly encoded with serde, so we use this struct to wrap the scalar.
@@ -88,12 +87,12 @@ where
         &self,
         identifier: Identifier<C>,
         group_commitment_share: &round1::GroupCommitmentShare<C>,
-        public_key: &frost::keys::VerifyingShare<C>,
+        verifying_share: &frost::keys::VerifyingShare<C>,
         lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
     ) -> Result<(), Error<C>> {
         if (<C::Group>::generator() * self.share)
-            != (group_commitment_share.0 + (public_key.0 * challenge.0 * lambda_i))
+            != (group_commitment_share.0 + (verifying_share.0 * challenge.0 * lambda_i))
         {
             return Err(Error::InvalidSignatureShare {
                 culprit: identifier,
@@ -217,7 +216,7 @@ pub fn sign<C: Ciphersuite>(
     // Compute the per-message challenge.
     let challenge = challenge::<C>(
         &group_commitment.0,
-        &key_package.verifying_key.element,
+        &key_package.verifying_key,
         signing_package.message.as_slice(),
     );
 

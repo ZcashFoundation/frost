@@ -6,16 +6,14 @@ use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
 
+use crate as frost;
 use crate::{
-    frost::{
-        self, compute_lagrange_coefficient,
-        keys::{
-            repairable::{repair_share_step_1, repair_share_step_2, repair_share_step_3},
-            PublicKeyPackage, SecretShare, SigningShare,
-        },
-        Identifier,
+    compute_lagrange_coefficient,
+    keys::{
+        repairable::{repair_share_step_1, repair_share_step_2, repair_share_step_3},
+        PublicKeyPackage, SecretShare, SigningShare,
     },
-    Ciphersuite, Error, Field, Group, Scalar,
+    Ciphersuite, Error, Field, Group, Identifier, Scalar,
 };
 
 /// We want to test that recover share matches the original share

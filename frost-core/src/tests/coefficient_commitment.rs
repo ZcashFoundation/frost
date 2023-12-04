@@ -2,11 +2,8 @@
 
 use std::convert::TryFrom;
 
-use crate::{
-    frost::{self, keys::CoefficientCommitment},
-    tests::helpers::generate_element,
-    Group,
-};
+use crate as frost;
+use crate::{keys::CoefficientCommitment, tests::helpers::generate_element, Group};
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;

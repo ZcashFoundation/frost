@@ -5,9 +5,9 @@ use debugless_unwrap::DebuglessUnwrap;
 use hex::{self, FromHex};
 use serde_json::Value;
 
+use crate as frost;
 use crate::{
-    frost::{self, keys::*, round1::*, round2::*, *},
-    Ciphersuite, Field, Group, Scalar, SigningKey, VerifyingKey,
+    keys::*, round1::*, round2::*, Ciphersuite, Field, Group, Scalar, SigningKey, VerifyingKey, *,
 };
 
 /// Test vectors for a ciphersuite.
@@ -271,7 +271,7 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
     let binding_factor_list: frost::BindingFactorList<C> =
         compute_binding_factor_list(&signing_package, &verifying_key, &[]);
 
-    for (identifier, binding_factor) in binding_factor_list.iter() {
+    for (identifier, binding_factor) in binding_factor_list.0.iter() {
         assert_eq!(*binding_factor, binding_factors[identifier]);
     }
 

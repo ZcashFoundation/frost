@@ -12,12 +12,14 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
+use crate as frost;
 use crate::{
-    frost, Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Scalar, Serialize,
+    serialization::{Deserialize, Serialize},
+    Ciphersuite, Element, Error, Field, Group, Header, Scalar,
 };
 
 #[cfg(feature = "serde")]
-use crate::ElementSerialization;
+use crate::serialization::ElementSerialization;
 
 use super::{keys::SigningShare, Identifier};
 

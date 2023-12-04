@@ -6,7 +6,7 @@ use hex::FromHex;
 use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
 
 #[cfg(feature = "serde")]
-use crate::ElementSerialization;
+use crate::serialization::ElementSerialization;
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -26,8 +26,9 @@ where
     C: Ciphersuite,
 {
     /// Create a new VerifyingKey from the given element.
-    #[cfg(feature = "internals")]
-    pub fn new(element: <C::Group as Group>::Element) -> Self {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn new(element: <C::Group as Group>::Element) -> Self {
         Self { element }
     }
 
@@ -76,6 +77,20 @@ where
     /// Verify a purported `signature` over `msg` made by this verification key.
     pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error<C>> {
         C::verify_signature(msg, signature, self)
+    }
+
+    /// Computes the group public key given the group commitment.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn from_commitment(
+        commitment: &crate::keys::VerifiableSecretSharingCommitment<C>,
+    ) -> Result<VerifyingKey<C>, Error<C>> {
+        Ok(VerifyingKey {
+            element: commitment
+                .coefficients()
+                .first()
+                .ok_or(Error::IncorrectCommitment)?
+                .value(),
+        })
     }
 }
 

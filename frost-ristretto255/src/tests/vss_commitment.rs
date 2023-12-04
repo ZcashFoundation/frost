@@ -33,3 +33,11 @@ fn check_deserialize_vss_commitment_error() {
         _,
     >(rng, &ELEMENTS);
 }
+
+#[test]
+fn check_compute_public_key_package() {
+    let rng = thread_rng();
+    frost_core::tests::vss_commitment::check_compute_public_key_package::<Ristretto255Sha512, _>(
+        rng,
+    );
+}

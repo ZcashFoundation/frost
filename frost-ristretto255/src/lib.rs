@@ -14,13 +14,13 @@ use frost_rerandomized::RandomizedCiphersuite;
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
-use frost_core::frost;
+use frost_core as frost;
 
 #[cfg(test)]
 mod tests;
 
 // Re-exports in our public API
-pub use frost_core::{Ciphersuite, Field, FieldError, Group, GroupError};
+pub use frost_core::{serde, Ciphersuite, Field, FieldError, Group, GroupError};
 pub use rand_core;
 
 /// An error.

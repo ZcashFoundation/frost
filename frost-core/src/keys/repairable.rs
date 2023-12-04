@@ -7,8 +7,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
-    frost::{compute_lagrange_coefficient, Identifier},
-    Ciphersuite, CryptoRng, Error, Field, Group, Header, RngCore, Scalar,
+    compute_lagrange_coefficient, Ciphersuite, CryptoRng, Error, Field, Group, Header, Identifier,
+    RngCore, Scalar,
 };
 
 use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSharingCommitment};

@@ -40,7 +40,7 @@
    1. Move version in changelog to Released
    2. Create a new version in “unreleased” in changelog
 
-10. Update the version number for frost-core in the Ciphersuite crates, e.g. in `frost-core = { path = "../frost-core", version = "0.4.0", features = ["test-impl"] }`
+10. Update the version number for frost-core and frost-rerandomized in the Ciphersuite crates, e.g. in `frost-core = { path = "../frost-core", version = "0.4.0", features = ["test-impl"] }`. You'll need to do this for dependencies and dev-dependencies
 
 11. Create a PR with subject `Release \<version number>` containing all these changes
 

@@ -17,17 +17,47 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    frost::Identifier, Ciphersuite, Deserialize, Element, Error, Field, Group, Header, Scalar,
-    Serialize, SigningKey, VerifyingKey,
+    serialization::{Deserialize, Serialize},
+    Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, SigningKey,
+    VerifyingKey,
 };
 
 #[cfg(feature = "serde")]
-use crate::{ElementSerialization, ScalarSerialization};
+use crate::serialization::{ElementSerialization, ScalarSerialization};
 
 use super::compute_lagrange_coefficient;
 
 pub mod dkg;
 pub mod repairable;
+
+/// Sum the commitments from all participants in a distributed key generation
+/// run into a single group commitment.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn sum_commitments<C: Ciphersuite>(
+    commitments: &[&VerifiableSecretSharingCommitment<C>],
+) -> Result<VerifiableSecretSharingCommitment<C>, Error<C>> {
+    let mut group_commitment = vec![
+        CoefficientCommitment(<C::Group>::identity());
+        commitments
+            .get(0)
+            .ok_or(Error::IncorrectNumberOfCommitments)?
+            .0
+            .len()
+    ];
+    for commitment in commitments {
+        for (i, c) in group_commitment.iter_mut().enumerate() {
+            *c = CoefficientCommitment(
+                c.value()
+                    + commitment
+                        .0
+                        .get(i)
+                        .ok_or(Error::IncorrectNumberOfCommitments)?
+                        .value(),
+            );
+        }
+    }
+    Ok(VerifiableSecretSharingCommitment(group_commitment))
+}
 
 /// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
 pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
@@ -40,6 +70,7 @@ pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// Return a list of default identifiers (1 to max_signers, inclusive).
+#[cfg_attr(feature = "internals", visibility::make(pub))]
 pub(crate) fn default_identifiers<C: Ciphersuite>(max_signers: u16) -> Vec<Identifier<C>> {
     (1..=max_signers)
         .map(|i| Identifier::<C>::try_from(i).expect("nonzero"))
@@ -82,6 +113,12 @@ where
     /// Serialize to bytes
     pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
+    }
+
+    /// Computes the signing share from a list of coefficients.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn from_coefficients(coefficients: &[Scalar<C>], peer: Identifier<C>) -> Self {
+        Self(evaluate_polynomial(peer, coefficients))
     }
 }
 
@@ -181,6 +218,26 @@ where
     pub fn serialize(&self) -> <C::Group as Group>::Serialization {
         <C::Group as Group>::serialize(&self.0)
     }
+
+    /// Computes a verifying share for a peer given the group commitment.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn from_commitment(
+        identifier: Identifier<C>,
+        commitment: &VerifiableSecretSharingCommitment<C>,
+    ) -> VerifyingShare<C> {
+        // DKG Round 2, Step 4
+        //
+        // > Any participant can compute the public verification share of any
+        // > other participant by calculating
+        // > Y_i = ∏_{j=1}^n ∏_{k=0}^{t−1} φ_{jk}^{i^k mod q}.
+        //
+        // Rewriting the equation by moving the product over j to further inside
+        // the equation:
+        // Y_i = ∏_{k=0}^{t−1} (∏_{j=1}^n φ_{jk})^{i^k mod q}
+        // i.e. we can operate on the sum of all φ_j commitments, which is
+        // what is passed to the functions.
+        VerifyingShare(evaluate_vss(identifier, commitment))
+    }
 }
 
 impl<C> Debug for VerifyingShare<C>
@@ -240,6 +297,12 @@ impl<C> CoefficientCommitment<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new CoefficientCommitment.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn new(value: Element<C>) -> Self {
+        Self(value)
+    }
+
     /// returns serialized element
     pub fn serialize(&self) -> <C::Group as Group>::Serialization {
         <C::Group>::serialize(&self.0)
@@ -249,7 +312,7 @@ where
     pub fn deserialize(
         coefficient: <C::Group as Group>::Serialization,
     ) -> Result<CoefficientCommitment<C>, Error<C>> {
-        Ok(Self(<C::Group as Group>::deserialize(&coefficient)?))
+        Ok(Self::new(<C::Group as Group>::deserialize(&coefficient)?))
     }
 
     /// Returns inner element value
@@ -314,6 +377,12 @@ impl<C> VerifiableSecretSharingCommitment<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new VerifiableSecretSharingCommitment.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn new(coefficients: Vec<CoefficientCommitment<C>>) -> Self {
+        Self(coefficients)
+    }
+
     /// Returns serialized coefficent commitments
     pub fn serialize(&self) -> Vec<<C::Group as Group>::Serialization> {
         self.0
@@ -331,13 +400,21 @@ where
             coefficient_commitments.push(CoefficientCommitment::<C>::deserialize(cc)?);
         }
 
-        Ok(Self(coefficient_commitments))
+        Ok(Self::new(coefficient_commitments))
     }
 
-    /// Get the first commitment (which is equivalent to the VerifyingKey),
-    /// or an error if the vector is empty.
-    pub(crate) fn first(&self) -> Result<CoefficientCommitment<C>, Error<C>> {
-        self.0.get(0).ok_or(Error::MissingCommitment).copied()
+    /// Get the VerifyingKey matching this commitment vector (which is the first
+    /// element in the vector), or an error if the vector is empty.
+    pub(crate) fn verifying_key(&self) -> Result<VerifyingKey<C>, Error<C>> {
+        Ok(VerifyingKey::new(
+            self.0.get(0).ok_or(Error::MissingCommitment)?.0,
+        ))
+    }
+
+    /// Returns the coefficient commitments.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn coefficients(&self) -> &[CoefficientCommitment<C>] {
+        &self.0
     }
 }
 
@@ -404,17 +481,13 @@ where
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error<C>> {
         let f_result = <C::Group>::generator() * self.signing_share.0;
-        let result = evaluate_vss(&self.commitment, self.identifier);
+        let result = evaluate_vss(self.identifier, &self.commitment);
 
         if !(f_result == result) {
             return Err(Error::InvalidSecretShare);
         }
 
-        let verifying_key = VerifyingKey {
-            element: self.commitment.first()?.0,
-        };
-
-        Ok((VerifyingShare(result), verifying_key))
+        Ok((VerifyingShare(result), self.commitment.verifying_key()?))
     }
 }
 
@@ -547,11 +620,13 @@ fn evaluate_polynomial<C: Ciphersuite>(
 }
 
 /// Evaluates the right-hand side of the VSS verification equation, namely
-/// ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk} using `identifier` as `i` and the
-/// `commitment` as the commitment vector φ_ℓ
+/// ∏^{t−1}_{k=0} φ^{i^k mod q}_{ℓk} (multiplicative notation) using
+/// `identifier` as `i` and the `commitment` as the commitment vector φ_ℓ.
+///
+/// This is also used in Round 2, Step 4 of the DKG.
 fn evaluate_vss<C: Ciphersuite>(
-    commitment: &VerifiableSecretSharingCommitment<C>,
     identifier: Identifier<C>,
+    commitment: &VerifiableSecretSharingCommitment<C>,
 ) -> Element<C> {
     let i = identifier;
 
@@ -691,6 +766,38 @@ where
             verifying_key,
         }
     }
+
+    /// Computes the public key package given a list of participant identifiers
+    /// and a [`VerifiableSecretSharingCommitment`]. This is useful in scenarios
+    /// where the commitments are published somewhere and it's desirable to
+    /// recreate the public key package from them.
+    pub fn from_commitment(
+        identifiers: &BTreeSet<Identifier<C>>,
+        commitment: &VerifiableSecretSharingCommitment<C>,
+    ) -> Result<PublicKeyPackage<C>, Error<C>> {
+        let verifying_keys: BTreeMap<_, _> = identifiers
+            .iter()
+            .map(|id| (*id, VerifyingShare::from_commitment(*id, commitment)))
+            .collect();
+        Ok(PublicKeyPackage::new(
+            verifying_keys,
+            VerifyingKey::from_commitment(commitment)?,
+        ))
+    }
+
+    /// Computes the public key package given a map of participant identifiers
+    /// and their [`VerifiableSecretSharingCommitment`] from a distributed key
+    /// generation process. This is useful in scenarios where the commitments
+    /// are published somewhere and it's desirable to recreate the public key
+    /// package from them.
+    pub fn from_dkg_commitments(
+        commitments: &BTreeMap<Identifier<C>, &VerifiableSecretSharingCommitment<C>>,
+    ) -> Result<PublicKeyPackage<C>, Error<C>> {
+        let identifiers: BTreeSet<_> = commitments.keys().copied().collect();
+        let commitments: Vec<_> = commitments.values().copied().collect();
+        let group_commitment = sum_commitments(&commitments)?;
+        Self::from_commitment(&identifiers, &group_commitment)
+    }
 }
 
 #[cfg(feature = "serialization")]
@@ -799,12 +906,12 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     }
 
     for id in identifiers {
-        let value = evaluate_polynomial(*id, &coefficients);
+        let signing_share = SigningShare::from_coefficients(&coefficients, *id);
 
         secret_shares.push(SecretShare {
             header: Header::default(),
             identifier: *id,
-            signing_share: SigningShare(value),
+            signing_share,
             commitment: commitment.clone(),
         });
     }
