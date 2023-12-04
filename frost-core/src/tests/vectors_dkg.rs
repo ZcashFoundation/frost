@@ -6,20 +6,16 @@ use hex::{self};
 use serde_json::Value;
 
 use crate::{
-    frost::{
-        keys::{
-            dkg::{part2, part3},
-            *,
+    keys::{
+        dkg::{
+            part2, part3, round1::Package as Round1Package, round1::SecretPackage,
+            round2::Package as Round2Package,
         },
-        *,
+        generate_secret_polynomial, KeyPackage, PublicKeyPackage, SigningShare,
+        VerifiableSecretSharingCommitment, VerifyingShare,
     },
-    Ciphersuite, Field, Group, Header, Scalar, Signature, SigningKey, VerifyingKey,
+    Ciphersuite, Field, Group, Header, Identifier, Scalar, Signature, SigningKey, VerifyingKey,
 };
-
-use crate::tests::vectors_dkg::dkg::round1::Package as Round1Package;
-use crate::tests::vectors_dkg::dkg::round1::SecretPackage;
-
-use crate::tests::vectors_dkg::dkg::round2::Package as Round2Package;
 
 /// Test vectors for a ciphersuite.
 pub struct DKGTestVectors<C: Ciphersuite> {
