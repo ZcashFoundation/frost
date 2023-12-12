@@ -252,6 +252,21 @@ fn main() -> ExitCode {
             ],
         ),
         (
+            // The folder where the ciphersuite crate is
+            "frost-p384",
+            // String replacements for the strings in `original_strings`
+            &[
+                "P384Sha384",
+                "P-384 curve",
+                "P384",
+                "FROST(P-384, SHA-384)",
+                "FROST-P384-SHA384-v1",
+                "p384_sha384",
+                "p384",
+                "<P>",
+            ],
+        ),
+        (
             "frost-ed25519",
             &[
                 "Ed25519Sha512",
