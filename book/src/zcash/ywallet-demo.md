@@ -3,6 +3,15 @@
 This tutorial explaing how to run the FROST demo using Ywallet that was
 [presented during Zcon4](https://www.youtube.com/watch?v=xvzESdDtczo).
 
+## Information
+
+1. The Trusted Dealer journey
+2. RedPallas
+3. YWallet
+4. Sprout
+5. [Sapling](https://docs.rs/reddsa/0.5.1/reddsa/sapling/index.html)
+6. [frost-ed25519 crate](https://crates.io/crates/frost-ed25519)
+
 Ywallet supports [offline
 signing](https://ywallet.app/advanced/offline_signature/), which allows having a
 view-only account that can generate a transaction plan, which can be signed by
@@ -20,9 +29,22 @@ Install `cargo` and `git`.
 Clone the repositories:
 
 ```
-git clone --branch add-redpallas https://github.com/ZcashFoundation/frost-zcash-demo.git
-git clone --branch frost-demo https://github.com/ZcashFoundation/zwallet.git
+git clone https://github.com/ZcashFoundation/frost-zcash-demo.git
+git clone --recurse-submodules --branch frost-demo https://github.com/ZcashFoundation/zwallet.git
+git clone https://github.com/ZcashFoundation/zcash.git
 ```
+
+Download Sprout and Sapling parameters:
+
+
+[Sprout params](https://download.z.cash/downloads/sprout-groth16.params)
+
+[Sapling spend params](https://download.z.cash/downloads/sapling-spend.params)
+
+[Sapling output params](https://download.z.cash/downloads/sapling-output.params)
+
+Move the params files into `zwallet/native/zcash-params/src/`
+
 
 ## Generating FROST key shares
 
@@ -79,7 +101,7 @@ We can finally generate a new wallet. Run the following command; it will
 take a bit to compile. It will show a bunch of warnings which is normal.
 
 ```
-cargo build --release --bin sign --features dotenv -- -g
+cargo run --release --bin sign --features dotenv -- -g
 ```
 
 When prompted for the `ak`, paste the `verifying_key` value that was printed in
@@ -120,11 +142,7 @@ funds become spendable (this may take ~10 minutes). You can check if the funds
 are spendable by clicking the arrow button and checking "Spendable Balance"
 
 ```admonish warning
-The address being show by Ywallet is an unified address that includes both
-an Orchard and Sapling address. For the demo to work, you need to receive funds
-in you Orchard address. Whether that will happens depend on multiple factors
-so it's probably easier to just use the Orchard-only address printed by the
-signer.
+The address being show by Ywallet is a unified address that includes both an Orchard and Sapling address. For the demo to work, you need to receive funds in you Orchard address. Whether that will happen depends on multiple factors so it's probably easier to use just the Orchard-only address printed by the signer.
 ```
 
 ## Creating the transaction
@@ -165,7 +183,7 @@ cargo run --bin coordinator --features redpallas
 And then:
 
 - Paste the JSON public key package generate during key generation (it's a single
-  line with a JSON object.
+  line with a JSON object).
 - Type `2` for the number of participants.
 - Paste the identifier of the first participant, you can see it in the Secret
   Share printed during key generation. If you used trusted dealer key
