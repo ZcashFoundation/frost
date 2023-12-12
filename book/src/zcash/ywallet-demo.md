@@ -36,11 +36,15 @@ git clone https://github.com/ZcashFoundation/zcash.git
 
 Download Sprout and Sapling parameters:
 
+
 [Sprout params](https://download.z.cash/downloads/sprout-groth16.params)
 
 [Sapling spend params](https://download.z.cash/downloads/sapling-spend.params)
 
 [Sapling output params](https://download.z.cash/downloads/sapling-output.params)
+
+Move the params files into `zwallet/native/zcash-params/src/`
+
 
 ## Generating FROST key shares
 
@@ -179,7 +183,7 @@ cargo run --bin coordinator --features redpallas
 And then:
 
 - Paste the JSON public key package generate during key generation (it's a single
-  line with a JSON object.
+  line with a JSON object).
 - Type `2` for the number of participants.
 - Paste the identifier of the first participant, you can see it in the Secret
   Share printed during key generation. If you used trusted dealer key
