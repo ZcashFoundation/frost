@@ -6,6 +6,7 @@ members = [
     "frost-ed448",
     "frost-p256",
     "frost-p384",
+    "frost-redjubjub",
     "frost-ristretto255",
     "frost-secp256k1",
     "frost-rerandomized",
