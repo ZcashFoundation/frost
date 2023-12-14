@@ -13,14 +13,14 @@ use blake2b_simd::{Params, State};
 
 /// Provides H^star, the hash-to-scalar function used by RedDSA.
 pub struct HStar {
-    state: State,
+    pub(crate) state: State,
 }
 
 impl Default for HStar {
     fn default() -> Self {
         let state = Params::new()
             .hash_length(64)
-            .personal(b"Zcash_RedJubjubH")
+            .personal(b"Zcash_RedJubjub")
             .to_state();
         Self { state }
     }

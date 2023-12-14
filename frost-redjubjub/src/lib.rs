@@ -25,17 +25,14 @@ use crate::hash::HStar;
 const CONTEXT_STRING: &str = "FROST-RedJubjub-BLAKE2b-512-v1";
 
 fn hash_to_array(inputs: &[&[u8]]) -> [u8; 64] {
-    let mut state = blake2b_simd::Params::new()
-        .hash_length(64)
-        .personal(inputs[0])
-        .to_state();
+    let mut state = HStar::default();
     for i in &inputs[1..] {
         state.update(i);
     }
-    *state.finalize().as_array()
+    *state.state.finalize().as_array()
 }
 fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> jubjub::Scalar {
-    HStar::new(domain).update(msg).finalize()
+    HStar::default().update(domain).update(msg).finalize()
 }
 
 /// An error type for the FROST(Jubjub, BLAKE2b-512) ciphersuite.
