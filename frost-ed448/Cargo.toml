@@ -23,7 +23,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 document-features = "0.2.7"
-ed448-goldilocks = { version = "0.9.0", git = "https://github.com/LIT-Protocol/Ed448-Goldilocks.git" }
+ed448-goldilocks = { version = "0.9.0", features = ["rand"], git = "https://github.com/LIT-Protocol/Ed448-Goldilocks.git" }
 frost-core = { path = "../frost-core", version = "1.0.0" }
 frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
 rand_core = "0.6"
