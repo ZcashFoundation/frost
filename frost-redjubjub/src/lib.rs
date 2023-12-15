@@ -22,6 +22,8 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate::hash::HStar;
 
+/// The context string for FROST(Jubjub, BLAKE2b-512).
+/// TODO: this hasn't been formalized yet, so it's subject to change.
 const CONTEXT_STRING: &str = "FROST-RedJubjub-BLAKE2b-512-v1";
 
 fn hash_to_array(inputs: &[&[u8]]) -> [u8; 64] {
