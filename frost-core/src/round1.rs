@@ -19,12 +19,16 @@ use crate::{
 };
 
 #[cfg(feature = "serde")]
-use crate::serialization::ElementSerialization;
+use crate::serialization::{ElementSerialization, ScalarSerialization};
 
 use super::{keys::SigningShare, Identifier};
 
 /// A scalar that is a signing nonce.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
+#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
 pub struct Nonce<C: Ciphersuite>(pub(super) Scalar<C>);
 
 impl<C> Nonce<C>
@@ -104,6 +108,28 @@ where
             Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed nonce encoding"),
             Err(_) => Err("malformed nonce encoding"),
         }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> TryFrom<ScalarSerialization<C>> for Nonce<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
+        Self::deserialize(value.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<Nonce<C>> for ScalarSerialization<C>
+where
+    C: Ciphersuite,
+{
+    fn from(value: Nonce<C>) -> Self {
+        Self(value.serialize())
     }
 }
 
@@ -206,8 +232,14 @@ where
 /// Note that [`SigningNonces`] must be used *only once* for a signing
 /// operation; re-using nonces will result in leakage of a signer's long-lived
 /// signing key.
-#[derive(Clone, Zeroize)]
+#[derive(Clone, Zeroize, PartialEq, Eq, Getters)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SigningNonces<C: Ciphersuite> {
+    /// Serialization header
+    #[getter(skip)]
+    pub(crate) header: Header<C>,
     /// The hiding [`Nonce`].
     pub(crate) hiding: Nonce<C>,
     /// The binding [`Nonce`].
@@ -238,30 +270,52 @@ where
         Self::from_nonces(hiding, binding)
     }
 
-    /// Generates a new [`SigningNonces`] from a pair of [`Nonce`]. This is
-    /// useful internally since [`SigningNonces`] precompute the respective
-    /// commitments.
-    #[cfg_attr(test, visibility::make(pub))]
-    pub(crate) fn from_nonces(hiding: Nonce<C>, binding: Nonce<C>) -> Self {
+    /// Generates a new [`SigningNonces`] from a pair of [`Nonce`].
+    ///
+    /// # Security
+    ///
+    /// SigningNonces MUST NOT be repeated in different FROST signings.
+    /// Thus, if you're using this method (because e.g. you're writing it
+    /// to disk between rounds), be careful so that does not happen.
+    pub fn from_nonces(hiding: Nonce<C>, binding: Nonce<C>) -> Self {
         let hiding_commitment = (&hiding).into();
         let binding_commitment = (&binding).into();
         let commitments = SigningCommitments::new(hiding_commitment, binding_commitment);
 
         Self {
+            header: Header::default(),
             hiding,
             binding,
             commitments,
         }
     }
+}
 
-    /// Gets the hiding [`Nonce`]
-    pub fn hiding(&self) -> &Nonce<C> {
-        &self.hiding
+impl<C> Debug for SigningNonces<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SigningNonces")
+            .field("hiding", &"<redacted>")
+            .field("binding", &"<redacted>")
+            .finish()
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<C> SigningNonces<C>
+where
+    C: Ciphersuite,
+{
+    /// Serialize the struct into a Vec.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        Serialize::serialize(&self)
     }
 
-    /// Gets the binding [`Nonce`]
-    pub fn binding(&self) -> &Nonce<C> {
-        &self.binding
+    /// Deserialize the struct from a slice of bytes.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Deserialize::deserialize(bytes)
     }
 }
 
