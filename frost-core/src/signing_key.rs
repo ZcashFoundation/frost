@@ -47,19 +47,19 @@ where
     pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<C> {
         let public = VerifyingKey::<C>::from(*self);
         let mut secret = self.scalar;
-        if <C>::is_need_tweaking() {
+        if <C>::is_taproot_compat() {
             secret = <C>::tweaked_secret_key(secret, &public.element);
         }
         let mut k = random_nonzero::<C, R>(&mut rng);
         let R = <C::Group>::generator() * k;
-        if <C>::is_need_tweaking() {
-            k = <C>::tweaked_nonce(k, &R);
+        if <C>::is_taproot_compat() {
+            k = <C>::taproot_compat_nonce(k, &R);
         }
 
         // Generate Schnorr challenge
         let c: Challenge<C> = <C>::challenge(&R, &public, msg);
 
-        if <C>::is_need_tweaking() {
+        if <C>::is_taproot_compat() {
             let z = <C>::tweaked_z(k, secret, c.0, &public.element);
             Signature { R, z }
         } else {

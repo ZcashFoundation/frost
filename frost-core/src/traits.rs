@@ -256,12 +256,12 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         challenge(R, verifying_key, msg)
     }
 
-    /// determine tweak is need
-    fn is_need_tweaking() -> bool {
+    /// determine code is taproot compatible (used in frost-sepc256k1-tr)
+    fn is_taproot_compat() -> bool {
         false
     }
 
-    /// aggregate tweak z
+    /// aggregate tweak z (used in frost-sepc256k1-tr)
     #[allow(unused)]
     fn aggregate_tweak_z(
         z: <<Self::Group as Group>::Field as Field>::Scalar,
@@ -272,7 +272,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         panic!("Not implemented");
     }
 
-    /// tweaked z for SigningKey sign
+    /// tweaked z for SigningKey sign (used in frost-sepc256k1-tr)
     #[allow(unused)]
     fn tweaked_z(
         k: <<Self::Group as Group>::Field as Field>::Scalar,
@@ -284,9 +284,9 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         panic!("Not implemented");
     }
 
-    /// signature_share tweak
+    /// signature_share compatible with taproot (used in frost-sepc256k1-tr)
     #[allow(unused)]
-    fn compute_tweaked_signature_share(
+    fn compute_taproot_compat_signature_share(
         signer_nonces: &crate::round1::SigningNonces<Self>,
         binding_factor: crate::BindingFactor<Self>,
         group_commitment: crate::GroupCommitment<Self>,
@@ -298,7 +298,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         panic!("Not implemented");
     }
 
-    /// calculate tweaked public key
+    /// calculate tweaked public key (used in frost-sepc256k1-tr)
     #[allow(unused)]
     fn tweaked_public_key(
         public_key: &<Self::Group as Group>::Element,
@@ -306,15 +306,15 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         panic!("Not implemented");
     }
 
-    /// calculate tweaked R
+    /// calculate taproot compatible R (used in frost-sepc256k1-tr)
     #[allow(unused)]
-    fn tweaked_R(
+    fn taproot_compat_R(
         public_key: &<Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element {
         panic!("Not implemented");
     }
 
-    /// tweaked secret
+    /// tweaked secret (used in frost-sepc256k1-tr)
     #[allow(unused)]
     fn tweaked_secret_key(
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
@@ -324,9 +324,9 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         panic!("Not implemented");
     }
 
-    /// tweaked nonce
+    /// calculate taproot compatible nonce (used in frost-sepc256k1-tr)
     #[allow(unused)]
-    fn tweaked_nonce(
+    fn taproot_compat_nonce(
         nonce: <<Self::Group as Group>::Field as Field>::Scalar,
         R: &Element<Self>,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar
@@ -334,9 +334,9 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         panic!("Not implemented");
     }
 
-    /// tweaked group commitment
+    /// calculate taproot compatible commitment share (used in frost-sepc256k1-tr)
     #[allow(unused)]
-    fn tweaked_group_commitment_share(
+    fn taproot_compat_commitment_share(
         group_commitment_share: &<Self::Group as Group>::Element,
         group_commitment: &<Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element
@@ -344,9 +344,9 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         panic!("Not implemented");
     }
 
-    /// tweaked verifying share
+    /// calculate taproot compatible verifying share (used in frost-sepc256k1-tr)
     #[allow(unused)]
-    fn tweaked_verifying_share(
+    fn taproot_compat_verifying_share(
         verifying_share: &<Self::Group as Group>::Element,
         verifying_key: &<Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element

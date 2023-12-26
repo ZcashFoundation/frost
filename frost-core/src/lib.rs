@@ -588,7 +588,7 @@ where
         z = z + signature_share.share;
     }
 
-    if <C>::is_need_tweaking() {
+    if <C>::is_taproot_compat() {
         let challenge = <C>::challenge(
             &group_commitment.0,
             &pubkeys.verifying_key,

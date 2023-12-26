@@ -324,8 +324,8 @@ impl Ciphersuite for Secp256K1Sha256 {
         Challenge::from_scalar(S::H2(&preimage[..]))
     }
 
-    /// determine tweak is need
-    fn is_need_tweaking() -> bool {
+    /// determine code is taproot compatible
+    fn is_taproot_compat() -> bool {
         true
     }
 
@@ -360,8 +360,8 @@ impl Ciphersuite for Secp256K1Sha256 {
         }
     }
 
-    /// compute tweaked signature_share
-    fn compute_tweaked_signature_share(
+    /// signature_share compatible with taproot
+    fn compute_taproot_compat_signature_share(
         signer_nonces: &round1::SigningNonces,
         binding_factor: frost::BindingFactor<S>,
         group_commitment: frost_core::GroupCommitment<S>,
@@ -395,8 +395,8 @@ impl Ciphersuite for Secp256K1Sha256 {
         real_tweaked_pubkey(public_key, &[])
     }
 
-    /// calculate tweaked R
-    fn tweaked_R(R: &<Self::Group as Group>::Element) -> <Self::Group as Group>::Element {
+    /// calculate taproot compatible R
+    fn taproot_compat_R(R: &<Self::Group as Group>::Element) -> <Self::Group as Group>::Element {
         AffinePoint::decompact(&R.to_affine().x()).unwrap().into()
     }
 
@@ -408,8 +408,8 @@ impl Ciphersuite for Secp256K1Sha256 {
         tweaked_secret_key(secret, &public, &[])
     }
 
-    /// tweaked nonce
-    fn tweaked_nonce(
+    /// calculate taproot compatible nonce
+    fn taproot_compat_nonce(
         nonce: <<Self::Group as Group>::Field as Field>::Scalar,
         R: &Element<Self>,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar {
@@ -420,7 +420,8 @@ impl Ciphersuite for Secp256K1Sha256 {
         }
     }
 
-    fn tweaked_group_commitment_share(
+    /// calculate taproot compatible commitment share
+    fn taproot_compat_commitment_share(
         group_commitment_share: &Element<Self>,
         group_commitment: &Element<Self>,
     ) -> Element<Self> {
@@ -431,7 +432,8 @@ impl Ciphersuite for Secp256K1Sha256 {
         }
     }
 
-    fn tweaked_verifying_share(
+    /// calculate taproot compatible verifying share
+    fn taproot_compat_verifying_share(
         verifying_share: &<Self::Group as Group>::Element,
         verifying_key: &<Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element {

@@ -70,8 +70,8 @@ where
         // where h is the cofactor
         let mut R = signature.R;
         let mut vk = self.element;
-        if <C>::is_need_tweaking() {
-            R = <C>::tweaked_R(&signature.R);
+        if <C>::is_taproot_compat() {
+            R = <C>::taproot_compat_R(&signature.R);
             vk = <C>::tweaked_public_key(&self.element);
         }
         let zB = C::Group::generator() * signature.z;

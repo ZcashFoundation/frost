@@ -95,12 +95,12 @@ where
     ) -> Result<(), Error<C>> {
         let mut commitment_share = group_commitment_share.0;
         let mut vsh = verifying_share.0;
-        if <C>::is_need_tweaking() {
-            commitment_share = <C>::tweaked_group_commitment_share(
+        if <C>::is_taproot_compat() {
+            commitment_share = <C>::taproot_compat_commitment_share(
                 &group_commitment_share.0,
                 &group_commitment.0
             );
-            vsh = <C>::tweaked_verifying_share(
+            vsh = <C>::taproot_compat_verifying_share(
                 &verifying_share.0,
                 &verifying_key.element
             );
@@ -233,8 +233,8 @@ pub fn sign<C: Ciphersuite>(
     );
 
     // Compute the Schnorr signature share.
-    if <C>::is_need_tweaking() {
-        let signature_share = <C>::compute_tweaked_signature_share(
+    if <C>::is_taproot_compat() {
+        let signature_share = <C>::compute_taproot_compat_signature_share(
             signer_nonces,
             binding_factor,
             group_commitment,
