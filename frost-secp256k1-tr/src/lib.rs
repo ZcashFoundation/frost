@@ -228,6 +228,17 @@ pub fn tweaked_public_key(
     ProjectivePoint::GENERATOR * tweak(&pk, merkle_root) + pk
 }
 
+/// Creates a real BIP341 tweaked public key by assuming an even y-coordinate.
+pub fn real_tweaked_pubkey(
+    public_key: &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element,
+    merkle_root: &[u8],
+) -> <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element {
+    let tweaked_pubkey = tweaked_public_key(public_key, merkle_root);
+    AffinePoint::decompact(&tweaked_pubkey.to_affine().x())
+        .unwrap()
+        .into()
+}
+
 /// Create a BIP341 compliant tweaked secret key
 pub fn tweaked_secret_key(
     secret: <<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
@@ -325,7 +336,13 @@ impl Ciphersuite for Secp256K1Sha256 {
         verifying_key: &Element<S>,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar {
         let t = tweak(&verifying_key, &[]);
-        z + t * challenge.clone().to_scalar()
+        let tc = t * challenge.clone().to_scalar();
+        let tweaked_pubkey = tweaked_public_key(&verifying_key, &[]);
+        if tweaked_pubkey.to_affine().y_is_odd().into() {
+            z - tc
+        } else {
+            z + tc
+        }
     }
 
     /// compute tweaked signature_share
@@ -343,7 +360,13 @@ impl Ciphersuite for Secp256K1Sha256 {
         }
 
         let mut kp = key_package.clone();
-        if key_package.verifying_key().y_is_odd() {
+        let public_key = key_package.verifying_key();
+        let pubkey_is_odd = public_key.y_is_odd();
+        let tweaked_pubkey_is_odd = tweaked_public_key(public_key.element(), &[])
+            .to_affine()
+            .y_is_odd()
+            .into();
+        if pubkey_is_odd != tweaked_pubkey_is_odd {
             kp.negate_signing_share();
         }
 
@@ -354,7 +377,7 @@ impl Ciphersuite for Secp256K1Sha256 {
     fn tweaked_public_key(
         public_key: &<Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element {
-        tweaked_public_key(public_key, &[])
+        real_tweaked_pubkey(public_key, &[])
     }
 
     /// calculate tweaked R
