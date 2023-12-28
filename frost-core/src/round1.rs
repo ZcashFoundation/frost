@@ -19,7 +19,8 @@ use crate::{
 };
 
 #[cfg(feature = "serde")]
-use crate::serialization::{ElementSerialization, ScalarSerialization};
+use crate::serialization::ElementSerialization;
+use crate::util::{element_is_valid, scalar_is_valid};
 
 use super::{keys::SigningShare, Identifier};
 
@@ -83,6 +84,11 @@ where
     /// Serialize [`Nonce`] to bytes
     pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
         <<C::Group as Group>::Field>::serialize(&self.0)
+    }
+
+    /// Checks if the nonce is valid.
+    pub fn is_valid(&self) -> bool {
+        scalar_is_valid::<C>(&self.0)
     }
 }
 
@@ -155,6 +161,11 @@ where
     /// Serialize [`NonceCommitment`] to bytes
     pub fn serialize(&self) -> <C::Group as Group>::Serialization {
         <C::Group>::serialize(&self.0)
+    }
+
+    /// Checks if the commitment is valid.
+    pub fn is_valid(&self) -> bool {
+        element_is_valid::<C>(&self.0)
     }
 }
 
@@ -360,6 +371,13 @@ where
         binding_factor: &frost::BindingFactor<C>,
     ) -> GroupCommitmentShare<C> {
         GroupCommitmentShare::<C>(self.hiding.0 + (self.binding.0 * binding_factor.0))
+    }
+
+    /// Checks if the commitments are valid.
+    pub fn is_valid(&self) -> bool {
+        element_is_valid::<C>(&self.hiding.0)
+            && element_is_valid::<C>(&self.binding.0)
+            && self.hiding.0 != self.binding.0
     }
 }
 

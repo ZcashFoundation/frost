@@ -2,6 +2,7 @@
 
 use debugless_unwrap::DebuglessUnwrap;
 
+use crate::util::{element_is_valid, scalar_is_valid};
 use crate::{Ciphersuite, Element, Error, Field, Group, Scalar};
 
 /// A Schnorr signature over some prime order group (or subgroup).
@@ -78,6 +79,11 @@ where
         bytes.extend(<<C::Group as Group>::Field>::serialize(&self.z).as_ref());
 
         bytes.try_into().debugless_unwrap()
+    }
+
+    /// Check if the signature as valid values.
+    pub fn is_valid(&self) -> bool {
+        element_is_valid::<C>(&self.R) && scalar_is_valid::<C>(&self.z)
     }
 }
 

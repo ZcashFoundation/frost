@@ -7,6 +7,7 @@ use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
 
 #[cfg(feature = "serde")]
 use crate::serialization::ElementSerialization;
+use crate::util::element_is_valid;
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -77,6 +78,11 @@ where
     /// Verify a purported `signature` over `msg` made by this verification key.
     pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error<C>> {
         C::verify_signature(msg, signature, self)
+    }
+
+    /// Check if the verifying key is valid.
+    pub fn is_valid(&self) -> bool {
+        element_is_valid::<C>(&self.element)
     }
 
     /// Computes the group public key given the group commitment.

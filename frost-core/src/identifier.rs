@@ -9,6 +9,7 @@ use crate::{Ciphersuite, Error, Field, FieldError, Group, Scalar};
 
 #[cfg(feature = "serde")]
 use crate::serialization::ScalarSerialization;
+use crate::util::scalar_is_valid;
 
 /// A FROST participant identifier.
 ///
@@ -61,6 +62,11 @@ where
     ) -> Result<Self, Error<C>> {
         let scalar = <<C::Group as Group>::Field>::deserialize(buf)?;
         Self::new(scalar)
+    }
+
+    /// Check if the identifier is valid aka not zero
+    pub fn is_valid(&self) -> bool {
+        scalar_is_valid::<C>(&self.0)
     }
 }
 

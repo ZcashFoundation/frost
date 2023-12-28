@@ -9,6 +9,7 @@ use crate::{
 
 #[cfg(feature = "serde")]
 use crate::serialization::ScalarSerialization;
+use crate::util::scalar_is_valid;
 
 // Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
 // be directly encoded with serde, so we use this struct to wrap the scalar.
@@ -100,6 +101,11 @@ where
         }
 
         Ok(())
+    }
+
+    /// Tests if the signature share is valid
+    pub fn is_valid(&self) -> bool {
+        scalar_is_valid::<C>(&self.share)
     }
 }
 
