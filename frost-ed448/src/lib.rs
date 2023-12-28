@@ -8,8 +8,8 @@
 use std::collections::BTreeMap;
 
 use ed448_goldilocks::{
-    curve::{edwards::CompressedEdwardsY, ExtendedPoint},
-    Scalar,
+    elliptic_curve::generic_array::{typenum::U114, GenericArray},
+    CompressedEdwardsY, EdwardsPoint, Scalar, ScalarBytes,
 };
 use frost_rerandomized::RandomizedCiphersuite;
 use rand_core::{CryptoRng, RngCore};
@@ -40,11 +40,11 @@ impl Field for Ed448ScalarField {
     type Serialization = [u8; 57];
 
     fn zero() -> Self::Scalar {
-        Scalar::zero()
+        Scalar::ZERO
     }
 
     fn one() -> Self::Scalar {
-        Scalar::one()
+        Scalar::ONE
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
@@ -60,14 +60,13 @@ impl Field for Ed448ScalarField {
     }
 
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
-        scalar.to_bytes_rfc_8032()
+        scalar.to_bytes_rfc_8032().into()
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
-        match Scalar::from_canonical_bytes(*buf) {
-            Some(s) => Ok(s),
-            None => Err(FieldError::MalformedScalar),
-        }
+        let buffer = ScalarBytes::clone_from_slice(buf);
+        Option::<Scalar>::from(Scalar::from_canonical_bytes(&buffer))
+            .ok_or(FieldError::MalformedScalar)
     }
 
     fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization {
@@ -82,20 +81,20 @@ pub struct Ed448Group;
 impl Group for Ed448Group {
     type Field = Ed448ScalarField;
 
-    type Element = ExtendedPoint;
+    type Element = EdwardsPoint;
 
     type Serialization = [u8; 57];
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
-        Scalar::one()
+        Scalar::ONE
     }
 
     fn identity() -> Self::Element {
-        Self::Element::identity()
+        Self::Element::IDENTITY
     }
 
     fn generator() -> Self::Element {
-        Self::Element::generator()
+        Self::Element::GENERATOR
     }
 
     fn serialize(element: &Self::Element) -> Self::Serialization {
@@ -104,11 +103,11 @@ impl Group for Ed448Group {
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let compressed = CompressedEdwardsY(*buf);
-        match compressed.decompress() {
+        match Option::<EdwardsPoint>::from(compressed.decompress()) {
             Some(point) => {
-                if point == Self::identity() {
+                if point == EdwardsPoint::IDENTITY {
                     Err(GroupError::InvalidIdentityElement)
-                } else if point.is_torsion_free() {
+                } else if point.is_torsion_free().into() {
                     // decompress() does not check for canonicality, so we
                     // check by recompressing and comparing
                     if point.compress().0 != compressed.0 {
@@ -137,7 +136,7 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 114] {
 }
 
 fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
-    let output = hash_to_array(inputs);
+    let output = GenericArray::<u8, U114>::clone_from_slice(&hash_to_array(inputs));
     Scalar::from_bytes_mod_order_wide(&output)
 }
 

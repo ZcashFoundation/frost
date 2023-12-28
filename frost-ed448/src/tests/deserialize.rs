@@ -1,10 +1,10 @@
 use crate::*;
-use ed448_goldilocks::curve::ExtendedPoint;
+use ed448_goldilocks::CompressedEdwardsY;
 use frost_core::Ciphersuite;
 
 #[test]
 fn check_deserialize_non_canonical() {
-    let mut encoded_generator = ExtendedPoint::generator().compress().0;
+    let mut encoded_generator = CompressedEdwardsY::GENERATOR.0;
 
     let r = <Ed448Shake256 as Ciphersuite>::Group::deserialize(&encoded_generator);
     assert!(r.is_ok());
@@ -30,13 +30,13 @@ fn check_deserialize_non_prime_order() {
             .try_into()
             .unwrap();
     let r = <Ed448Shake256 as Ciphersuite>::Group::deserialize(&encoded_point);
-    assert_eq!(r, Err(GroupError::InvalidNonPrimeOrderElement));
+    assert_eq!(r, Err(GroupError::MalformedElement));
 }
 
 #[test]
 fn check_deserialize_identity() {
-    let encoded_identity = ExtendedPoint::identity().compress().0;
+    let encoded_identity = CompressedEdwardsY::IDENTITY.0;
 
     let r = <Ed448Shake256 as Ciphersuite>::Group::deserialize(&encoded_identity);
-    assert_eq!(r, Err(GroupError::InvalidIdentityElement));
+    assert_eq!(r, Err(GroupError::MalformedElement));
 }
