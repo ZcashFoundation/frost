@@ -328,6 +328,11 @@ where
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         Deserialize::deserialize(bytes)
     }
+
+    /// Is this [`SigningNonces`] valid?
+    pub fn is_valid(&self) -> bool {
+        self.hiding.is_valid() && self.binding.is_valid() && self.commitments.is_valid()
+    }
 }
 
 /// Published by each participant in the first round of the signing protocol.
