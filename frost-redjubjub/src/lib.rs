@@ -7,8 +7,10 @@ mod hash;
 
 use std::collections::BTreeMap;
 
-use group::GroupEncoding;
+use group::cofactor::CofactorGroup;
 use group::{ff::Field as FFField, ff::PrimeField};
+use group::{Group as GGroup, GroupEncoding};
+use jubjub::{ExtendedPoint, SubgroupPoint};
 
 // Re-exports in our public API
 #[cfg(feature = "serde")]
@@ -94,7 +96,7 @@ pub struct JubjubGroup;
 impl Group for JubjubGroup {
     type Field = JubjubScalarField;
 
-    type Element = jubjub::ExtendedPoint;
+    type Element = SubgroupPoint;
 
     type Serialization = [u8; 32];
 
@@ -107,9 +109,11 @@ impl Group for JubjubGroup {
     }
 
     fn generator() -> Self::Element {
-        jubjub::AffinePoint::from_bytes(constants::SPENDAUTHSIG_BASEPOINT_BYTES)
-            .unwrap()
-            .into()
+        let pt: ExtendedPoint =
+            jubjub::AffinePoint::from_bytes(constants::SPENDAUTHSIG_BASEPOINT_BYTES)
+                .unwrap()
+                .into();
+        pt.into_subgroup().unwrap()
     }
 
     fn serialize(element: &Self::Element) -> Self::Serialization {
@@ -123,10 +127,8 @@ impl Group for JubjubGroup {
             Some(point) => {
                 if point == Self::identity() {
                     Err(GroupError::InvalidIdentityElement)
-                } else if point.is_torsion_free().into() {
-                    Ok(point)
                 } else {
-                    Err(GroupError::InvalidNonPrimeOrderElement)
+                    Ok(point)
                 }
             }
             None => Err(GroupError::MalformedElement),
