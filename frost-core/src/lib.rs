@@ -435,7 +435,9 @@ where
 
     /// Check if the signing package is valid.
     pub fn is_valid(&self) -> bool {
-        self.signing_commitments().iter().all(|(i, c)| i.is_valid() && c.is_valid())
+        self.signing_commitments()
+            .iter()
+            .all(|(i, c)| i.is_valid() && c.is_valid())
     }
 }
 
