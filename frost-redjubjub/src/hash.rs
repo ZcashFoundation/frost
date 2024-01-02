@@ -20,7 +20,7 @@ impl Default for HStar {
     fn default() -> Self {
         let state = Params::new()
             .hash_length(64)
-            .personal(b"Zcash_RedJubjub")
+            .personal(b"Zcash_RedJubjubH")
             .to_state();
         Self { state }
     }
