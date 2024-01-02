@@ -9,7 +9,8 @@ use std::collections::BTreeMap;
 
 use group::{ff::Field as FFField, ff::PrimeField};
 use group::{Group as GGroup, GroupEncoding};
-use jubjub::ExtendedPoint;
+use group::cofactor::CofactorGroup;
+use jubjub::{ExtendedPoint, SubgroupPoint};
 
 // Re-exports in our public API
 #[cfg(feature = "serde")]
@@ -95,7 +96,7 @@ pub struct JubjubGroup;
 impl Group for JubjubGroup {
     type Field = JubjubScalarField;
 
-    type Element = ExtendedPoint;
+    type Element = SubgroupPoint;
 
     type Serialization = [u8; 32];
 
@@ -112,7 +113,7 @@ impl Group for JubjubGroup {
             jubjub::AffinePoint::from_bytes(constants::SPENDAUTHSIG_BASEPOINT_BYTES)
                 .unwrap()
                 .into();
-        pt
+        pt.into_subgroup().unwrap()
     }
 
     fn serialize(element: &Self::Element) -> Self::Serialization {
