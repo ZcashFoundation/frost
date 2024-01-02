@@ -155,7 +155,7 @@ impl Ciphersuite for JubjubBlake2b512 {
 
     /// H2 for FROST(Jubjub, BLAKE2b-512)
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        hash_to_scalar((CONTEXT_STRING.to_owned() + "chal").as_bytes(), m)
+        HStar::default().update(m).finalize()
     }
 
     /// H3 for FROST(Jubjub, BLAKE2b-512)
