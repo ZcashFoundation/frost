@@ -10,5 +10,6 @@ members = [
     "frost-ristretto255",
     "frost-secp256k1",
     "frost-rerandomized",
+    "frost-taproot",
     "gencode"
 ]
