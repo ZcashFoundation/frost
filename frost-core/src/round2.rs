@@ -237,7 +237,7 @@ pub fn sign<C: Ciphersuite>(
         lambda_i,
         key_package,
         challenge,
-        C::Group::y_is_odd(&group_commitment.0),
+        <C::Group>::y_is_odd(&group_commitment.0),
     );
 
     Ok(signature_share)
