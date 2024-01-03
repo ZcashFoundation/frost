@@ -7,9 +7,9 @@ mod hash;
 
 use std::collections::BTreeMap;
 
+use group::cofactor::CofactorGroup;
 use group::{ff::Field as FFField, ff::PrimeField};
 use group::{Group as GGroup, GroupEncoding};
-use group::cofactor::CofactorGroup;
 use jubjub::{ExtendedPoint, SubgroupPoint};
 
 // Re-exports in our public API

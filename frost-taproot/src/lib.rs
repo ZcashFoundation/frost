@@ -8,13 +8,15 @@
 use std::collections::BTreeMap;
 
 use frost_rerandomized::RandomizedCiphersuite;
+use k256::elliptic_curve::subtle::Choice;
 use k256::{
     elliptic_curve::{
         bigint::U256,
-        ops::Reduce,
         group::prime::PrimeCurveAffine,
-        point::DecompactPoint,
         hash2curve::{hash_to_field, ExpandMsgXmd},
+        ops::Reduce,
+        point::AffineCoordinates,
+        sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
     },
     AffinePoint, ProjectivePoint, Scalar,
@@ -100,7 +102,7 @@ impl Group for Secp256K1TaprootGroup {
     /// be serialized in FROST, else we error.
     ///
     /// [1]: https://secg.org/sec1-v2.pdf
-    type Serialization = [u8; 32];
+    type Serialization = [u8; 33];
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
         Scalar::ONE
@@ -115,10 +117,9 @@ impl Group for Secp256K1TaprootGroup {
     }
 
     fn serialize(element: &Self::Element) -> Self::Serialization {
-        use k256::elliptic_curve::point::AffineCoordinates;
-
-        let mut fixed_serialized = [0; 32];
-        let serialized = element.to_affine().x();
+        let mut fixed_serialized = [0; 33];
+        let serialized_point = element.to_affine().to_encoded_point(true);
+        let serialized = serialized_point.as_bytes();
         // Sanity check; either it takes all bytes or a single byte (identity).
         assert!(serialized.len() == fixed_serialized.len() || serialized.len() == 1);
         // Copy to the left of the buffer (i.e. pad the identity with zeroes).
@@ -127,23 +128,36 @@ impl Group for Secp256K1TaprootGroup {
         // If this encodes the identity, it will fail when deserializing.
         {
             let (left, _right) = fixed_serialized.split_at_mut(serialized.len());
-            left.copy_from_slice(&serialized);
+            left.copy_from_slice(serialized);
         }
         fixed_serialized
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
-        let maybe_affine_point = AffinePoint::decompact(k256::FieldBytes::from_slice(buf));
-        let affine_point = Option::<AffinePoint>::from(maybe_affine_point).ok_or_else(|| GroupError::MalformedElement)?;
+        let encoded_point =
+            k256::EncodedPoint::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
 
-        if affine_point.is_identity().into() {
-            // This is actually impossible since the identity is encoded a a single byte
-            // which will never happen since we receive a 32-byte buffer.
-            // We leave the check for consistency.
-            Err(GroupError::InvalidIdentityElement)
-        } else {
-            Ok(ProjectivePoint::from(affine_point))
+        match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
+            Some(point) => {
+                if point.is_identity().into() {
+                    // This is actually impossible since the identity is encoded a a single byte
+                    // which will never happen since we receive a 33-byte buffer.
+                    // We leave the check for consistency.
+                    Err(GroupError::InvalidIdentityElement)
+                } else {
+                    Ok(ProjectivePoint::from(point))
+                }
+            }
+            None => Err(GroupError::MalformedElement),
         }
+    }
+
+    fn challenge_bytes(element: &Self::Element) -> Vec<u8> {
+        element.to_affine().x().to_vec()
+    }
+
+    fn y_is_odd(element: &Self::Element) -> Choice {
+        element.to_affine().y_is_odd()
     }
 }
 
@@ -203,9 +217,7 @@ impl Ciphersuite for Secp256K1Taproot {
             digest
         }
         <Scalar as Reduce<U256>>::reduce_bytes(
-            &tagged_hash(CHALLENGE_TAG)
-                .chain_update(m)
-                .finalize(),
+            &tagged_hash(CHALLENGE_TAG).chain_update(m).finalize(),
         )
     }
 

@@ -24,7 +24,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 document-features = "0.2.7"
-p384 = { version = "0.13", features = ["hash2curve"] }
+p384 = { version = "0.13", features = ["hash2curve"], git = "https://github.com/LIT-Protocol/elliptic-curves.git" }
 frost-core = { path = "../frost-core", version = "1.0.0-rc.0" }
 frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0-rc.0" }
 rand_core = "0.6"
