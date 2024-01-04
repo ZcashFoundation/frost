@@ -85,6 +85,7 @@ pub trait Group: Copy + Clone + PartialEq {
 
     /// An element of our group that we will be computing over.
     type Element: Add<Output = Self::Element>
+        + ConditionallyNegatable
         + Copy
         + Clone
         + Eq
