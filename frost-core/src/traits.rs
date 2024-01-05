@@ -137,8 +137,8 @@ pub trait Group: Copy + Clone + PartialEq {
         Self::serialize(element).as_ref().to_vec()
     }
 
-    /// Determine if the elements y is odd or not. Mostly doesn't apply
-    /// except for taproot
+    /// Determine if the elements y is odd or not. For now only applies
+    /// for bitcoin taproot
     fn y_is_odd(_element: &Self::Element) -> subtle::Choice {
         subtle::Choice::from(0u8)
     }

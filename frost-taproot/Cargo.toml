@@ -28,6 +28,7 @@ frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0-rc.0" }
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
+signature = "2.2"
 
 [dev-dependencies]
 criterion = "0.5"

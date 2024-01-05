@@ -23,6 +23,7 @@ use k256::{
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
+use signature::hazmat::PrehashVerifier;
 
 use frost_core as frost;
 
@@ -256,6 +257,19 @@ impl Ciphersuite for Secp256K1Taproot {
             (CONTEXT_STRING.to_owned() + "id").as_bytes(),
             m,
         ))
+    }
+
+    fn verify_signature(
+        msg: &[u8],
+        signature: &frost_core::Signature<Self>,
+        public_key: &frost_core::VerifyingKey<Self>,
+    ) -> Result<(), frost_core::Error<Self>> {
+        let vk = k256::schnorr::VerifyingKey::from_bytes(&public_key.serialize()[1..])
+            .map_err(|_| Error::MalformedVerifyingKey)?;
+        let sig = k256::schnorr::Signature::try_from(&signature.serialize()[1..])
+            .map_err(|_| Error::MalformedSignature)?;
+        vk.verify_prehash(msg, &sig)
+            .map_err(|_| Error::InvalidSignature)
     }
 }
 

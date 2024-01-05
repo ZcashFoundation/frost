@@ -6,7 +6,7 @@ use crate as frost;
 use crate::{
     challenge, Challenge, Ciphersuite, Error, Field, Group, {round1, *},
 };
-// use subtle::ConditionallyNegatable;
+use subtle::ConditionallyNegatable;
 
 #[cfg(feature = "serde")]
 use crate::serialization::ScalarSerialization;
@@ -165,9 +165,15 @@ fn compute_signature_share<C: Ciphersuite>(
     lambda_i: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
     key_package: &keys::KeyPackage<C>,
     challenge: Challenge<C>,
+    y_is_odd: subtle::Choice,
 ) -> SignatureShare<C> {
-    let z_share: <<C::Group as Group>::Field as Field>::Scalar = signer_nonces.hiding.0 + (signer_nonces.binding.0 * binding_factor.0)
-        + (lambda_i * key_package.signing_share.0 * challenge.0);
+    let mut nonce = signer_nonces.hiding.0 + (signer_nonces.binding.0 * binding_factor.0);
+    nonce.conditional_negate(y_is_odd);
+    let mut signing_share = key_package.signing_share.0;
+    signing_share.conditional_negate(<C::Group>::y_is_odd(&key_package.verifying_key.element));
+
+    let z_share: <<C::Group as Group>::Field as Field>::Scalar =
+        nonce + (lambda_i * signing_share * challenge.0);
 
     SignatureShare::<C> { share: z_share }
 }
@@ -233,7 +239,7 @@ pub fn sign<C: Ciphersuite>(
         lambda_i,
         key_package,
         challenge,
-        // <C::Group>::y_is_odd(&group_commitment.0),
+        <C::Group>::y_is_odd(&group_commitment.0),
     );
 
     Ok(signature_share)
