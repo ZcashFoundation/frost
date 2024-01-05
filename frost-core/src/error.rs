@@ -63,7 +63,7 @@ pub enum Error<C: Ciphersuite> {
     #[error("Incorrect number of commitments.")]
     IncorrectNumberOfCommitments,
     /// Signature share verification failed.
-    #[error("Invalid signature share.")]
+    #[error("Invalid signature share: {culprit:?}")]
     InvalidSignatureShare {
         /// The identifier of the signer whose share validation failed.
         culprit: Identifier<C>,
@@ -84,16 +84,16 @@ pub enum Error<C: Ciphersuite> {
     #[error("The ciphersuite does not support DKG.")]
     DKGNotSupported,
     /// The proof of knowledge is not valid.
-    #[error("The proof of knowledge is not valid.")]
+    #[error("The proof of knowledge is not valid: {culprit:?}")]
     InvalidProofOfKnowledge {
         /// The identifier of the signer whose share validation failed.
         culprit: Identifier<C>,
     },
     /// Error in scalar Field.
-    #[error("Error in scalar Field.")]
+    #[error("Error in scalar Field: {0}")]
     FieldError(#[from] FieldError),
     /// Error in elliptic curve Group.
-    #[error("Error in elliptic curve Group.")]
+    #[error("Error in elliptic curve Group: {0}")]
     GroupError(#[from] GroupError),
     /// Error in coefficient commitment deserialization.
     #[error("Invalid coefficient")]
