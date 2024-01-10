@@ -59,9 +59,13 @@ where
         // Generate Schnorr challenge
         let c: Challenge<C> = <C>::challenge(&R, &public, msg);
 
-        let z = k + (c.0 * secret);
-
-        Signature { R, z }
+        if <C>::is_need_tweaking() {
+            let z = <C>::tweaked_z(k, secret, c.0, &public.element);
+            Signature { R, z }
+        } else {
+            let z = k + (c.0 * secret);
+            Signature { R, z }
+        }
     }
 
     /// Creates a SigningKey from a scalar.

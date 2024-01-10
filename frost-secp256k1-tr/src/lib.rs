@@ -245,11 +245,11 @@ pub fn tweaked_secret_key(
     public_key: &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element,
     merkle_root: &[u8],
 ) -> <<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
-    let mut secret = secret.clone();
     if public_key.to_affine().y_is_odd().into() {
-        secret = -secret
+        -secret + tweak(&public_key, merkle_root)
+    } else {
+        secret + tweak(&public_key, merkle_root)
     }
-    secret + tweak(&public_key, merkle_root)
 }
 
 impl Ciphersuite for Secp256K1Sha256 {
@@ -345,6 +345,21 @@ impl Ciphersuite for Secp256K1Sha256 {
         }
     }
 
+    /// tweaked z for SigningKey sign
+    fn tweaked_z(
+        k: <<Self::Group as Group>::Field as Field>::Scalar,
+        secret: <<Self::Group as Group>::Field as Field>::Scalar,
+        challenge: <<Self::Group as Group>::Field as Field>::Scalar,
+        verifying_key: &Element<S>,
+    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        let tweaked_pubkey = tweaked_public_key(&verifying_key, &[]);
+        if tweaked_pubkey.to_affine().y_is_odd().into() {
+            k - (challenge * secret)
+        } else {
+            k + (challenge * secret)
+        }
+    }
+
     /// compute tweaked signature_share
     fn compute_tweaked_signature_share(
         signer_nonces: &round1::SigningNonces,
@@ -361,8 +376,8 @@ impl Ciphersuite for Secp256K1Sha256 {
 
         let mut kp = key_package.clone();
         let public_key = key_package.verifying_key();
-        let pubkey_is_odd = public_key.y_is_odd();
-        let tweaked_pubkey_is_odd = tweaked_public_key(public_key.element(), &[])
+        let pubkey_is_odd: bool = public_key.y_is_odd();
+        let tweaked_pubkey_is_odd: bool = tweaked_public_key(public_key.element(), &[])
             .to_affine()
             .y_is_odd()
             .into();
@@ -421,7 +436,12 @@ impl Ciphersuite for Secp256K1Sha256 {
         verifying_key: &<Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element {
         let mut vs = verifying_share.clone();
-        if verifying_key.to_affine().y_is_odd().into() {
+        let pubkey_is_odd: bool = verifying_key.to_affine().y_is_odd().into();
+        let tweaked_pubkey_is_odd: bool = tweaked_public_key(verifying_key, &[])
+            .to_affine()
+            .y_is_odd()
+            .into();
+        if pubkey_is_odd != tweaked_pubkey_is_odd {
             vs = -vs;
         }
         vs

@@ -272,6 +272,18 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         panic!("Not implemented");
     }
 
+    /// tweaked z for SigningKey sign
+    #[allow(unused)]
+    fn tweaked_z(
+        k: <<Self::Group as Group>::Field as Field>::Scalar,
+        secret: <<Self::Group as Group>::Field as Field>::Scalar,
+        challenge: <<Self::Group as Group>::Field as Field>::Scalar,
+        verifying_key: &Element<Self>,
+    ) -> <<Self::Group as Group>::Field as Field>::Scalar
+    {
+        panic!("Not implemented");
+    }
+
     /// signature_share tweak
     #[allow(unused)]
     fn compute_tweaked_signature_share(
