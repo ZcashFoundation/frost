@@ -39,7 +39,7 @@ pub(crate) fn sum_commitments<C: Ciphersuite>(
     let mut group_commitment = vec![
         CoefficientCommitment(<C::Group>::identity());
         commitments
-            .get(0)
+            .first()
             .ok_or(Error::IncorrectNumberOfCommitments)?
             .0
             .len()
@@ -407,7 +407,7 @@ where
     /// element in the vector), or an error if the vector is empty.
     pub(crate) fn verifying_key(&self) -> Result<VerifyingKey<C>, Error<C>> {
         Ok(VerifyingKey::new(
-            self.0.get(0).ok_or(Error::MissingCommitment)?.0,
+            self.0.first().ok_or(Error::MissingCommitment)?.0,
         ))
     }
 
@@ -614,7 +614,7 @@ fn evaluate_polynomial<C: Ciphersuite>(
     }
     value = value
         + *coefficients
-            .get(0)
+            .first()
             .expect("coefficients must have at least one element");
     value
 }
