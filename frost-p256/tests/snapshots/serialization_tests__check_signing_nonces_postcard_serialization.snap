@@ -1,0 +1,5 @@
+---
+source: frost-p256/tests/serialization_tests.rs
+expression: "hex::encode(&bytes)"
+---
+00a132f0c9aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e1aaaaaaaa00000000aaaaaaaaaaaaaaaa7def51c91a0fbf034d26872ca84218e100a132f0c902517d3f033d9b7d1994d200de245f8952bf5ac043d4014ca9af9ec20fee5119c802517d3f033d9b7d1994d200de245f8952bf5ac043d4014ca9af9ec20fee5119c8
