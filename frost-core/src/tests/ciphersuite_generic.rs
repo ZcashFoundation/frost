@@ -360,7 +360,7 @@ fn check_aggregate_invalid_share_identifier_for_verifying_shares<C: Ciphersuite 
         .expect_err("should not work");
 }
 
-/// Test FROST signing with trusted dealer with a Ciphersuite.
+/// Test FROST signing with DKG with a Ciphersuite.
 pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>)

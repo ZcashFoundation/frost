@@ -349,7 +349,7 @@ pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>
     let c_i = challenge::<C>(identifier, &commitment.verifying_key()?, &R_i)
         .ok_or(Error::DKGNotSupported)?;
     let a_i0 = *coefficients
-        .get(0)
+        .first()
         .expect("coefficients must have at least one element");
     let mu_i = k + a_i0 * c_i.0;
     Ok(Signature { R: R_i, z: mu_i })
@@ -404,6 +404,12 @@ pub fn part2<C: Ciphersuite>(
 > {
     if round1_packages.len() != (secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
+    }
+
+    for package in round1_packages.values() {
+        if package.commitment.0.len() != secret_package.min_signers as usize {
+            return Err(Error::IncorrectNumberOfCommitments);
+        }
     }
 
     let mut round2_packages = BTreeMap::new();
