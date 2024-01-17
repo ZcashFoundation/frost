@@ -406,6 +406,12 @@ pub fn part2<C: Ciphersuite>(
         return Err(Error::IncorrectNumberOfPackages);
     }
 
+    for package in round1_packages.values() {
+        if package.commitment.0.len() != secret_package.min_signers as usize {
+            return Err(Error::IncorrectNumberOfCommitments);
+        }
+    }
+
     let mut round2_packages = BTreeMap::new();
 
     for (sender_identifier, round1_package) in round1_packages {
@@ -505,10 +511,6 @@ pub fn part3<C: Ciphersuite>(
             signing_share: f_ell_i,
             commitment: commitment.clone(),
         };
-
-        if secret_share.commitment.0.len() != round2_secret_package.min_signers {
-            return Err(Error::IncorrectNumberOfCommitments);
-        }
 
         // Verify the share. We don't need the result.
         let _ = secret_share.verify()?;
