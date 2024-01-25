@@ -4,6 +4,8 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* Exposed the `SignignKey::from_scalar()` and `to_scalar()` methods. This
+  helps interoperability with other implementations.
 
 ## Released
 
