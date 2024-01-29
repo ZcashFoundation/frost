@@ -30,6 +30,26 @@ use super::compute_lagrange_coefficient;
 pub mod dkg;
 pub mod repairable;
 
+/// Sum the commitments from all peers into a group commitment.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+pub(crate) fn compute_group_commitment<C: Ciphersuite>(
+    commitments: &[VerifiableSecretSharingCommitment<C>],
+) -> VerifiableSecretSharingCommitment<C> {
+    let mut group_commitment = vec![
+        CoefficientCommitment(<C::Group>::identity());
+        commitments.first().expect("Put a match here").0.len()
+    ];
+    for commitment in commitments {
+        for i in 0..group_commitment.len() {
+            *group_commitment.get_mut(i).expect("asdf") = CoefficientCommitment(
+                group_commitment.get(i).expect("PUt a match here").value()
+                    + commitment.0.get(i).expect("put a match here").value(),
+            );
+        }
+    }
+    VerifiableSecretSharingCommitment(group_commitment)
+}
+
 /// Sum the commitments from all participants in a distributed key generation
 /// run into a single group commitment.
 #[cfg_attr(feature = "internals", visibility::make(pub))]

@@ -10,9 +10,13 @@ use crate::{
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
+use std::collections::HashMap;
 
-use crate::keys::{generate_with_dealer, IdentifierList, PublicKeyPackage};
-use crate::Ciphersuite;
+use crate::keys::{
+    compute_group_commitment, generate_with_dealer, reconstruct, IdentifierList, KeyPackage,
+    PublicKeyPackage, SecretShare, SigningShare, VerifyingShare,
+};
+use crate::{Ciphersuite, Field, VerifyingKey};
 
 /// Test serialize VerifiableSecretSharingCommitment
 pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
