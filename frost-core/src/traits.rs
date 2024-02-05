@@ -7,8 +7,7 @@ use std::{
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{Error, FieldError, GroupError, Signature, VerifyingKey, Challenge,
-            challenge};
+use crate::{challenge, Challenge, Error, FieldError, GroupError, Signature, VerifyingKey};
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
 /// multiplied are defined.
@@ -251,8 +250,11 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     ///
     /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-challenge-computa
     /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.2
-    fn challenge(R: &Element<Self>, verifying_key: &VerifyingKey<Self>, msg: &[u8]) -> Challenge<Self>
-    {
+    fn challenge(
+        R: &Element<Self>,
+        verifying_key: &VerifyingKey<Self>,
+        msg: &[u8],
+    ) -> Challenge<Self> {
         challenge(R, verifying_key, msg)
     }
 
@@ -267,8 +269,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         z: <<Self::Group as Group>::Field as Field>::Scalar,
         challenge: &Challenge<Self>,
         verifying_key: &Element<Self>,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar
-    {
+    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
         panic!("Not implemented");
     }
 
@@ -279,8 +280,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
         challenge: <<Self::Group as Group>::Field as Field>::Scalar,
         verifying_key: &Element<Self>,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar
-    {
+    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
         panic!("Not implemented");
     }
 
@@ -293,8 +293,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
         key_package: &crate::keys::KeyPackage<Self>,
         challenge: Challenge<Self>,
-    ) -> crate::round2::SignatureShare<Self>
-    {
+    ) -> crate::round2::SignatureShare<Self> {
         panic!("Not implemented");
     }
 
@@ -319,8 +318,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     fn tweaked_secret_key(
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
         public: &Element<Self>,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar
-    {
+    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
         panic!("Not implemented");
     }
 
@@ -329,8 +327,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     fn taproot_compat_nonce(
         nonce: <<Self::Group as Group>::Field as Field>::Scalar,
         R: &Element<Self>,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar
-    {
+    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
         panic!("Not implemented");
     }
 
@@ -339,8 +336,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     fn taproot_compat_commitment_share(
         group_commitment_share: &<Self::Group as Group>::Element,
         group_commitment: &<Self::Group as Group>::Element,
-    ) -> <Self::Group as Group>::Element
-    {
+    ) -> <Self::Group as Group>::Element {
         panic!("Not implemented");
     }
 
@@ -349,8 +345,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     fn taproot_compat_verifying_share(
         verifying_share: &<Self::Group as Group>::Element,
         verifying_key: &<Self::Group as Group>::Element,
-    ) -> <Self::Group as Group>::Element
-    {
+    ) -> <Self::Group as Group>::Element {
         panic!("Not implemented");
     }
 }

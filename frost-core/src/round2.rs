@@ -98,12 +98,9 @@ where
         if <C>::is_taproot_compat() {
             commitment_share = <C>::taproot_compat_commitment_share(
                 &group_commitment_share.0,
-                &group_commitment.0
+                &group_commitment.0,
             );
-            vsh = <C>::taproot_compat_verifying_share(
-                &verifying_share.0,
-                &verifying_key.element
-            );
+            vsh = <C>::taproot_compat_verifying_share(&verifying_share.0, &verifying_key.element);
         }
         if (<C::Group>::generator() * self.share)
             != (commitment_share + (vsh * challenge.0 * lambda_i))

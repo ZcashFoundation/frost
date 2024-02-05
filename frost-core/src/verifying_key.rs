@@ -1,5 +1,5 @@
-use std::fmt::{self, Debug};
 use derive_getters::Getters;
+use std::fmt::{self, Debug};
 
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
