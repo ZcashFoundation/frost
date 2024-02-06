@@ -189,13 +189,13 @@ const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-TR-v1";
 pub struct Secp256K1Sha256;
 
 /// Digest the hasher to a Scalar
-pub fn hasher_to_scalar(hasher: Sha256) -> Scalar {
+fn hasher_to_scalar(hasher: Sha256) -> Scalar {
     let sp = ScalarPrimitive::new(U256::from_be_slice(&hasher.finalize())).unwrap();
     Scalar::from(&sp)
 }
 
 /// Create a BIP340 compliant tagged hash
-pub fn tagged_hash(tag: &str) -> Sha256 {
+fn tagged_hash(tag: &str) -> Sha256 {
     let mut hasher = Sha256::new();
     let mut tag_hasher = Sha256::new();
     tag_hasher.update(tag.as_bytes());
@@ -206,7 +206,7 @@ pub fn tagged_hash(tag: &str) -> Sha256 {
 }
 
 /// Create a BIP341 compliant taproot tweak
-pub fn tweak(
+fn tweak(
     public_key: &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element,
     merkle_root: &[u8],
 ) -> Scalar {
@@ -217,11 +217,11 @@ pub fn tweak(
 }
 
 /// Create a BIP341 compliant tweaked public key
-pub fn tweaked_public_key(
+fn tweaked_public_key(
     public_key: &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element,
     merkle_root: &[u8],
 ) -> <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element {
-    let mut pk = public_key.clone();
+    let mut pk = *public_key;
     if public_key.to_affine().y_is_odd().into() {
         pk = -pk;
     }
@@ -229,7 +229,7 @@ pub fn tweaked_public_key(
 }
 
 /// Creates a real BIP341 tweaked public key by assuming an even y-coordinate.
-pub fn real_tweaked_pubkey(
+fn real_tweaked_pubkey(
     public_key: &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element,
     merkle_root: &[u8],
 ) -> <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element {
@@ -240,7 +240,7 @@ pub fn real_tweaked_pubkey(
 }
 
 /// Create a BIP341 compliant tweaked secret key
-pub fn tweaked_secret_key(
+fn tweaked_secret_key(
     secret: <<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
     public_key: &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element,
     merkle_root: &[u8],

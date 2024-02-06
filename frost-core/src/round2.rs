@@ -83,6 +83,7 @@ where
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn verify(
         &self,
         identifier: Identifier<C>,

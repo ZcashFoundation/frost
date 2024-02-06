@@ -116,7 +116,7 @@ fn check_sign_with_dealer_fails_with_invalid_max_signers() {
 /// This is testing that Shamir's secret sharing to compute and arbitrary
 /// value is working.
 #[test]
-fn check_share_generation_secp256k1_sha256() {
+fn check_share_generation_secp256k1_tr_sha256() {
     let rng = thread_rng();
     frost_core::tests::ciphersuite_generic::check_share_generation::<Secp256K1Sha256, _>(rng);
 }

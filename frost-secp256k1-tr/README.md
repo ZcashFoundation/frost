@@ -1,5 +1,5 @@
 An implementation of Schnorr signatures on the secp256k1 curve for both single and threshold numbers
-of signers (FROST) with support of Taproot (BIP340/BIP341).
+of signers (FROST).
 
 ## Example: key generation with trusted dealer and FROST signing
 

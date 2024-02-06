@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::thread_rng;
 
-use frost_secp256k1::*;
+use frost_secp256k1_tr::*;
 
 fn bench_secp256k1_batch_verify(c: &mut Criterion) {
     let mut rng = thread_rng();
