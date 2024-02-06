@@ -246,9 +246,9 @@ fn tweaked_secret_key(
     merkle_root: &[u8],
 ) -> <<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
     if public_key.to_affine().y_is_odd().into() {
-        -secret + tweak(&public_key, merkle_root)
+        -secret + tweak(public_key, merkle_root)
     } else {
-        secret + tweak(&public_key, merkle_root)
+        secret + tweak(public_key, merkle_root)
     }
 }
 
@@ -335,9 +335,9 @@ impl Ciphersuite for Secp256K1Sha256 {
         challenge: &Challenge<S>,
         verifying_key: &Element<S>,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let t = tweak(&verifying_key, &[]);
+        let t = tweak(verifying_key, &[]);
         let tc = t * challenge.clone().to_scalar();
-        let tweaked_pubkey = tweaked_public_key(&verifying_key, &[]);
+        let tweaked_pubkey = tweaked_public_key(verifying_key, &[]);
         if tweaked_pubkey.to_affine().y_is_odd().into() {
             z - tc
         } else {
@@ -352,7 +352,7 @@ impl Ciphersuite for Secp256K1Sha256 {
         challenge: <<Self::Group as Group>::Field as Field>::Scalar,
         verifying_key: &Element<S>,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let tweaked_pubkey = tweaked_public_key(&verifying_key, &[]);
+        let tweaked_pubkey = tweaked_public_key(verifying_key, &[]);
         if tweaked_pubkey.to_affine().y_is_odd().into() {
             k - (challenge * secret)
         } else {
@@ -405,7 +405,7 @@ impl Ciphersuite for Secp256K1Sha256 {
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
         public: &Element<Self>,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        tweaked_secret_key(secret, &public, &[])
+        tweaked_secret_key(secret, public, &[])
     }
 
     /// calculate taproot compatible nonce
@@ -437,7 +437,7 @@ impl Ciphersuite for Secp256K1Sha256 {
         verifying_share: &<Self::Group as Group>::Element,
         verifying_key: &<Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element {
-        let mut vs = verifying_share.clone();
+        let mut vs = *verifying_share;
         let pubkey_is_odd: bool = verifying_key.to_affine().y_is_odd().into();
         let tweaked_pubkey_is_odd: bool = tweaked_public_key(verifying_key, &[])
             .to_affine()
