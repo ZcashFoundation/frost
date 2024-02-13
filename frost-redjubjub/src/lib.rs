@@ -110,7 +110,7 @@ impl Group for JubjubGroup {
 
     fn generator() -> Self::Element {
         let pt: ExtendedPoint =
-            jubjub::AffinePoint::from_bytes(constants::SPENDAUTHSIG_BASEPOINT_BYTES)
+            jubjub::AffinePoint::from_bytes(&constants::SPENDAUTHSIG_BASEPOINT_BYTES)
                 .unwrap()
                 .into();
         pt.into_subgroup().unwrap()
