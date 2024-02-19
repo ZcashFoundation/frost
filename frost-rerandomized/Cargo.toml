@@ -5,7 +5,7 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "1.0.0-rc.0"
+version = "1.0.0"
 authors = ["Deirdre Connolly <durumcrustulum@gmail.com>", "Chelsea Komlo <me@chelseakomlo.com>",
     "Conrado Gouvea <conradoplg@gmail.com>"]
 readme = "README.md"
@@ -22,7 +22,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 derive-getters = "0.3.0"
 document-features = "0.2.7"
-frost-core = { path = "../frost-core", version = "1.0.0-rc.0", features = ["internals"] }
+frost-core = { path = "../frost-core", version = "1.0.0", features = ["internals"] }
 rand_core = "0.6"
 
 [dev-dependencies]
