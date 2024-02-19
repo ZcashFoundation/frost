@@ -40,9 +40,33 @@ Refer to the [ZF FROST book](https://frost.zfnd.org/).
 ## Status ⚠
 
 The FROST specification is not yet finalized, though no significant changes are
-expected at this point. This code base has been audited by NCC. The APIs and
-types in `frost-core` are subject to change during the release candidate phase,
-and will follow SemVer guarantees after 1.0.0.
+expected at this point. This code base has been partially audited by NCC, see
+below for details. The APIs and types in the crates contained in this repository
+follow SemVer guarantees.
+
+### NCC Audit
+
+NCC performed [an
+audit](https://research.nccgroup.com/2023/10/23/public-report-zcash-frost-security-assessment/)
+of the v0.6.0 release (corresponding to commit 5fa17ed) of the following crates:
+
+- frost-core
+- frost-ed25519
+- frost-ed448
+- frost-p256
+- frost-secp256k1
+- frost-ristretto255
+
+This includes key generation (both trusted dealer and DKG) and FROST signing.
+This does not include rerandomized FROST.
+
+The parts of the
+[`Ed448-Goldilocks`](https://github.com/crate-crypto/Ed448-Goldilocks)
+dependency that are used by `frost-ed448` were also in scope, namely the
+elliptic curve operations.
+
+All issues identified in the audit were addressed by us and reviewed by NCC.
+
 
 ## Usage
 

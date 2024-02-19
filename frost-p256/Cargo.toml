@@ -5,7 +5,7 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "1.0.0-rc.0"
+version = "1.0.0"
 authors = [
         "Deirdre Connolly <durumcrustulum@gmail.com>",
         "Chelsea Komlo <me@chelseakomlo.com>",
@@ -25,15 +25,15 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 document-features = "0.2.7"
 p256 = { version = "0.13.0", features = ["hash2curve"] }
-frost-core = { path = "../frost-core", version = "1.0.0-rc.0" }
-frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0-rc.0" }
+frost-core = { path = "../frost-core", version = "1.0.0" }
+frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
 [dev-dependencies]
 criterion = "0.5"
-frost-core = { path = "../frost-core", version = "1.0.0-rc.0", features = ["test-impl"] }
-frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0-rc.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "1.0.0", features = ["test-impl"] }
+frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0", features = ["test-impl"] }
 insta = { version = "1.31.0", features = ["yaml"] }
 hex = "0.4.3"
 lazy_static = "1.4"

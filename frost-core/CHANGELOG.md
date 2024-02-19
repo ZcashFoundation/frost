@@ -4,10 +4,18 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## Released
+
+## 1.0.0
+
 * Exposed the `SigningKey::from_scalar()` and `to_scalar()` methods. This
   helps interoperability with other implementations.
-
-## Released
+* Exposed the `SigningNonces::from_nonces()` method to allow it to be
+  deserialized.
+* Fixed bug that prevented deserialization with in some cases (e.g. JSON
+  containing escape codes).
+* Added `new()` methods for `VerifirableSecretSharingCommitment` and
+  `CoefficientCommitment`.
 
 ## 1.0.0-rc.0
 

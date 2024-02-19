@@ -6,7 +6,7 @@ Add to your `Cargo.toml` file:
 
 ```
 [dependencies]
-frost-ristretto255 = "1.0.0-rc.0"
+frost-ristretto255 = "1.0.0"
 ```
 
 ## Handling errors
