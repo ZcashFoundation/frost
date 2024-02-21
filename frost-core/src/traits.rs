@@ -7,7 +7,12 @@ use std::{
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{challenge, Challenge, Error, FieldError, GroupError, Signature, VerifyingKey};
+use crate::{
+    challenge,
+    keys::{KeyPackage, VerifyingShare},
+    round1, round2, BindingFactor, Challenge, Error, FieldError, GroupCommitment, GroupError,
+    Signature, VerifyingKey,
+};
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
 /// multiplied are defined.
@@ -258,94 +263,115 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         challenge(R, verifying_key, msg)
     }
 
-    /// determine code is taproot compatible (used in frost-sepc256k1-tr)
-    fn is_taproot_compat() -> bool {
-        false
-    }
-
-    /// aggregate tweak z (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn aggregate_tweak_z(
+    /// Finalize an aggregated group signature. This is used by frost-sepc256k1-tr
+    /// to ensure the signature is valid under BIP340; for all other ciphersuites
+    /// this simply returns a [`Signature`] wrapping `R` and `z`.
+    fn aggregate_sig_finalize(
         z: <<Self::Group as Group>::Field as Field>::Scalar,
-        challenge: &Challenge<Self>,
-        verifying_key: &Element<Self>,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        panic!("Not implemented");
+        R: Element<Self>,
+        _verifying_key: &VerifyingKey<Self>,
+        _msg: &[u8],
+    ) -> Signature<Self> {
+        Signature { R, z }
     }
 
-    /// tweaked z for SigningKey sign (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn tweaked_z(
+    /// Finalize and output a single-signer Schnorr signature.
+    fn single_sig_finalize(
         k: <<Self::Group as Group>::Field as Field>::Scalar,
+        R: Element<Self>,
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
-        challenge: <<Self::Group as Group>::Field as Field>::Scalar,
-        verifying_key: &Element<Self>,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        panic!("Not implemented");
+        challenge: &Challenge<Self>,
+        _verifying_key: &VerifyingKey<Self>,
+    ) -> Signature<Self> {
+        let z = k + (challenge.0 * secret);
+        Signature { R, z }
     }
 
-    /// signature_share compatible with taproot (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn compute_taproot_compat_signature_share(
-        signer_nonces: &crate::round1::SigningNonces<Self>,
-        binding_factor: crate::BindingFactor<Self>,
-        group_commitment: crate::GroupCommitment<Self>,
+    /// Compute the signature share for a particular signer on a given challenge.
+    fn compute_signature_share(
+        signer_nonces: &round1::SigningNonces<Self>,
+        binding_factor: BindingFactor<Self>,
+        _group_commitment: GroupCommitment<Self>,
         lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
-        key_package: &crate::keys::KeyPackage<Self>,
+        key_package: &KeyPackage<Self>,
         challenge: Challenge<Self>,
-    ) -> crate::round2::SignatureShare<Self> {
-        panic!("Not implemented");
+    ) -> round2::SignatureShare<Self> {
+        round2::compute_signature_share(
+            signer_nonces,
+            binding_factor,
+            lambda_i,
+            key_package,
+            challenge,
+        )
     }
 
-    /// calculate tweaked public key (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn tweaked_public_key(
-        public_key: &<Self::Group as Group>::Element,
+    /// Compute the effective group element which should be used for signature operations
+    /// for the given verifying key.
+    ///
+    /// In frost-sepc256k1-tr, this is used to commit the key to taptree merkle root hashes.
+    /// For all other ciphersuites, this simply returns `verifying_key.to_element()`
+    fn effective_pubkey_element(
+        verifying_key: &VerifyingKey<Self>,
     ) -> <Self::Group as Group>::Element {
-        panic!("Not implemented");
+        verifying_key.to_element()
     }
 
-    /// calculate taproot compatible R (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn taproot_compat_R(
-        public_key: &<Self::Group as Group>::Element,
+    /// Compute the effective nonce element which should be used for signature operations.
+    ///
+    /// In frost-sepc256k1-tr, this negates the nonce if it has an odd parity.
+    /// For all other ciphersuites, this simply returns the input `R`.
+    fn effective_nonce_element(
+        R: <Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element {
-        panic!("Not implemented");
+        R
     }
 
-    /// tweaked secret (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn tweaked_secret_key(
+    /// Compute the effective secret key which should be used for signature operations
+    /// for the given verifying key.
+    ///
+    /// In frost-sepc256k1-tr, this is used to commit the key to taptree merkle root hashes.
+    /// For all other ciphersuites, this simply returns `secret` unchanged.
+    fn effective_secret_key(
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
-        public: &Element<Self>,
+        _public: &VerifyingKey<Self>,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        panic!("Not implemented");
+        secret
     }
 
-    /// calculate taproot compatible nonce (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn taproot_compat_nonce(
+    /// Compute the effective nonce secret which should be used for signature operations.
+    ///
+    /// In frost-sepc256k1-tr, this negates the nonce if it has an odd parity.
+    /// For all other ciphersuites, this simply returns the input `nonce`.
+    fn effective_nonce_secret(
         nonce: <<Self::Group as Group>::Field as Field>::Scalar,
-        R: &Element<Self>,
+        _R: &Element<Self>,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        panic!("Not implemented");
+        nonce
     }
 
-    /// calculate taproot compatible commitment share (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn taproot_compat_commitment_share(
-        group_commitment_share: &<Self::Group as Group>::Element,
-        group_commitment: &<Self::Group as Group>::Element,
+    /// Compute the effective nonce commitment share which should be used for
+    /// FROST signing.
+    ///
+    /// In frost-sepc256k1-tr, this negates the commitment share if the group's final
+    /// commitment has an odd parity. For all other ciphersuites, this simply returns
+    /// `group_commitment_share.to_element()`
+    fn effective_commitment_share(
+        group_commitment_share: round1::GroupCommitmentShare<Self>,
+        _group_commitment: &GroupCommitment<Self>,
     ) -> <Self::Group as Group>::Element {
-        panic!("Not implemented");
+        group_commitment_share.to_element()
     }
 
-    /// calculate taproot compatible verifying share (used in frost-sepc256k1-tr)
-    #[allow(unused)]
-    fn taproot_compat_verifying_share(
-        verifying_share: &<Self::Group as Group>::Element,
-        verifying_key: &<Self::Group as Group>::Element,
+    /// Compute the effective verifying share which should be used for FROST
+    /// partial signature verification.
+    ///
+    /// In frost-sepc256k1-tr, this negates the verifying share if the group's final
+    /// verifying key has an odd parity. For all other ciphersuites, this simply returns
+    /// `verifying_share.to_element()`
+    fn effective_verifying_share(
+        verifying_share: &VerifyingShare<Self>,
+        _verifying_key: &VerifyingKey<Self>,
     ) -> <Self::Group as Group>::Element {
-        panic!("Not implemented");
+        verifying_share.to_element()
     }
 }

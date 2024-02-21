@@ -48,26 +48,16 @@ where
     /// Create a signature `msg` using this `SigningKey`.
     pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<C> {
         let public = VerifyingKey::<C>::from(*self);
-        let mut secret = self.scalar;
-        if <C>::is_taproot_compat() {
-            secret = <C>::tweaked_secret_key(secret, &public.element);
-        }
+        let secret = <C>::effective_secret_key(self.scalar, &public);
+
         let mut k = random_nonzero::<C, R>(&mut rng);
         let R = <C::Group>::generator() * k;
-        if <C>::is_taproot_compat() {
-            k = <C>::taproot_compat_nonce(k, &R);
-        }
+        k = <C>::effective_nonce_secret(k, &R);
 
         // Generate Schnorr challenge
         let c: Challenge<C> = <C>::challenge(&R, &public, msg);
 
-        if <C>::is_taproot_compat() {
-            let z = <C>::tweaked_z(k, secret, c.0, &public.element);
-            Signature { R, z }
-        } else {
-            let z = k + (c.0 * secret);
-            Signature { R, z }
-        }
+        <C>::single_sig_finalize(k, R, secret, &c, &public)
     }
 
     /// Creates a SigningKey from a scalar.

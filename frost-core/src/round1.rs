@@ -404,6 +404,14 @@ where
 #[derive(Clone, Copy, PartialEq)]
 pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 
+impl<C: Ciphersuite> GroupCommitmentShare<C> {
+    /// Return the underlying element.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn to_element(self) -> Element<C> {
+        self.0
+    }
+}
+
 /// Encode the list of group signing commitments.
 ///
 /// Implements [`encode_group_commitment_list()`] from the spec.

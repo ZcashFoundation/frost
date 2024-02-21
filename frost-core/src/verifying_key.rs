@@ -68,12 +68,9 @@ where
         //                 h * ( z * B - c * A - R) == 0
         //
         // where h is the cofactor
-        let mut R = signature.R;
-        let mut vk = self.element;
-        if <C>::is_taproot_compat() {
-            R = <C>::taproot_compat_R(&signature.R);
-            vk = <C>::tweaked_public_key(&self.element);
-        }
+        let R = C::effective_nonce_element(signature.R);
+        let vk = C::effective_pubkey_element(&self);
+
         let zB = C::Group::generator() * signature.z;
         let cA = vk * challenge.0;
         let check = (zB - cA - R) * C::Group::cofactor();

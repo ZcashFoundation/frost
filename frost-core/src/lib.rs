@@ -588,19 +588,12 @@ where
         z = z + signature_share.share;
     }
 
-    if <C>::is_taproot_compat() {
-        let challenge = <C>::challenge(
-            &group_commitment.0,
-            &pubkeys.verifying_key,
-            signing_package.message().as_slice(),
-        );
-        z = <C>::aggregate_tweak_z(z, &challenge, &pubkeys.verifying_key.element);
-    }
-
-    let signature = Signature {
-        R: group_commitment.0,
+    let signature: Signature<C> = <C>::aggregate_sig_finalize(
         z,
-    };
+        group_commitment.0,
+        &pubkeys.verifying_key,
+        signing_package.message().as_slice(),
+    );
 
     // Verify the aggregate signature
     let verification_result = pubkeys

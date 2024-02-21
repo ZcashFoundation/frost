@@ -118,12 +118,8 @@ where
 
         for item in self.signatures.iter() {
             let z = item.sig.z;
-            let mut R = item.sig.R;
-            let mut vk = item.vk.element;
-            if <C>::is_taproot_compat() {
-                R = <C>::taproot_compat_R(&item.sig.R);
-                vk = <C>::tweaked_public_key(&item.vk.element);
-            }
+            let R = <C>::effective_nonce_element(item.sig.R);
+            let vk = <C>::effective_pubkey_element(&item.vk);
 
             let blind = <<C::Group as Group>::Field>::random(&mut rng);
 

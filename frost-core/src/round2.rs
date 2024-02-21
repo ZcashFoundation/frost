@@ -94,15 +94,10 @@ where
         group_commitment: &frost::GroupCommitment<C>,
         verifying_key: &frost::VerifyingKey<C>,
     ) -> Result<(), Error<C>> {
-        let mut commitment_share = group_commitment_share.0;
-        let mut vsh = verifying_share.0;
-        if <C>::is_taproot_compat() {
-            commitment_share = <C>::taproot_compat_commitment_share(
-                &group_commitment_share.0,
-                &group_commitment.0,
-            );
-            vsh = <C>::taproot_compat_verifying_share(&verifying_share.0, &verifying_key.element);
-        }
+        let commitment_share =
+            <C>::effective_commitment_share(group_commitment_share.clone(), &group_commitment);
+        let vsh = <C>::effective_verifying_share(&verifying_share, &verifying_key);
+
         if (<C::Group>::generator() * self.share)
             != (commitment_share + (vsh * challenge.0 * lambda_i))
         {
@@ -231,26 +226,14 @@ pub fn sign<C: Ciphersuite>(
     );
 
     // Compute the Schnorr signature share.
-    if <C>::is_taproot_compat() {
-        let signature_share = <C>::compute_taproot_compat_signature_share(
-            signer_nonces,
-            binding_factor,
-            group_commitment,
-            lambda_i,
-            key_package,
-            challenge,
-        );
+    let signature_share = <C>::compute_signature_share(
+        signer_nonces,
+        binding_factor,
+        group_commitment,
+        lambda_i,
+        key_package,
+        challenge,
+    );
 
-        Ok(signature_share)
-    } else {
-        let signature_share = compute_signature_share(
-            signer_nonces,
-            binding_factor,
-            lambda_i,
-            key_package,
-            challenge,
-        );
-
-        Ok(signature_share)
-    }
+    Ok(signature_share)
 }
