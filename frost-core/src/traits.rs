@@ -264,8 +264,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     }
 
     /// Finalize an aggregated group signature. This is used by frost-sepc256k1-tr
-    /// to ensure the signature is valid under BIP340; for all other ciphersuites
-    /// this simply returns a [`Signature`] wrapping `R` and `z`.
+    /// to ensure the signature is valid under BIP340.
     fn aggregate_sig_finalize(
         z: <<Self::Group as Group>::Field as Field>::Scalar,
         R: Element<Self>,
@@ -309,7 +308,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// for the given verifying key.
     ///
     /// In frost-sepc256k1-tr, this is used to commit the key to taptree merkle root hashes.
-    /// For all other ciphersuites, this simply returns `verifying_key.to_element()`
     fn effective_pubkey_element(
         verifying_key: &VerifyingKey<Self>,
     ) -> <Self::Group as Group>::Element {
@@ -319,7 +317,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// Compute the effective nonce element which should be used for signature operations.
     ///
     /// In frost-sepc256k1-tr, this negates the nonce if it has an odd parity.
-    /// For all other ciphersuites, this simply returns the input `R`.
     fn effective_nonce_element(
         R: <Self::Group as Group>::Element,
     ) -> <Self::Group as Group>::Element {
@@ -330,7 +327,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// for the given verifying key.
     ///
     /// In frost-sepc256k1-tr, this is used to commit the key to taptree merkle root hashes.
-    /// For all other ciphersuites, this simply returns `secret` unchanged.
     fn effective_secret_key(
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
         _public: &VerifyingKey<Self>,
@@ -341,7 +337,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// Compute the effective nonce secret which should be used for signature operations.
     ///
     /// In frost-sepc256k1-tr, this negates the nonce if it has an odd parity.
-    /// For all other ciphersuites, this simply returns the input `nonce`.
     fn effective_nonce_secret(
         nonce: <<Self::Group as Group>::Field as Field>::Scalar,
         _R: &Element<Self>,
@@ -353,8 +348,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// FROST signing.
     ///
     /// In frost-sepc256k1-tr, this negates the commitment share if the group's final
-    /// commitment has an odd parity. For all other ciphersuites, this simply returns
-    /// `group_commitment_share.to_element()`
+    /// commitment has an odd parity.
     fn effective_commitment_share(
         group_commitment_share: round1::GroupCommitmentShare<Self>,
         _group_commitment: &GroupCommitment<Self>,
@@ -366,8 +360,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// partial signature verification.
     ///
     /// In frost-sepc256k1-tr, this negates the verifying share if the group's final
-    /// verifying key has an odd parity. For all other ciphersuites, this simply returns
-    /// `verifying_share.to_element()`
+    /// verifying key has an odd parity.
     fn effective_verifying_share(
         verifying_share: &VerifyingShare<Self>,
         _verifying_key: &VerifyingKey<Self>,
