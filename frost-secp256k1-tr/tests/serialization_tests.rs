@@ -7,13 +7,21 @@ use frost_secp256k1_tr::{
         dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare,
     },
-    round1::SigningCommitments,
+    round1::{SigningCommitments, SigningNonces},
     round2::SignatureShare,
     SigningPackage,
 };
 
 use helpers::samples;
 use insta::assert_snapshot;
+
+#[test]
+fn check_signing_nonces_postcard_serialization() {
+    let nonces = samples::signing_nonces();
+    let bytes: Vec<_> = nonces.serialize().unwrap();
+    assert_snapshot!(hex::encode(&bytes));
+    assert_eq!(nonces, SigningNonces::deserialize(&bytes).unwrap());
+}
 
 #[test]
 fn check_signing_commitments_postcard_serialization() {
