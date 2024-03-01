@@ -4,6 +4,13 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 2.0.0
+
+* Removed the `MulAssign<Identifier<C>> for Scalar<C>` implementation since it
+  will result in a coherence error in future Rust versions (see #625). In the
+  unlikely case you're using this, you can replace e.g. `scalar *= identifier`
+  with `scalar = identifier * scalar`.
+
 ## Released
 
 ## 1.0.0
