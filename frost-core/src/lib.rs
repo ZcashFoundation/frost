@@ -302,12 +302,12 @@ fn compute_lagrange_coefficient<C: Ciphersuite>(
         }
 
         if let Some(x) = x {
-            num *= x - *x_j;
-            den *= x_i - *x_j;
+            num = (x - *x_j) * num;
+            den = (x_i - *x_j) * den;
         } else {
             // Both signs inverted just to avoid requiring Neg (-*xj)
-            num *= *x_j;
-            den *= *x_j - x_i;
+            num = *x_j * num;
+            den = (*x_j - x_i) * den;
         }
     }
     if !x_i_found {
