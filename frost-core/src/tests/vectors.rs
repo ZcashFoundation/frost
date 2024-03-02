@@ -311,6 +311,10 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     // Check that the generated signature matches the test vector signature
     let group_signature = group_signature_result.unwrap();
+    assert_eq!(
+        hex::encode(group_signature.serialize()),
+        hex::encode(signature_bytes.clone()),
+    );
     assert_eq!(group_signature.serialize().as_ref(), signature_bytes);
 
     // Aggregate the FROST signature from our signature shares

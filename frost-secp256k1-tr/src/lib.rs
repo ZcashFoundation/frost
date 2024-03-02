@@ -34,10 +34,6 @@ pub use frost_core::{
 
 pub use rand_core;
 
-/// The tapscript path is provably unspendable by committing to an empty merkle root.
-/// Perhaps we can support taptree commitments in the future.
-const UNSPENDABLE_MERKLE_ROOT: [u8; 0] = [];
-
 /// An error.
 pub type Error = frost_core::Error<Secp256K1Sha256>;
 
@@ -210,20 +206,25 @@ fn tagged_hash(tag: &str) -> Sha256 {
 }
 
 /// Create a BIP341 compliant taproot tweak
-fn tweak(
+fn tweak<T: AsRef<[u8]>>(
     public_key: &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element,
-    merkle_root: &[u8],
+    merkle_root: Option<T>,
 ) -> Scalar {
-    let mut hasher = tagged_hash("TapTweak");
-    hasher.update(public_key.to_affine().x());
-    hasher.update(merkle_root);
-    hasher_to_scalar(hasher)
+    match merkle_root {
+        None => Secp256K1ScalarField::zero(),
+        Some(root) => {
+            let mut hasher = tagged_hash("TapTweak");
+            hasher.update(public_key.to_affine().x());
+            hasher.update(root.as_ref());
+            hasher_to_scalar(hasher)
+        }
+    }
 }
 
 /// Create a BIP341 compliant tweaked public key
-fn tweaked_public_key(
+fn tweaked_public_key<T: AsRef<[u8]>>(
     public_key: &VerifyingKey,
-    merkle_root: &[u8],
+    merkle_root: Option<T>,
 ) -> <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element {
     let mut pk = public_key.to_element();
     if pk.to_affine().y_is_odd().into() {
@@ -231,6 +232,37 @@ fn tweaked_public_key(
     }
     ProjectivePoint::GENERATOR * tweak(&pk, merkle_root) + pk
 }
+
+/// The message target which the group's signature should commit to. Includes
+/// a message byte vector, and a set of ciphersuite-specific parameters.
+pub type SigningTarget = frost_core::SigningTarget<S>;
+
+/// The ciphersuite-specific signing parameters which are fed into
+/// signing code to ensure correctly compliant signatures are computed.
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SigningParameters {
+    /// The tapscript merkle tree root which must be committed to and agreed upon
+    /// in advance by all participants in the signing round.
+    ///
+    /// If set to `None` (the default), then no taproot tweak will be committed to in the signature.
+    /// Best practice suggested by BIP341 is to commit to an empty merkle root in cases
+    /// where no tapscript tweak is needed, i.e. by supplying `&[0; u8]` as the merkle root.
+    /// This prevents hiding of taproot commitments inside a linearly aggregated key.
+    ///
+    /// However, for FROST, this is not strictly required as the group key cannot be
+    /// poisoned as long as the DKG procedure is conducted correctly.
+    /// Thus, the [`Default`] trait implementation of taproot `SigningParameters`
+    /// sets `tapscript_merkle_root` to `None`.
+    ///
+    /// If 3rd party observers outside the FROST group must be able to verify there
+    /// is no hidden script-spending path embedded in the FROST group's taproot output key,
+    /// then you should set `tapscript_merkle_root` to `Some(vec![])`, which proves
+    /// the tapscript commitment for the tweaked output key is unspendable.
+    pub tapscript_merkle_root: Option<Vec<u8>>,
+}
+
+impl frost_core::SigningParameters for SigningParameters {}
 
 impl Ciphersuite for Secp256K1Sha256 {
     const ID: &'static str = CONTEXT_STRING;
@@ -240,6 +272,8 @@ impl Ciphersuite for Secp256K1Sha256 {
     type HashOutput = [u8; 32];
 
     type SignatureSerialization = [u8; 65];
+
+    type SigningParameters = SigningParameters;
 
     /// H1 for FROST(secp256k1, SHA-256)
     ///
@@ -295,12 +329,19 @@ impl Ciphersuite for Secp256K1Sha256 {
     }
 
     /// Generates the challenge as is required for Schnorr signatures.
-    fn challenge(R: &Element<S>, verifying_key: &VerifyingKey, msg: &[u8]) -> Challenge<S> {
+    fn challenge(
+        R: &Element<S>,
+        verifying_key: &VerifyingKey,
+        sig_target: &SigningTarget,
+    ) -> Challenge<S> {
         let mut preimage = vec![];
-        let tweaked_pk = tweaked_public_key(&verifying_key, &UNSPENDABLE_MERKLE_ROOT);
+        let tweaked_pk = tweaked_public_key(
+            &verifying_key,
+            sig_target.sig_params().tapscript_merkle_root.as_ref(),
+        );
         preimage.extend_from_slice(&R.to_affine().x());
         preimage.extend_from_slice(&tweaked_pk.to_affine().x());
-        preimage.extend_from_slice(msg);
+        preimage.extend_from_slice(sig_target.message().as_ref());
         Challenge::from_scalar(S::H2(&preimage[..]))
     }
 
@@ -310,13 +351,19 @@ impl Ciphersuite for Secp256K1Sha256 {
         z_raw: <<Self::Group as Group>::Field as Field>::Scalar,
         R: Element<Self>,
         verifying_key: &VerifyingKey,
-        msg: &[u8],
+        sig_target: &SigningTarget,
     ) -> Signature {
-        let challenge = Self::challenge(&R, verifying_key, msg);
+        let challenge = Self::challenge(&R, verifying_key, &sig_target);
 
-        let t = tweak(verifying_key.element(), &UNSPENDABLE_MERKLE_ROOT);
+        let t = tweak(
+            verifying_key.element(),
+            sig_target.sig_params().tapscript_merkle_root.as_ref(),
+        );
         let tc = t * challenge.clone().to_scalar();
-        let tweaked_pubkey = tweaked_public_key(verifying_key, &UNSPENDABLE_MERKLE_ROOT);
+        let tweaked_pubkey = tweaked_public_key(
+            verifying_key,
+            sig_target.sig_params().tapscript_merkle_root.as_ref(),
+        );
         let z_tweaked = if tweaked_pubkey.to_affine().y_is_odd().into() {
             z_raw - tc
         } else {
@@ -332,8 +379,10 @@ impl Ciphersuite for Secp256K1Sha256 {
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
         challenge: &Challenge<S>,
         verifying_key: &VerifyingKey,
+        sig_params: &SigningParameters,
     ) -> Signature {
-        let tweaked_pubkey = tweaked_public_key(verifying_key, &UNSPENDABLE_MERKLE_ROOT);
+        let tweaked_pubkey =
+            tweaked_public_key(verifying_key, sig_params.tapscript_merkle_root.as_ref());
         let c = challenge.clone().to_scalar();
         let z = if tweaked_pubkey.to_affine().y_is_odd().into() {
             k - (c * secret)
@@ -352,6 +401,7 @@ impl Ciphersuite for Secp256K1Sha256 {
         lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
         key_package: &frost::keys::KeyPackage<S>,
         challenge: Challenge<S>,
+        sig_params: &SigningParameters,
     ) -> round2::SignatureShare {
         let mut sn = signer_nonces.clone();
         if group_commitment.y_is_odd() {
@@ -361,10 +411,11 @@ impl Ciphersuite for Secp256K1Sha256 {
         let mut kp = key_package.clone();
         let public_key = key_package.verifying_key();
         let pubkey_is_odd: bool = public_key.y_is_odd();
-        let tweaked_pubkey_is_odd: bool = tweaked_public_key(public_key, &UNSPENDABLE_MERKLE_ROOT)
-            .to_affine()
-            .y_is_odd()
-            .into();
+        let tweaked_pubkey_is_odd: bool =
+            tweaked_public_key(public_key, sig_params.tapscript_merkle_root.as_ref())
+                .to_affine()
+                .y_is_odd()
+                .into();
         if pubkey_is_odd != tweaked_pubkey_is_odd {
             kp.negate_signing_share();
         }
@@ -374,8 +425,12 @@ impl Ciphersuite for Secp256K1Sha256 {
 
     /// Computes the effective pubkey point by tweaking the verifying key with a
     /// provably unspendable taproot tweak.
-    fn effective_pubkey_element(public_key: &VerifyingKey) -> <Self::Group as Group>::Element {
-        let tweaked_pubkey = tweaked_public_key(public_key, &UNSPENDABLE_MERKLE_ROOT);
+    fn effective_pubkey_element(
+        public_key: &VerifyingKey,
+        sig_params: &SigningParameters,
+    ) -> <Self::Group as Group>::Element {
+        let tweaked_pubkey =
+            tweaked_public_key(public_key, sig_params.tapscript_merkle_root.as_ref());
         if Self::Group::y_is_odd(&tweaked_pubkey) {
             -tweaked_pubkey
         } else {
@@ -398,11 +453,16 @@ impl Ciphersuite for Secp256K1Sha256 {
     fn effective_secret_key(
         secret: <<Self::Group as Group>::Field as Field>::Scalar,
         public_key: &VerifyingKey,
+        sig_params: &SigningParameters,
     ) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        let t = tweak(
+            public_key.element(),
+            sig_params.tapscript_merkle_root.as_ref(),
+        );
         if Self::Group::y_is_odd(public_key.element()) {
-            -secret + tweak(public_key.element(), &UNSPENDABLE_MERKLE_ROOT)
+            -secret + t
         } else {
-            secret + tweak(public_key.element(), &UNSPENDABLE_MERKLE_ROOT)
+            secret + t
         }
     }
 
@@ -441,10 +501,11 @@ impl Ciphersuite for Secp256K1Sha256 {
     fn effective_verifying_share(
         verifying_share: &keys::VerifyingShare,
         verifying_key: &VerifyingKey,
+        sig_params: &SigningParameters,
     ) -> <Self::Group as Group>::Element {
         let pubkey_is_odd: bool = verifying_key.to_element().to_affine().y_is_odd().into();
         let tweaked_pubkey_is_odd: bool =
-            tweaked_public_key(verifying_key, &UNSPENDABLE_MERKLE_ROOT)
+            tweaked_public_key(verifying_key, sig_params.tapscript_merkle_root.as_ref())
                 .to_affine()
                 .y_is_odd()
                 .into();

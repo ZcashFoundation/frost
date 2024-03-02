@@ -4,7 +4,7 @@ use std::fmt::{self, Debug};
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
+use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature, SigningTarget};
 
 #[cfg(feature = "serde")]
 use crate::serialization::ElementSerialization;
@@ -63,13 +63,14 @@ where
         &self,
         challenge: Challenge<C>,
         signature: &Signature<C>,
+        sig_params: &C::SigningParameters,
     ) -> Result<(), Error<C>> {
         // Verify check is h * ( - z * B + R  + c * A) == 0
         //                 h * ( z * B - c * A - R) == 0
         //
         // where h is the cofactor
         let R = C::effective_nonce_element(signature.R);
-        let vk = C::effective_pubkey_element(&self);
+        let vk = C::effective_pubkey_element(&self, sig_params);
 
         let zB = C::Group::generator() * signature.z;
         let cA = vk * challenge.0;
@@ -82,9 +83,13 @@ where
         }
     }
 
-    /// Verify a purported `signature` over `msg` made by this verification key.
-    pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error<C>> {
-        C::verify_signature(msg, signature, self)
+    /// Verify a purported `signature` over `sig_target` made by this verification key.
+    pub fn verify(
+        &self,
+        sig_target: impl Into<SigningTarget<C>>,
+        signature: &Signature<C>,
+    ) -> Result<(), Error<C>> {
+        C::verify_signature(&sig_target.into(), signature, self)
     }
 
     /// Computes the group public key given the group commitment.

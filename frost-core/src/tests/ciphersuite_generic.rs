@@ -301,7 +301,7 @@ fn check_sign_errors<C: Ciphersuite + PartialEq>(
         .find(|&&id| id != key_package.identifier)
         .unwrap();
     commitments.remove(&id);
-    let signing_package = frost::SigningPackage::new(commitments, signing_package.message());
+    let signing_package = frost::SigningPackage::new(commitments, signing_package.sig_target);
 
     let r = frost::round2::sign(&signing_package, &signing_nonces, &key_package);
     assert_eq!(r, Err(Error::IncorrectNumberOfCommitments));

@@ -93,10 +93,11 @@ where
         challenge: &Challenge<C>,
         group_commitment: &frost::GroupCommitment<C>,
         verifying_key: &frost::VerifyingKey<C>,
+        sig_params: &C::SigningParameters,
     ) -> Result<(), Error<C>> {
         let commitment_share =
             <C>::effective_commitment_share(group_commitment_share.clone(), &group_commitment);
-        let vsh = <C>::effective_verifying_share(&verifying_share, &verifying_key);
+        let vsh = <C>::effective_verifying_share(&verifying_share, &verifying_key, &sig_params);
 
         if (<C::Group>::generator() * self.share)
             != (commitment_share + (vsh * challenge.0 * lambda_i))
@@ -222,7 +223,7 @@ pub fn sign<C: Ciphersuite>(
     let challenge = <C>::challenge(
         &group_commitment.0,
         &key_package.verifying_key,
-        signing_package.message.as_slice(),
+        &signing_package.sig_target,
     );
 
     // Compute the Schnorr signature share.
@@ -233,6 +234,7 @@ pub fn sign<C: Ciphersuite>(
         lambda_i,
         key_package,
         challenge,
+        &signing_package.sig_target.sig_params,
     );
 
     Ok(signature_share)

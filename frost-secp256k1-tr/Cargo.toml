@@ -26,6 +26,7 @@ document-features = "0.2.7"
 frost-core = { path = "../frost-core", version = "1.0.0" }
 frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
+serde = { version = "1.0.160", features = ["derive"], optional = true }
 rand_core = "0.6"
 sha2 = "0.10.2"
 
@@ -49,7 +50,7 @@ serialization = ["serde", "frost-core/serialization"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
-serde = ["frost-core/serde"]
+serde = ["frost-core/serde", "dep:serde"]
 ## Enable cheater detection
 cheater-detection = ["frost-core/cheater-detection"]
 

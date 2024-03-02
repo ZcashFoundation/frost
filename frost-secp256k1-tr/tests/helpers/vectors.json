@@ -63,15 +63,15 @@
     "outputs": [
       {
         "identifier": 1,
-        "sig_share": "971bbcb0383c0fc47a710a8cae41a123cb44808328ce30880a8b66f1f15766fb"
+        "sig_share": "2ffc305d1694fd84108b84d98306a1af807c6ad9bc3a2d8e448a09643202a15b"
       },
       {
         "identifier": 3,
-        "sig_share": "33d0471177d384d3ec22731abbdd942851c78fbdbed0fb54149d657820228b55"
+        "sig_share": "a8c392566ea29e852b4080a028bf5547166c87e703e4fb7136d4ebef65f99b3f"
       }
     ]
   },
   "final_output": {
-    "sig": "030c776a9516a77808b70a31e74f1464814a6fcf897fb3a6bd84c7a9a9a7a5bcb8c86bda8b2fa8e74c949a8e4915b1f5dc3e9c8ab9cd98f9d513ef05a2cfb03363"
+    "sig": "030c776a9516a77808b70a31e74f1464814a6fcf897fb3a6bd84c7a9a9a7a5bcb8d8bfc2b385379c093bcc0579abc5f6f696e8f2c0c01f28ff7b5ef55397fc3c9a"
   }
 }
