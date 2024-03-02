@@ -38,6 +38,13 @@ where
         self.element
     }
 
+    /// Return the effective signing key given the specific signing parameters
+    /// to be verified against. For most ciphersuites, this simply returns the
+    /// same verifying key unchanged.
+    pub fn effective_key(self, sig_params: &C::SigningParameters) -> Self {
+        VerifyingKey::new(<C>::effective_pubkey_element(&self, sig_params))
+    }
+
     /// Check if VerifyingKey is odd
     pub fn y_is_odd(&self) -> bool {
         <C::Group as Group>::y_is_odd(&self.element)
