@@ -38,8 +38,7 @@ jobs:
         toolchain: stable
         targets: thumbv6m-none-eabi
     - run: cargo build -p frost-${{ matrix.crate }} --no-default-features --target thumbv6m-none-eabi
-    - run: cargo build -p frost-${{ matrix.crate }} --target thumbv6m-none-eabi
-    - run: cargo build -p frost-${{ matrix.crate }} --features serde --target thumbv6m-none-eabi
+    - run: cargo build -p frost-${{ matrix.crate }} --no-default-features --features serialization --target thumbv6m-none-eabi
 
   test_beta:
     name: test on beta
