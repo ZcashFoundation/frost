@@ -328,6 +328,7 @@ fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
     );
 }
 
+#[cfg(feature = "cheater-detection")]
 fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
     signing_package: frost::SigningPackage<C>,
     mut signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,

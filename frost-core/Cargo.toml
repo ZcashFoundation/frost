@@ -32,7 +32,8 @@ postcard = { version = "1.0.0", features = ["alloc"], optional = true }
 rand_core = { version = "0.6", default-features = false }
 serde = { version = "1.0.160", default-features = false, features = ["derive"], optional = true }
 serdect = { version = "0.2.0", optional = true }
-thiserror = { version = "1.0", package = "thiserror-nostd-notrait", default-features = false }
+thiserror-nostd-notrait = { version = "1.0", default-features = false }
+thiserror = { version = "1.0", default-features = false, optional = true }
 visibility = "0.1.0"
 zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
 itertools = { version = "0.12.0", default-features = false }
@@ -50,8 +51,10 @@ rand_chacha = "0.3"
 serde_json = "1.0"
 
 [features]
-default = ["serialization", "cheater-detection"]
+default = ["serialization", "cheater-detection", "std"]
 #! ## Features
+## Enable standard library support.
+std = ["dep:thiserror"]
 ## Expose internal types, which do not have SemVer guarantees. This is an advanced
 ## feature which can be useful if you need to build a modified version of FROST.
 ## The docs won't list them, you will need to check the source code.

@@ -9,7 +9,7 @@
 //! - Each participant should call [`sign`] and send the resulting
 //!   [`frost::round2::SignatureShare`] back to the Coordinator;
 //! - The Coordinator should then call [`aggregate`].
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(non_snake_case)]
 
 extern crate alloc;
@@ -22,10 +22,12 @@ use alloc::collections::BTreeMap;
 use derive_getters::Getters;
 pub use frost_core;
 
+#[cfg(feature = "serialization")]
+use frost_core::SigningPackage;
 use frost_core::{
     self as frost,
     keys::{KeyPackage, PublicKeyPackage, SigningShare, VerifyingShare},
-    Ciphersuite, Error, Field, Group, Scalar, SigningPackage, VerifyingKey,
+    Ciphersuite, Error, Field, Group, Scalar, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]
@@ -35,6 +37,7 @@ use frost_core::serialization::ScalarSerialization;
 
 // When pulled into `reddsa`, that has its own sibling `rand_core` import.
 // For the time being, we do not re-export this `rand_core`.
+#[cfg(feature = "serialization")]
 use rand_core::{CryptoRng, RngCore};
 
 /// Randomize the given key type for usage in a FROST signing with re-randomized keys,
@@ -172,6 +175,7 @@ where
     /// The [`SigningPackage`] must be the signing package being used in the
     /// current FROST signing run. It is hashed into the randomizer calculation,
     /// which binds it to that specific package.
+    #[cfg(feature = "serialization")]
     pub fn new<R: RngCore + CryptoRng>(
         mut rng: R,
         signing_package: &SigningPackage<C>,
@@ -182,6 +186,7 @@ where
 
     /// Create a final Randomizer from a random Randomizer and a SigningPackage.
     /// Function refactored out for testing, should always be private.
+    #[cfg(feature = "serialization")]
     fn from_randomizer_and_signing_package(
         rng_randomizer: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
         signing_package: &SigningPackage<C>,
@@ -269,6 +274,7 @@ where
 {
     /// Create a new [`RandomizedParams`] for the given [`VerifyingKey`] and
     /// the given `participants`.
+    #[cfg(feature = "serialization")]
     pub fn new<R: RngCore + CryptoRng>(
         group_verifying_key: &VerifyingKey<C>,
         signing_package: &SigningPackage<C>,

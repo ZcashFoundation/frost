@@ -24,8 +24,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 document-features = "0.2.7"
 ed448-goldilocks = { version = "0.9.0" }
-frost-core = { path = "../frost-core", version = "1.0.0" }
-frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
+frost-core = { path = "../frost-core", version = "1.0.0", default-features = false }
+frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0", default-features = false }
 rand_core = "0.6"
 sha3 = { version = "0.10.6", default-features = false }
 
@@ -43,15 +43,18 @@ serde_json = "1.0"
 
 [features]
 nightly = []
-default = ["serialization", "cheater-detection"]
-serialization = ["serde", "frost-core/serialization"]
+default = ["serialization", "cheater-detection", "std"]
 #! ## Features
+## Enable standard library support.
+std = ["frost-core/std"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
 serde = ["frost-core/serde"]
+## Enable a default serialization format. Enables `serde`.
+serialization = ["serde", "frost-core/serialization", "frost-rerandomized/serialization"]
 ## Enable cheater detection
-cheater-detection = ["frost-core/cheater-detection"]
+cheater-detection = ["frost-core/cheater-detection", "frost-rerandomized/cheater-detection"]
 
 [lib]
 # Disables non-criterion benchmark which is not used; prevents errors
