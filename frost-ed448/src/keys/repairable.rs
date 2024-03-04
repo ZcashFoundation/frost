@@ -4,7 +4,7 @@
 //! The RTS is used to help a signer (participant) repair their lost share. This is achieved
 //! using a subset of the other signers know here as `helpers`.
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 // This is imported separately to make `gencode` work.
 // (if it were below, the position of the import would vary between ciphersuites

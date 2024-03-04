@@ -30,7 +30,9 @@
 //! [Feldman's VSS]: https://www.cs.umd.edu/~gasarch/TOPICS/secretsharing/feldmanVSS.pdf
 //! [secure broadcast channel]: https://frost.zfnd.org/terminology.html#broadcast-channel
 
-use std::{collections::BTreeMap, iter};
+use core::iter;
+
+use alloc::collections::BTreeMap;
 
 use rand_core::{CryptoRng, RngCore};
 
@@ -38,6 +40,9 @@ use crate::{
     Challenge, Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, Signature,
     SigningKey, VerifyingKey,
 };
+
+#[cfg(feature = "serialization")]
+use crate::serialization::{Deserialize, Serialize};
 
 use super::{
     evaluate_polynomial, generate_coefficients, generate_secret_polynomial,
@@ -47,10 +52,9 @@ use super::{
 
 /// DKG Round 1 structures.
 pub mod round1 {
+    use alloc::vec::Vec;
     use derive_getters::Getters;
     use zeroize::Zeroize;
-
-    use crate::serialization::{Deserialize, Serialize};
 
     use super::*;
 
@@ -135,11 +139,11 @@ pub mod round1 {
         }
     }
 
-    impl<C> std::fmt::Debug for SecretPackage<C>
+    impl<C> core::fmt::Debug for SecretPackage<C>
     where
         C: Ciphersuite,
     {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
             f.debug_struct("SecretPackage")
                 .field("identifier", &self.identifier)
                 .field("coefficients", &"<redacted>")
@@ -167,7 +171,8 @@ pub mod round2 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
-    use crate::serialization::{Deserialize, Serialize};
+    #[cfg(feature = "serialization")]
+    use alloc::vec::Vec;
 
     use super::*;
 
@@ -239,11 +244,11 @@ pub mod round2 {
         pub(crate) max_signers: u16,
     }
 
-    impl<C> std::fmt::Debug for SecretPackage<C>
+    impl<C> core::fmt::Debug for SecretPackage<C>
     where
         C: Ciphersuite,
     {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
             f.debug_struct("SecretPackage")
                 .field("identifier", &self.identifier)
                 .field("commitment", &self.commitment)

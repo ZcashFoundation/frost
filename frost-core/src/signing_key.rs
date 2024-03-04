@@ -70,11 +70,11 @@ where
     }
 }
 
-impl<C> std::fmt::Debug for SigningKey<C>
+impl<C> core::fmt::Debug for SigningKey<C>
 where
     C: Ciphersuite,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_tuple("SigningKey").field(&"<redacted>").finish()
     }
 }

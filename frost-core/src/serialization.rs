@@ -1,6 +1,13 @@
 //! Serialization support.
 
-use crate::{Ciphersuite, Error, Field, Group};
+#[cfg(feature = "serialization")]
+use alloc::vec::Vec;
+
+#[cfg(feature = "serialization")]
+use crate::Error;
+
+#[cfg(feature = "serde")]
+use crate::{Ciphersuite, Field, Group};
 
 #[cfg(feature = "serde")]
 #[cfg_attr(feature = "internals", visibility::make(pub))]
@@ -89,6 +96,7 @@ where
 
 // The short 4-byte ID. Derived as the CRC-32 of the UTF-8
 // encoded ID in big endian format.
+#[cfg(feature = "serde")]
 const fn short_id<C>() -> [u8; 4]
 where
     C: Ciphersuite,
@@ -120,7 +128,7 @@ where
     C: Ciphersuite,
 {
     if deserializer.is_human_readable() {
-        let s: String = serde::de::Deserialize::deserialize(deserializer)?;
+        let s: alloc::string::String = serde::de::Deserialize::deserialize(deserializer)?;
         if s != C::ID {
             Err(serde::de::Error::custom("wrong ciphersuite"))
         } else {
@@ -172,13 +180,13 @@ pub(crate) trait Deserialize<C: Ciphersuite> {
     /// Deserialize the struct from a slice of bytes.
     fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>>
     where
-        Self: std::marker::Sized;
+        Self: core::marker::Sized;
 }
 
 #[cfg(feature = "serialization")]
 impl<T: serde::Serialize, C: Ciphersuite> Serialize<C> for T {
     fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
-        postcard::to_stdvec(self).map_err(|_| Error::SerializationError)
+        postcard::to_allocvec(self).map_err(|_| Error::SerializationError)
     }
 }
 

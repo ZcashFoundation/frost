@@ -1,12 +1,12 @@
 //! FROST keys, keygen, key shares
 #![allow(clippy::type_complexity)]
 
-use std::{
-    collections::{BTreeMap, BTreeSet, HashSet},
-    convert::TryFrom,
-    default::Default,
+use core::iter;
+
+use alloc::vec::Vec;
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
     fmt::{self, Debug},
-    iter,
 };
 
 use derive_getters::Getters;
@@ -17,10 +17,11 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    serialization::{Deserialize, Serialize},
-    Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, SigningKey,
-    VerifyingKey,
+    Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, SigningKey, VerifyingKey,
 };
+
+#[cfg(feature = "serialization")]
+use crate::serialization::{Deserialize, Serialize};
 
 #[cfg(feature = "serde")]
 use crate::serialization::{ElementSerialization, ScalarSerialization};
@@ -126,7 +127,7 @@ impl<C> Debug for SigningShare<C>
 where
     C: Ciphersuite,
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_tuple("SigningShare").field(&"<redacted>").finish()
     }
 }
@@ -325,7 +326,7 @@ impl<C> Debug for CoefficientCommitment<C>
 where
     C: Ciphersuite,
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_tuple("CoefficientCommitment")
             .field(&hex::encode(self.serialize()))
             .finish()
@@ -900,7 +901,7 @@ pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     let (coefficients, commitment) =
         generate_secret_polynomial(secret, max_signers, min_signers, coefficients)?;
 
-    let identifiers_set: HashSet<_> = identifiers.iter().collect();
+    let identifiers_set: BTreeSet<_> = identifiers.iter().collect();
     if identifiers_set.len() != identifiers.len() {
         return Err(Error::DuplicatedIdentifier);
     }

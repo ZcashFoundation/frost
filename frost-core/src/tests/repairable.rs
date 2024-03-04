@@ -1,6 +1,6 @@
 //! Test for Repairable Threshold Scheme
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};

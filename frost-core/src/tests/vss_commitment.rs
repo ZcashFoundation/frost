@@ -1,7 +1,5 @@
 //! VerifiableSecretSharingCommitment functions
 
-use std::convert::TryFrom;
-
 use crate::{
     keys::{CoefficientCommitment, VerifiableSecretSharingCommitment},
     tests::helpers::generate_element,

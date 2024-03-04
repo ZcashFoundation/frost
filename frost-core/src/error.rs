@@ -1,6 +1,10 @@
 //! FROST Error types
 
+#[cfg(feature = "std")]
 use thiserror::Error;
+
+#[cfg(not(feature = "std"))]
+use thiserror_nostd_notrait::Error;
 
 use crate::{Ciphersuite, Identifier};
 

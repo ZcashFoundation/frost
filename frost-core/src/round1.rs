@@ -1,10 +1,11 @@
 //! FROST Round 1 functionality and types
 
-use std::{
+use alloc::{
     collections::BTreeMap,
     fmt::{self, Debug},
 };
 
+use alloc::vec::Vec;
 use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
@@ -12,11 +13,10 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate as frost;
-use crate::{
-    serialization::{Deserialize, Serialize},
-    Ciphersuite, Element, Error, Field, Group, Header, Scalar,
-};
+use crate::{Ciphersuite, Element, Error, Field, Group, Header, Scalar};
+
+#[cfg(feature = "serialization")]
+use crate::serialization::{Deserialize, Serialize};
 
 #[cfg(feature = "serde")]
 use crate::serialization::{ElementSerialization, ScalarSerialization};
@@ -295,7 +295,7 @@ impl<C> Debug for SigningNonces<C>
 where
     C: Ciphersuite,
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SigningNonces")
             .field("hiding", &"<redacted>")
             .field("binding", &"<redacted>")
@@ -353,11 +353,12 @@ where
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
+    #[cfg(feature = "cheater-detection")]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(super) fn to_group_commitment_share(
         self,
-        binding_factor: &frost::BindingFactor<C>,
+        binding_factor: &crate::BindingFactor<C>,
     ) -> GroupCommitmentShare<C> {
         GroupCommitmentShare::<C>(self.hiding.0 + (self.binding.0 * binding_factor.0))
     }

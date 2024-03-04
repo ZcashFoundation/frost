@@ -4,6 +4,15 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* Add no-std support to all crates except frost-ed448. To use, do not enable the
+  `std` feature that is enabled by default (i.e. use `default-features =
+  false`); Note that it always links to an external `alloc` crate (i.e. there is
+  no `alloc` feature). When disabling `std`, the only impact in the API is that
+  `Error` will no longer implement the `std::error::Error` trait. This is a
+  breaking change if you are disabling default features but rely on `Error`
+  implementing `std::error::Error`. In that case, simply enable the `std`
+  feature.
+
 ## Released
 
 ## 1.0.0
