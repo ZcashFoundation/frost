@@ -65,7 +65,7 @@ internals = []
 serde = ["dep:serde", "dep:serdect"]
 serialization = ["serde", "dep:postcard"]
 # Exposes ciphersuite-generic tests for other crates to use
-test-impl = ["proptest", "serde_json", "criterion"]
+test-impl = ["dep:proptest", "dep:serde_json", "dep:criterion"]
 # Enable cheater detection
 cheater-detection = []
 
