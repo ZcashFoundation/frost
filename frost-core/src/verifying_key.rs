@@ -38,7 +38,7 @@ where
         self.element
     }
 
-    /// Return the effective signing key given the specific signing parameters
+    /// Return the effective verifying key given the specific signing parameters
     /// to be verified against. For most ciphersuites, this simply returns the
     /// same verifying key unchanged.
     pub fn effective_key(self, sig_params: &C::SigningParameters) -> Self {
