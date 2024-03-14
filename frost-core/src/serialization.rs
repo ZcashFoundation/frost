@@ -1,6 +1,10 @@
 //! Serialization support.
 
-use crate::{Ciphersuite, Error, Field, Group};
+#[cfg(feature = "serde")]
+use crate::{Ciphersuite, Field, Group};
+
+#[cfg(feature = "serialization")]
+use crate::Error;
 
 #[cfg(feature = "serde")]
 #[cfg_attr(feature = "internals", visibility::make(pub))]
@@ -89,6 +93,7 @@ where
 
 // The short 4-byte ID. Derived as the CRC-32 of the UTF-8
 // encoded ID in big endian format.
+#[cfg(feature = "serde")]
 const fn short_id<C>() -> [u8; 4]
 where
     C: Ciphersuite,
