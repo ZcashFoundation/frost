@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[cfg(feature = "serde")]
-use crate::serialization::ElementSerialization;
+use crate::serialization::*;
 use crate::util::{element_is_valid, scalar_is_valid};
 
 use super::{keys::SigningShare, Identifier};
