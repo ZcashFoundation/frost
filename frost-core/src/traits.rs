@@ -393,6 +393,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         _verifying_key: &VerifyingKey<Self>,
         _sig_params: &Self::SigningParameters,
     ) -> <Self::Group as Group>::Element {
-        verifying_share.to_element()
+        verifying_share.0
     }
 }
