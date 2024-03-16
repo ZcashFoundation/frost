@@ -4,7 +4,7 @@ use std::fmt::{self, Debug};
 
 use crate as frost;
 use crate::{
-    challenge, Challenge, Ciphersuite, Error, Field, Group, {round1, *},
+    Challenge, Ciphersuite, Error, Field, Group, {round1, *},
 };
 
 #[cfg(feature = "serde")]
@@ -83,6 +83,7 @@ where
     /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn verify(
         &self,
         identifier: Identifier<C>,
@@ -90,9 +91,16 @@ where
         verifying_share: &frost::keys::VerifyingShare<C>,
         lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
+        group_commitment: &frost::GroupCommitment<C>,
+        verifying_key: &frost::VerifyingKey<C>,
+        sig_params: &C::SigningParameters,
     ) -> Result<(), Error<C>> {
+        let commitment_share =
+            <C>::effective_commitment_share(group_commitment_share.clone(), &group_commitment);
+        let vsh = <C>::effective_verifying_share(&verifying_share, &verifying_key, &sig_params);
+
         if (<C::Group>::generator() * self.share)
-            != (group_commitment_share.0 + (verifying_share.0 * challenge.0 * lambda_i))
+            != (commitment_share + (vsh * challenge.0 * lambda_i))
         {
             return Err(Error::InvalidSignatureShare {
                 culprit: identifier,
@@ -150,9 +158,7 @@ where
 }
 
 /// Compute the signature share for a signing operation.
-#[cfg_attr(feature = "internals", visibility::make(pub))]
-#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-fn compute_signature_share<C: Ciphersuite>(
+pub fn compute_signature_share<C: Ciphersuite>(
     signer_nonces: &round1::SigningNonces<C>,
     binding_factor: BindingFactor<C>,
     lambda_i: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
@@ -214,19 +220,21 @@ pub fn sign<C: Ciphersuite>(
     let lambda_i = frost::derive_interpolating_value(key_package.identifier(), signing_package)?;
 
     // Compute the per-message challenge.
-    let challenge = challenge::<C>(
+    let challenge = <C>::challenge(
         &group_commitment.0,
         &key_package.verifying_key,
-        signing_package.message.as_slice(),
+        &signing_package.sig_target,
     );
 
     // Compute the Schnorr signature share.
-    let signature_share = compute_signature_share(
+    let signature_share = <C>::compute_signature_share(
         signer_nonces,
         binding_factor,
+        group_commitment,
         lambda_i,
         key_package,
         challenge,
+        &signing_package.sig_target.sig_params,
     );
 
     Ok(signature_share)

@@ -150,6 +150,14 @@ const CONTEXT_STRING: &str = "FROST-ED448-SHAKE256-v1";
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Ed448Shake256;
 
+/// The ciphersuite-specific signing parameters which are fed into
+/// signing code to ensure correctly compliant signatures are computed.
+pub type SigningParameters = ();
+
+/// The message target which the group's signature should commit to. Includes
+/// a message byte vector, and a set of ciphersuite-specific parameters.
+pub type SigningTarget = frost_core::SigningTarget<Ed448Shake256>;
+
 impl Ciphersuite for Ed448Shake256 {
     const ID: &'static str = CONTEXT_STRING;
 
@@ -158,6 +166,8 @@ impl Ciphersuite for Ed448Shake256 {
     type HashOutput = [u8; 114];
 
     type SignatureSerialization = [u8; 114];
+
+    type SigningParameters = ();
 
     /// H1 for FROST(Ed448, SHAKE256)
     ///

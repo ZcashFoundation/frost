@@ -22,6 +22,7 @@ use crate::{scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, *};
 pub struct Item<C: Ciphersuite> {
     vk: VerifyingKey<C>,
     sig: Signature<C>,
+    sig_params: C::SigningParameters,
     c: Challenge<C>,
 }
 
@@ -32,9 +33,15 @@ where
 {
     fn from((vk, sig, msg): (VerifyingKey<C>, Signature<C>, &'msg M)) -> Self {
         // Compute c now to avoid dependency on the msg lifetime.
-        let c = crate::challenge(&sig.R, &vk, msg.as_ref());
+        let sig_target = SigningTarget::from_message(msg);
+        let c = <C>::challenge(&sig.R, &vk, &sig_target);
 
-        Self { vk, sig, c }
+        Self {
+            vk,
+            sig,
+            sig_params: sig_target.sig_params,
+            c,
+        }
     }
 }
 
@@ -50,7 +57,8 @@ where
     /// requires borrowing the message data, the `Item` type is unlinked
     /// from the lifetime of the message.
     pub fn verify_single(self) -> Result<(), Error<C>> {
-        self.vk.verify_prehashed(self.c, &self.sig)
+        self.vk
+            .verify_prehashed(self.c, &self.sig, &self.sig_params)
     }
 }
 
@@ -118,7 +126,8 @@ where
 
         for item in self.signatures.iter() {
             let z = item.sig.z;
-            let R = item.sig.R;
+            let R = <C>::effective_nonce_element(item.sig.R);
+            let vk = <C>::effective_pubkey_element(&item.vk, &item.sig_params);
 
             let blind = <<C::Group as Group>::Field>::random(&mut rng);
 
@@ -129,7 +138,7 @@ where
             Rs.push(R);
 
             VK_coeffs.push(<<C::Group as Group>::Field>::zero() + (blind * item.c.0));
-            VKs.push(item.vk.element);
+            VKs.push(vk);
         }
 
         let scalars = once(&P_coeff_acc)

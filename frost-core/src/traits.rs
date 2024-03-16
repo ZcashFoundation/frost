@@ -7,7 +7,12 @@ use std::{
 
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{Error, FieldError, GroupError, Signature, VerifyingKey};
+use crate::{
+    challenge,
+    keys::{KeyPackage, VerifyingShare},
+    round1, round2, BindingFactor, Challenge, Error, FieldError, GroupCommitment, GroupError,
+    Signature, SigningTarget, VerifyingKey,
+};
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
 /// multiplied are defined.
@@ -39,6 +44,12 @@ pub trait Field: Copy + Clone {
     /// Computes the multiplicative inverse of an element of the scalar field, failing if the
     /// element is zero.
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError>;
+
+    /// Computes the negation of the element of the scalar field
+    #[allow(unused)]
+    fn negate(scalar: &Self::Scalar) -> Self::Scalar {
+        panic!("Not implemented");
+    }
 
     /// Generate a random scalar from the entire space [0, l-1]
     ///
@@ -113,6 +124,12 @@ pub trait Group: Copy + Clone + PartialEq {
     /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.1-3.5
     fn generator() -> Self::Element;
 
+    /// Check if element is odd
+    #[allow(unused)]
+    fn y_is_odd(element: &Self::Element) -> bool {
+        panic!("Not implemented");
+    }
+
     /// A member function of a group _G_ that maps an [`Element`] to a unique byte array buf of
     /// fixed length Ne.
     ///
@@ -131,6 +148,25 @@ pub trait Group: Copy + Clone + PartialEq {
 
 /// An element of the [`Ciphersuite`] `C`'s [`Group`].
 pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
+
+/// This is a marker trait for types which are passed in to modify the signing logic of a [`Ciphersuite`].
+///
+/// If the `serde` feature is enabled, any type implementing this trait must also implement
+/// [`serde::Serialize`] and [`serde::Deserialize`].
+#[cfg(feature = "serde")]
+pub trait SigningParameters:
+    Clone + Debug + Eq + PartialEq + Default + serde::Serialize + for<'d> serde::Deserialize<'d>
+{
+}
+
+/// This is a marker trait for types which are passed in to modify the signing logic of a [`Ciphersuite`].
+///
+/// If the `serde` feature is enabled, any type implementing this trait must also implement
+/// [`serde::Serialize`] and [`serde::Deserialize`].
+#[cfg(not(feature = "serde"))]
+pub trait SigningParameters: Clone + Debug + Eq + PartialEq + Default {}
+
+impl SigningParameters for () {}
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.
@@ -152,6 +188,10 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
     type SignatureSerialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
+
+    /// Additional parameters which should be provided to the ciphersuite's signing code
+    /// to produce an effective signature. Most ciphersuites will just set this to `()`.
+    type SigningParameters: SigningParameters;
 
     /// [H1] for a FROST ciphersuite.
     ///
@@ -220,12 +260,139 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     /// (see [`crate::batch::Verifier`]) also uses the default implementation regardless whether a
     /// tailored implementation was provided.
     fn verify_signature(
-        msg: &[u8],
+        sig_target: &SigningTarget<Self>,
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
     ) -> Result<(), Error<Self>> {
-        let c = crate::challenge::<Self>(&signature.R, public_key, msg);
+        let c = <Self>::challenge(&signature.R, public_key, sig_target);
 
-        public_key.verify_prehashed(c, signature)
+        public_key.verify_prehashed(c, signature, &sig_target.sig_params)
+    }
+
+    /// Generates the challenge as is required for Schnorr signatures.
+    ///
+    /// Deals in bytes, so that [FROST] and singleton signing and verification can use it with different
+    /// types.
+    ///
+    /// This is the only invocation of the H2 hash function from the [RFC].
+    ///
+    /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-challenge-computa
+    /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.2
+    fn challenge(
+        R: &Element<Self>,
+        verifying_key: &VerifyingKey<Self>,
+        sig_target: &SigningTarget<Self>,
+    ) -> Challenge<Self> {
+        challenge(R, verifying_key, &sig_target.message)
+    }
+
+    /// Finalize an aggregated group signature. This is used by frost-sepc256k1-tr
+    /// to ensure the signature is valid under BIP340.
+    fn aggregate_sig_finalize(
+        z: <<Self::Group as Group>::Field as Field>::Scalar,
+        R: Element<Self>,
+        _verifying_key: &VerifyingKey<Self>,
+        _sig_target: &SigningTarget<Self>,
+    ) -> Signature<Self> {
+        Signature { R, z }
+    }
+
+    /// Finalize and output a single-signer Schnorr signature.
+    fn single_sig_finalize(
+        k: <<Self::Group as Group>::Field as Field>::Scalar,
+        R: Element<Self>,
+        secret: <<Self::Group as Group>::Field as Field>::Scalar,
+        challenge: &Challenge<Self>,
+        _verifying_key: &VerifyingKey<Self>,
+        _sig_params: &Self::SigningParameters,
+    ) -> Signature<Self> {
+        let z = k + (challenge.0 * secret);
+        Signature { R, z }
+    }
+
+    /// Compute the signature share for a particular signer on a given challenge.
+    fn compute_signature_share(
+        signer_nonces: &round1::SigningNonces<Self>,
+        binding_factor: BindingFactor<Self>,
+        _group_commitment: GroupCommitment<Self>,
+        lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
+        key_package: &KeyPackage<Self>,
+        challenge: Challenge<Self>,
+        _sig_params: &Self::SigningParameters,
+    ) -> round2::SignatureShare<Self> {
+        round2::compute_signature_share(
+            signer_nonces,
+            binding_factor,
+            lambda_i,
+            key_package,
+            challenge,
+        )
+    }
+
+    /// Compute the effective group element which should be used for signature operations
+    /// for the given verifying key.
+    ///
+    /// In frost-sepc256k1-tr, this is used to commit the key to taptree merkle root hashes.
+    fn effective_pubkey_element(
+        verifying_key: &VerifyingKey<Self>,
+        _sig_params: &Self::SigningParameters,
+    ) -> <Self::Group as Group>::Element {
+        verifying_key.to_element()
+    }
+
+    /// Compute the effective nonce element which should be used for signature operations.
+    ///
+    /// In frost-sepc256k1-tr, this negates the nonce if it has an odd parity.
+    fn effective_nonce_element(
+        R: <Self::Group as Group>::Element,
+    ) -> <Self::Group as Group>::Element {
+        R
+    }
+
+    /// Compute the effective secret key which should be used for signature operations
+    /// for the given verifying key.
+    ///
+    /// In frost-sepc256k1-tr, this is used to commit the key to taptree merkle root hashes.
+    fn effective_secret_key(
+        secret: <<Self::Group as Group>::Field as Field>::Scalar,
+        _public: &VerifyingKey<Self>,
+        _sig_params: &Self::SigningParameters,
+    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        secret
+    }
+
+    /// Compute the effective nonce secret which should be used for signature operations.
+    ///
+    /// In frost-sepc256k1-tr, this negates the nonce if it has an odd parity.
+    fn effective_nonce_secret(
+        nonce: <<Self::Group as Group>::Field as Field>::Scalar,
+        _R: &Element<Self>,
+    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
+        nonce
+    }
+
+    /// Compute the effective nonce commitment share which should be used for
+    /// FROST signing.
+    ///
+    /// In frost-sepc256k1-tr, this negates the commitment share if the group's final
+    /// commitment has an odd parity.
+    fn effective_commitment_share(
+        group_commitment_share: round1::GroupCommitmentShare<Self>,
+        _group_commitment: &GroupCommitment<Self>,
+    ) -> <Self::Group as Group>::Element {
+        group_commitment_share.to_element()
+    }
+
+    /// Compute the effective verifying share which should be used for FROST
+    /// partial signature verification.
+    ///
+    /// In frost-sepc256k1-tr, this negates the verifying share if the group's final
+    /// verifying key has an odd parity.
+    fn effective_verifying_share(
+        verifying_share: &VerifyingShare<Self>,
+        _verifying_key: &VerifyingKey<Self>,
+        _sig_params: &Self::SigningParameters,
+    ) -> <Self::Group as Group>::Element {
+        verifying_share.0
     }
 }
