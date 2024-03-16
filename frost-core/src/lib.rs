@@ -646,7 +646,7 @@ where
     // Verify the aggregate signature
     let verification_result = pubkeys
         .verifying_key
-        .verify(signing_package.message(), &signature);
+        .verify(signing_package.sig_target.clone(), &signature);
 
     // Only if the verification of the aggregate signature failed; verify each share to find the cheater.
     // This approach is more efficient since we don't need to verify all shares
