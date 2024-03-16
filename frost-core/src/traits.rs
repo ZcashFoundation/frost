@@ -264,7 +264,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
     ) -> Result<(), Error<Self>> {
-        let sig_target = sig_target.into();
         let c = <Self>::challenge(&signature.R, public_key, sig_target);
 
         public_key.verify_prehashed(c, signature, &sig_target.sig_params)
