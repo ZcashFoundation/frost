@@ -4,6 +4,12 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 1.0.1
+
+* Fixed `no-default-features`, previously it wouldn't compile.
+* Fixed some feature handling that would include unneeded dependencies in some
+  cases.
+
 ## Released
 
 ## 1.0.0
