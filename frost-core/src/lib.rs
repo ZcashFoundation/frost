@@ -153,7 +153,7 @@ struct Header<C: Ciphersuite> {
         serde(deserialize_with = "crate::serialization::ciphersuite_deserialize::<_, C>")
     )]
     ciphersuite: (),
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     phantom: PhantomData<C>,
 }
 

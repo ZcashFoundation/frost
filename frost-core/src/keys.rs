@@ -17,13 +17,14 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    serialization::{Deserialize, Serialize},
-    Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, SigningKey,
-    VerifyingKey,
+    Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, SigningKey, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]
 use crate::serialization::{ElementSerialization, ScalarSerialization};
+
+#[cfg(feature = "serialization")]
+use crate::serialization::{Deserialize, Serialize};
 
 use super::compute_lagrange_coefficient;
 
