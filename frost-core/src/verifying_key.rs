@@ -76,7 +76,7 @@ where
         //                 h * ( z * B - c * A - R) == 0
         //
         // where h is the cofactor
-        let R = C::effective_nonce_element(signature.R);
+        let R = signature.R;
         let vk = C::effective_pubkey_element(&self, sig_params);
 
         let zB = C::Group::generator() * signature.z;

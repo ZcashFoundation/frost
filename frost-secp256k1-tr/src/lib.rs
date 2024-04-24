@@ -389,7 +389,6 @@ impl Ciphersuite for Secp256K1Sha256 {
         } else {
             k + (c * secret)
         };
-
         Signature::new(R, z)
     }
 

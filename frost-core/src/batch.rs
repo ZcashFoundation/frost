@@ -126,7 +126,7 @@ where
 
         for item in self.signatures.iter() {
             let z = item.sig.z;
-            let R = <C>::effective_nonce_element(item.sig.R);
+            let R = item.sig.R;
             let vk = <C>::effective_pubkey_element(&item.vk, &item.sig_params);
 
             let blind = <<C::Group as Group>::Field>::random(&mut rng);

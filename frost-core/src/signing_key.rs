@@ -58,8 +58,9 @@ where
         let secret = <C>::effective_secret_key(self.scalar, &public, &sig_target.sig_params);
 
         let mut k = random_nonzero::<C, R>(&mut rng);
-        let R = <C::Group>::generator() * k;
+        let mut R = <C::Group>::generator() * k;
         k = <C>::effective_nonce_secret(k, &R);
+        R = <C>::effective_nonce_element(R);
 
         // Generate Schnorr challenge
         let c: Challenge<C> = <C>::challenge(&R, &public, &sig_target);

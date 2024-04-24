@@ -623,6 +623,7 @@ where
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
+    let R = <C>::effective_nonce_element(group_commitment.0);
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
@@ -636,12 +637,8 @@ where
         z = z + signature_share.share;
     }
 
-    let signature: Signature<C> = <C>::aggregate_sig_finalize(
-        z,
-        group_commitment.0,
-        &pubkeys.verifying_key,
-        &signing_package.sig_target,
-    );
+    let signature: Signature<C> =
+        <C>::aggregate_sig_finalize(z, R, &pubkeys.verifying_key, &signing_package.sig_target);
 
     // Verify the aggregate signature
     let verification_result = pubkeys
@@ -654,11 +651,7 @@ where
     #[cfg(feature = "cheater-detection")]
     if let Err(err) = verification_result {
         // Compute the per-message challenge.
-        let challenge = <C>::challenge(
-            &group_commitment.0,
-            &pubkeys.verifying_key,
-            &signing_package.sig_target,
-        );
+        let challenge = <C>::challenge(&R, &pubkeys.verifying_key, &signing_package.sig_target);
 
         // Verify the signature shares.
         for (signature_share_identifier, signature_share) in signature_shares {
