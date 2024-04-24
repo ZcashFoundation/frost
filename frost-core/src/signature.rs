@@ -1,6 +1,5 @@
 //! Schnorr signatures over prime order groups (or subgroups)
 
-use debugless_unwrap::DebuglessUnwrap;
 use derive_getters::Getters;
 
 use crate::{Ciphersuite, Element, Error, Field, Group, Scalar};
@@ -32,53 +31,12 @@ where
 
     /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
     pub fn deserialize(bytes: C::SignatureSerialization) -> Result<Self, Error<C>> {
-        // To compute the expected length of the encoded point, encode the generator
-        // and get its length. Note that we can't use the identity because it can be encoded
-        // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
-        let generator = <C::Group>::generator();
-        let mut R_bytes = Vec::from(<C::Group>::serialize(&generator).as_ref());
-
-        let R_bytes_len = R_bytes.len();
-
-        R_bytes[..].copy_from_slice(
-            bytes
-                .as_ref()
-                .get(0..R_bytes_len)
-                .ok_or(Error::MalformedSignature)?,
-        );
-
-        let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
-
-        let one = <<C::Group as Group>::Field as Field>::zero();
-        let mut z_bytes =
-            Vec::from(<<C::Group as Group>::Field as Field>::serialize(&one).as_ref());
-
-        let z_bytes_len = z_bytes.len();
-
-        // We extract the exact length of bytes we expect, not just the remaining bytes with `bytes[R_bytes_len..]`
-        z_bytes[..].copy_from_slice(
-            bytes
-                .as_ref()
-                .get(R_bytes_len..R_bytes_len + z_bytes_len)
-                .ok_or(Error::MalformedSignature)?,
-        );
-
-        let z_serialization = &z_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
-
-        Ok(Self {
-            R: <C::Group>::deserialize(R_serialization)?,
-            z: <<C::Group as Group>::Field>::deserialize(z_serialization)?,
-        })
+        C::deserialize_signature(bytes)
     }
 
     /// Converts this signature to its [`Ciphersuite::SignatureSerialization`] in bytes.
     pub fn serialize(&self) -> C::SignatureSerialization {
-        let mut bytes = vec![];
-
-        bytes.extend(<C::Group>::serialize(&self.R).as_ref());
-        bytes.extend(<<C::Group as Group>::Field>::serialize(&self.z).as_ref());
-
-        bytes.try_into().debugless_unwrap()
+        C::serialize_signature(self)
     }
 }
 

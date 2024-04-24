@@ -23,7 +23,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 document-features = "0.2.7"
-frost-core = { path = "../frost-core", version = "1.0.0" }
+frost-core = { path = "../frost-core", version = "1.0.0", features = ["internals"] }
 frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
 serde = { version = "1.0.160", features = ["derive"], optional = true }

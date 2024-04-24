@@ -227,7 +227,13 @@ fn main() -> ExitCode {
         &std::fs::read_to_string(format!("{original_folder}/tests/helpers/samples.json")).unwrap(),
     )
     .unwrap();
-    for key in &["identifier", "element1", "element2", "scalar1"] {
+    for key in &[
+        "identifier",
+        "proof_of_knowledge",
+        "element1",
+        "element2",
+        "scalar1",
+    ] {
         original_strings.push(samples[key].as_str().unwrap().to_owned());
     }
     let original_strings: Vec<&str> = original_strings.iter().map(|s| s.as_ref()).collect();
@@ -313,7 +319,13 @@ fn main() -> ExitCode {
             &std::fs::read_to_string(format!("{folder}/tests/helpers/samples.json")).unwrap(),
         )
         .unwrap();
-        for key in &["identifier", "element1", "element2", "scalar1"] {
+        for key in &[
+            "identifier",
+            "proof_of_knowledge",
+            "element1",
+            "element2",
+            "scalar1",
+        ] {
             replacement_strings.push(samples[key].as_str().unwrap().to_owned());
         }
         let replacement_strings: Vec<&str> =

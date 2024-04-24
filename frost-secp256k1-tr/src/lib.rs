@@ -271,7 +271,7 @@ impl Ciphersuite for Secp256K1Sha256 {
 
     type HashOutput = [u8; 32];
 
-    type SignatureSerialization = [u8; 65];
+    type SignatureSerialization = [u8; 64];
 
     type SigningParameters = SigningParameters;
 
@@ -390,6 +390,36 @@ impl Ciphersuite for Secp256K1Sha256 {
             k + (c * secret)
         };
         Signature::new(R, z)
+    }
+
+    /// Serialize a signature in compact BIP340 format, with an x-only R point.
+    fn serialize_signature(signature: &Signature) -> Self::SignatureSerialization {
+        let R_bytes = Self::Group::serialize(signature.R());
+        let z_bytes = <Self::Group as Group>::Field::serialize(signature.z());
+
+        let mut bytes = [0u8; 64];
+        bytes[..32].copy_from_slice(&R_bytes[1..]);
+        bytes[32..].copy_from_slice(&z_bytes);
+        bytes
+    }
+
+    /// Deserialize a signature in compact BIP340 format, with an x-only R point.
+    fn deserialize_signature(bytes: Self::SignatureSerialization) -> Result<Signature, Error> {
+        if bytes.len() != 64 {
+            return Err(Error::MalformedSignature);
+        }
+
+        let mut R_bytes = [0u8; 33];
+        R_bytes[0] = 0x02; // taproot signatures always have an even R point
+        R_bytes[1..].copy_from_slice(&bytes[..32]);
+
+        let mut z_bytes = [0u8; 32];
+        z_bytes.copy_from_slice(&bytes[32..]);
+
+        let R = Self::Group::deserialize(&R_bytes)?;
+        let z = <Self::Group as Group>::Field::deserialize(&z_bytes)?;
+
+        Ok(Signature::new(R, z))
     }
 
     /// Compute a signature share, negating if required by BIP340.

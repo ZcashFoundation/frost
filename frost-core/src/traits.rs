@@ -5,6 +5,7 @@ use std::{
     ops::{Add, Mul, Sub},
 };
 
+use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
@@ -308,6 +309,63 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
     ) -> Signature<Self> {
         let z = k + (challenge.0 * secret);
         Signature { R, z }
+    }
+
+    /// Converts a signature to its [`Ciphersuite::SignatureSerialization`] in bytes.
+    ///
+    /// The default implementation serializes a signature by serializing its `R` point and
+    /// `z` component independently, and then concatenating them.
+    fn serialize_signature(signature: &Signature<Self>) -> Self::SignatureSerialization {
+        let mut bytes = vec![];
+        bytes.extend(<Self::Group>::serialize(&signature.R).as_ref());
+        bytes.extend(<<Self::Group as Group>::Field>::serialize(&signature.z).as_ref());
+        bytes.try_into().debugless_unwrap()
+    }
+
+    /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
+    ///
+    /// The default implementation assumes the serialization is a serialized `R` point
+    /// followed by a serialized `z` component with no padding or extra fields.
+    fn deserialize_signature(
+        bytes: Self::SignatureSerialization,
+    ) -> Result<Signature<Self>, Error<Self>> {
+        // To compute the expected length of the encoded point, encode the generator
+        // and get its length. Note that we can't use the identity because it can be encoded
+        // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
+        let generator = <Self::Group>::generator();
+        let mut R_bytes = Vec::from(<Self::Group>::serialize(&generator).as_ref());
+
+        let R_bytes_len = R_bytes.len();
+
+        R_bytes[..].copy_from_slice(
+            bytes
+                .as_ref()
+                .get(0..R_bytes_len)
+                .ok_or(Error::MalformedSignature)?,
+        );
+
+        let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
+
+        let one = <<Self::Group as Group>::Field as Field>::zero();
+        let mut z_bytes =
+            Vec::from(<<Self::Group as Group>::Field as Field>::serialize(&one).as_ref());
+
+        let z_bytes_len = z_bytes.len();
+
+        // We extract the exact length of bytes we expect, not just the remaining bytes with `bytes[R_bytes_len..]`
+        z_bytes[..].copy_from_slice(
+            bytes
+                .as_ref()
+                .get(R_bytes_len..R_bytes_len + z_bytes_len)
+                .ok_or(Error::MalformedSignature)?,
+        );
+
+        let z_serialization = &z_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
+
+        Ok(Signature {
+            R: <Self::Group>::deserialize(R_serialization)?,
+            z: <<Self::Group as Group>::Field>::deserialize(z_serialization)?,
+        })
     }
 
     /// Compute the signature share for a particular signer on a given challenge.
