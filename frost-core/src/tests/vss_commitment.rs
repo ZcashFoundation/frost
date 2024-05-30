@@ -29,7 +29,7 @@ pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mu
 
     //    ---
 
-    let expected = vec![
+    let expected = [
         <C::Group>::serialize(&input_1),
         <C::Group>::serialize(&input_2),
         <C::Group>::serialize(&input_3),

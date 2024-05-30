@@ -58,6 +58,9 @@ pub mod round1 {
 
     use super::*;
 
+    #[cfg(feature = "serialization")]
+    use crate::serialization::{Deserialize, Serialize};
+
     /// The package that must be broadcast by each participant to all other participants
     /// between the first and second parts of the DKG protocol (round 1).
     #[derive(Clone, Debug, PartialEq, Eq, Getters)]
@@ -171,6 +174,7 @@ pub mod round2 {
     use derive_getters::Getters;
     use zeroize::Zeroize;
 
+    #[cfg(feature = "serialization")]
     #[cfg(feature = "serialization")]
     use alloc::vec::Vec;
 

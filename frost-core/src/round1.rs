@@ -15,11 +15,11 @@ use zeroize::Zeroize;
 
 use crate::{Ciphersuite, Element, Error, Field, Group, Header, Scalar};
 
-#[cfg(feature = "serialization")]
-use crate::serialization::{Deserialize, Serialize};
-
 #[cfg(feature = "serde")]
 use crate::serialization::{ElementSerialization, ScalarSerialization};
+
+#[cfg(feature = "serialization")]
+use crate::serialization::{Deserialize, Serialize};
 
 use super::{keys::SigningShare, Identifier};
 
@@ -353,7 +353,6 @@ where
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
-    #[cfg(feature = "cheater-detection")]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(super) fn to_group_commitment_share(
