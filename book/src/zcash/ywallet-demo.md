@@ -199,7 +199,7 @@ the session ID:
 cargo run --bin participant --features redpallas -- --cli --key-package key-package-2.json -s <SESSION_ID>
 ```
 
-Go back to ther Coordinator CLI:
+Go back to the Coordinator CLI:
 
 - When prompted for the message to be signed, paste the SIGHASH printed by the
   signer above (just the hex value, e.g.
