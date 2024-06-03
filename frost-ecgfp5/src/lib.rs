@@ -7,30 +7,31 @@
 
 use std::collections::BTreeMap;
 
-use plonky2_ecgfp5::curve::scalar_field::Scalar;
+use frost_rerandomized::RandomizedCiphersuite;
+use plonky2_ecgfp5::curve::{curve::Point, scalar_field::Scalar};
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
-
+use plonky2_field::types::{Field, Sample};
 use frost_core as frost;
 
 #[cfg(test)]
 mod tests;
 
 // Re-exports in our public API
-pub use frost_core::{serde, Ciphersuite, Field, FieldError, Group, GroupError};
+pub use frost_core::{serde, Ciphersuite, Field as FrostField, FieldError, Group, GroupError};
 pub use rand_core;
 
 /// An error.
-pub type Error = frost_core::Error<Secp256K1Sha256>;
+pub type Error = frost_core::Error<EcGFp5Poseidon256>;
 
-/// An implementation of the FROST(secp256k1, SHA-256) ciphersuite scalar field.
+/// An implementation of the FROST(ecGFp5, Poseidon-256) ciphersuite scalar field.
 #[derive(Clone, Copy)]
-pub struct Secp256K1ScalarField;
+pub struct EcGFp5ScalarField;
 
-impl Field for Secp256K1ScalarField {
+impl FrostField for EcGFp5ScalarField {
     type Scalar = Scalar;
 
-    type Serialization = [u8; 32];
+    type Serialization = [u8; 40];
 
     fn zero() -> Self::Scalar {
         Scalar::ZERO
@@ -41,101 +42,64 @@ impl Field for Secp256K1ScalarField {
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
-        // [`Scalar`]'s Eq/PartialEq does a constant-time comparison
-        if *scalar == <Self as Field>::zero() {
-            Err(FieldError::InvalidZeroScalar)
-        } else {
-            Ok(scalar.invert().unwrap())
-        }
+        scalar.try_inverse().ok_or(FieldError::InvalidZeroScalar)
     }
 
     fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
-        Scalar::random(rng)
+        Scalar::sample(rng)
     }
 
+    /// Little endian
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
-        scalar.to_bytes().into()
+        scalar.encode()
     }
 
+    /// Little endian
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
-        let field_bytes: &k256::FieldBytes = buf.into();
-        match Scalar::from_repr(*field_bytes).into() {
-            Some(s) => Ok(s),
-            None => Err(FieldError::MalformedScalar),
+        match buf.len() {
+            40 => {
+                Ok(Scalar::from_noncanonical_bytes(buf))
+            }
+            _ => Err(FieldError::MalformedScalar),
         }
     }
 
     fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization {
-        let mut array = Self::serialize(scalar);
-        array.reverse();
-        array
+        scalar.encode()
     }
 }
 
-/// An implementation of the FROST(secp256k1, SHA-256) ciphersuite group.
+/// An implementation of the FROST(ecGFp5, Poseidon-256) ciphersuite group.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Secp256K1Group;
+pub struct EcGFp5Group;
 
-impl Group for Secp256K1Group {
-    type Field = Secp256K1ScalarField;
+impl Group for EcGFp5Group {
+    type Field = EcGFp5ScalarField;
 
-    type Element = ProjectivePoint;
+    type Element = Point;
 
-    /// [SEC 1][1] serialization of a compressed point in secp256k1 takes 33 bytes
-    /// (1-byte prefix and 32 bytes for the coordinate).
-    ///
-    /// Note that, in the SEC 1 spec, the identity is encoded as a single null byte;
-    /// but here we pad with zeroes. This is acceptable as the identity _should_ never
-    /// be serialized in FROST, else we error.
-    ///
-    /// [1]: https://secg.org/sec1-v2.pdf
-    type Serialization = [u8; 33];
+    type Serialization = [u8; 40];
 
-    fn cofactor() -> <Self::Field as Field>::Scalar {
+    fn cofactor() -> <Self::Field as FrostField>::Scalar {
         Scalar::ONE
     }
 
     fn identity() -> Self::Element {
-        ProjectivePoint::IDENTITY
+        Point::NEUTRAL
     }
 
     fn generator() -> Self::Element {
-        ProjectivePoint::GENERATOR
+        Point::GENERATOR
     }
 
     fn serialize(element: &Self::Element) -> Self::Serialization {
-        let mut fixed_serialized = [0; 33];
-        let serialized_point = element.to_affine().to_encoded_point(true);
-        let serialized = serialized_point.as_bytes();
-        // Sanity check; either it takes all bytes or a single byte (identity).
-        assert!(serialized.len() == fixed_serialized.len() || serialized.len() == 1);
-        // Copy to the left of the buffer (i.e. pad the identity with zeroes).
-        // Note that identity elements shouldn't be serialized in FROST, but we
-        // do this padding so that this function doesn't have to return an error.
-        // If this encodes the identity, it will fail when deserializing.
-        {
-            let (left, _right) = fixed_serialized.split_at_mut(serialized.len());
-            left.copy_from_slice(serialized);
-        }
-        fixed_serialized
+        element.to_le_bytes()
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
-        let encoded_point =
-            k256::EncodedPoint::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
-
-        match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
-            Some(point) => {
-                if point.is_identity().into() {
-                    // This is actually impossible since the identity is encoded a a single byte
-                    // which will never happen since we receive a 33-byte buffer.
-                    // We leave the check for consistency.
-                    Err(GroupError::InvalidIdentityElement)
-                } else {
-                    Ok(ProjectivePoint::from(point))
-                }
-            }
-            None => Err(GroupError::MalformedElement),
+        match buf.len() {
+            40 => Point::from_le_bytes(*buf).ok_or(GroupError::MalformedElement),
+            _ => Err(GroupError::MalformedElement),
         }
     }
 }
@@ -151,7 +115,7 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
 }
 
 fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
-    let mut u = [Secp256K1ScalarField::zero()];
+    let mut u = [EcGFp5ScalarField::zero()];
     hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], &[domain], &mut u)
         .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]
@@ -164,12 +128,12 @@ const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-v1";
 
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Secp256K1Sha256;
+pub struct EcGFp5Poseidon256;
 
-impl Ciphersuite for Secp256K1Sha256 {
+impl Ciphersuite for EcGFp5Poseidon256 {
     const ID: &'static str = CONTEXT_STRING;
 
-    type Group = Secp256K1Group;
+    type Group = EcGFp5Group;
 
     type HashOutput = [u8; 32];
 
@@ -227,7 +191,7 @@ impl Ciphersuite for Secp256K1Sha256 {
     }
 }
 
-impl RandomizedCiphersuite for Secp256K1Sha256 {
+impl RandomizedCiphersuite for EcGFp5Poseidon256 {
     fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "randomizer").as_bytes(),
@@ -236,7 +200,7 @@ impl RandomizedCiphersuite for Secp256K1Sha256 {
     }
 }
 
-type S = Secp256K1Sha256;
+type S = EcGFp5Poseidon256;
 
 /// A FROST(secp256k1, SHA-256) participant identifier.
 pub type Identifier = frost::Identifier<S>;

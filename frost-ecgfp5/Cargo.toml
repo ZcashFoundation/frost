@@ -30,6 +30,7 @@ k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2cur
 rand_core = "0.6"
 sha2 = "0.10.2"
 plonky2_ecgfp5 = { git = "https://github.com/okx/plonky2-ecgfp5" }
+plonky2_field = { git = "https://github.com/okx/plonky2", branch = "dev-cliff-upgrade-v0.2.0" }
 
 
 [dev-dependencies]
