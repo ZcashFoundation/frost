@@ -29,8 +29,10 @@ frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
 rand_core = "0.6"
 sha2 = "0.10.2"
-plonky2_ecgfp5 = { git = "https://github.com/okx/plonky2-ecgfp5" }
+plonky2_ecgfp5 = { path = "../../../plonky2-ecgfp5" }
 plonky2_field = { git = "https://github.com/okx/plonky2", branch = "dev-cliff-upgrade-v0.2.0" }
+hbs-lms = { path = "../../../plonky2-lms" }
+plonky2 = { git = "https://github.com/okx/plonky2", branch = "dev-cliff-upgrade-v0.2.0" }
 
 
 [dev-dependencies]

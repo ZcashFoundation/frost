@@ -7,12 +7,18 @@
 
 use std::collections::BTreeMap;
 
+use frost_core::{self as frost};
 use frost_rerandomized::RandomizedCiphersuite;
+use hbs_lms::{hasher::poseidon256::u8_to_f, HashChain, Poseidon256_256};
 use plonky2_ecgfp5::curve::{curve::Point, scalar_field::Scalar};
+use plonky2_field::{
+    goldilocks_field::GoldilocksField,
+    types::{Field, PrimeField64, Sample},
+};
 use rand_core::{CryptoRng, RngCore};
-use sha2::{Digest, Sha256};
-use plonky2_field::types::{Field, Sample};
-use frost_core as frost;
+use sha2::digest::DynDigest;
+
+use plonky2::hash::{hashing::hash_n_to_m_no_pad, poseidon::PoseidonPermutation};
 
 #[cfg(test)]
 mod tests;
@@ -57,9 +63,7 @@ impl FrostField for EcGFp5ScalarField {
     /// Little endian
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         match buf.len() {
-            40 => {
-                Ok(Scalar::from_noncanonical_bytes(buf))
-            }
+            40 => Ok(Scalar::from_noncanonical_bytes(buf)),
             _ => Err(FieldError::MalformedScalar),
         }
     }
@@ -105,26 +109,39 @@ impl Group for EcGFp5Group {
 }
 
 fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
-    let mut h = Sha256::new();
-    for i in inputs {
-        h.update(i);
-    }
-    let mut output = [0u8; 32];
-    output.copy_from_slice(h.finalize().as_slice());
-    output
+    // TODO: implement poseidon-256 hasher: &u8 -> &u8
+    let mut hasher: Poseidon256_256 = Default::default();
+    inputs.iter().for_each(|input| {
+        hasher.update(input);
+    });
+    hasher
+        .finalize()
+        .to_vec()
+        .try_into()
+        .expect("hash output is 32 bytes")
 }
 
 fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
-    let mut u = [EcGFp5ScalarField::zero()];
-    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], &[domain], &mut u)
-        .expect("should never return error according to error cases described in ExpandMsgXmd");
-    u[0]
+    let input = {
+        let mut f_domain = u8_to_f(domain);
+        let f_msg = u8_to_f(msg);
+        f_domain.extend(f_msg);
+        f_domain
+    };
+    let output: Vec<u64> = hash_n_to_m_no_pad::<
+        GoldilocksField,
+        PoseidonPermutation<GoldilocksField>,
+    >(input.as_slice(), 5)
+    .iter()
+    .map(|x| x.to_canonical_u64())
+    .collect();
+    Scalar(output.try_into().unwrap())
 }
 
 /// Context string from the ciphersuite in the [spec].
 ///
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-1
-const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-v1";
+const CONTEXT_STRING: &str = "FROST-ECGFP5-POSEIDON256-v1";
 
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -142,21 +159,21 @@ impl Ciphersuite for EcGFp5Poseidon256 {
     /// H1 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.1
-    fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+    fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as FrostField>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "rho").as_bytes(), m)
     }
 
     /// H2 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.2
-    fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+    fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as FrostField>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "chal").as_bytes(), m)
     }
 
     /// H3 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.3
-    fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
+    fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as FrostField>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "nonce").as_bytes(), m)
     }
 
@@ -175,7 +192,7 @@ impl Ciphersuite for EcGFp5Poseidon256 {
     }
 
     /// HDKG for FROST(secp256k1, SHA-256)
-    fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+    fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as FrostField>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "dkg").as_bytes(),
             m,
@@ -183,7 +200,7 @@ impl Ciphersuite for EcGFp5Poseidon256 {
     }
 
     /// HID for FROST(secp256k1, SHA-256)
-    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as FrostField>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "id").as_bytes(),
             m,
@@ -192,7 +209,7 @@ impl Ciphersuite for EcGFp5Poseidon256 {
 }
 
 impl RandomizedCiphersuite for EcGFp5Poseidon256 {
-    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
+    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as FrostField>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "randomizer").as_bytes(),
             m,
