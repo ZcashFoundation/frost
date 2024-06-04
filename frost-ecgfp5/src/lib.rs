@@ -101,8 +101,8 @@ impl Group for EcGFp5Group {
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
-        match buf.len() {
-            40 => Point::from_le_bytes(*buf).ok_or(GroupError::MalformedElement),
+        match Point::from_le_bytes(*buf) {
+            Some(point) if point != Self::identity() => Ok(point),
             _ => Err(GroupError::MalformedElement),
         }
     }
@@ -121,6 +121,7 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
         .expect("hash output is 32 bytes")
 }
 
+/// TODO: Output Scalar should be close to uniform distribution.
 fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
     let input = {
         let mut f_domain = u8_to_f(domain);
@@ -128,14 +129,15 @@ fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
         f_domain.extend(f_msg);
         f_domain
     };
-    let output: Vec<u64> = hash_n_to_m_no_pad::<
+    let output: Vec<u8> = hash_n_to_m_no_pad::<
         GoldilocksField,
         PoseidonPermutation<GoldilocksField>,
     >(input.as_slice(), 5)
     .iter()
-    .map(|x| x.to_canonical_u64())
+    .map(|x| x.to_canonical_u64().to_le_bytes())
+    .flatten()
     .collect();
-    Scalar(output.try_into().unwrap())
+    Scalar::from_noncanonical_bytes(output.as_ref())
 }
 
 /// Context string from the ciphersuite in the [spec].
@@ -143,7 +145,7 @@ fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
 /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-1
 const CONTEXT_STRING: &str = "FROST-ECGFP5-POSEIDON256-v1";
 
-/// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
+/// An implementation of the FROST(ecGFp5, Poseidon-256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct EcGFp5Poseidon256;
 
@@ -154,44 +156,34 @@ impl Ciphersuite for EcGFp5Poseidon256 {
 
     type HashOutput = [u8; 32];
 
-    type SignatureSerialization = [u8; 65];
+    type SignatureSerialization = [u8; 80];
 
-    /// H1 for FROST(secp256k1, SHA-256)
-    ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.1
+    /// H1 for FROST(ecGFp5, Poseidon-256)
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "rho").as_bytes(), m)
     }
 
-    /// H2 for FROST(secp256k1, SHA-256)
-    ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.2
+    /// H2 for FROST(ecGFp5, Poseidon-256)
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "chal").as_bytes(), m)
     }
 
-    /// H3 for FROST(secp256k1, SHA-256)
-    ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.3
+    /// H3 for FROST(ecGFp5, Poseidon-256)
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "nonce").as_bytes(), m)
     }
 
-    /// H4 for FROST(secp256k1, SHA-256)
-    ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.4
+    /// H4 for FROST(ecGFp5, Poseidon-256)
     fn H4(m: &[u8]) -> Self::HashOutput {
         hash_to_array(&[CONTEXT_STRING.as_bytes(), b"msg", m])
     }
 
-    /// H5 for FROST(secp256k1, SHA-256)
-    ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.5
+    /// H5 for FROST(ecGFp5, Poseidon-256)
     fn H5(m: &[u8]) -> Self::HashOutput {
         hash_to_array(&[CONTEXT_STRING.as_bytes(), b"com", m])
     }
 
-    /// HDKG for FROST(secp256k1, SHA-256)
+    /// HDKG for FROST(ecGFp5, Poseidon-256)
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "dkg").as_bytes(),
@@ -199,7 +191,7 @@ impl Ciphersuite for EcGFp5Poseidon256 {
         ))
     }
 
-    /// HID for FROST(secp256k1, SHA-256)
+    /// HID for FROST(ecGFp5, Poseidon-256)
     fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "id").as_bytes(),
@@ -219,10 +211,10 @@ impl RandomizedCiphersuite for EcGFp5Poseidon256 {
 
 type S = EcGFp5Poseidon256;
 
-/// A FROST(secp256k1, SHA-256) participant identifier.
+/// A FROST(ecGFp5, Poseidon-256) participant identifier.
 pub type Identifier = frost::Identifier<S>;
 
-/// FROST(secp256k1, SHA-256) keys, key generation, key shares.
+/// FROST(ecGFp5, Poseidon-256) keys, key generation, key shares.
 pub mod keys {
     use super::*;
     use std::collections::BTreeMap;
@@ -277,7 +269,7 @@ pub mod keys {
     ///
     /// # Security
     ///
-    /// To derive a FROST(secp256k1, SHA-256) keypair, the receiver of the [`SecretShare`] *must* call
+    /// To derive a FROST(ecGFp5, Poseidon-256) keypair, the receiver of the [`SecretShare`] *must* call
     /// .into(), which under the hood also performs validation.
     pub type SecretShare = frost::keys::SecretShare<S>;
 
@@ -287,7 +279,7 @@ pub mod keys {
     /// A public group element that represents a single signer's public verification share.
     pub type VerifyingShare = frost::keys::VerifyingShare<S>;
 
-    /// A FROST(secp256k1, SHA-256) keypair, which can be generated either by a trusted dealer or using
+    /// A FROST(ecGFp5, Poseidon-256) keypair, which can be generated either by a trusted dealer or using
     /// a DKG.
     ///
     /// When using a central dealer, [`SecretShare`]s are distributed to
@@ -319,13 +311,13 @@ pub mod keys {
     pub mod repairable;
 }
 
-/// FROST(secp256k1, SHA-256) Round 1 functionality and types.
+/// FROST(ecGFp5, Poseidon-256) Round 1 functionality and types.
 pub mod round1 {
     use crate::keys::SigningShare;
 
     use super::*;
 
-    /// Comprised of FROST(secp256k1, SHA-256) hiding and binding nonces.
+    /// Comprised of FROST(ecGFp5, Poseidon-256) hiding and binding nonces.
     ///
     /// Note that [`SigningNonces`] must be used *only once* for a signing
     /// operation; re-using nonces will result in leakage of a signer's long-lived
@@ -357,11 +349,11 @@ pub mod round1 {
 /// each signing party.
 pub type SigningPackage = frost::SigningPackage<S>;
 
-/// FROST(secp256k1, SHA-256) Round 2 functionality and types, for signature share generation.
+/// FROST(ecGFp5, Poseidon-256) Round 2 functionality and types, for signature share generation.
 pub mod round2 {
     use super::*;
 
-    /// A FROST(secp256k1, SHA-256) participant's signature share, which the Coordinator will aggregate with all other signer's
+    /// A FROST(ecGFp5, Poseidon-256) participant's signature share, which the Coordinator will aggregate with all other signer's
     /// shares into the joint signature.
     pub type SignatureShare = frost::round2::SignatureShare<S>;
 
@@ -382,10 +374,10 @@ pub mod round2 {
     }
 }
 
-/// A Schnorr signature on FROST(secp256k1, SHA-256).
+/// A Schnorr signature on FROST(ecGFp5, Poseidon-256).
 pub type Signature = frost_core::Signature<S>;
 
-/// Verifies each FROST(secp256k1, SHA-256) participant's signature share, and if all are valid,
+/// Verifies each FROST(ecGFp5, Poseidon-256) participant's signature share, and if all are valid,
 /// aggregates the shares into a signature to publish.
 ///
 /// Resulting signature is compatible with verification of a plain Schnorr
@@ -408,8 +400,8 @@ pub fn aggregate(
     frost::aggregate(signing_package, signature_shares, pubkeys)
 }
 
-/// A signing key for a Schnorr signature on FROST(secp256k1, SHA-256).
+/// A signing key for a Schnorr signature on FROST(ecGFp5, Poseidon-256).
 pub type SigningKey = frost_core::SigningKey<S>;
 
-/// A valid verifying key for Schnorr signatures on FROST(secp256k1, SHA-256).
+/// A valid verifying key for Schnorr signatures on FROST(ecGFp5, Poseidon-256).
 pub type VerifyingKey = frost_core::VerifyingKey<S>;
