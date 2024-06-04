@@ -13,7 +13,7 @@ use hbs_lms::{hasher::poseidon256::u8_to_f, HashChain, Poseidon256_256};
 use plonky2_ecgfp5::curve::{curve::Point, scalar_field::Scalar};
 use plonky2_field::{
     goldilocks_field::GoldilocksField,
-    types::{Field, PrimeField64, Sample},
+    types::{Field as Plonky2Field, PrimeField64, Sample},
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::digest::DynDigest;
@@ -24,7 +24,7 @@ use plonky2::hash::{hashing::hash_n_to_m_no_pad, poseidon::PoseidonPermutation};
 mod tests;
 
 // Re-exports in our public API
-pub use frost_core::{serde, Ciphersuite, Field as FrostField, FieldError, Group, GroupError};
+pub use frost_core::{serde, Ciphersuite, Field, FieldError, Group, GroupError};
 pub use rand_core;
 
 /// An error.
@@ -34,7 +34,7 @@ pub type Error = frost_core::Error<EcGFp5Poseidon256>;
 #[derive(Clone, Copy)]
 pub struct EcGFp5ScalarField;
 
-impl FrostField for EcGFp5ScalarField {
+impl Field for EcGFp5ScalarField {
     type Scalar = Scalar;
 
     type Serialization = [u8; 40];
@@ -84,7 +84,7 @@ impl Group for EcGFp5Group {
 
     type Serialization = [u8; 40];
 
-    fn cofactor() -> <Self::Field as FrostField>::Scalar {
+    fn cofactor() -> <Self::Field as Field>::Scalar {
         Scalar::ONE
     }
 
@@ -159,21 +159,21 @@ impl Ciphersuite for EcGFp5Poseidon256 {
     /// H1 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.1
-    fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as FrostField>::Scalar {
+    fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "rho").as_bytes(), m)
     }
 
     /// H2 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.2
-    fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as FrostField>::Scalar {
+    fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "chal").as_bytes(), m)
     }
 
     /// H3 for FROST(secp256k1, SHA-256)
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.3
-    fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as FrostField>::Scalar {
+    fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "nonce").as_bytes(), m)
     }
 
@@ -192,7 +192,7 @@ impl Ciphersuite for EcGFp5Poseidon256 {
     }
 
     /// HDKG for FROST(secp256k1, SHA-256)
-    fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as FrostField>::Scalar> {
+    fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "dkg").as_bytes(),
             m,
@@ -200,7 +200,7 @@ impl Ciphersuite for EcGFp5Poseidon256 {
     }
 
     /// HID for FROST(secp256k1, SHA-256)
-    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as FrostField>::Scalar> {
+    fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "id").as_bytes(),
             m,
@@ -209,7 +209,7 @@ impl Ciphersuite for EcGFp5Poseidon256 {
 }
 
 impl RandomizedCiphersuite for EcGFp5Poseidon256 {
-    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as FrostField>::Scalar> {
+    fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "randomizer").as_bytes(),
             m,

@@ -12,7 +12,7 @@ scenario in a single thread and it abstracts away any communication between peer
 
 ```rust
 # // ANCHOR: tkg_gen
-use frost_secp256k1 as frost;
+use frost_ecgfp5 as frost;
 use rand::thread_rng;
 use std::collections::BTreeMap;
 

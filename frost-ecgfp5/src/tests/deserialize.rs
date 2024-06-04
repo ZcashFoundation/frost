@@ -30,7 +30,7 @@ fn check_deserialize_non_canonical() {
 fn check_deserialize_identity() {
     // The identity is actually encoded as a single byte; but the API does not
     // allow us to change that. Try to send something similar.
-    let encoded_identity = [0u8; 33];
+    let encoded_identity = [0u8; 40];
 
     let r = <EcGFp5Poseidon256 as Ciphersuite>::Group::deserialize(&encoded_identity);
     assert_eq!(r, Err(GroupError::MalformedElement));

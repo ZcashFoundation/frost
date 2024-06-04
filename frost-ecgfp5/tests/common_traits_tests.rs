@@ -2,7 +2,7 @@
 
 mod helpers;
 
-use frost_secp256k1::SigningKey;
+use frost_ecgfp5::SigningKey;
 use helpers::samples;
 use rand::thread_rng;
 
