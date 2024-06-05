@@ -125,22 +125,16 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
         .expect("hash output is 32 bytes")
 }
 
+/// mapping &u8 -> Scalar
+/// 
 /// TODO: Output Scalar should be close to uniform distribution.
 fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
-    let input = {
-        let mut f_domain = u8_to_f(domain);
-        let f_msg = u8_to_f(msg);
-        f_domain.extend(f_msg);
-        f_domain
-    };
-    let output: Vec<u8> = hash_n_to_m_no_pad::<
-        GoldilocksField,
-        PoseidonPermutation<GoldilocksField>,
-    >(input.as_slice(), 5)
-    .iter()
-    .map(|x| x.to_canonical_u64().to_le_bytes())
-    .flatten()
-    .collect();
+    let mut hasher: Poseidon256_256 = Default::default();
+    hasher.update(domain);
+    hasher.update(msg);
+    let output = hasher
+        .finalize()
+        .to_vec();
     Scalar::from_noncanonical_bytes(output.as_ref())
 }
 
