@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 8ff6fc21a41f4162c58eec2a12d9fe87303e9a019b85081f965093568fcc2dbb # shrinks to tweaks = [], rng_seed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+cc 3a6a7b55e476600333ea67eb022158fa3988370136415b825522279db37622d1 # shrinks to tweaks = [ChangeMessage], rng_seed = [10, 33, 87, 6, 109, 65, 40, 27, 26, 65, 90, 29, 7, 82, 163, 60, 206, 26, 69, 76, 129, 94, 28, 65, 120, 36, 87, 6, 0, 147, 136, 98]

@@ -62,10 +62,7 @@ impl Field for EcGFp5ScalarField {
 
     /// Little endian
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
-        match buf.len() {
-            40 => Ok(Scalar::from_noncanonical_bytes(buf)),
-            _ => Err(FieldError::MalformedScalar),
-        }
+        Scalar::from_canonical_bytes(*buf).ok_or(FieldError::MalformedScalar)
     }
 
     fn little_endian_serialize(scalar: &Self::Scalar) -> Self::Serialization {
@@ -96,13 +93,20 @@ impl Group for EcGFp5Group {
         Point::GENERATOR
     }
 
+    /// validate the element is not the group identity
     fn serialize(element: &Self::Element) -> Self::Serialization {
         element.to_le_bytes()
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         match Point::from_le_bytes(*buf) {
-            Some(point) if point != Self::identity() => Ok(point),
+            Some(point) => {
+                if point.is_neutral() {
+                    Err(GroupError::InvalidIdentityElement)
+                } else {
+                    Ok(point)
+                }
+            }
             _ => Err(GroupError::MalformedElement),
         }
     }
