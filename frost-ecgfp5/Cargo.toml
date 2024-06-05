@@ -6,7 +6,7 @@ edition = "2021"
 # - Create git tag.
 version = "1.0.0"
 authors = [
-    "Jason Huang <jason1435267417@gmail.com>",
+    "Yongjin Huang <jason1435267417@gmail.com>",
     "Deirdre Connolly <durumcrustulum@gmail.com>",
     "Chelsea Komlo <me@chelseakomlo.com>",
     "Conrado Gouvea <conradoplg@gmail.com>"

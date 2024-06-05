@@ -1,4 +1,21 @@
+use rand::thread_rng;
+
 use crate::*;
+
+#[test]
+fn check_random_serialize() {
+    for _ in 0..50 {
+        let scalar =
+            <<EcGFp5Poseidon256 as Ciphersuite>::Group as Group>::Field::random(&mut thread_rng());
+        let point = scalar * <EcGFp5Poseidon256 as Ciphersuite>::Group::generator();
+        println!("scalar: {:?}", scalar);
+        println!("point: {:?}", point);
+        let encoded = <EcGFp5Poseidon256 as Ciphersuite>::Group::serialize(&point);
+        let decoded = <EcGFp5Poseidon256 as Ciphersuite>::Group::deserialize(&encoded);
+        assert!(decoded.is_ok());
+        assert_eq!(decoded.unwrap(), point);
+    }
+}
 
 #[test]
 #[ignore = "I don't know how to construct a non-canonical encoding"]
@@ -34,5 +51,5 @@ fn check_deserialize_identity() {
     let encoded_identity = [0u8; 40];
 
     let r = <EcGFp5Poseidon256 as Ciphersuite>::Group::deserialize(&encoded_identity);
-    assert_eq!(r, Err(GroupError::MalformedElement));
+    assert_eq!(r, Err(GroupError::InvalidIdentityElement));
 }
