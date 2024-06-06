@@ -9,7 +9,7 @@ authors = [
     "Yongjin Huang <jason1435267417@gmail.com>",
     "Deirdre Connolly <durumcrustulum@gmail.com>",
     "Chelsea Komlo <me@chelseakomlo.com>",
-    "Conrado Gouvea <conradoplg@gmail.com>"
+    "Conrado Gouvea <conradoplg@gmail.com>",
 ]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -26,19 +26,26 @@ rustdoc-args = ["--cfg", "docsrs"]
 document-features = "0.2.7"
 frost-core = { path = "../frost-core", version = "1.0.0" }
 frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
-k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
+k256 = { version = "0.13.0", features = [
+    "arithmetic",
+    "expose-field",
+    "hash2curve",
+] }
 rand_core = "0.6"
 sha2 = "0.10.2"
-plonky2_ecgfp5 = { path = "../../../plonky2-ecgfp5" }
-plonky2_field = { git = "https://github.com/okx/plonky2", branch = "dev-cliff-upgrade-v0.2.0" }
-hbs-lms = { path = "../../../plonky2-lms" }
-plonky2 = { git = "https://github.com/okx/plonky2", branch = "dev-cliff-upgrade-v0.2.0" }
+plonky2 = { git = "https://github.com/okx/plonky2" }
+plonky2_ecgfp5 = { git = "https://github.com/okx/plonky2" }
+plonky2_field = { git = "https://github.com/okx/plonky2" }
 
 
 [dev-dependencies]
 criterion = "0.5"
-frost-core = { path = "../frost-core", version = "1.0.0", features = ["test-impl"] }
-frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0", features = ["test-impl"] }
+frost-core = { path = "../frost-core", version = "1.0.0", features = [
+    "test-impl",
+] }
+frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0", features = [
+    "test-impl",
+] }
 insta = { version = "1.31.0", features = ["yaml"] }
 hex = "0.4.3"
 lazy_static = "1.4"
@@ -56,9 +63,16 @@ default = ["serialization", "cheater-detection"]
 ## `serde` (e.g. JSON with `serde_json`).
 serde = ["frost-core/serde"]
 ## Enable cheater detection
-cheater-detection = ["frost-core/cheater-detection", "frost-rerandomized/cheater-detection"]
+cheater-detection = [
+    "frost-core/cheater-detection",
+    "frost-rerandomized/cheater-detection",
+]
 ## Enable a default serialization format. Enables `serde`.
-serialization = ["serde", "frost-core/serialization", "frost-rerandomized/serialization"]
+serialization = [
+    "serde",
+    "frost-core/serialization",
+    "frost-rerandomized/serialization",
+]
 
 [lib]
 # Disables non-criterion benchmark which is not used; prevents errors

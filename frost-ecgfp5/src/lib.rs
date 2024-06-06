@@ -9,17 +9,12 @@ use std::collections::BTreeMap;
 
 use frost_core::{self as frost};
 use frost_rerandomized::RandomizedCiphersuite;
-use hbs_lms::{hasher::poseidon256::u8_to_f, HashChain, Poseidon256_256};
 use plonky2_ecgfp5::curve::{curve::Point, scalar_field::Scalar};
-use plonky2_field::{
-    goldilocks_field::GoldilocksField,
-    types::{Field as Plonky2Field, PrimeField64, Sample},
-};
+use plonky2_field::types::{Field as Plonky2Field, Sample};
+use poseidon::poseidon_hash;
 use rand_core::{CryptoRng, RngCore};
-use sha2::digest::DynDigest;
 
-use plonky2::hash::{hashing::hash_n_to_m_no_pad, poseidon::PoseidonPermutation};
-
+mod poseidon;
 #[cfg(test)]
 mod tests;
 
@@ -113,28 +108,14 @@ impl Group for EcGFp5Group {
 }
 
 fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
-    // TODO: implement poseidon-256 hasher: &u8 -> &u8
-    let mut hasher: Poseidon256_256 = Default::default();
-    inputs.iter().for_each(|input| {
-        hasher.update(input);
-    });
-    hasher
-        .finalize()
-        .to_vec()
-        .try_into()
-        .expect("hash output is 32 bytes")
+    poseidon_hash(inputs.concat().as_ref())
 }
 
 /// mapping &u8 -> Scalar
-/// 
+///
 /// TODO: Output Scalar should be close to uniform distribution.
 fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
-    let mut hasher: Poseidon256_256 = Default::default();
-    hasher.update(domain);
-    hasher.update(msg);
-    let output = hasher
-        .finalize()
-        .to_vec();
+    let output = poseidon_hash(&[domain, msg].concat());
     Scalar::from_noncanonical_bytes(output.as_ref())
 }
 
