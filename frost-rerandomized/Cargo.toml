@@ -20,9 +20,10 @@ features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-derive-getters = "0.3.0"
+derive-getters = "0.4.0"
 document-features = "0.2.7"
 frost-core = { path = "../frost-core", version = "1.0.0", features = ["internals"] }
+hex = "0.4.3"
 rand_core = "0.6"
 
 [dev-dependencies]
@@ -30,13 +31,14 @@ rand_core = "0.6"
 [features]
 nightly = []
 default = ["serialization", "cheater-detection"]
-serialization = ["serde", "frost-core/serialization"]
 #! ## Features
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
 serde = ["frost-core/serde"]
 # Exposes ciphersuite-generic tests for other crates to use
-test-impl = ["frost-core/test-impl"]
+test-impl = ["frost-core/test-impl", "serialization"]
 ## Enable cheater detection
 cheater-detection = ["frost-core/cheater-detection"]
+## Enable a default serialization format. Enables `serde`.
+serialization = ["serde", "frost-core/serialization"]

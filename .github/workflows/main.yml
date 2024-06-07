@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.1.6
       - uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: beta
@@ -38,12 +38,22 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.66.1
       - run: cargo build --all-features
 
+  build_all_features:
+    name: build with all features combinations
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4.1.4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-all-features
+      - run: cargo build-all-features
+
   test_beta:
     name: test on beta
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.1.6
       - uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: beta
@@ -58,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.1.6
         with:
           persist-credentials: false
 
@@ -93,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.1.6
         with:
           persist-credentials: false
 
@@ -115,7 +125,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.1.6
         with:
           persist-credentials: false
 
@@ -137,7 +147,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.1.6
         with:
           persist-credentials: false
 
@@ -156,8 +166,8 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4.1.1
-      - uses: reviewdog/action-actionlint@v1.42.0
+      - uses: actions/checkout@v4.1.6
+      - uses: reviewdog/action-actionlint@v1.46.0
         with:
           level: warning
           fail_on_error: false

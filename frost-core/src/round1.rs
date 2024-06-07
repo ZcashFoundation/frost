@@ -12,14 +12,13 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate as frost;
-use crate::{
-    serialization::{Deserialize, Serialize},
-    Ciphersuite, Element, Error, Field, Group, Header, Scalar,
-};
+use crate::{Ciphersuite, Element, Error, Field, Group, Header, Scalar};
 
 #[cfg(feature = "serde")]
 use crate::serialization::{ElementSerialization, ScalarSerialization};
+
+#[cfg(feature = "serialization")]
+use crate::serialization::{Deserialize, Serialize};
 
 use super::{keys::SigningShare, Identifier};
 
@@ -353,11 +352,12 @@ where
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
+    #[cfg(any(feature = "cheater-detection", feature = "internals"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(super) fn to_group_commitment_share(
         self,
-        binding_factor: &frost::BindingFactor<C>,
+        binding_factor: &crate::BindingFactor<C>,
     ) -> GroupCommitmentShare<C> {
         GroupCommitmentShare::<C>(self.hiding.0 + (self.binding.0 * binding_factor.0))
     }
