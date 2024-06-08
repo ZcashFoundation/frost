@@ -3,22 +3,18 @@ use std::fmt::{self, Debug};
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
-
-#[cfg(feature = "serde")]
-use crate::serialization::ElementSerialization;
+use crate::{serialization::SerializableElement, Challenge, Ciphersuite, Error, Group, Signature};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
-#[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct VerifyingKey<C>
 where
     C: Ciphersuite,
 {
-    pub(crate) element: Element<C>,
+    pub(crate) element: SerializableElement<C>,
 }
 
 impl<C> VerifyingKey<C>
@@ -29,13 +25,16 @@ where
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn new(element: <C::Group as Group>::Element) -> Self {
-        Self { element }
+        Self {
+            element: SerializableElement(element),
+        }
     }
 
     /// Return the underlying element.
-    #[cfg(feature = "internals")]
-    pub fn to_element(self) -> <C::Group as Group>::Element {
-        self.element
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn to_element(self) -> <C::Group as Group>::Element {
+        self.element.0
     }
 
     /// Deserialize from bytes
@@ -43,13 +42,13 @@ where
         bytes: <C::Group as Group>::Serialization,
     ) -> Result<VerifyingKey<C>, Error<C>> {
         <C::Group>::deserialize(&bytes)
-            .map(|element| VerifyingKey { element })
+            .map(|element| VerifyingKey::new(element))
             .map_err(|e| e.into())
     }
 
     /// Serialize `VerifyingKey` to bytes
-    pub fn serialize(&self) -> <C::Group as Group>::Serialization {
-        <C::Group>::serialize(&self.element)
+    pub fn serialize(&self) -> Result<<C::Group as Group>::Serialization, Error<C>> {
+        Ok(<C::Group>::serialize(&self.element.0)?)
     }
 
     /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification
@@ -64,7 +63,7 @@ where
         //
         // where h is the cofactor
         let zB = C::Group::generator() * signature.z;
-        let cA = self.element * challenge.0;
+        let cA = self.element.0 * challenge.0;
         let check = (zB - cA - signature.R) * C::Group::cofactor();
 
         if check == C::Group::identity() {
@@ -84,13 +83,13 @@ where
     pub(crate) fn from_commitment(
         commitment: &crate::keys::VerifiableSecretSharingCommitment<C>,
     ) -> Result<VerifyingKey<C>, Error<C>> {
-        Ok(VerifyingKey {
-            element: commitment
+        Ok(VerifyingKey::new(
+            commitment
                 .coefficients()
                 .first()
                 .ok_or(Error::IncorrectCommitment)?
                 .value(),
-        })
+        ))
     }
 }
 
@@ -100,7 +99,12 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("VerifyingKey")
-            .field(&hex::encode(self.serialize()))
+            .field(
+                &self
+                    .serialize()
+                    .map(hex::encode)
+                    .unwrap_or("<invalid>".to_string()),
+            )
             .finish()
     }
 }
@@ -118,27 +122,5 @@ where
             Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed verifying key encoding"),
             Err(_) => Err("malformed verifying key encoding"),
         }
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> TryFrom<ElementSerialization<C>> for VerifyingKey<C>
-where
-    C: Ciphersuite,
-{
-    type Error = Error<C>;
-
-    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
-        Self::deserialize(value.0)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> From<VerifyingKey<C>> for ElementSerialization<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: VerifyingKey<C>) -> Self {
-        Self(value.serialize())
     }
 }
