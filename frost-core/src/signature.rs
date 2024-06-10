@@ -1,7 +1,5 @@
 //! Schnorr signatures over prime order groups (or subgroups)
 
-use debugless_unwrap::DebuglessUnwrap;
-
 use crate::{Ciphersuite, Element, Error, Field, Group, Scalar};
 
 /// A Schnorr signature over some prime order group (or subgroup).
@@ -30,34 +28,30 @@ where
     }
 
     /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
-    pub fn deserialize(bytes: C::SignatureSerialization) -> Result<Self, Error<C>> {
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         // To compute the expected length of the encoded point, encode the generator
         // and get its length. Note that we can't use the identity because it can be encoded
         // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
         let generator = <C::Group>::generator();
         let mut R_bytes = Vec::from(<C::Group>::serialize(&generator)?.as_ref());
-
         let R_bytes_len = R_bytes.len();
-
-        R_bytes[..].copy_from_slice(
-            bytes
-                .as_ref()
-                .get(0..R_bytes_len)
-                .ok_or(Error::MalformedSignature)?,
-        );
-
-        let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 
         let one = <<C::Group as Group>::Field as Field>::zero();
         let mut z_bytes =
             Vec::from(<<C::Group as Group>::Field as Field>::serialize(&one).as_ref());
-
         let z_bytes_len = z_bytes.len();
+
+        if bytes.len() != R_bytes_len + z_bytes_len {
+            return Err(Error::MalformedSignature);
+        }
+
+        R_bytes[..].copy_from_slice(bytes.get(0..R_bytes_len).ok_or(Error::MalformedSignature)?);
+
+        let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
 
         // We extract the exact length of bytes we expect, not just the remaining bytes with `bytes[R_bytes_len..]`
         z_bytes[..].copy_from_slice(
             bytes
-                .as_ref()
                 .get(R_bytes_len..R_bytes_len + z_bytes_len)
                 .ok_or(Error::MalformedSignature)?,
         );
@@ -70,14 +64,14 @@ where
         })
     }
 
-    /// Converts this signature to its [`Ciphersuite::SignatureSerialization`] in bytes.
-    pub fn serialize(&self) -> Result<C::SignatureSerialization, Error<C>> {
+    /// Converts this signature to its byte serialization.
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
         let mut bytes = vec![];
 
         bytes.extend(<C::Group>::serialize(&self.R)?.as_ref());
         bytes.extend(<<C::Group as Group>::Field>::serialize(&self.z).as_ref());
 
-        Ok(bytes.try_into().debugless_unwrap())
+        Ok(bytes)
     }
 }
 
@@ -93,10 +87,7 @@ where
         S: serde::Serializer,
     {
         serdect::slice::serialize_hex_lower_or_bin(
-            &self
-                .serialize()
-                .map_err(serde::ser::Error::custom)?
-                .as_ref(),
+            &self.serialize().map_err(serde::ser::Error::custom)?,
             serializer,
         )
     }
@@ -114,12 +105,9 @@ where
         D: serde::Deserializer<'de>,
     {
         let bytes = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
-        let array = bytes
-            .try_into()
-            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        let identifier = Signature::deserialize(array)
+        let signature = Signature::deserialize(&bytes)
             .map_err(|err| serde::de::Error::custom(format!("{err}")))?;
-        Ok(identifier)
+        Ok(signature)
     }
 }
 

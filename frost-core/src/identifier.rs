@@ -5,10 +5,9 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::{Ciphersuite, Error, Field, FieldError, Group, Scalar};
-
-#[cfg(feature = "serde")]
-use crate::serialization::ScalarSerialization;
+use crate::{
+    serialization::SerializableScalar, Ciphersuite, Error, Field, FieldError, Group, Scalar,
+};
 
 /// A FROST participant identifier.
 ///
@@ -18,21 +17,29 @@ use crate::serialization::ScalarSerialization;
 #[derive(Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
-#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
-pub struct Identifier<C: Ciphersuite>(Scalar<C>);
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct Identifier<C: Ciphersuite>(SerializableScalar<C>);
 
 impl<C> Identifier<C>
 where
     C: Ciphersuite,
 {
     /// Create a new Identifier from a scalar. For internal use only.
-    fn new(scalar: Scalar<C>) -> Result<Self, Error<C>> {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn new(scalar: Scalar<C>) -> Result<Self, Error<C>> {
         if scalar == <<C::Group as Group>::Field>::zero() {
             Err(FieldError::InvalidZeroScalar.into())
         } else {
-            Ok(Self(scalar))
+            Ok(Self(SerializableScalar(scalar)))
         }
+    }
+
+    /// Get the inner scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn to_scalar(&self) -> Scalar<C> {
+        self.0 .0
     }
 
     /// Derive an Identifier from an arbitrary byte string.
@@ -50,39 +57,14 @@ where
     }
 
     /// Serialize the identifier using the ciphersuite encoding.
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field>::serialize(&self.0)
+    pub fn serialize(&self) -> Vec<u8> {
+        self.0.serialize()
     }
 
     /// Deserialize an Identifier from a serialized buffer.
     /// Returns an error if it attempts to deserialize zero.
-    pub fn deserialize(
-        buf: &<<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error<C>> {
-        let scalar = <<C::Group as Group>::Field>::deserialize(buf)?;
-        Self::new(scalar)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> TryFrom<ScalarSerialization<C>> for Identifier<C>
-where
-    C: Ciphersuite,
-{
-    type Error = Error<C>;
-
-    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        Self::deserialize(&value.0)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> From<Identifier<C>> for ScalarSerialization<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: Identifier<C>) -> Self {
-        Self(value.serialize())
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self(SerializableScalar::deserialize(bytes)?))
     }
 }
 
@@ -94,9 +76,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("Identifier")
-            .field(&hex::encode(
-                <<C::Group as Group>::Field>::serialize(&self.0).as_ref(),
-            ))
+            .field(&hex::encode(self.serialize()))
             .finish()
     }
 }
@@ -107,9 +87,7 @@ where
     C: Ciphersuite,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        <<C::Group as Group>::Field>::serialize(&self.0)
-            .as_ref()
-            .hash(state)
+        self.serialize().hash(state)
     }
 }
 
@@ -118,8 +96,10 @@ where
     C: Ciphersuite,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let serialized_self = <<C::Group as Group>::Field>::little_endian_serialize(&self.0);
-        let serialized_other = <<C::Group as Group>::Field>::little_endian_serialize(&other.0);
+        let serialized_self =
+            <<C::Group as Group>::Field>::little_endian_serialize(&self.to_scalar());
+        let serialized_other =
+            <<C::Group as Group>::Field>::little_endian_serialize(&other.to_scalar());
         // The default cmp uses lexicographic order; so we need the elements in big endian
         serialized_self
             .as_ref()
@@ -135,28 +115,6 @@ where
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-impl<C> std::ops::Mul<Scalar<C>> for Identifier<C>
-where
-    C: Ciphersuite,
-{
-    type Output = Scalar<C>;
-
-    fn mul(self, scalar: Scalar<C>) -> Scalar<C> {
-        self.0 * scalar
-    }
-}
-
-impl<C> std::ops::Sub for Identifier<C>
-where
-    C: Ciphersuite,
-{
-    type Output = Self;
-
-    fn sub(self, rhs: Identifier<C>) -> Self::Output {
-        Self(self.0 - rhs.0)
     }
 }
 
@@ -182,7 +140,7 @@ where
                     sum = sum + one;
                 }
             }
-            Ok(Self(sum))
+            Self::new(sum)
         }
     }
 }

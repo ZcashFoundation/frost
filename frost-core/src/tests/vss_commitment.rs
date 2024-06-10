@@ -45,7 +45,7 @@ pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mu
     assert!(expected
         .iter()
         .zip(vss_commitment.iter())
-        .all(|(e, c)| e.as_ref() == c.as_ref()));
+        .all(|(e, c)| e.as_ref() == c));
 }
 
 /// Test deserialize VerifiableSecretSharingCommitment

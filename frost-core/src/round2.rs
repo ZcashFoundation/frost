@@ -7,72 +7,46 @@ use crate::{
     challenge, Challenge, Ciphersuite, Error, Field, Group, {round1, *},
 };
 
-#[cfg(feature = "serde")]
-use crate::serialization::ScalarSerialization;
-
-// Used to help encoding a SignatureShare. Since it has a Scalar<C> it can't
-// be directly encoded with serde, so we use this struct to wrap the scalar.
-#[cfg(feature = "serde")]
-#[derive(Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
-#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
-struct SignatureShareHelper<C: Ciphersuite>(Scalar<C>);
-
-#[cfg(feature = "serde")]
-impl<C> TryFrom<ScalarSerialization<C>> for SignatureShareHelper<C>
-where
-    C: Ciphersuite,
-{
-    type Error = Error<C>;
-
-    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        <<C::Group as Group>::Field>::deserialize(&value.0)
-            .map(|scalar| Self(scalar))
-            .map_err(|e| e.into())
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> From<SignatureShareHelper<C>> for ScalarSerialization<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: SignatureShareHelper<C>) -> Self {
-        Self(<<C::Group as Group>::Field>::serialize(&value.0))
-    }
-}
-
 /// A participant's signature share, which the coordinator will aggregate with all other signer's
 /// shares into the joint signature.
 #[derive(Clone, Copy, Eq, PartialEq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
-#[cfg_attr(feature = "serde", serde(try_from = "SignatureShareSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "SignatureShareSerialization<C>"))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct SignatureShare<C: Ciphersuite> {
     /// This participant's signature over the message.
-    pub(crate) share: Scalar<C>,
+    pub(crate) share: SerializableScalar<C>,
 }
 
 impl<C> SignatureShare<C>
 where
     C: Ciphersuite,
 {
+    pub(crate) fn new(
+        scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
+    ) -> Self {
+        Self {
+            share: SerializableScalar(scalar),
+        }
+    }
+
+    pub(crate) fn to_scalar(
+        self,
+    ) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+        self.share.0
+    }
+
     /// Deserialize [`SignatureShare`] from bytes
-    pub fn deserialize(
-        bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error<C>> {
-        <<C::Group as Group>::Field>::deserialize(&bytes)
-            .map(|scalar| Self { share: scalar })
-            .map_err(|e| e.into())
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self {
+            share: SerializableScalar::deserialize(bytes)?,
+        })
     }
 
     /// Serialize [`SignatureShare`] to bytes
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field>::serialize(&self.share)
+    pub fn serialize(&self) -> Vec<u8> {
+        self.share.serialize()
     }
 
     /// Tests if a signature share issued by a participant is valid before
@@ -92,7 +66,7 @@ where
         lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
     ) -> Result<(), Error<C>> {
-        if (<C::Group>::generator() * self.share)
+        if (<C::Group>::generator() * self.to_scalar())
             != (group_commitment_share.0 + (verifying_share.to_element() * challenge.0 * lambda_i))
         {
             return Err(Error::InvalidSignatureShare {
@@ -101,41 +75,6 @@ where
         }
 
         Ok(())
-    }
-}
-
-#[cfg(feature = "serde")]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
-#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
-struct SignatureShareSerialization<C: Ciphersuite> {
-    /// Serialization header
-    pub(crate) header: Header<C>,
-    share: SignatureShareHelper<C>,
-}
-
-#[cfg(feature = "serde")]
-impl<C> From<SignatureShareSerialization<C>> for SignatureShare<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: SignatureShareSerialization<C>) -> Self {
-        Self {
-            share: value.share.0,
-        }
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> From<SignatureShare<C>> for SignatureShareSerialization<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: SignatureShare<C>) -> Self {
-        Self {
-            header: Header::default(),
-            share: SignatureShareHelper(value.share),
-        }
     }
 }
 
@@ -160,11 +99,11 @@ fn compute_signature_share<C: Ciphersuite>(
     key_package: &keys::KeyPackage<C>,
     challenge: Challenge<C>,
 ) -> SignatureShare<C> {
-    let z_share: <<C::Group as Group>::Field as Field>::Scalar = signer_nonces.hiding.0
-        + (signer_nonces.binding.0 * binding_factor.0)
-        + (lambda_i * key_package.signing_share.0 * challenge.0);
+    let z_share: <<C::Group as Group>::Field as Field>::Scalar = signer_nonces.hiding.to_scalar()
+        + (signer_nonces.binding.to_scalar() * binding_factor.0)
+        + (lambda_i * key_package.signing_share.to_scalar() * challenge.to_scalar());
 
-    SignatureShare::<C> { share: z_share }
+    SignatureShare::<C>::new(z_share)
 }
 
 /// Performed once by each participant selected for the signing operation.

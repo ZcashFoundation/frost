@@ -21,6 +21,7 @@ use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
+use serialization::SerializableScalar;
 use zeroize::Zeroize;
 
 pub mod batch;
@@ -57,7 +58,7 @@ pub use verifying_key::VerifyingKey;
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
 ///
 /// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-challenge-computa
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 pub(crate) struct Challenge<C: Ciphersuite>(
@@ -69,16 +70,21 @@ where
     C: Ciphersuite,
 {
     /// Creates a challenge from a scalar.
-    #[cfg(feature = "internals")]
-    pub fn from_scalar(
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    #[allow(dead_code)]
+    pub(crate) fn from_scalar(
         scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
     ) -> Self {
         Self(scalar)
     }
 
     /// Return the underlying scalar.
-    #[cfg(feature = "internals")]
-    pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn to_scalar(
+        self,
+    ) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
         self.0
     }
 }
@@ -190,8 +196,8 @@ where
     C: Ciphersuite,
 {
     /// Serializes [`BindingFactor`] to bytes.
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field>::serialize(&self.0)
+    pub fn serialize(&self) -> Vec<u8> {
+        SerializableScalar::<C>(self.0).serialize()
     }
 }
 
@@ -306,12 +312,12 @@ fn compute_lagrange_coefficient<C: Ciphersuite>(
         }
 
         if let Some(x) = x {
-            num = (x - *x_j) * num;
-            den = (x_i - *x_j) * den;
+            num = num * (x.to_scalar() - x_j.to_scalar());
+            den = den * (x_i.to_scalar() - x_j.to_scalar());
         } else {
             // Both signs inverted just to avoid requiring Neg (-*xj)
-            num = *x_j * num;
-            den = (*x_j - x_i) * den;
+            num = num * x_j.to_scalar();
+            den = den * (x_j.to_scalar() - x_i.to_scalar());
         }
     }
     if !x_i_found {
@@ -588,7 +594,7 @@ where
     let mut z = <<C::Group as Group>::Field>::zero();
 
     for signature_share in signature_shares.values() {
-        z = z + signature_share.share;
+        z = z + signature_share.to_scalar();
     }
 
     let signature = Signature {
