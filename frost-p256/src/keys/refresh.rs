@@ -4,27 +4,31 @@
 //! of all the remaining signers. This can be done using a Trusted Dealer or
 //! DKG (not yet implemented)
 
-use std::collections::BTreeMap;
-
 use crate::{frost, Ciphersuite, CryptoRng, Error, Identifier, RngCore};
 
 use super::{PublicKeyPackage, SecretShare};
 
-/// Refresh shares using a trusted dealer
-pub fn refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
-    current_shares: BTreeMap<Identifier, SecretShare>,
+/// Refreshes shares using a trusted dealer
+pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
     old_pub_key_package: PublicKeyPackage,
     max_signers: u16,
     min_signers: u16,
     identifiers: &[Identifier],
     mut rng: &mut R,
-) -> Result<(BTreeMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
-    frost::keys::refresh::refresh_shares_with_dealer(
-        current_shares,
+) -> Result<(Vec<SecretShare>, PublicKeyPackage), Error> {
+    frost::keys::refresh::calculate_zero_key(
         old_pub_key_package,
         max_signers,
         min_signers,
         identifiers,
         &mut rng,
     )
+}
+
+/// Each participant refreshed their shares
+pub fn refresh_share<C: Ciphersuite>(
+    zero_share: SecretShare,
+    current_share: &SecretShare,
+) -> Result<SecretShare, Error> {
+    frost::keys::refresh::refresh_share(zero_share, current_share)
 }

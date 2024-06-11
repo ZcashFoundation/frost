@@ -17,14 +17,13 @@ use crate::{
 use super::{SecretShare, VerifiableSecretSharingCommitment};
 
 /// Refreshes shares using a trusted dealer
-pub fn refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
-    old_shares: BTreeMap<Identifier<C>, SecretShare<C>>,
+pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
     old_pub_key_package: PublicKeyPackage<C>,
     max_signers: u16,
     min_signers: u16,
     identifiers: &[Identifier<C>],
     rng: &mut R,
-) -> Result<(BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
+) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     // Validate inputs
 
     if identifiers.len() != max_signers as usize {
@@ -41,7 +40,7 @@ pub fn refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
 
-    let zero_key_shares = generate_secret_shares(
+    let zero_shares = generate_secret_shares(
         &zero_key,
         max_signers,
         min_signers,
@@ -49,24 +48,11 @@ pub fn refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         identifiers,
     )?;
 
-    // Build new shares and public key package
-
-    let mut new_shares: BTreeMap<Identifier<C>, SecretShare<C>> = BTreeMap::new();
     let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
 
-    for share in zero_key_shares {
+    for share in zero_shares.clone() {
         let signer_public = SigningShare::into(share.signing_share);
         verifying_shares.insert(share.identifier, signer_public);
-
-        let old_share = old_shares.get(&share.identifier);
-
-        match old_share {
-            Some(old_share) => new_shares.insert(
-                share.identifier,
-                add_secret_shares::<C>(share.clone(), old_share)?,
-            ),
-            None => return Err(Error::UnknownIdentifier),
-        };
     }
 
     let pub_key_package = PublicKeyPackage::<C> {
@@ -75,18 +61,19 @@ pub fn refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         verifying_key: old_pub_key_package.verifying_key,
     };
 
-    Ok((new_shares, pub_key_package))
+    Ok((zero_shares, pub_key_package))
 }
 
-fn add_secret_shares<C: Ciphersuite>(
+/// Each participant refreshed their shares
+pub fn refresh_share<C: Ciphersuite>(
     zero_share: SecretShare<C>,
-    old_share: &SecretShare<C>,
+    current_share: &SecretShare<C>,
 ) -> Result<SecretShare<C>, Error<C>> {
     let signing_share: Scalar<C> =
-        zero_share.signing_share.to_scalar() + old_share.signing_share.to_scalar();
+        zero_share.signing_share.to_scalar() + current_share.signing_share.to_scalar();
 
     let zero_commitments = zero_share.commitment.0;
-    let old_commitments = old_share.commitment.0.clone();
+    let old_commitments = current_share.commitment.0.clone();
 
     let mut commitments: Vec<CoefficientCommitment<C>> = Vec::with_capacity(zero_commitments.len());
 
