@@ -24,6 +24,16 @@ jobs:
         with:
           command: build
 
+  build_all_features:
+    name: build with all features combinations
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4.1.4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-all-features
+      - run: cargo build-all-features
+
   test_beta:
     name: test on beta
     runs-on: ubuntu-latest

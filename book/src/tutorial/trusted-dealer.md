@@ -59,7 +59,7 @@ to generate signatures.
 ```
 
 ```admonish danger
-The `SecretPackage` contents must be stored securely. For example:
+The `KeyPackage` contents must be stored securely. For example:
 
 - Make sure other users in the system can't read it;
 - If possible, use the OS secure storage such that the package
