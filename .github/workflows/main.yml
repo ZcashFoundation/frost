@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.1.6
       # Re-resolve Cargo.lock with minimal versions
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo update -Z minimal-versions
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.4
+      - uses: actions/checkout@v4.1.6
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-all-features
       - run: cargo build-all-features
