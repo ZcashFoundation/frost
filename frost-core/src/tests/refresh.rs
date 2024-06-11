@@ -4,9 +4,10 @@ use std::collections::BTreeMap;
 
 use rand_core::{CryptoRng, RngCore};
 
+use crate::keys::refresh::{calculate_zero_key, refresh_share};
 use crate::{self as frost};
 use crate::{
-    keys::{refresh::refresh_shares_with_dealer, PublicKeyPackage, SecretShare},
+    keys::{PublicKeyPackage, SecretShare},
     Ciphersuite, Error, Identifier, SigningKey,
 };
 
@@ -46,8 +47,9 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     const NEW_MAX_SIGNERS: u16 = 4;
 
-    let (shares, new_pub_key_package) = refresh_shares_with_dealer(
-        old_shares,
+    // Trusted Dealer generates zero keys
+
+    let (zero_shares, new_pub_key_package) = calculate_zero_key(
         pub_key_package,
         NEW_MAX_SIGNERS,
         min_signers,
@@ -56,11 +58,24 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     )
     .unwrap();
 
+    // Each participant refreshes their share
+
+    let mut new_shares = BTreeMap::new();
+
+    for i in 0..remaining_ids.len() {
+        let identifier = remaining_ids[i];
+        let current_share = &old_shares[&identifier];
+        new_shares.insert(
+            identifier,
+            refresh_share(zero_shares[i].clone(), current_share),
+        );
+    }
+
     let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
         BTreeMap::new();
 
-    for (k, v) in shares {
-        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+    for (k, v) in new_shares {
+        let key_package = frost::keys::KeyPackage::try_from(v.unwrap()).unwrap();
         key_packages.insert(k, key_package);
     }
     check_sign(min_signers, key_packages, rng, new_pub_key_package).unwrap();
@@ -77,9 +92,8 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
     error: Error<C>,
     mut rng: R,
 ) {
-    let (old_shares, pub_key_package) = build_old_shares::<C, R>(5, 2, &mut rng);
-    let out = refresh_shares_with_dealer(
-        old_shares,
+    let (_old_shares, pub_key_package) = build_old_shares::<C, R>(5, 2, &mut rng);
+    let out = calculate_zero_key(
         pub_key_package,
         new_max_signers,
         min_signers,
