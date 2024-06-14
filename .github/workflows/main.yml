@@ -35,7 +35,7 @@ jobs:
       - run: cargo update -Z minimal-versions
       # Now check that `cargo build` works with respect to the oldest possible
       # deps and the stated MSRV
-      - uses: dtolnay/rust-toolchain@1.66.1
+      - uses: dtolnay/rust-toolchain@1.90.0
       - run: cargo build --all-features
 
   build_all_features:
