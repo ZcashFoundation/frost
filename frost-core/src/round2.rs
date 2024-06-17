@@ -13,8 +13,10 @@ use crate::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct SignatureShare<C: Ciphersuite> {
+    /// Serialization header
+    #[getter(skip)]
+    pub(crate) header: Header<C>,
     /// This participant's signature over the message.
     pub(crate) share: SerializableScalar<C>,
 }
@@ -27,6 +29,7 @@ where
         scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
     ) -> Self {
         Self {
+            header: Header::default(),
             share: SerializableScalar(scalar),
         }
     }
@@ -40,6 +43,7 @@ where
     /// Deserialize [`SignatureShare`] from bytes
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         Ok(Self {
+            header: Header::default(),
             share: SerializableScalar::deserialize(bytes)?,
         })
     }

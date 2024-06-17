@@ -17,7 +17,10 @@ use crate::{
 #[derive(Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
-#[cfg_attr(feature = "serde", serde(transparent))]
+// We use these to add a validation step since zero scalars should cause an
+// error when deserializing.
+#[cfg_attr(feature = "serde", serde(try_from = "SerializableScalar<C>"))]
+#[cfg_attr(feature = "serde", serde(into = "SerializableScalar<C>"))]
 pub struct Identifier<C: Ciphersuite>(SerializableScalar<C>);
 
 impl<C> Identifier<C>
@@ -65,6 +68,28 @@ where
     /// Returns an error if it attempts to deserialize zero.
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         Ok(Self(SerializableScalar::deserialize(bytes)?))
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> TryFrom<SerializableScalar<C>> for Identifier<C>
+where
+    C: Ciphersuite,
+{
+    type Error = Error<C>;
+
+    fn try_from(s: SerializableScalar<C>) -> Result<Self, Self::Error> {
+        Self::new(s.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C> From<Identifier<C>> for SerializableScalar<C>
+where
+    C: Ciphersuite,
+{
+    fn from(i: Identifier<C>) -> Self {
+        i.0
     }
 }
 
