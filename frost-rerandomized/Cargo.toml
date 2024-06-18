@@ -28,6 +28,7 @@ document-features = "0.2.7"
 frost-core = { path = "../frost-core", version = "1.0.0", features = [
     "internals",
 ], default-features = false }
+hex = "0.4.3"
 rand_core = "0.6"
 
 [dev-dependencies]

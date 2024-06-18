@@ -257,6 +257,19 @@ where
     }
 }
 
+impl<C> core::fmt::Debug for Randomizer<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Randomizer")
+            .field(&hex::encode(
+                <<C::Group as Group>::Field>::serialize(&self.0).as_ref(),
+            ))
+            .finish()
+    }
+}
+
 /// Randomized parameters for a signing instance of randomized FROST.
 #[derive(Clone, PartialEq, Eq, Getters)]
 pub struct RandomizedParams<C: Ciphersuite> {
@@ -310,5 +323,21 @@ where
             randomizer_element,
             randomized_verifying_key,
         }
+    }
+}
+
+impl<C> core::fmt::Debug for RandomizedParams<C>
+where
+    C: Ciphersuite,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RandomizedParams")
+            .field("randomizer", &self.randomizer)
+            .field(
+                "randomizer_element",
+                &hex::encode(<C::Group as Group>::serialize(&self.randomizer_element).as_ref()),
+            )
+            .field("randomized_verifying_key", &self.randomized_verifying_key)
+            .finish()
     }
 }
