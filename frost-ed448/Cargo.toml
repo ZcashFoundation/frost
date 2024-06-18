@@ -35,7 +35,7 @@ frost-core = { path = "../frost-core", version = "1.0.0", features = ["test-impl
 frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0", features = ["test-impl"] }
 lazy_static = "1.4"
 insta = { version = "1.31.0", features = ["yaml"] }
-hex = "0.4.3"
+hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
 proptest = "1.0"
 rand = "0.8"
 rand_chacha = "0.3"
