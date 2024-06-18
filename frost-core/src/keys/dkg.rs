@@ -175,7 +175,6 @@ pub mod round2 {
     use zeroize::Zeroize;
 
     #[cfg(feature = "serialization")]
-    #[cfg(feature = "serialization")]
     use alloc::vec::Vec;
 
     use super::*;
