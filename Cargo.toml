@@ -7,6 +7,7 @@ members = [
     "frost-p256",
     "frost-ristretto255",
     "frost-secp256k1",
+    "frost-secp256k1-tr",
     "frost-rerandomized",
     "gencode"
 ]

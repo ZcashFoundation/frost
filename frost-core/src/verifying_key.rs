@@ -1,15 +1,16 @@
+use derive_getters::Getters;
 use std::fmt::{self, Debug};
 
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature};
+use crate::{Challenge, Ciphersuite, Element, Error, Group, Signature, SigningTarget};
 
 #[cfg(feature = "serde")]
 use crate::serialization::ElementSerialization;
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
@@ -33,9 +34,20 @@ where
     }
 
     /// Return the underlying element.
-    #[cfg(feature = "internals")]
     pub fn to_element(self) -> <C::Group as Group>::Element {
         self.element
+    }
+
+    /// Return the effective verifying key given the specific signing parameters
+    /// to be verified against. For most ciphersuites, this simply returns the
+    /// same verifying key unchanged.
+    pub fn effective_key(self, sig_params: &C::SigningParameters) -> Self {
+        VerifyingKey::new(<C>::effective_pubkey_element(&self, sig_params))
+    }
+
+    /// Check if VerifyingKey is odd
+    pub fn y_is_odd(&self) -> bool {
+        <C::Group as Group>::y_is_odd(&self.element)
     }
 
     /// Deserialize from bytes
@@ -58,14 +70,18 @@ where
         &self,
         challenge: Challenge<C>,
         signature: &Signature<C>,
+        sig_params: &C::SigningParameters,
     ) -> Result<(), Error<C>> {
         // Verify check is h * ( - z * B + R  + c * A) == 0
         //                 h * ( z * B - c * A - R) == 0
         //
         // where h is the cofactor
+        let R = signature.R;
+        let vk = C::effective_pubkey_element(&self, sig_params);
+
         let zB = C::Group::generator() * signature.z;
-        let cA = self.element * challenge.0;
-        let check = (zB - cA - signature.R) * C::Group::cofactor();
+        let cA = vk * challenge.0;
+        let check = (zB - cA - R) * C::Group::cofactor();
 
         if check == C::Group::identity() {
             Ok(())
@@ -74,9 +90,13 @@ where
         }
     }
 
-    /// Verify a purported `signature` over `msg` made by this verification key.
-    pub fn verify(&self, msg: &[u8], signature: &Signature<C>) -> Result<(), Error<C>> {
-        C::verify_signature(msg, signature, self)
+    /// Verify a purported `signature` over `sig_target` made by this verification key.
+    pub fn verify(
+        &self,
+        sig_target: impl Into<SigningTarget<C>>,
+        signature: &Signature<C>,
+    ) -> Result<(), Error<C>> {
+        C::verify_signature(&sig_target.into(), signature, self)
     }
 
     /// Computes the group public key given the group commitment.

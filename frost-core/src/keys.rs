@@ -121,6 +121,11 @@ where
     pub(crate) fn from_coefficients(coefficients: &[Scalar<C>], peer: Identifier<C>) -> Self {
         Self(evaluate_polynomial(peer, coefficients))
     }
+
+    /// Returns negated SigningShare
+    pub fn negate(&mut self) {
+        self.0 = <<C::Group as Group>::Field>::negate(&self.0);
+    }
 }
 
 impl<C> Debug for SigningShare<C>
@@ -686,6 +691,11 @@ where
             verifying_key,
             min_signers,
         }
+    }
+
+    /// Negate `SigningShare`.
+    pub fn negate_signing_share(&mut self) {
+        self.signing_share.negate();
     }
 }
 

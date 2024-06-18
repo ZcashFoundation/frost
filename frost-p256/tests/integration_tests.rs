@@ -12,7 +12,10 @@ fn check_zero_key_fails() {
 fn check_sign_with_dkg() {
     let rng = thread_rng();
 
-    frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<P256Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<P256Sha256, _>(
+        rng,
+        b"message".into(),
+    );
 }
 
 #[test]
@@ -68,7 +71,10 @@ fn check_rts() {
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 
-    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<P256Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<P256Sha256, _>(
+        rng,
+        b"message".into(),
+    );
 }
 
 #[test]
@@ -217,6 +223,7 @@ fn check_sign_with_dealer_and_identifiers() {
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<P256Sha256, _>(
         rng,
+        b"message".into(),
     );
 }
 

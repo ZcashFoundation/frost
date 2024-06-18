@@ -112,7 +112,9 @@ fn check_signing_package_serialization() {
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
         }
       },
-      "message": "68656c6c6f20776f726c64"
+      "sig_target": {
+        "message": "68656c6c6f20776f726c64"
+      }
     }"#;
     let decoded_signing_package: SigningPackage = serde_json::from_str(json).unwrap();
     assert!(signing_package == decoded_signing_package);
@@ -133,7 +135,9 @@ fn check_signing_package_serialization() {
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
         }
       },
-      "message": "68656c6c6f20776f726c64"
+      "sig_target": {
+        "message": "68656c6c6f20776f726c64"
+      }
     }"#;
     assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
 
@@ -153,7 +157,9 @@ fn check_signing_package_serialization() {
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
         }
       },
-      "message": "68656c6c6f20776f726c64"
+      "sig_target": {
+        "message": "68656c6c6f20776f726c64"
+      }
     }"#;
     assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
 
@@ -172,7 +178,9 @@ fn check_signing_package_serialization() {
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
         }
       },
-      "message": "68656c6c6f20776f726c64"
+      "sig_target": {
+        "message": "68656c6c6f20776f726c64"
+      }
     }"#;
     assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
 
@@ -192,7 +200,9 @@ fn check_signing_package_serialization() {
           "binding": "ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a726de3b7d74d8835a0d76e03b0c2865020d659b38d04d74a63e905ae80"
         }
       },
-      "message": "68656c6c6f20776f726c64",
+      "sig_target": {
+        "message": "68656c6c6f20776f726c64"
+      },
       "extra": 1
     }
     "#;

@@ -107,19 +107,12 @@ pub fn public_key_package() -> PublicKeyPackage {
 
 /// Generate a sample round1::Package.
 pub fn round1_package() -> round1::Package {
-    let serialized_scalar = <<C as Ciphersuite>::Group as Group>::Field::serialize(&scalar1());
+    let serialized_signature = Signature::new(element1(), scalar1()).serialize();
+    let signature = Signature::deserialize(serialized_signature).unwrap();
+
     let serialized_element = <C as Ciphersuite>::Group::serialize(&element1());
-    let serialized_signature = serialized_element
-        .as_ref()
-        .iter()
-        .chain(serialized_scalar.as_ref().iter())
-        .cloned()
-        .collect::<Vec<u8>>()
-        .try_into()
-        .unwrap();
     let vss_commitment =
         VerifiableSecretSharingCommitment::deserialize(vec![serialized_element]).unwrap();
-    let signature = Signature::deserialize(serialized_signature).unwrap();
 
     round1::Package::new(vss_commitment, signature)
 }

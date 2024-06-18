@@ -175,6 +175,14 @@ const CONTEXT_STRING: &str = "FROST-P256-SHA256-v1";
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct P256Sha256;
 
+/// The ciphersuite-specific signing parameters which are fed into
+/// signing code to ensure correctly compliant signatures are computed.
+pub type SigningParameters = ();
+
+/// The message target which the group's signature should commit to. Includes
+/// a message byte vector, and a set of ciphersuite-specific parameters.
+pub type SigningTarget = frost_core::SigningTarget<P256Sha256>;
+
 impl Ciphersuite for P256Sha256 {
     const ID: &'static str = CONTEXT_STRING;
 
@@ -183,6 +191,8 @@ impl Ciphersuite for P256Sha256 {
     type HashOutput = [u8; 32];
 
     type SignatureSerialization = [u8; 65];
+
+    type SigningParameters = ();
 
     /// H1 for FROST(P-256, SHA-256)
     ///

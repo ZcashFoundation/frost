@@ -141,6 +141,14 @@ const CONTEXT_STRING: &str = "FROST-RISTRETTO255-SHA512-v1";
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Ristretto255Sha512;
 
+/// The ciphersuite-specific signing parameters which are fed into
+/// signing code to ensure correctly compliant signatures are computed.
+pub type SigningParameters = ();
+
+/// The message target which the group's signature should commit to. Includes
+/// a message byte vector, and a set of ciphersuite-specific parameters.
+pub type SigningTarget = frost_core::SigningTarget<Ristretto255Sha512>;
+
 impl Ciphersuite for Ristretto255Sha512 {
     const ID: &'static str = CONTEXT_STRING;
 
@@ -149,6 +157,8 @@ impl Ciphersuite for Ristretto255Sha512 {
     type HashOutput = [u8; 64];
 
     type SignatureSerialization = [u8; 64];
+
+    type SigningParameters = SigningParameters;
 
     /// H1 for FROST(ristretto255, SHA-512)
     ///
