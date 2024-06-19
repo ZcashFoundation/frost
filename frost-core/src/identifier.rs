@@ -149,15 +149,6 @@ where
     }
 }
 
-impl<C> core::ops::MulAssign<Identifier<C>> for Scalar<C>
-where
-    C: Ciphersuite,
-{
-    fn mul_assign(&mut self, identifier: Identifier<C>) {
-        *self = *self * identifier.0
-    }
-}
-
 impl<C> core::ops::Sub for Identifier<C>
 where
     C: Ciphersuite,
