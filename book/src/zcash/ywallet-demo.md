@@ -1,6 +1,6 @@
 # Ywallet Demo Tutorial
 
-This tutorial explaing how to run the FROST demo using Ywallet that was
+This tutorial explaining how to run the FROST demo using Ywallet that was
 [presented during Zcon4](https://www.youtube.com/watch?v=xvzESdDtczo).
 
 Ywallet supports [offline

@@ -30,7 +30,7 @@ Besides FROST itself, this repository also provides:
 
 - Trusted dealer key generation as specified in the appendix of ['Two-Round Threshold Schnorr Signatures with FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/);
 - Distributed key generation as specified in the original paper [FROST20](https://eprint.iacr.org/2020/852.pdf);
-- Repairable Theshold Scheme (RTS) from ['A Survey and Refinement of Repairable Threshold Schemes'](https://eprint.iacr.org/2017/1155) which allows a participant to recover a lost share with the help of a threshold of other participants;
+- Repairable Threshold Scheme (RTS) from ['A Survey and Refinement of Repairable Threshold Schemes'](https://eprint.iacr.org/2017/1155) which allows a participant to recover a lost share with the help of a threshold of other participants;
 - Rerandomized FROST (paper under review).
 
 ## Getting Started
