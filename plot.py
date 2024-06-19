@@ -1,6 +1,6 @@
 """
 
-Generate the graphs for the FROST perfomance blog post.
+Generate the graphs for the FROST performance blog post.
 
 Install cargo-criterion:
 
