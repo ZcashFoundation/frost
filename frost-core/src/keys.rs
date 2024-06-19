@@ -582,7 +582,7 @@ fn evaluate_polynomial<C: Ciphersuite>(
     let ell_scalar = identifier;
     for coeff in coefficients.iter().skip(1).rev() {
         value = value + *coeff;
-        value *= ell_scalar;
+        value = ell_scalar * value;
     }
     value = value
         + *coefficients
