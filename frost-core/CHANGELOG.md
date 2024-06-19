@@ -4,8 +4,22 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
-## 2.0.0
-
+* Changed the `deserialize()` function of Elements and structs containing
+  Elements to return an error if the element is the identity. This is a
+  requirement in the FROST specification that wasn't being followed. We are not
+  aware of any possible security issues that could be caused by this; in the
+  unlikely case that the identity was being serialized, this would be caught by
+  deserialization methods. However, we consider this change the right thing to
+  do as a defense-in-depth mechanism. This entails the following changes:
+  * `Group::serialize()` now returns an error. When implementing it, you must
+    return an error if it attempts to serialize the identity.
+  * `VerifyingShare::serialize()`, `CoefficientCommitment::serialize()`,
+    `VerifiableSecretSharingCommitment::serialize()`,
+    `NonceCommitment::serialize()`, `Signature::serialize()`,
+    `VerifyingKey::serialize()` can now all return an error.
+* Removed `batch::Item::into()` which created a batch Item from a triple of
+  VerifyingKey, Signature and message. Use the new `batch::Item::new()` instead
+  (which can return an error).
 * Removed the `MulAssign<Identifier<C>> for Scalar<C>` implementation since it
   will result in a coherence error in future Rust versions (see #625). In the
   unlikely case you're using this, you can replace e.g. `scalar *= identifier`

@@ -35,7 +35,7 @@ where
         // and get its length. Note that we can't use the identity because it can be encoded
         // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
         let generator = <C::Group>::generator();
-        let mut R_bytes = Vec::from(<C::Group>::serialize(&generator).as_ref());
+        let mut R_bytes = Vec::from(<C::Group>::serialize(&generator)?.as_ref());
 
         let R_bytes_len = R_bytes.len();
 
@@ -71,13 +71,13 @@ where
     }
 
     /// Converts this signature to its [`Ciphersuite::SignatureSerialization`] in bytes.
-    pub fn serialize(&self) -> C::SignatureSerialization {
+    pub fn serialize(&self) -> Result<C::SignatureSerialization, Error<C>> {
         let mut bytes = vec![];
 
-        bytes.extend(<C::Group>::serialize(&self.R).as_ref());
+        bytes.extend(<C::Group>::serialize(&self.R)?.as_ref());
         bytes.extend(<<C::Group as Group>::Field>::serialize(&self.z).as_ref());
 
-        bytes.try_into().debugless_unwrap()
+        Ok(bytes.try_into().debugless_unwrap())
     }
 }
 
@@ -92,7 +92,13 @@ where
     where
         S: serde::Serializer,
     {
-        serdect::slice::serialize_hex_lower_or_bin(&self.serialize().as_ref(), serializer)
+        serdect::slice::serialize_hex_lower_or_bin(
+            &self
+                .serialize()
+                .map_err(serde::ser::Error::custom)?
+                .as_ref(),
+            serializer,
+        )
     }
 }
 
@@ -120,7 +126,12 @@ where
 impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Signature")
-            .field("R", &hex::encode(<C::Group>::serialize(&self.R).as_ref()))
+            .field(
+                "R",
+                &<C::Group>::serialize(&self.R)
+                    .map(|s| hex::encode(s.as_ref()))
+                    .unwrap_or("<invalid>".to_string()),
+            )
             .field(
                 "z",
                 &hex::encode(<<C::Group as Group>::Field>::serialize(&self.z).as_ref()),
