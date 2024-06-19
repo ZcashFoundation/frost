@@ -324,17 +324,19 @@ fn challenge<C>(
     identifier: Identifier<C>,
     verifying_key: &VerifyingKey<C>,
     R: &Element<C>,
-) -> Option<Challenge<C>>
+) -> Result<Challenge<C>, Error<C>>
 where
     C: Ciphersuite,
 {
     let mut preimage = vec![];
 
     preimage.extend_from_slice(identifier.serialize().as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(&verifying_key.element).as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(&verifying_key.to_element())?.as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(R)?.as_ref());
 
-    Some(Challenge(C::HDKG(&preimage[..])?))
+    Ok(Challenge(
+        C::HDKG(&preimage[..]).ok_or(Error::DKGNotSupported)?,
+    ))
 }
 
 /// Compute the proof of knowledge of the secret coefficients used to generate
@@ -354,8 +356,7 @@ pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>
     // > a context string to prevent replay attacks.
     let k = <<C::Group as Group>::Field>::random(&mut rng);
     let R_i = <C::Group>::generator() * k;
-    let c_i = challenge::<C>(identifier, &commitment.verifying_key()?, &R_i)
-        .ok_or(Error::DKGNotSupported)?;
+    let c_i = challenge::<C>(identifier, &commitment.verifying_key()?, &R_i)?;
     let a_i0 = *coefficients
         .first()
         .expect("coefficients must have at least one element");
@@ -369,7 +370,7 @@ pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>
 pub(crate) fn verify_proof_of_knowledge<C: Ciphersuite>(
     identifier: Identifier<C>,
     commitment: &VerifiableSecretSharingCommitment<C>,
-    proof_of_knowledge: Signature<C>,
+    proof_of_knowledge: &Signature<C>,
 ) -> Result<(), Error<C>> {
     // Round 1, Step 5
     //
@@ -380,8 +381,8 @@ pub(crate) fn verify_proof_of_knowledge<C: Ciphersuite>(
     let R_ell = proof_of_knowledge.R;
     let mu_ell = proof_of_knowledge.z;
     let phi_ell0 = commitment.verifying_key()?;
-    let c_ell = challenge::<C>(ell, &phi_ell0, &R_ell).ok_or(Error::DKGNotSupported)?;
-    if R_ell != <C::Group>::generator() * mu_ell - phi_ell0.element * c_ell.0 {
+    let c_ell = challenge::<C>(ell, &phi_ell0, &R_ell)?;
+    if R_ell != <C::Group>::generator() * mu_ell - phi_ell0.to_element() * c_ell.0 {
         return Err(Error::InvalidProofOfKnowledge { culprit: ell });
     }
     Ok(())
@@ -428,7 +429,7 @@ pub fn part2<C: Ciphersuite>(
         verify_proof_of_knowledge(
             ell,
             &round1_package.commitment,
-            round1_package.proof_of_knowledge,
+            &round1_package.proof_of_knowledge,
         )?;
 
         // Round 2, Step 1

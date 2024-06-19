@@ -69,7 +69,8 @@ pub fn bench_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
                         let msg = b"Bench";
 
                         let Item { vk, sig } = item;
-                        batch.queue((*vk, *sig, msg));
+                        let item = batch::Item::<C>::new(*vk, *sig, msg).unwrap();
+                        batch.queue(item);
                     }
                     batch.verify(&mut rng)
                 })

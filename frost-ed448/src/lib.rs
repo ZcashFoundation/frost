@@ -102,8 +102,11 @@ impl Group for Ed448Group {
         Self::Element::generator()
     }
 
-    fn serialize(element: &Self::Element) -> Self::Serialization {
-        element.compress().0
+    fn serialize(element: &Self::Element) -> Result<Self::Serialization, GroupError> {
+        if *element == Self::identity() {
+            return Err(GroupError::InvalidIdentityElement);
+        }
+        Ok(element.compress().0)
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {

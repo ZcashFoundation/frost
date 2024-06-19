@@ -112,17 +112,21 @@ where
 /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.2
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-fn challenge<C>(R: &Element<C>, verifying_key: &VerifyingKey<C>, msg: &[u8]) -> Challenge<C>
+fn challenge<C>(
+    R: &Element<C>,
+    verifying_key: &VerifyingKey<C>,
+    msg: &[u8],
+) -> Result<Challenge<C>, Error<C>>
 where
     C: Ciphersuite,
 {
     let mut preimage = Vec::new();
 
-    preimage.extend_from_slice(<C::Group>::serialize(R).as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(&verifying_key.element).as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(R)?.as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(&verifying_key.to_element())?.as_ref());
     preimage.extend_from_slice(msg);
 
-    Challenge(C::H2(&preimage[..]))
+    Ok(Challenge(C::H2(&preimage[..])))
 }
 
 /// Generates a random nonzero scalar.
@@ -238,13 +242,13 @@ pub(crate) fn compute_binding_factor_list<C>(
     signing_package: &SigningPackage<C>,
     verifying_key: &VerifyingKey<C>,
     additional_prefix: &[u8],
-) -> BindingFactorList<C>
+) -> Result<BindingFactorList<C>, Error<C>>
 where
     C: Ciphersuite,
 {
-    let preimages = signing_package.binding_factor_preimages(verifying_key, additional_prefix);
+    let preimages = signing_package.binding_factor_preimages(verifying_key, additional_prefix)?;
 
-    BindingFactorList(
+    Ok(BindingFactorList(
         preimages
             .iter()
             .map(|(identifier, preimage)| {
@@ -252,7 +256,7 @@ where
                 (*identifier, BindingFactor(binding_factor))
             })
             .collect(),
-    )
+    ))
 }
 
 #[cfg(any(test, feature = "test-impl"))]
@@ -404,28 +408,30 @@ where
     // We separate this out into its own method so it can be tested
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    #[allow(clippy::type_complexity)]
     pub fn binding_factor_preimages(
         &self,
         verifying_key: &VerifyingKey<C>,
         additional_prefix: &[u8],
-    ) -> Vec<(Identifier<C>, Vec<u8>)> {
+    ) -> Result<Vec<(Identifier<C>, Vec<u8>)>, Error<C>> {
         let mut binding_factor_input_prefix = Vec::new();
 
         // The length of a serialized verifying key of the same cipersuite does
         // not change between runs of the protocol, so we don't need to hash to
         // get a fixed length.
-        binding_factor_input_prefix.extend_from_slice(verifying_key.serialize().as_ref());
+        binding_factor_input_prefix.extend_from_slice(verifying_key.serialize()?.as_ref());
 
         // The message is hashed with H4 to force the variable-length message
         // into a fixed-length byte string, same for hashing the variable-sized
         // (between runs of the protocol) set of group commitments, but with H5.
         binding_factor_input_prefix.extend_from_slice(C::H4(self.message.as_slice()).as_ref());
         binding_factor_input_prefix.extend_from_slice(
-            C::H5(&round1::encode_group_commitments(self.signing_commitments())[..]).as_ref(),
+            C::H5(&round1::encode_group_commitments(self.signing_commitments())?[..]).as_ref(),
         );
         binding_factor_input_prefix.extend_from_slice(additional_prefix);
 
-        self.signing_commitments()
+        Ok(self
+            .signing_commitments()
             .keys()
             .map(|identifier| {
                 let mut binding_factor_input = Vec::new();
@@ -434,7 +440,7 @@ where
                 binding_factor_input.extend_from_slice(identifier.serialize().as_ref());
                 (*identifier, binding_factor_input)
             })
-            .collect()
+            .collect())
     }
 }
 
@@ -501,7 +507,7 @@ where
     for (commitment_identifier, commitment) in signing_package.signing_commitments() {
         // The following check prevents a party from accidentally revealing their share.
         // Note that the '&&' operator would be sufficient.
-        if identity == commitment.binding.0 || identity == commitment.hiding.0 {
+        if identity == commitment.binding.value() || identity == commitment.hiding.value() {
             return Err(Error::IdentityCommitment);
         }
 
@@ -511,10 +517,10 @@ where
 
         // Collect the binding commitments and their binding factors for one big
         // multiscalar multiplication at the end.
-        binding_elements.push(commitment.binding.0);
+        binding_elements.push(commitment.binding.value());
         binding_scalars.push(binding_factor.0);
 
-        group_commitment = group_commitment + commitment.hiding.0;
+        group_commitment = group_commitment + commitment.hiding.value();
     }
 
     let accumulated_binding_commitment: Element<C> =
@@ -573,7 +579,7 @@ where
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &pubkeys.verifying_key, &[]);
+        compute_binding_factor_list(signing_package, &pubkeys.verifying_key, &[])?;
 
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
@@ -610,7 +616,7 @@ where
             &group_commitment.0,
             &pubkeys.verifying_key,
             signing_package.message().as_slice(),
-        );
+        )?;
 
         // Verify the signature shares.
         for (signature_share_identifier, signature_share) in signature_shares {

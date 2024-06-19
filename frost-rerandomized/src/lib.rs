@@ -17,7 +17,7 @@ extern crate alloc;
 #[cfg(any(test, feature = "test-impl"))]
 pub mod tests;
 
-use alloc::collections::BTreeMap;
+use alloc::{collections::BTreeMap, string::ToString};
 
 use derive_getters::Getters;
 pub use frost_core;
@@ -335,7 +335,9 @@ where
             .field("randomizer", &self.randomizer)
             .field(
                 "randomizer_element",
-                &hex::encode(<C::Group as Group>::serialize(&self.randomizer_element).as_ref()),
+                &<C::Group as Group>::serialize(&self.randomizer_element)
+                    .map(hex::encode)
+                    .unwrap_or("<invalid>".to_string()),
             )
             .field("randomized_verifying_key", &self.randomized_verifying_key)
             .finish()

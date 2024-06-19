@@ -22,20 +22,22 @@ pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mu
     let input_3 = generate_element::<C, R>(&mut rng);
 
     let coeff_comms = vec![
-        CoefficientCommitment::<C>(input_1),
-        CoefficientCommitment(input_2),
-        CoefficientCommitment(input_3),
+        CoefficientCommitment::<C>::new(input_1),
+        CoefficientCommitment::new(input_2),
+        CoefficientCommitment::new(input_3),
     ];
 
     //    ---
 
     let expected = [
-        <C::Group>::serialize(&input_1),
-        <C::Group>::serialize(&input_2),
-        <C::Group>::serialize(&input_3),
+        <C::Group>::serialize(&input_1).unwrap(),
+        <C::Group>::serialize(&input_2).unwrap(),
+        <C::Group>::serialize(&input_3).unwrap(),
     ];
 
-    let vss_commitment = VerifiableSecretSharingCommitment(coeff_comms).serialize();
+    let vss_commitment = VerifiableSecretSharingCommitment(coeff_comms)
+        .serialize()
+        .unwrap();
 
     assert!(expected.len() == vss_commitment.len());
     assert!(expected
@@ -54,18 +56,18 @@ pub fn check_deserialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
     let input_3 = generate_element::<C, R>(&mut rng);
 
     let coeff_comms = vec![
-        CoefficientCommitment::<C>(input_1),
-        CoefficientCommitment(input_2),
-        CoefficientCommitment(input_3),
+        CoefficientCommitment::<C>::new(input_1),
+        CoefficientCommitment::new(input_2),
+        CoefficientCommitment::new(input_3),
     ];
     // ---
 
     let expected = VerifiableSecretSharingCommitment(coeff_comms);
 
     let data = vec![
-        <C::Group>::serialize(&input_1),
-        <C::Group>::serialize(&input_2),
-        <C::Group>::serialize(&input_3),
+        <C::Group>::serialize(&input_1).unwrap(),
+        <C::Group>::serialize(&input_2).unwrap(),
+        <C::Group>::serialize(&input_3).unwrap(),
     ];
 
     let vss_value = VerifiableSecretSharingCommitment::deserialize(data);
@@ -96,9 +98,9 @@ pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + Crypt
     // ---
 
     let data = vec![
-        <C::Group>::serialize(&input_1),
-        <C::Group>::serialize(&input_2),
-        <C::Group>::serialize(&input_3),
+        <C::Group>::serialize(&input_1).unwrap(),
+        <C::Group>::serialize(&input_2).unwrap(),
+        <C::Group>::serialize(&input_3).unwrap(),
         serialized,
     ];
 

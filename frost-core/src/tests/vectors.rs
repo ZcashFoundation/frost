@@ -263,13 +263,14 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     for (identifier, input) in signing_package
         .binding_factor_preimages(&verifying_key, &[])
+        .unwrap()
         .iter()
     {
         assert_eq!(*input, binding_factor_inputs[identifier]);
     }
 
     let binding_factor_list: frost::BindingFactorList<C> =
-        compute_binding_factor_list(&signing_package, &verifying_key, &[]);
+        compute_binding_factor_list(&signing_package, &verifying_key, &[]).unwrap();
 
     for (identifier, binding_factor) in binding_factor_list.0.iter() {
         assert_eq!(*binding_factor, binding_factors[identifier]);
@@ -311,7 +312,10 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     // Check that the generated signature matches the test vector signature
     let group_signature = group_signature_result.unwrap();
-    assert_eq!(group_signature.serialize().as_ref(), signature_bytes);
+    assert_eq!(
+        group_signature.serialize().unwrap().as_ref(),
+        signature_bytes
+    );
 
     // Aggregate the FROST signature from our signature shares
     let group_signature_result =
@@ -322,5 +326,8 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
 
     // Check that the generated signature matches the test vector signature
     let group_signature = group_signature_result.unwrap();
-    assert_eq!(group_signature.serialize().as_ref(), signature_bytes);
+    assert_eq!(
+        group_signature.serialize().unwrap().as_ref(),
+        signature_bytes
+    );
 }

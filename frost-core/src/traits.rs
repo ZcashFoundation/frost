@@ -114,11 +114,12 @@ pub trait Group: Copy + Clone + PartialEq {
     /// [`ScalarBaseMult()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.1-3.5
     fn generator() -> Self::Element;
 
-    /// A member function of a group _G_ that maps an [`Element`] to a unique byte array buf of
-    /// fixed length Ne.
+    /// A member function of a group _G_ that maps an [`Element`] to a unique
+    /// byte array buf of fixed length Ne. This function raises an error if the
+    /// element is the identity element of the group.
     ///
     /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.1-3.6>
-    fn serialize(element: &Self::Element) -> Self::Serialization;
+    fn serialize(element: &Self::Element) -> Result<Self::Serialization, GroupError>;
 
     /// A member function of a [`Group`] that attempts to map a byte array `buf` to an [`Element`].
     ///
@@ -225,7 +226,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
     ) -> Result<(), Error<Self>> {
-        let c = crate::challenge::<Self>(&signature.R, public_key, msg);
+        let c = crate::challenge::<Self>(&signature.R, public_key, msg)?;
 
         public_key.verify_prehashed(c, signature)
     }

@@ -14,9 +14,11 @@ pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: RngCore 
 ) {
     let element = generate_element::<C, R>(&mut rng);
 
-    let expected = <C::Group>::serialize(&element);
+    let expected = <C::Group>::serialize(&element).unwrap();
 
-    let data = frost::keys::CoefficientCommitment::<C>(element).serialize();
+    let data = frost::keys::CoefficientCommitment::<C>::new(element)
+        .serialize()
+        .unwrap();
 
     assert!(expected.as_ref() == data.as_ref());
 }
@@ -25,9 +27,9 @@ pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: RngCore 
 pub fn check_create_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let element = generate_element::<C, R>(&mut rng);
 
-    let expected = CoefficientCommitment::<C>(element);
+    let expected = CoefficientCommitment::<C>::new(element);
 
-    let serialized_element = <C::Group>::serialize(&element);
+    let serialized_element = <C::Group>::serialize(&element).unwrap();
 
     let coeff_commitment =
         frost::keys::CoefficientCommitment::<C>::deserialize(serialized_element).unwrap();
@@ -57,7 +59,7 @@ pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: RngCore + Cr
 ) {
     let element = generate_element::<C, R>(&mut rng);
 
-    let coeff_commitment = frost::keys::CoefficientCommitment::<C>(element);
+    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::new(element);
     let value = coeff_commitment.value();
 
     assert!(value == element)
