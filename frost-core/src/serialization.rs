@@ -1,10 +1,14 @@
 //! Serialization support.
 
+use crate::Ciphersuite;
+
 #[cfg(feature = "serde")]
-use crate::{Ciphersuite, Field, Group};
+use crate::{Field, Group};
 
 #[cfg(feature = "serialization")]
 use crate::Error;
+
+use crate::Element;
 
 #[cfg(feature = "serde")]
 #[cfg_attr(feature = "internals", visibility::make(pub))]
@@ -51,13 +55,11 @@ where
     }
 }
 
-#[cfg(feature = "serde")]
-pub(crate) struct ElementSerialization<C: Ciphersuite>(
-    pub(crate) <<C as Ciphersuite>::Group as Group>::Serialization,
-);
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SerializableElement<C: Ciphersuite>(pub(crate) Element<C>);
 
 #[cfg(feature = "serde")]
-impl<C> serde::Serialize for ElementSerialization<C>
+impl<C> serde::Serialize for SerializableElement<C>
 where
     C: Ciphersuite,
 {
@@ -65,12 +67,14 @@ where
     where
         S: serde::Serializer,
     {
-        serdect::array::serialize_hex_lower_or_bin(&self.0.as_ref(), serializer)
+        let serialized =
+            <C::Group as Group>::serialize(&self.0).map_err(serde::ser::Error::custom)?;
+        serdect::array::serialize_hex_lower_or_bin(&serialized.as_ref(), serializer)
     }
 }
 
 #[cfg(feature = "serde")]
-impl<'de, C> serde::Deserialize<'de> for ElementSerialization<C>
+impl<'de, C> serde::Deserialize<'de> for SerializableElement<C>
 where
     C: Ciphersuite,
 {
@@ -80,14 +84,19 @@ where
     {
         // Get size from the size of the generator
         let generator = <C::Group>::generator();
-        let len = <C::Group>::serialize(&generator).as_ref().len();
+        let len = <C::Group>::serialize(&generator)
+            .expect("serializing the generator always works")
+            .as_ref()
+            .len();
 
         let mut bytes = vec![0u8; len];
         serdect::array::deserialize_hex_or_bin(&mut bytes[..], deserializer)?;
         let array = bytes
             .try_into()
             .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        Ok(Self(array))
+        <C::Group as Group>::deserialize(&array)
+            .map(|element| Self(element))
+            .map_err(serde::de::Error::custom)
     }
 }
 

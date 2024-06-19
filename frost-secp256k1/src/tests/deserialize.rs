@@ -4,7 +4,8 @@ use crate::*;
 fn check_deserialize_non_canonical() {
     let mut encoded_generator = <Secp256K1Sha256 as Ciphersuite>::Group::serialize(
         &<Secp256K1Sha256 as Ciphersuite>::Group::generator(),
-    );
+    )
+    .unwrap();
 
     let r = <Secp256K1Sha256 as Ciphersuite>::Group::deserialize(&encoded_generator);
     assert!(r.is_ok());
