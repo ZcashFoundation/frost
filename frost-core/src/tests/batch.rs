@@ -10,7 +10,7 @@ pub fn batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
         let msg = b"BatchVerifyTest";
         let sig = sk.sign(&mut rng, &msg[..]);
         assert!(vk.verify(msg, &sig).is_ok());
-        batch.queue((vk, sig, msg));
+        batch.queue(batch::Item::<C>::new(vk, sig, msg).unwrap());
     }
     assert!(batch.verify(rng).is_ok());
 }
@@ -31,14 +31,14 @@ pub fn bad_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
                 } else {
                     sk.sign(&mut rng, b"bad")
                 };
-                (vk, sig, msg).into()
+                batch::Item::<C>::new(vk, sig, msg).unwrap()
             }
             1 => {
                 let sk = SigningKey::new(&mut rng);
                 let vk = VerifyingKey::<C>::from(&sk);
                 let msg = b"BatchVerifyTest";
                 let sig = sk.sign(&mut rng, &msg[..]);
-                (vk, sig, msg).into()
+                batch::Item::<C>::new(vk, sig, msg).unwrap()
             }
             _ => unreachable!(),
         };

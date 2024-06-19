@@ -112,21 +112,15 @@ impl Group for Secp256K1Group {
         ProjectivePoint::GENERATOR
     }
 
-    fn serialize(element: &Self::Element) -> Self::Serialization {
+    fn serialize(element: &Self::Element) -> Result<Self::Serialization, GroupError> {
+        if *element == Self::identity() {
+            return Err(GroupError::InvalidIdentityElement);
+        }
         let mut fixed_serialized = [0; 33];
         let serialized_point = element.to_affine().to_encoded_point(true);
         let serialized = serialized_point.as_bytes();
-        // Sanity check; either it takes all bytes or a single byte (identity).
-        assert!(serialized.len() == fixed_serialized.len() || serialized.len() == 1);
-        // Copy to the left of the buffer (i.e. pad the identity with zeroes).
-        // Note that identity elements shouldn't be serialized in FROST, but we
-        // do this padding so that this function doesn't have to return an error.
-        // If this encodes the identity, it will fail when deserializing.
-        {
-            let (left, _right) = fixed_serialized.split_at_mut(serialized.len());
-            left.copy_from_slice(serialized);
-        }
-        fixed_serialized
+        fixed_serialized.copy_from_slice(serialized);
+        Ok(fixed_serialized)
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {

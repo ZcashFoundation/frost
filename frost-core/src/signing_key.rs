@@ -31,11 +31,7 @@ where
         let scalar =
             <<C::Group as Group>::Field as Field>::deserialize(&bytes).map_err(Error::from)?;
 
-        if scalar == <<C::Group as Group>::Field as Field>::zero() {
-            return Err(Error::MalformedSigningKey);
-        }
-
-        Ok(Self { scalar })
+        Self::from_scalar(scalar)
     }
 
     /// Serialize `SigningKey` to bytes
@@ -50,18 +46,21 @@ where
         let R = <C::Group>::generator() * k;
 
         // Generate Schnorr challenge
-        let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self), msg);
+        let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self), msg).expect("should not return error since that happens only if one of the inputs is the identity. R is not since k is nonzero. The verifying_key is not because signing keys are not allowed to be zero.");
 
         let z = k + (c.0 * self.scalar);
 
         Signature { R, z }
     }
 
-    /// Creates a SigningKey from a scalar.
+    /// Creates a SigningKey from a scalar. Returns an error if the scalar is zero.
     pub fn from_scalar(
         scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
-    ) -> Self {
-        Self { scalar }
+    ) -> Result<Self, Error<C>> {
+        if scalar == <<C::Group as Group>::Field as Field>::zero() {
+            return Err(Error::MalformedSigningKey);
+        }
+        Ok(Self { scalar })
     }
 
     /// Return the underlying scalar.
@@ -84,9 +83,7 @@ where
     C: Ciphersuite,
 {
     fn from(signing_key: &SigningKey<C>) -> Self {
-        VerifyingKey {
-            element: C::Group::generator() * signing_key.scalar,
-        }
+        VerifyingKey::new(C::Group::generator() * signing_key.scalar)
     }
 }
 

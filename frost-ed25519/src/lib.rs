@@ -99,8 +99,11 @@ impl Group for Ed25519Group {
         ED25519_BASEPOINT_POINT
     }
 
-    fn serialize(element: &Self::Element) -> Self::Serialization {
-        element.compress().to_bytes()
+    fn serialize(element: &Self::Element) -> Result<Self::Serialization, GroupError> {
+        if *element == Self::identity() {
+            return Err(GroupError::InvalidIdentityElement);
+        }
+        Ok(element.compress().to_bytes())
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {

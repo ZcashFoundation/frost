@@ -12,10 +12,12 @@ use hex::FromHex;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{Ciphersuite, Element, Error, Field, Group, Header, Scalar};
+use crate::{
+    serialization::SerializableElement, Ciphersuite, Element, Error, Field, Group, Header, Scalar,
+};
 
 #[cfg(feature = "serde")]
-use crate::serialization::{ElementSerialization, ScalarSerialization};
+use crate::serialization::ScalarSerialization;
 
 #[cfg(feature = "serialization")]
 use crate::serialization::{Deserialize, Serialize};
@@ -136,46 +138,31 @@ where
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
-#[cfg_attr(feature = "serde", serde(try_from = "ElementSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "ElementSerialization<C>"))]
-pub struct NonceCommitment<C: Ciphersuite>(pub(super) Element<C>);
+pub struct NonceCommitment<C: Ciphersuite>(pub(super) SerializableElement<C>);
 
 impl<C> NonceCommitment<C>
 where
     C: Ciphersuite,
 {
+    /// Create a new [`NonceCommitment`] from an [`Element`]
+    pub(crate) fn new(value: Element<C>) -> Self {
+        Self(SerializableElement(value))
+    }
+
+    pub(crate) fn value(&self) -> Element<C> {
+        self.0 .0
+    }
+
     /// Deserialize [`NonceCommitment`] from bytes
     pub fn deserialize(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
         <C::Group>::deserialize(&bytes)
-            .map(|element| Self(element))
+            .map(|element| Self::new(element))
             .map_err(|e| e.into())
     }
 
     /// Serialize [`NonceCommitment`] to bytes
-    pub fn serialize(&self) -> <C::Group as Group>::Serialization {
-        <C::Group>::serialize(&self.0)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> TryFrom<ElementSerialization<C>> for NonceCommitment<C>
-where
-    C: Ciphersuite,
-{
-    type Error = Error<C>;
-
-    fn try_from(value: ElementSerialization<C>) -> Result<Self, Self::Error> {
-        Self::deserialize(value.0)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> From<NonceCommitment<C>> for ElementSerialization<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: NonceCommitment<C>) -> Self {
-        Self(value.serialize())
+    pub fn serialize(&self) -> Result<<C::Group as Group>::Serialization, Error<C>> {
+        Ok(<C::Group>::serialize(&self.0 .0)?)
     }
 }
 
@@ -185,7 +172,12 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("NonceCommitment")
-            .field(&hex::encode(self.serialize()))
+            .field(
+                &self
+                    .serialize()
+                    .map(hex::encode)
+                    .unwrap_or("<invalid>".to_string()),
+            )
             .finish()
     }
 }
@@ -204,7 +196,7 @@ where
     C: Ciphersuite,
 {
     fn from(nonce: &Nonce<C>) -> Self {
-        Self(<C::Group>::generator() * nonce.0)
+        Self::new(<C::Group>::generator() * nonce.0)
     }
 }
 
@@ -359,7 +351,7 @@ where
         self,
         binding_factor: &crate::BindingFactor<C>,
     ) -> GroupCommitmentShare<C> {
-        GroupCommitmentShare::<C>(self.hiding.0 + (self.binding.0 * binding_factor.0))
+        GroupCommitmentShare::<C>(self.hiding.value() + (self.binding.value() * binding_factor.0))
     }
 }
 
@@ -406,16 +398,16 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 /// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-list-operations
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
-) -> Vec<u8> {
+) -> Result<Vec<u8>, Error<C>> {
     let mut bytes = vec![];
 
     for (item_identifier, item) in signing_commitments {
         bytes.extend_from_slice(item_identifier.serialize().as_ref());
-        bytes.extend_from_slice(<C::Group>::serialize(&item.hiding.0).as_ref());
-        bytes.extend_from_slice(<C::Group>::serialize(&item.binding.0).as_ref());
+        bytes.extend_from_slice(<C::Group>::serialize(&item.hiding.value())?.as_ref());
+        bytes.extend_from_slice(<C::Group>::serialize(&item.binding.value())?.as_ref());
     }
 
-    bytes
+    Ok(bytes)
 }
 
 /// Done once by each participant, to generate _their_ nonces and commitments

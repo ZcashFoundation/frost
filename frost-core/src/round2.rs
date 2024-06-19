@@ -93,7 +93,7 @@ where
         challenge: &Challenge<C>,
     ) -> Result<(), Error<C>> {
         if (<C::Group>::generator() * self.share)
-            != (group_commitment_share.0 + (verifying_share.0 * challenge.0 * lambda_i))
+            != (group_commitment_share.0 + (verifying_share.to_element() * challenge.0 * lambda_i))
         {
             return Err(Error::InvalidSignatureShare {
                 culprit: identifier,
@@ -202,7 +202,7 @@ pub fn sign<C: Ciphersuite>(
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &key_package.verifying_key, &[]);
+        compute_binding_factor_list(signing_package, &key_package.verifying_key, &[])?;
     let binding_factor: frost::BindingFactor<C> = binding_factor_list
         .get(&key_package.identifier)
         .ok_or(Error::UnknownIdentifier)?
@@ -219,7 +219,7 @@ pub fn sign<C: Ciphersuite>(
         &group_commitment.0,
         &key_package.verifying_key,
         signing_package.message.as_slice(),
-    );
+    )?;
 
     // Compute the Schnorr signature share.
     let signature_share = compute_signature_share(
