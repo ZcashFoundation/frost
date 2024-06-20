@@ -4,6 +4,8 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 2.0.0-rc.0
+
 * Changed the `deserialize()` function of Elements and structs containing
   Elements to return an error if the element is the identity. This is a
   requirement in the FROST specification that wasn't being followed. We are not
@@ -32,10 +34,6 @@ Entries are listed in reverse chronological order.
 * Removed `batch::Item::into()` which created a batch Item from a triple of
   VerifyingKey, Signature and message. Use the new `batch::Item::new()` instead
   (which can return an error).
-* Removed the `MulAssign<Identifier<C>> for Scalar<C>` implementation since it
-  will result in a coherence error in future Rust versions (see #625). In the
-  unlikely case you're using this, you can replace e.g. `scalar *= identifier`
-  with `scalar = identifier * scalar`.
 * Add no-std support to all crates except frost-ed448. To use, do not enable the
   `std` feature that is enabled by default (i.e. use `default-features =
   false`); Note that it always links to an external `alloc` crate (i.e. there is
@@ -44,9 +42,6 @@ Entries are listed in reverse chronological order.
   breaking change if you are disabling default features but rely on `Error`
   implementing `std::error::Error`. In that case, simply enable the `std`
   feature.
-
-## 1.0.1
-
 * Fixed `no-default-features`, previously it wouldn't compile.
 * Fixed some feature handling that would include unneeded dependencies in some
   cases.
