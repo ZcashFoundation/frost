@@ -1,7 +1,5 @@
 //! CoefficientCommitment functions
 
-use std::convert::TryFrom;
-
 use crate as frost;
 use crate::{keys::CoefficientCommitment, tests::helpers::generate_element, Group};
 use debugless_unwrap::DebuglessUnwrap;

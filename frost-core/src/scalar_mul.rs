@@ -4,11 +4,13 @@
 // constraints.
 #![allow(clippy::indexing_slicing)]
 
-use std::{
+use core::{
     borrow::Borrow,
     fmt::{Debug, Result},
     marker::PhantomData,
 };
+
+use alloc::vec::Vec;
 
 use crate::{Ciphersuite, Element, Field, Group, Scalar};
 
@@ -243,7 +245,7 @@ impl<C: Ciphersuite, T: Copy> LookupTable5<C, T> {
 }
 
 impl<C: Ciphersuite, T: Debug> Debug for LookupTable5<C, T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> Result {
         write!(f, "LookupTable5({:?})", self.bytes)
     }
 }

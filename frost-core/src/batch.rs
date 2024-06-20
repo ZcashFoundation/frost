@@ -7,8 +7,6 @@
 //! of caller code (which must assemble a batch of signatures across
 //! work-items), and loss of the ability to easily pinpoint failing signatures.
 
-use std::iter::once;
-
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, *};
@@ -136,7 +134,7 @@ where
             VKs.push(item.vk.to_element());
         }
 
-        let scalars = once(&P_coeff_acc)
+        let scalars = core::iter::once(&P_coeff_acc)
             .chain(VK_coeffs.iter())
             .chain(R_coeffs.iter());
 
@@ -159,6 +157,8 @@ where
     C: Ciphersuite,
 {
     fn default() -> Self {
-        Self { signatures: vec![] }
+        Self {
+            signatures: Vec::new(),
+        }
     }
 }

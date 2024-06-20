@@ -5,6 +5,8 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
+extern crate alloc;
+
 use std::collections::BTreeMap;
 
 use ed448_goldilocks::{
@@ -24,7 +26,9 @@ use frost_core as frost;
 mod tests;
 
 // Re-exports in our public API
-pub use frost_core::{serde, Ciphersuite, Field, FieldError, Group, GroupError};
+#[cfg(feature = "serde")]
+pub use frost_core::serde;
+pub use frost_core::{Ciphersuite, Field, FieldError, Group, GroupError};
 pub use rand_core;
 
 /// An error.

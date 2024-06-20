@@ -1,6 +1,6 @@
 //! FROST Round 2 functionality and types, for signature share generation
 
-use std::fmt::{self, Debug};
+use core::fmt::{self, Debug};
 
 use crate as frost;
 use crate::{
