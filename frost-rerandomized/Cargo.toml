@@ -5,7 +5,7 @@ edition = "2021"
 # - Update html_root_url
 # - Update CHANGELOG.md
 # - Create git tag.
-version = "1.0.0"
+version = "2.0.0-rc.0"
 authors = [
     "Deirdre Connolly <durumcrustulum@gmail.com>",
     "Chelsea Komlo <me@chelseakomlo.com>",
@@ -25,7 +25,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 derive-getters = "0.4.0"
 document-features = "0.2.7"
-frost-core = { path = "../frost-core", version = "1.0.0", features = [
+frost-core = { path = "../frost-core", version = "2.0.0-rc.0", features = [
     "internals"
 ], default-features = false }
 hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
