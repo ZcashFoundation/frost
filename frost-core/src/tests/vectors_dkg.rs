@@ -1,5 +1,5 @@
 //! Helper function for testing with test vectors.
-use alloc::{collections::BTreeMap, string::ToString};
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use debugless_unwrap::DebuglessUnwrap;
 use hex::{self};
@@ -66,7 +66,8 @@ pub fn parse_test_vectors_dkg<C: Ciphersuite>(json_vectors: &Value) -> DKGTestVe
     round2_packages.insert(participant_2_id, build_round_2_package(json_vectors, 2));
     round2_packages.insert(participant_3_id, build_round_2_package(json_vectors, 3));
 
-    let secret = SigningKey::deserialize(json_to_scalar::<C>(&participant["signing_key"])).unwrap();
+    let secret =
+        SigningKey::deserialize(json_to_scalar::<C>(&participant["signing_key"]).as_ref()).unwrap();
 
     let coefficient = <<C::Group as Group>::Field as Field>::deserialize(&json_to_scalar::<C>(
         &participant["coefficient"],
@@ -76,13 +77,15 @@ pub fn parse_test_vectors_dkg<C: Ciphersuite>(json_vectors: &Value) -> DKGTestVe
     let public_key_package = build_public_key_package(json_vectors);
 
     let verifying_share =
-        VerifyingShare::deserialize(json_to_element::<C>(&participant["verifying_share"])).unwrap();
+        VerifyingShare::deserialize(json_to_element::<C>(&participant["verifying_share"]).as_ref())
+            .unwrap();
 
     let verifying_key =
-        VerifyingKey::deserialize(json_to_element::<C>(&inputs["verifying_key"])).unwrap();
+        VerifyingKey::deserialize(json_to_element::<C>(&inputs["verifying_key"]).as_ref()).unwrap();
 
     let signing_share =
-        SigningShare::deserialize(json_to_scalar::<C>(&participant["signing_share"])).unwrap();
+        SigningShare::deserialize(json_to_scalar::<C>(&participant["signing_share"]).as_ref())
+            .unwrap();
 
     let key_package = KeyPackage {
         header: Header::default(),
@@ -114,18 +117,15 @@ fn build_round_1_package<C: Ciphersuite>(
         .as_array()
         .unwrap()
         .iter()
-        .map(|v| json_to_element::<C>(v))
-        .collect();
+        .map(|v| json_to_element::<C>(v).as_ref().to_vec())
+        .collect::<Vec<Vec<u8>>>();
 
     let commitment = VerifiableSecretSharingCommitment::deserialize(vss_commitment).unwrap();
 
     let proof_of_knowledge = Signature::deserialize(
-        C::SignatureSerialization::try_from(
-            hex::decode(participant["proof_of_knowledge"].as_str().unwrap()).unwrap(),
-        )
-        .debugless_unwrap(),
+        &hex::decode(participant["proof_of_knowledge"].as_str().unwrap()).unwrap(),
     )
-    .unwrap();
+    .debugless_unwrap();
 
     Round1Package {
         header: Header::default(),
@@ -140,9 +140,9 @@ fn build_round_2_package<C: Ciphersuite>(
 ) -> Round2Package<C> {
     let inputs = &json_vectors["inputs"];
 
-    let signing_share = SigningShare::deserialize(json_to_scalar::<C>(
-        &inputs["1"]["signing_shares"][sender_num.to_string()],
-    ))
+    let signing_share = SigningShare::deserialize(
+        json_to_scalar::<C>(&inputs["1"]["signing_shares"][sender_num.to_string()]).as_ref(),
+    )
     .unwrap();
 
     Round2Package {
@@ -163,15 +163,15 @@ fn build_public_key_package<C: Ciphersuite>(json_vectors: &Value) -> PublicKeyPa
             as u16)
             .try_into()
             .unwrap();
-        let verifying_share = VerifyingShare::deserialize(json_to_element::<C>(
-            &inputs[i.to_string()]["verifying_share"],
-        ))
+        let verifying_share = VerifyingShare::deserialize(
+            json_to_element::<C>(&inputs[i.to_string()]["verifying_share"]).as_ref(),
+        )
         .unwrap();
         verifying_shares.insert(participant_id, verifying_share);
     }
 
     let verifying_key =
-        VerifyingKey::deserialize(json_to_element::<C>(&inputs["verifying_key"])).unwrap();
+        VerifyingKey::deserialize(json_to_element::<C>(&inputs["verifying_key"]).as_ref()).unwrap();
 
     PublicKeyPackage {
         header: Header::default(),

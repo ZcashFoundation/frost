@@ -1,4 +1,5 @@
 //! Ciphersuite-generic test functions for re-randomized FROST.
+#![cfg(feature = "serialization")]
 
 use alloc::borrow::ToOwned;
 use alloc::collections::BTreeMap;

@@ -1,9 +1,6 @@
 use core::fmt::{self, Debug};
 
-use alloc::string::ToString;
-
-#[cfg(any(test, feature = "test-impl"))]
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
@@ -43,17 +40,13 @@ where
     }
 
     /// Deserialize from bytes
-    pub fn deserialize(
-        bytes: <C::Group as Group>::Serialization,
-    ) -> Result<VerifyingKey<C>, Error<C>> {
-        <C::Group>::deserialize(&bytes)
-            .map(|element| VerifyingKey::new(element))
-            .map_err(|e| e.into())
+    pub fn deserialize(bytes: &[u8]) -> Result<VerifyingKey<C>, Error<C>> {
+        Ok(Self::new(SerializableElement::deserialize(bytes)?.0))
     }
 
     /// Serialize `VerifyingKey` to bytes
-    pub fn serialize(&self) -> Result<<C::Group as Group>::Serialization, Error<C>> {
-        Ok(<C::Group>::serialize(&self.element.0)?)
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        self.element.serialize()
     }
 
     /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification
@@ -123,9 +116,6 @@ where
 
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
-        match v.try_into() {
-            Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed verifying key encoding"),
-            Err(_) => Err("malformed verifying key encoding"),
-        }
+        Self::deserialize(&v).map_err(|_| "malformed verifying key encoding")
     }
 }

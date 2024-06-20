@@ -54,7 +54,7 @@ fn check_signature_share_recreation() {
 
     let encoded = signature_share.serialize();
 
-    let new_signature_share = SignatureShare::deserialize(encoded).unwrap();
+    let new_signature_share = SignatureShare::deserialize(&encoded).unwrap();
     assert!(signature_share == new_signature_share);
 }
 
