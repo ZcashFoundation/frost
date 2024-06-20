@@ -38,8 +38,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.66.1
       - run: cargo build --all-features
 
-  test_all_features:
-    name: test all features combinations
+  build_all_features:
+    name: build all features combinations
     runs-on: ubuntu-latest
 
     steps:
@@ -48,10 +48,12 @@ jobs:
       - run: cargo install cargo-all-features
       # We check and then test because some test dependencies could help
       # a bugged build work, while a regular build would fail.
-      - run: cargo check-all-features --release
-      # Note that this also tests each crate separately, which also helps
+      # Note that this also builds each crate separately, which also helps
       # catching some issues.
-      - run: cargo test-all-features --release
+      - run: cargo check-all-features
+      # Build all tests. We don't run them to save time, since it's unlikely
+      # that tests would fail due to feature combinations.
+      - run: cargo test-all-features --no-run
 
   build_no_std:
     name: build with no_std
