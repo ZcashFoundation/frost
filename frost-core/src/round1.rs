@@ -1,8 +1,10 @@
 //! FROST Round 1 functionality and types
 
-use std::{
+use alloc::{
     collections::BTreeMap,
     fmt::{self, Debug},
+    string::ToString,
+    vec::Vec,
 };
 
 use derive_getters::Getters;
@@ -286,7 +288,7 @@ impl<C> Debug for SigningNonces<C>
 where
     C: Ciphersuite,
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SigningNonces")
             .field("hiding", &"<redacted>")
             .field("binding", &"<redacted>")
@@ -344,7 +346,7 @@ where
     /// Computes the [signature commitment share] from these round one signing commitments.
     ///
     /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
-    #[cfg(any(feature = "cheater-detection", feature = "internals"))]
+    #[cfg(any(feature = "internals", feature = "cheater-detection"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(super) fn to_group_commitment_share(

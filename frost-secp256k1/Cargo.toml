@@ -23,18 +23,18 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 document-features = "0.2.7"
-frost-core = { path = "../frost-core", version = "1.0.0" }
-frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
-k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"] }
+frost-core = { path = "../frost-core", version = "1.0.0", default-features = false }
+frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0", default-features = false }
+k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"], default-features = false }
 rand_core = "0.6"
-sha2 = "0.10.2"
+sha2 = { version = "0.10.2", default-features = false }
 
 [dev-dependencies]
 criterion = "0.5"
 frost-core = { path = "../frost-core", version = "1.0.0", features = ["test-impl"] }
 frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0", features = ["test-impl"] }
 insta = { version = "1.31.0", features = ["yaml"] }
-hex = "0.4.3"
+hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
 lazy_static = "1.4"
 proptest = "1.0"
 rand = "0.8"
@@ -43,16 +43,18 @@ serde_json = "1.0"
 
 [features]
 nightly = []
-default = ["serialization", "cheater-detection"]
+default = ["serialization", "cheater-detection", "std"]
 #! ## Features
+## Enable standard library support.
+std = ["frost-core/std"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
 serde = ["frost-core/serde"]
-## Enable cheater detection
-cheater-detection = ["frost-core/cheater-detection", "frost-rerandomized/cheater-detection"]
 ## Enable a default serialization format. Enables `serde`.
 serialization = ["serde", "frost-core/serialization", "frost-rerandomized/serialization"]
+## Enable cheater detection
+cheater-detection = ["frost-core/cheater-detection", "frost-rerandomized/cheater-detection"]
 
 [lib]
 # Disables non-criterion benchmark which is not used; prevents errors
