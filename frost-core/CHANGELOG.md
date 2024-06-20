@@ -17,6 +17,18 @@ Entries are listed in reverse chronological order.
     `VerifiableSecretSharingCommitment::serialize()`,
     `NonceCommitment::serialize()`, `Signature::serialize()`,
     `VerifyingKey::serialize()` can now all return an error.
+* Changed the `serialize()` and `deserialize()` methods of all Scalar- and
+  Element-wrapping structs; instead of taking or returning a
+  `Field::Serialization` or `Element::Serialization` trait (which are usually
+  defined by ciphersuites as arrays of specific sizes), they simply respectively
+  take `&[u8]` and return `Vec<u8>`, exactly as the other structs, which should
+  greatly simplify non-serde serialization code. You can port existing code with
+  e.g. `x.serialize().as_ref()` -> `x.serialize()` and
+  `X::deserialize(bytes.try_into().unwrap())` -> `X::deserialize(&bytes)`.
+* Removed the `ops::{Mul, MulAssign, Sub}` implementation for `Identifier`.
+  These were being used internally, but library users shouldn't need to use them.
+  If you have low-level code that relied on it, use `Identifier::{new,
+  to_scalar}` to handle the underlying scalar.
 * Removed `batch::Item::into()` which created a batch Item from a triple of
   VerifyingKey, Signature and message. Use the new `batch::Item::new()` instead
   (which can return an error).

@@ -17,7 +17,7 @@ use crate::Ciphersuite;
 pub fn check_zero_key_fails<C: Ciphersuite>() {
     let zero = <<<C as Ciphersuite>::Group as Group>::Field>::zero();
     let encoded_zero = <<<C as Ciphersuite>::Group as Group>::Field>::serialize(&zero);
-    let r = SigningKey::<C>::deserialize(encoded_zero);
+    let r = SigningKey::<C>::deserialize(encoded_zero.as_ref());
     assert_eq!(r, Err(Error::MalformedSigningKey));
 }
 
@@ -49,9 +49,8 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
     assert_eq!(
         frost::keys::reconstruct::<C>(&key_packages)
             .unwrap()
-            .serialize()
-            .as_ref(),
-        secret.serialize().as_ref()
+            .serialize(),
+        secret.serialize()
     );
 
     // Test error cases
@@ -334,10 +333,13 @@ fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
     mut signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) {
+    use crate::round2::SignatureShare;
+
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
     // Corrupt a share
     let id = *signature_shares.keys().next().unwrap();
-    signature_shares.get_mut(&id).unwrap().share = signature_shares[&id].share + one;
+    *signature_shares.get_mut(&id).unwrap() =
+        SignatureShare::new(signature_shares[&id].to_scalar() + one);
     let e = frost::aggregate(&signing_package, &signature_shares, &pubkey_package).unwrap_err();
     assert_eq!(e.culprit(), Some(id));
     assert_eq!(e, Error::InvalidSignatureShare { culprit: id });

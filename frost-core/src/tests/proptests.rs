@@ -60,11 +60,11 @@ where
         // conversion to raw bytes to exercise those code paths.
         let _sig = {
             let bytes = self.sig.serialize().unwrap();
-            Signature::<C>::deserialize(bytes)
+            Signature::<C>::deserialize(&bytes)
         };
 
         // Check that the verification key is a valid key.
-        let _pub_key = VerifyingKey::<C>::deserialize(self.vk.serialize().unwrap())
+        let _pub_key = VerifyingKey::<C>::deserialize(&self.vk.serialize().unwrap())
             .expect("The test verification key to be well-formed.");
 
         // Check that signature validation has the expected result.

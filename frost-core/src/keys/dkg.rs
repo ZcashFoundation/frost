@@ -528,11 +528,11 @@ pub fn part3<C: Ciphersuite>(
         //
         // > Each P_i calculates their long-lived private signing share by computing
         // > s_i = ∑^n_{ℓ=1} f_ℓ(i), stores s_i securely, and deletes each f_ℓ(i).
-        signing_share = signing_share + f_ell_i.0;
+        signing_share = signing_share + f_ell_i.to_scalar();
     }
 
     signing_share = signing_share + round2_secret_package.secret_share;
-    let signing_share = SigningShare(signing_share);
+    let signing_share = SigningShare::new(signing_share);
 
     // Round 2, Step 4
     //

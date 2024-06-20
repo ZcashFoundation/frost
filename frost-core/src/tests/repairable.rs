@@ -142,7 +142,7 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
         rhs = rhs + v;
     }
 
-    let lhs = lagrange_coefficient * helper_4.signing_share.0;
+    let lhs = lagrange_coefficient * helper_4.signing_share.to_scalar();
 
     assert!(lhs == rhs)
 }
@@ -202,7 +202,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
         generate_scalar_from_byte_string::<C>(sigmas["sigma_sum"].as_str().unwrap());
     let actual: SecretShare<C> = SecretShare::new(
         Identifier::try_from(2).unwrap(),
-        SigningShare(actual_sigma),
+        SigningShare::new(actual_sigma),
         commitment,
     );
 

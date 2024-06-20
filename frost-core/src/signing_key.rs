@@ -1,8 +1,13 @@
 //! Schnorr signature signing keys
 
+use alloc::vec::Vec;
+
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{random_nonzero, Ciphersuite, Error, Field, Group, Scalar, Signature, VerifyingKey};
+use crate::{
+    random_nonzero, serialization::SerializableScalar, Ciphersuite, Error, Field, Group, Scalar,
+    Signature, VerifyingKey,
+};
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -25,18 +30,13 @@ where
     }
 
     /// Deserialize from bytes
-    pub fn deserialize(
-        bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<SigningKey<C>, Error<C>> {
-        let scalar =
-            <<C::Group as Group>::Field as Field>::deserialize(&bytes).map_err(Error::from)?;
-
-        Self::from_scalar(scalar)
+    pub fn deserialize(bytes: &[u8]) -> Result<SigningKey<C>, Error<C>> {
+        Self::from_scalar(SerializableScalar::deserialize(bytes)?.0)
     }
 
     /// Serialize `SigningKey` to bytes
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field as Field>::serialize(&self.scalar)
+    pub fn serialize(&self) -> Vec<u8> {
+        SerializableScalar::<C>(self.scalar).serialize()
     }
 
     /// Create a signature `msg` using this `SigningKey`.

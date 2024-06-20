@@ -49,8 +49,11 @@ fn check_signing_package_postcard_serialization() {
 fn check_signature_share_postcard_serialization() {
     let signature_share = samples::signature_share();
     let bytes = signature_share.serialize();
-    assert_snapshot!(hex::encode(bytes));
-    assert_eq!(signature_share, SignatureShare::deserialize(bytes).unwrap());
+    assert_snapshot!(hex::encode(&bytes));
+    assert_eq!(
+        signature_share,
+        SignatureShare::deserialize(&bytes).unwrap()
+    );
 }
 #[test]
 fn check_secret_share_postcard_serialization() {

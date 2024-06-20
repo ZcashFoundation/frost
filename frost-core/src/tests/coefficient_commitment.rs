@@ -20,7 +20,7 @@ pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: RngCore 
         .serialize()
         .unwrap();
 
-    assert!(expected.as_ref() == data.as_ref());
+    assert!(expected.as_ref() == data);
 }
 
 /// Test create a CoefficientCommitment.
@@ -32,7 +32,7 @@ pub fn check_create_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRn
     let serialized_element = <C::Group>::serialize(&element).unwrap();
 
     let coeff_commitment =
-        frost::keys::CoefficientCommitment::<C>::deserialize(serialized_element).unwrap();
+        frost::keys::CoefficientCommitment::<C>::deserialize(serialized_element.as_ref()).unwrap();
 
     assert!(expected == coeff_commitment);
 }
@@ -48,7 +48,8 @@ pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(
         )
         .debugless_unwrap();
 
-    let coeff_commitment = frost::keys::CoefficientCommitment::<C>::deserialize(serialized);
+    let coeff_commitment =
+        frost::keys::CoefficientCommitment::<C>::deserialize(serialized.as_ref());
 
     assert!(coeff_commitment.is_err());
 }

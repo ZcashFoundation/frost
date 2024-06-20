@@ -15,11 +15,9 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
 use crate::{
-    serialization::SerializableElement, Ciphersuite, Element, Error, Field, Group, Header, Scalar,
+    serialization::{SerializableElement, SerializableScalar},
+    Ciphersuite, Element, Error, Field, Group, Header,
 };
-
-#[cfg(feature = "serde")]
-use crate::serialization::ScalarSerialization;
 
 #[cfg(feature = "serialization")]
 use crate::serialization::{Deserialize, Serialize};
@@ -30,9 +28,8 @@ use super::{keys::SigningShare, Identifier};
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
-#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
-pub struct Nonce<C: Ciphersuite>(pub(super) Scalar<C>);
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct Nonce<C: Ciphersuite>(pub(super) SerializableScalar<C>);
 
 impl<C> Nonce<C>
 where
@@ -57,35 +54,41 @@ where
         Self::nonce_generate_from_random_bytes(secret, random_bytes)
     }
 
+    fn from_scalar(scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar) -> Self {
+        Self(SerializableScalar(scalar))
+    }
+
+    pub(crate) fn to_scalar(
+        self,
+    ) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+        self.0 .0
+    }
+
     /// Generates a nonce from the given random bytes.
     /// This function allows testing and MUST NOT be made public.
     pub(crate) fn nonce_generate_from_random_bytes(
         secret: &SigningShare<C>,
         random_bytes: [u8; 32],
     ) -> Self {
-        let secret_enc = <<C::Group as Group>::Field>::serialize(&secret.0);
+        let secret_enc = secret.0.serialize();
 
         let input: Vec<u8> = random_bytes
             .iter()
-            .chain(secret_enc.as_ref().iter())
+            .chain(secret_enc.iter())
             .cloned()
             .collect();
 
-        Self(C::H3(input.as_slice()))
+        Self::from_scalar(C::H3(input.as_slice()))
     }
 
     /// Deserialize [`Nonce`] from bytes
-    pub fn deserialize(
-        bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error<C>> {
-        <<C::Group as Group>::Field>::deserialize(&bytes)
-            .map(|scalar| Self(scalar))
-            .map_err(|e| e.into())
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self(SerializableScalar::deserialize(bytes)?))
     }
 
     /// Serialize [`Nonce`] to bytes
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field>::serialize(&self.0)
+    pub fn serialize(&self) -> Vec<u8> {
+        self.0.serialize()
     }
 }
 
@@ -94,7 +97,7 @@ where
     C: Ciphersuite,
 {
     fn zeroize(&mut self) {
-        *self = Nonce(<<C::Group as Group>::Field>::zero());
+        *self = Nonce::from_scalar(<<C::Group as Group>::Field>::zero());
     }
 }
 
@@ -107,32 +110,7 @@ where
 
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
-        match v.try_into() {
-            Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed nonce encoding"),
-            Err(_) => Err("malformed nonce encoding"),
-        }
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> TryFrom<ScalarSerialization<C>> for Nonce<C>
-where
-    C: Ciphersuite,
-{
-    type Error = Error<C>;
-
-    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        Self::deserialize(value.0)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> From<Nonce<C>> for ScalarSerialization<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: Nonce<C>) -> Self {
-        Self(value.serialize())
+        Self::deserialize(&v).map_err(|_| "malformed nonce encoding")
     }
 }
 
@@ -156,15 +134,13 @@ where
     }
 
     /// Deserialize [`NonceCommitment`] from bytes
-    pub fn deserialize(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
-        <C::Group>::deserialize(&bytes)
-            .map(|element| Self::new(element))
-            .map_err(|e| e.into())
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self(SerializableElement::deserialize(bytes)?))
     }
 
     /// Serialize [`NonceCommitment`] to bytes
-    pub fn serialize(&self) -> Result<<C::Group as Group>::Serialization, Error<C>> {
-        Ok(<C::Group>::serialize(&self.0 .0)?)
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        self.0.serialize()
     }
 }
 
@@ -198,7 +174,7 @@ where
     C: Ciphersuite,
 {
     fn from(nonce: &Nonce<C>) -> Self {
-        Self::new(<C::Group>::generator() * nonce.0)
+        Self::new(<C::Group>::generator() * nonce.to_scalar())
     }
 }
 
@@ -211,12 +187,7 @@ where
 
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
-        match v.try_into() {
-            Ok(bytes) => {
-                Self::deserialize(bytes).map_err(|_| "malformed nonce commitment encoding")
-            }
-            Err(_) => Err("malformed nonce commitment encoding"),
-        }
+        Self::deserialize(&v).map_err(|_| "malformed nonce commitment encoding")
     }
 }
 

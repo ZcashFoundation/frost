@@ -18,12 +18,10 @@ use rand_core::{CryptoRng, RngCore};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
-    serialization::SerializableElement, Ciphersuite, Element, Error, Field, Group, GroupError,
-    Header, Identifier, Scalar, SigningKey, VerifyingKey,
+    serialization::{SerializableElement, SerializableScalar},
+    Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, SigningKey,
+    VerifyingKey,
 };
-
-#[cfg(feature = "serde")]
-use crate::serialization::ScalarSerialization;
 
 #[cfg(feature = "serialization")]
 use crate::serialization::{Deserialize, Serialize};
@@ -84,44 +82,41 @@ pub(crate) fn default_identifiers<C: Ciphersuite>(max_signers: u16) -> Vec<Ident
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
-#[cfg_attr(feature = "serde", serde(try_from = "ScalarSerialization<C>"))]
-#[cfg_attr(feature = "serde", serde(into = "ScalarSerialization<C>"))]
-pub struct SigningShare<C: Ciphersuite>(pub(crate) Scalar<C>);
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct SigningShare<C: Ciphersuite>(pub(crate) SerializableScalar<C>);
 
 impl<C> SigningShare<C>
 where
     C: Ciphersuite,
 {
     /// Create a new [`SigningShare`] from a scalar.
-    #[cfg(feature = "internals")]
-    pub fn new(scalar: Scalar<C>) -> Self {
-        Self(scalar)
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn new(scalar: Scalar<C>) -> Self {
+        Self(SerializableScalar(scalar))
     }
 
     /// Get the inner scalar.
-    #[cfg(feature = "internals")]
-    pub fn to_scalar(&self) -> Scalar<C> {
-        self.0
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn to_scalar(&self) -> Scalar<C> {
+        self.0 .0
     }
 
     /// Deserialize from bytes
-    pub fn deserialize(
-        bytes: <<C::Group as Group>::Field as Field>::Serialization,
-    ) -> Result<Self, Error<C>> {
-        <<C::Group as Group>::Field>::deserialize(&bytes)
-            .map(|scalar| Self(scalar))
-            .map_err(|e| e.into())
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self(SerializableScalar::deserialize(bytes)?))
     }
 
     /// Serialize to bytes
-    pub fn serialize(&self) -> <<C::Group as Group>::Field as Field>::Serialization {
-        <<C::Group as Group>::Field>::serialize(&self.0)
+    pub fn serialize(&self) -> Vec<u8> {
+        self.0.serialize()
     }
 
     /// Computes the signing share from a list of coefficients.
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(crate) fn from_coefficients(coefficients: &[Scalar<C>], peer: Identifier<C>) -> Self {
-        Self(evaluate_polynomial(peer, coefficients))
+        Self::new(evaluate_polynomial(peer, coefficients))
     }
 }
 
@@ -139,7 +134,7 @@ where
     C: Ciphersuite,
 {
     fn default() -> Self {
-        Self(<<C::Group as Group>::Field>::zero())
+        Self::new(<<C::Group as Group>::Field>::zero())
     }
 }
 
@@ -155,32 +150,7 @@ where
 
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
-        match v.try_into() {
-            Ok(bytes) => Self::deserialize(bytes).map_err(|_| "malformed secret encoding"),
-            Err(_) => Err("malformed secret encoding"),
-        }
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> TryFrom<ScalarSerialization<C>> for SigningShare<C>
-where
-    C: Ciphersuite,
-{
-    type Error = Error<C>;
-
-    fn try_from(value: ScalarSerialization<C>) -> Result<Self, Self::Error> {
-        Self::deserialize(value.0)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C> From<SigningShare<C>> for ScalarSerialization<C>
-where
-    C: Ciphersuite,
-{
-    fn from(value: SigningShare<C>) -> Self {
-        Self(value.serialize())
+        Self::deserialize(&v).map_err(|_| "malformed scalar")
     }
 }
 
@@ -213,15 +183,13 @@ where
     }
 
     /// Deserialize from bytes
-    pub fn deserialize(bytes: <C::Group as Group>::Serialization) -> Result<Self, Error<C>> {
-        <C::Group as Group>::deserialize(&bytes)
-            .map(|element| Self(SerializableElement(element)))
-            .map_err(|e| e.into())
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self(SerializableElement::deserialize(bytes)?))
     }
 
     /// Serialize to bytes
-    pub fn serialize(&self) -> Result<<C::Group as Group>::Serialization, Error<C>> {
-        Ok(<C::Group as Group>::serialize(&self.0 .0)?)
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        self.0.serialize()
     }
 
     /// Computes a verifying share for a peer given the group commitment.
@@ -266,7 +234,7 @@ where
     C: Ciphersuite,
 {
     fn from(secret: SigningShare<C>) -> VerifyingShare<C> {
-        VerifyingShare::new(<C::Group>::generator() * secret.0 as Scalar<C>)
+        VerifyingShare::new(<C::Group>::generator() * secret.to_scalar())
     }
 }
 
@@ -289,16 +257,14 @@ where
         Self(SerializableElement(value))
     }
 
-    /// returns serialized element
-    pub fn serialize(&self) -> Result<<C::Group as Group>::Serialization, Error<C>> {
-        Ok(<C::Group>::serialize(&self.0 .0)?)
+    /// Deserialize from bytes
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self(SerializableElement::deserialize(bytes)?))
     }
 
-    /// Creates a new commitment from a coefficient input
-    pub fn deserialize(
-        coefficient: <C::Group as Group>::Serialization,
-    ) -> Result<CoefficientCommitment<C>, Error<C>> {
-        Ok(Self::new(<C::Group as Group>::deserialize(&coefficient)?))
+    /// Serialize to bytes
+    pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
+        self.0.serialize()
     }
 
     /// Returns inner element value
@@ -353,21 +319,23 @@ where
     }
 
     /// Returns serialized coefficent commitments
-    pub fn serialize(&self) -> Result<Vec<<C::Group as Group>::Serialization>, Error<C>> {
-        Ok(self
-            .0
+    pub fn serialize(&self) -> Result<Vec<Vec<u8>>, Error<C>> {
+        self.0
             .iter()
-            .map(|cc| <<C as Ciphersuite>::Group as Group>::serialize(&cc.value()))
-            .collect::<Result<_, GroupError>>()?)
+            .map(|cc| cc.serialize())
+            .collect::<Result<_, Error<C>>>()
     }
 
-    /// Returns VerifiableSecretSharingCommitment from a vector of serialized CoefficientCommitments
-    pub fn deserialize(
-        serialized_coefficient_commitments: Vec<<C::Group as Group>::Serialization>,
-    ) -> Result<Self, Error<C>> {
+    /// Returns VerifiableSecretSharingCommitment from a iterator of serialized
+    /// CoefficientCommitments (e.g. a Vec<Vec<u8>>).
+    pub fn deserialize<I, V>(serialized_coefficient_commitments: I) -> Result<Self, Error<C>>
+    where
+        I: IntoIterator<Item = V>,
+        V: AsRef<[u8]>,
+    {
         let mut coefficient_commitments = Vec::new();
-        for cc in serialized_coefficient_commitments {
-            coefficient_commitments.push(CoefficientCommitment::<C>::deserialize(cc)?);
+        for cc in serialized_coefficient_commitments.into_iter() {
+            coefficient_commitments.push(CoefficientCommitment::<C>::deserialize(cc.as_ref())?);
         }
 
         Ok(Self::new(coefficient_commitments))
@@ -450,7 +418,7 @@ where
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.2-4
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error<C>> {
-        let f_result = <C::Group>::generator() * self.signing_share.0;
+        let f_result = <C::Group>::generator() * self.signing_share.to_scalar();
         let result = evaluate_vss(self.identifier, &self.commitment);
 
         if !(f_result == result) {
@@ -580,10 +548,10 @@ fn evaluate_polynomial<C: Ciphersuite>(
 ) -> Scalar<C> {
     let mut value = <<C::Group as Group>::Field>::zero();
 
-    let ell_scalar = identifier;
+    let ell = identifier;
     for coeff in coefficients.iter().skip(1).rev() {
         value = value + *coeff;
-        value = ell_scalar * value;
+        value = value * ell.to_scalar();
     }
     value = value
         + *coefficients
@@ -601,7 +569,7 @@ fn evaluate_vss<C: Ciphersuite>(
     identifier: Identifier<C>,
     commitment: &VerifiableSecretSharingCommitment<C>,
 ) -> Element<C> {
-    let i = identifier;
+    let i = identifier.to_scalar();
 
     let (_, result) = commitment.0.iter().fold(
         (<<C::Group as Group>::Field>::one(), <C::Group>::identity()),
@@ -943,7 +911,7 @@ pub fn reconstruct<C: Ciphersuite>(
             compute_lagrange_coefficient(&identifiers, None, key_package.identifier)?;
 
         // Compute y = f(0) via polynomial interpolation of these t-of-n solutions ('points) of f
-        secret = secret + (lagrange_coefficient * key_package.signing_share().0);
+        secret = secret + (lagrange_coefficient * key_package.signing_share().to_scalar());
     }
 
     Ok(SigningKey { scalar: secret })
