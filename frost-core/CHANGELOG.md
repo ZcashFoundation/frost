@@ -19,7 +19,7 @@ Entries are listed in reverse chronological order.
     `VerifyingKey::serialize()` can now all return an error.
 * Changed the `serialize()` and `deserialize()` methods of all Scalar- and
   Element-wrapping structs; instead of taking or returning a
-  `Field::Serialization` or `Element::Serialization` traits (which are usually
+  `Field::Serialization` or `Element::Serialization` trait (which are usually
   defined by ciphersuites as arrays of specific sizes), they simply respectively
   take `&[u8]` and return `Vec<u8>`, exactly as the other structs, which should
   greatly simplify non-serde serialization code. You can port existing code with
