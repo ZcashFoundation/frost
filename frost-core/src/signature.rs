@@ -1,5 +1,7 @@
 //! Schnorr signatures over prime order groups (or subgroups)
 
+use alloc::{string::ToString, vec::Vec};
+
 use crate::{Ciphersuite, Element, Error, Field, Group, Scalar};
 
 /// A Schnorr signature over some prime order group (or subgroup).
@@ -66,7 +68,7 @@ where
 
     /// Converts this signature to its byte serialization.
     pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
-        let mut bytes = vec![];
+        let mut bytes = Vec::<u8>::new();
 
         bytes.extend(<C::Group>::serialize(&self.R)?.as_ref());
         bytes.extend(<<C::Group as Group>::Field>::serialize(&self.z).as_ref());
@@ -111,8 +113,8 @@ where
     }
 }
 
-impl<C: Ciphersuite> std::fmt::Debug for Signature<C> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<C: Ciphersuite> core::fmt::Debug for Signature<C> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.debug_struct("Signature")
             .field(
                 "R",

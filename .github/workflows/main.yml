@@ -38,15 +38,36 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.66.1
       - run: cargo build --all-features
 
-  build_all_features:
-    name: build with all features combinations
+  test_all_features:
+    name: test all features combinations
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4.1.7
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-all-features
-      - run: cargo build-all-features
+      # We check and then test because some test dependencies could help
+      # a bugged build work, while a regular build would fail.
+      - run: cargo check-all-features --release
+      # Note that this also tests each crate separately, which also helps
+      # catching some issues.
+      - run: cargo test-all-features --release
+
+  build_no_std:
+    name: build with no_std
+    runs-on: ubuntu-latest
+    # Skip ed448 which does not support it.
+    strategy:
+      matrix:
+        crate: [ristretto255, ed25519, p256, secp256k1, rerandomized]
+    steps:
+    - uses: actions/checkout@v4.1.1
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        targets: thumbv6m-none-eabi
+    - run: cargo build -p frost-${{ matrix.crate }} --no-default-features --target thumbv6m-none-eabi
+    - run: cargo build -p frost-${{ matrix.crate }} --no-default-features --features serialization --target thumbv6m-none-eabi
 
   test_beta:
     name: test on beta

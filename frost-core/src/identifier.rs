@@ -1,9 +1,11 @@
 //! FROST participant identifiers
 
-use std::{
+use core::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
 };
+
+use alloc::vec::Vec;
 
 use crate::{
     serialization::SerializableScalar, Ciphersuite, Error, Field, FieldError, Group, Scalar,
@@ -120,7 +122,7 @@ impl<C> Ord for Identifier<C>
 where
     C: Ciphersuite,
 {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         let serialized_self =
             <<C::Group as Group>::Field>::little_endian_serialize(&self.to_scalar());
         let serialized_other =
@@ -138,7 +140,7 @@ impl<C> PartialOrd for Identifier<C>
 where
     C: Ciphersuite,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }

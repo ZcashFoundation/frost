@@ -1,6 +1,9 @@
 //! Ciphersuite-generic test functions for re-randomized FROST.
+#![cfg(feature = "serialization")]
 
-use std::collections::BTreeMap;
+use alloc::borrow::ToOwned;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 
 use crate::{frost_core as frost, RandomizedCiphersuite, RandomizedParams, Randomizer};
 use frost_core::{Field, Group, Signature, SigningPackage, VerifyingKey};

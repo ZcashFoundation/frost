@@ -1,5 +1,5 @@
 //! Helper function for testing with test vectors.
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use debugless_unwrap::DebuglessUnwrap;
 use hex::{self, FromHex};

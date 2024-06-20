@@ -1,4 +1,6 @@
-use std::fmt::{self, Debug};
+use core::fmt::{self, Debug};
+
+use alloc::{string::ToString, vec::Vec};
 
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
