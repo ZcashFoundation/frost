@@ -44,6 +44,7 @@ serde_json = { version = "1.0", optional = true }
 criterion = { version = "0.5", optional = true }
 
 [dev-dependencies]
+criterion = { version = "0.5" }
 lazy_static = "1.4"
 proptest = "1.0"
 rand = "0.8"
