@@ -75,6 +75,16 @@ where
 
         Ok(bytes)
     }
+
+    pub fn serialize_taproot(signature: &Signature) -> Self::SignatureSerialization {
+        let R_bytes = Self::Group::serialize(signature.R());
+        let z_bytes = <Self::Group as Group>::Field::serialize(signature.z());
+
+        let mut bytes = [0u8; 64];
+        bytes[..32].copy_from_slice(&R_bytes[1..]);
+        bytes[32..].copy_from_slice(&z_bytes);
+        bytes
+    }
 }
 
 #[cfg(feature = "serde")]
