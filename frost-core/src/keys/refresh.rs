@@ -84,7 +84,7 @@ pub fn refresh_share<C: Ciphersuite>(
 
     // The identity commitment needs to be added to the VSS commitment
     let identity_commitment: Vec<CoefficientCommitment<C>> =
-        vec![(CoefficientCommitment(<C::Group>::identity()))];
+        vec![CoefficientCommitment::new(C::Group::identity())];
 
     let zero_commitments_without_id = zero_share.commitment.0;
     let old_commitments = current_share.commitment.0.clone();
@@ -102,7 +102,7 @@ pub fn refresh_share<C: Ciphersuite>(
                 (zero_commitment.get(i), old_commitments.get(i))
             {
                 commitments.push(CoefficientCommitment::new(
-                    zero_commitment.0 + old_commitment.0,
+                    zero_commitment.0 .0 + old_commitment.0 .0,
                 ));
             } else {
                 return Err(Error::IncorrectNumberOfCommitments);
