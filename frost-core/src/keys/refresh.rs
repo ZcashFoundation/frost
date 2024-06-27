@@ -49,10 +49,19 @@ pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
     )?;
 
     let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
+    let mut zero_shares_minus_identity: Vec<SecretShare<C>> = Vec::new();
 
     for share in zero_shares.clone() {
         let signer_public = SigningShare::into(share.signing_share);
         verifying_shares.insert(share.identifier, signer_public);
+        let mut coefficients = share.commitment.0;
+        coefficients.remove(0);
+        zero_shares_minus_identity.push(SecretShare {
+            header: share.header,
+            identifier: share.identifier,
+            signing_share: share.signing_share,
+            commitment: VerifiableSecretSharingCommitment::new(coefficients),
+        });
     }
 
     let pub_key_package = PublicKeyPackage::<C> {
@@ -61,10 +70,11 @@ pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
         verifying_key: old_pub_key_package.verifying_key,
     };
 
-    Ok((zero_shares, pub_key_package))
+    Ok((zero_shares_minus_identity, pub_key_package))
 }
 
-/// Each participant refreshed their shares
+/// Each participant refreshes their shares
+/// This is done by taking the `zero_share` received from the trusted dealer and adding it to the original share
 pub fn refresh_share<C: Ciphersuite>(
     zero_share: SecretShare<C>,
     current_share: &SecretShare<C>,
@@ -72,15 +82,24 @@ pub fn refresh_share<C: Ciphersuite>(
     let signing_share: Scalar<C> =
         zero_share.signing_share.to_scalar() + current_share.signing_share.to_scalar();
 
-    let zero_commitments = zero_share.commitment.0;
+    // The identity commitment needs to be added to the VSS commitment
+    let identity_commitment: Vec<CoefficientCommitment<C>> =
+        vec![(CoefficientCommitment(<C::Group>::identity()))];
+
+    let zero_commitments_without_id = zero_share.commitment.0;
     let old_commitments = current_share.commitment.0.clone();
 
-    let mut commitments: Vec<CoefficientCommitment<C>> = Vec::with_capacity(zero_commitments.len());
+    let zero_commitment: Vec<CoefficientCommitment<C>> = identity_commitment
+        .into_iter()
+        .chain(zero_commitments_without_id.clone())
+        .collect();
 
-    if old_commitments.len() >= zero_commitments.len() {
-        for i in 0..zero_commitments.len() {
+    let mut commitments: Vec<CoefficientCommitment<C>> = Vec::with_capacity(zero_commitment.len());
+
+    if old_commitments.len() >= zero_commitment.len() {
+        for i in 0..zero_commitment.len() {
             if let (Some(zero_commitment), Some(old_commitment)) =
-                (zero_commitments.get(i), old_commitments.get(i))
+                (zero_commitment.get(i), old_commitments.get(i))
             {
                 commitments.push(CoefficientCommitment::new(
                     zero_commitment.0 + old_commitment.0,
