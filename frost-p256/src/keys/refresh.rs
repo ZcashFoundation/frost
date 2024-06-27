@@ -6,7 +6,7 @@
 
 use crate::{frost, Ciphersuite, CryptoRng, Error, Identifier, RngCore};
 
-use super::{PublicKeyPackage, SecretShare};
+use super::{KeyPackage, PublicKeyPackage, SecretShare};
 
 /// Refreshes shares using a trusted dealer
 pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
@@ -28,7 +28,7 @@ pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Each participant refreshed their shares
 pub fn refresh_share<C: Ciphersuite>(
     zero_share: SecretShare,
-    current_share: &SecretShare,
-) -> Result<SecretShare, Error> {
+    current_share: &KeyPackage,
+) -> Result<KeyPackage, Error> {
     frost::keys::refresh::refresh_share(zero_share, current_share)
 }

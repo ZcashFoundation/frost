@@ -9,12 +9,12 @@ use std::collections::BTreeMap;
 use crate::{
     keys::{
         generate_coefficients, generate_secret_shares, validate_num_of_signers,
-        CoefficientCommitment, PublicKeyPackage, SigningKey, SigningShare, VerifyingShare,
+        CoefficientCommitment, PublicKeyPackage, SigningKey, SigningShare, VerifyingShare
     },
     Ciphersuite, CryptoRng, Error, Field, Group, Identifier, RngCore, Scalar,
 };
 
-use super::{SecretShare, VerifiableSecretSharingCommitment};
+use super::{KeyPackage, SecretShare, VerifiableSecretSharingCommitment};
 
 /// Refreshes shares using a trusted dealer
 pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
@@ -77,49 +77,43 @@ pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// This is done by taking the `zero_share` received from the trusted dealer and adding it to the original share
 pub fn refresh_share<C: Ciphersuite>(
     zero_share: SecretShare<C>,
-    current_share: &SecretShare<C>,
-) -> Result<SecretShare<C>, Error<C>> {
-    let signing_share: Scalar<C> =
-        zero_share.signing_share.to_scalar() + current_share.signing_share.to_scalar();
+    current_key_package: &KeyPackage<C>,
+) -> Result<KeyPackage<C>, Error<C>> {
 
     // The identity commitment needs to be added to the VSS commitment
     let identity_commitment: Vec<CoefficientCommitment<C>> =
-        vec![CoefficientCommitment::new(C::Group::identity())];
+    vec![CoefficientCommitment::new(C::Group::identity())];
 
     let zero_commitments_without_id = zero_share.commitment.0;
-    let old_commitments = current_share.commitment.0.clone();
 
     let zero_commitment: Vec<CoefficientCommitment<C>> = identity_commitment
         .into_iter()
         .chain(zero_commitments_without_id.clone())
         .collect();
 
-    let mut commitments: Vec<CoefficientCommitment<C>> = Vec::with_capacity(zero_commitment.len());
-
-    if old_commitments.len() >= zero_commitment.len() {
-        for i in 0..zero_commitment.len() {
-            if let (Some(zero_commitment), Some(old_commitment)) =
-                (zero_commitment.get(i), old_commitments.get(i))
-            {
-                commitments.push(CoefficientCommitment::new(
-                    zero_commitment.0 .0 + old_commitment.0 .0,
-                ));
-            } else {
-                return Err(Error::IncorrectNumberOfCommitments);
-            }
-        }
-    } else {
-        return Err(Error::MissingCommitment);
-    }
-
-    let commitment = VerifiableSecretSharingCommitment::new(commitments);
-
-    let signing_share = SigningShare::new(signing_share);
-
-    Ok(SecretShare {
+    let zero_share = SecretShare{
         header: zero_share.header,
         identifier: zero_share.identifier,
-        signing_share,
-        commitment,
+        signing_share: zero_share.signing_share,
+        commitment: VerifiableSecretSharingCommitment::<C>::new(zero_commitment)
+    };
+
+    // verify zero_share secret share
+    let zero_key_package = KeyPackage::<C>::try_from(zero_share).unwrap(); // TODO
+
+
+
+    let signing_share: Scalar<C> =
+        zero_key_package.signing_share.to_scalar() + current_key_package.signing_share.to_scalar();
+
+    // let key_package = {current_key_package, signing_share}; // TODO
+
+    Ok(KeyPackage {
+        verifying_share: current_key_package.verifying_share,
+        verifying_key: current_key_package.verifying_key,
+        min_signers: current_key_package.min_signers,
+        header: current_key_package.header,
+        identifier: current_key_package.identifier,
+        signing_share: SigningShare::new(signing_share),
     })
 }

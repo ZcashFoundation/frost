@@ -4,11 +4,12 @@ use std::collections::BTreeMap;
 
 use rand_core::{CryptoRng, RngCore};
 
+use crate::keys::generate_with_dealer;
 use crate::keys::refresh::{calculate_zero_key, refresh_share};
 use crate::{self as frost};
 use crate::{
     keys::{KeyPackage, PublicKeyPackage, SecretShare},
-    Ciphersuite, Error, Identifier, SigningKey,
+    Ciphersuite, Error, Identifier,
 };
 
 use super::ciphersuite_generic::check_sign;
@@ -31,12 +32,19 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     )
     .unwrap();
 
-    // Try to refresh shares
-    // Signer 2 will be removed and Signers 1, 3, 4 & 5 will remain
+    let mut old_key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+    BTreeMap::new();
+
+    for (k, v) in old_shares {
+        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+        old_key_packages.insert(k, key_package);
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // New Key generation
     ////////////////////////////////////////////////////////////////////////////
+
+    // Signer 2 will be removed and Signers 1, 3, 4 & 5 will remain
 
     let remaining_ids = vec![
         Identifier::try_from(1).unwrap(),
@@ -64,7 +72,7 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     for i in 0..remaining_ids.len() {
         let identifier = remaining_ids[i];
-        let current_share = &old_shares[&identifier];
+        let current_share = &old_key_packages[&identifier];
         new_shares.insert(
             identifier,
             refresh_share(zero_shares[i].clone(), current_share),
@@ -92,7 +100,7 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
     error: Error<C>,
     mut rng: R,
 ) {
-    let (_old_shares, pub_key_package) = build_old_shares::<C, R>(5, 2, &mut rng);
+    let (_old_shares, pub_key_package) = generate_with_dealer::<C, R>(5, 2, frost::keys::IdentifierList::Default, &mut rng).unwrap();
     let out = calculate_zero_key(
         pub_key_package,
         new_max_signers,
@@ -105,41 +113,41 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
     assert!(out == Err(error))
 }
 
-fn build_old_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
-    max_signers: u16,
-    min_signers: u16,
-    mut rng: &mut R,
-) -> (BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) {
-    // Compute shares
+// fn build_old_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
+//     max_signers: u16,
+//     min_signers: u16,
+//     mut rng: &mut R,
+// ) -> (BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) {
+//     // Compute shares
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Key generation
-    ////////////////////////////////////////////////////////////////////////////
+//     ////////////////////////////////////////////////////////////////////////////
+//     // Key generation
+//     ////////////////////////////////////////////////////////////////////////////
 
-    let mut bytes = [0; 64];
-    rng.fill_bytes(&mut bytes);
+//     let mut bytes = [0; 64];
+//     rng.fill_bytes(&mut bytes);
 
-    let key = SigningKey::new(&mut rng);
+//     let key = SigningKey::new(&mut rng);
 
-    let (old_shares, pub_key_package): (
-        BTreeMap<Identifier<C>, SecretShare<C>>,
-        PublicKeyPackage<C>,
-    ) = frost::keys::split(
-        &key,
-        max_signers,
-        min_signers,
-        frost::keys::IdentifierList::Default,
-        &mut rng,
-    )
-    .unwrap();
+//     let (old_shares, pub_key_package): (
+//         BTreeMap<Identifier<C>, SecretShare<C>>,
+//         PublicKeyPackage<C>,
+//     ) = frost::keys::split(
+//         &key,
+//         max_signers,
+//         min_signers,
+//         frost::keys::IdentifierList::Default,
+//         &mut rng,
+//     )
+//     .unwrap();
 
-    // Try to refresh shares
-    // Signer 2 will be removed and Signers 1, 3, 4 & 5 will remain
+//     // Try to refresh shares
+//     // Signer 2 will be removed and Signers 1, 3, 4 & 5 will remain
 
-    // Rerun key generation
+//     // Rerun key generation
 
-    (old_shares, pub_key_package)
-}
+//     (old_shares, pub_key_package)
+// }
 
 /// Check serialisation
 pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore + CryptoRng>(
