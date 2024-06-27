@@ -72,6 +72,15 @@ fn check_refresh_shares_with_dealer() {
 }
 
 #[test]
+fn check_refresh_shares_with_dealer_serialisation() {
+    let rng = thread_rng();
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_serialisation::<P256Sha256, _>(
+        rng,
+    );
+}
+
+#[test]
 fn check_refresh_shares_with_dealer_fails_with_invalid_min_signers() {
     let rng = thread_rng();
     let identifiers = vec![
