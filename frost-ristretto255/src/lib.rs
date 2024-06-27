@@ -312,6 +312,7 @@ pub mod keys {
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<R>;
 
     pub mod dkg;
+    pub mod refresh;
     pub mod repairable;
 }
 
