@@ -24,7 +24,7 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let max_signers = 5;
     let min_signers = 3;
-    let (old_shares, pub_key_package) = frost::keys::generate_with_dealer(
+    let (old_shares, pub_key_package) = generate_with_dealer(
         max_signers,
         min_signers,
         frost::keys::IdentifierList::Default,
@@ -32,11 +32,10 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     )
     .unwrap();
 
-    let mut old_key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-    BTreeMap::new();
+    let mut old_key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
 
     for (k, v) in old_shares {
-        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+        let key_package = KeyPackage::try_from(v).unwrap();
         old_key_packages.insert(k, key_package);
     }
 
@@ -79,12 +78,10 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         );
     }
 
-    let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-        BTreeMap::new();
+    let mut key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
 
     for (k, v) in new_shares {
-        let key_package = frost::keys::KeyPackage::try_from(v.unwrap()).unwrap();
-        key_packages.insert(k, key_package);
+        key_packages.insert(k, v.unwrap());
     }
     check_sign(min_signers, key_packages, rng, new_pub_key_package).unwrap();
 }
@@ -100,7 +97,8 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
     error: Error<C>,
     mut rng: R,
 ) {
-    let (_old_shares, pub_key_package) = generate_with_dealer::<C, R>(5, 2, frost::keys::IdentifierList::Default, &mut rng).unwrap();
+    let (_old_shares, pub_key_package) =
+        generate_with_dealer::<C, R>(5, 2, frost::keys::IdentifierList::Default, &mut rng).unwrap();
     let out = calculate_zero_key(
         pub_key_package,
         new_max_signers,
@@ -112,42 +110,6 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
     assert!(out.is_err());
     assert!(out == Err(error))
 }
-
-// fn build_old_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
-//     max_signers: u16,
-//     min_signers: u16,
-//     mut rng: &mut R,
-// ) -> (BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>) {
-//     // Compute shares
-
-//     ////////////////////////////////////////////////////////////////////////////
-//     // Key generation
-//     ////////////////////////////////////////////////////////////////////////////
-
-//     let mut bytes = [0; 64];
-//     rng.fill_bytes(&mut bytes);
-
-//     let key = SigningKey::new(&mut rng);
-
-//     let (old_shares, pub_key_package): (
-//         BTreeMap<Identifier<C>, SecretShare<C>>,
-//         PublicKeyPackage<C>,
-//     ) = frost::keys::split(
-//         &key,
-//         max_signers,
-//         min_signers,
-//         frost::keys::IdentifierList::Default,
-//         &mut rng,
-//     )
-//     .unwrap();
-
-//     // Try to refresh shares
-//     // Signer 2 will be removed and Signers 1, 3, 4 & 5 will remain
-
-//     // Rerun key generation
-
-//     (old_shares, pub_key_package)
-// }
 
 /// Check serialisation
 pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore + CryptoRng>(
@@ -161,7 +123,7 @@ pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore
 
     let max_signers = 5;
     let min_signers = 3;
-    let (_old_shares, pub_key_package) = frost::keys::generate_with_dealer(
+    let (_old_shares, pub_key_package) = generate_with_dealer(
         max_signers,
         min_signers,
         frost::keys::IdentifierList::Default,
@@ -173,7 +135,7 @@ pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore
     // New Key generation
     //
     // Zero key is calculated by trusted dealer
-    // Signer 2 will be removed and Signers 1, 3, 4 & 5 will remain
+    // Participant 2 will be removed and Participants 1, 3, 4 & 5 will remain
     ////////////////////////////////////////////////////////////////////////////
 
     let remaining_ids = vec![

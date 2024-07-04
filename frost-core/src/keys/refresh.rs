@@ -9,9 +9,9 @@ use std::collections::BTreeMap;
 use crate::{
     keys::{
         generate_coefficients, generate_secret_shares, validate_num_of_signers,
-        CoefficientCommitment, PublicKeyPackage, SigningKey, SigningShare, VerifyingShare
+        CoefficientCommitment, PublicKeyPackage, SigningKey, SigningShare, VerifyingShare,
     },
-    Ciphersuite, CryptoRng, Error, Field, Group, Identifier, RngCore, Scalar,
+    Ciphersuite, CryptoRng, Error, Field, Group, Identifier, RngCore,
 };
 
 use super::{KeyPackage, SecretShare, VerifiableSecretSharingCommitment};
@@ -79,10 +79,9 @@ pub fn refresh_share<C: Ciphersuite>(
     zero_share: SecretShare<C>,
     current_key_package: &KeyPackage<C>,
 ) -> Result<KeyPackage<C>, Error<C>> {
-
     // The identity commitment needs to be added to the VSS commitment
     let identity_commitment: Vec<CoefficientCommitment<C>> =
-    vec![CoefficientCommitment::new(C::Group::identity())];
+        vec![CoefficientCommitment::new(C::Group::identity())];
 
     let zero_commitments_without_id = zero_share.commitment.0;
 
@@ -91,29 +90,22 @@ pub fn refresh_share<C: Ciphersuite>(
         .chain(zero_commitments_without_id.clone())
         .collect();
 
-    let zero_share = SecretShare{
+    let zero_share = SecretShare {
         header: zero_share.header,
         identifier: zero_share.identifier,
         signing_share: zero_share.signing_share,
-        commitment: VerifiableSecretSharingCommitment::<C>::new(zero_commitment)
+        commitment: VerifiableSecretSharingCommitment::<C>::new(zero_commitment),
     };
 
     // verify zero_share secret share
-    let zero_key_package = KeyPackage::<C>::try_from(zero_share).unwrap(); // TODO
+    let zero_key_package = KeyPackage::<C>::try_from(zero_share)?;
 
+    let signing_share: SigningShare<C> = SigningShare::new(
+        zero_key_package.signing_share.to_scalar() + current_key_package.signing_share.to_scalar(),
+    );
 
+    let mut new_key_package = current_key_package.clone();
+    new_key_package.signing_share = signing_share;
 
-    let signing_share: Scalar<C> =
-        zero_key_package.signing_share.to_scalar() + current_key_package.signing_share.to_scalar();
-
-    // let key_package = {current_key_package, signing_share}; // TODO
-
-    Ok(KeyPackage {
-        verifying_share: current_key_package.verifying_share,
-        verifying_key: current_key_package.verifying_key,
-        min_signers: current_key_package.min_signers,
-        header: current_key_package.header,
-        identifier: current_key_package.identifier,
-        signing_share: SigningShare::new(signing_share),
-    })
+    Ok(new_key_package)
 }
