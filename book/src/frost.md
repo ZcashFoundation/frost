@@ -83,6 +83,16 @@ is still free to start the process with only 2 participants if they wish.
 Signature verification is carried out as normal with single-party signatures,
 along with the signed message and the group verifying key as inputs.
 
+## Refreshing
+
+Refreshing shares starts with a Trusted Dealer who calculated a zero key to
+send to each participant who can then refresh their shares and create a new
+key package.
+
+```admonish note
+This is also possible via Distributed Key Generation but this has not yet been
+implemented.
+```
 
 ## Ciphersuites
 
