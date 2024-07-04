@@ -168,7 +168,7 @@ fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
 
 /// Context string from the ciphersuite in the [spec]
 ///
-/// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.4-1
+/// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.4-1
 const CONTEXT_STRING: &str = "FROST-P256-SHA256-v1";
 
 /// An implementation of the FROST(P-256, SHA-256) ciphersuite.
@@ -186,35 +186,35 @@ impl Ciphersuite for P256Sha256 {
 
     /// H1 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.4-2.2.2.1
+    /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.4-2.4.2.2
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "rho").as_bytes(), m)
     }
 
     /// H2 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.4-2.2.2.2
+    /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.4-2.4.2.4
     fn H2(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "chal").as_bytes(), m)
     }
 
     /// H3 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.4-2.2.2.3
+    /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.4-2.4.2.6
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
         hash_to_scalar((CONTEXT_STRING.to_owned() + "nonce").as_bytes(), m)
     }
 
     /// H4 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.4-2.2.2.4
+    /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.4-2.4.2.8
     fn H4(m: &[u8]) -> Self::HashOutput {
         hash_to_array(&[CONTEXT_STRING.as_bytes(), b"msg", m])
     }
 
     /// H5 for FROST(P-256, SHA-256)
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.4-2.2.2.5
+    /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.4-2.4.2.10
     fn H5(m: &[u8]) -> Self::HashOutput {
         hash_to_array(&[CONTEXT_STRING.as_bytes(), b"com", m])
     }
