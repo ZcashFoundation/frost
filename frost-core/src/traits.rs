@@ -138,7 +138,8 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 /// function.
 ///
 /// [FROST ciphersuite]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-ciphersuites
-pub trait Ciphersuite: Copy + Clone + PartialEq + Debug {
+// See https://github.com/ZcashFoundation/frost/issues/693 for reasoning about the 'static bound.
+pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// The ciphersuite ID string. It should be equal to the contextString in
     /// the spec. For new ciphersuites, this should be a string that identifies
     /// the ciphersuite; it's recommended to use a similar format to the
