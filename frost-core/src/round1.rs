@@ -43,7 +43,7 @@ where
     ///
     /// An implementation of `nonce_generate(secret)` from the [spec].
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-nonce-generation
+    /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#name-nonce-generation
     pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
         R: CryptoRng + RngCore,
@@ -314,9 +314,9 @@ where
         }
     }
 
-    /// Computes the [signature commitment share] from these round one signing commitments.
+    /// Computes the [commitment share] from these round one signing commitments.
     ///
-    /// [signature commitment share]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
+    /// [commitment share]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-share-aggregation
     #[cfg(any(feature = "internals", feature = "cheater-detection"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
@@ -368,7 +368,7 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 /// Returns a byte string containing the serialized representation of the
 /// commitment list.
 ///
-/// [`encode_group_commitment_list()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-list-operations
+/// [`encode_group_commitment_list()`]: https://datatracker.ietf.org/doc/html/rfc9591#name-list-operations
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
 ) -> Result<Vec<u8>, Error<C>> {
@@ -422,7 +422,7 @@ where
 /// Generates the signing nonces and commitments to be used in the signing
 /// operation.
 ///
-/// [`commit`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-round-one-commitment
+/// [`commit`]: https://datatracker.ietf.org/doc/html/rfc9591#name-round-one-commitment
 pub fn commit<C, R>(
     secret: &SigningShare<C>,
     rng: &mut R,
