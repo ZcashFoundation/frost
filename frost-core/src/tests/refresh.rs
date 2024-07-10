@@ -32,7 +32,8 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     )
     .unwrap();
 
-    let mut old_key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
+    let mut old_key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> =
+        BTreeMap::new();
 
     for (k, v) in old_shares {
         let key_package = KeyPackage::try_from(v).unwrap();
@@ -78,7 +79,8 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         );
     }
 
-    let mut key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
+    let mut key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> =
+        BTreeMap::new();
 
     for (k, v) in new_shares {
         key_packages.insert(k, v.unwrap());
@@ -115,7 +117,6 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
 pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) {
-    // Compute shares
 
     ////////////////////////////////////////////////////////////////////////////
     // Old Key generation
