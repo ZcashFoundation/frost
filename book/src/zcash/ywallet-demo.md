@@ -46,7 +46,7 @@ Run the following (it will take a bit to compile):
 
 ```
 cd frost-zcash-demo/
-cargo run --bin trusted-dealer --features redpallas
+cargo run --bin trusted-dealer -- -C redpallas
 ```
 
 This will by default generate a 2-of-3 key shares. The public key package
@@ -59,7 +59,7 @@ to the commend above for the command line help.
 If you want to use DKG instead of Trusted Dealer, instead of the command above,
  run this for each participant, in separate terminals for each:
 
-`cargo run --bin dkg --features redpallas`
+`cargo run --bin dkg -- -C redpallas`
 
 and follow the instructions. (There will be a considerable amount of
 copy&pasting!)
@@ -168,14 +168,14 @@ In the first one, the server, run (in the same folder where key generation was
 run):
 
 ```
-RUST_LOG=debug cargo run --bin server --features redpallas --
+RUST_LOG=debug cargo run --bin server
 ```
 
 In the second one, the Coordinator, run (in the same folder where key generation
 was run):
 
 ```
-cargo run --bin coordinator --features redpallas -- --http -r -
+cargo run --bin coordinator -- -C redpallas --http -r -
 ```
 
 And then:
@@ -189,14 +189,14 @@ In the third terminal, Participant 1, run the following, replacing
 `<SESSION_ID>` with the session ID you have just copied:
 
 ```
-cargo run --bin participant --features redpallas -- --cli --key-package key-package-1.json -s <SESSION_ID>
+cargo run --bin participant -- -C redpallas --http --key-package key-package-1.json -s <SESSION_ID>
 ```
 
 In the fourth terminal, for Participant 2, run the following, again replacing
 the session ID:
 
 ```
-cargo run --bin participant --features redpallas -- --cli --key-package key-package-2.json -s <SESSION_ID>
+cargo run --bin participant -- -C redpallas --http --key-package key-package-2.json -s <SESSION_ID>
 ```
 
 Go back to the Coordinator CLI:
