@@ -416,7 +416,7 @@ where
     /// This also implements `derive_group_info()` from the [spec] (which is very similar),
     /// but only for this participant.
     ///
-    /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.2-4
+    /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#appendix-C.2-3
     pub fn verify(&self) -> Result<(VerifyingShare<C>, VerifyingKey<C>), Error<C>> {
         let f_result = <C::Group>::generator() * self.signing_share.to_scalar();
         let result = evaluate_vss(self.identifier, &self.commitment);
@@ -466,7 +466,7 @@ pub enum IdentifierList<'a, C: Ciphersuite> {
 ///
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
-/// [`trusted_dealer_keygen`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C
+/// [`trusted_dealer_keygen`]: https://datatracker.ietf.org/doc/html/rfc9591#appendix-C
 pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     max_signers: u16,
     min_signers: u16,
@@ -541,7 +541,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
 ///
 /// Implements [`polynomial_evaluate`] from the spec.
 ///
-/// [`polynomial_evaluate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-evaluation-of-a-polynomial
+/// [`polynomial_evaluate`]: https://datatracker.ietf.org/doc/html/rfc9591#name-additional-polynomial-opera
 fn evaluate_polynomial<C: Ciphersuite>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
@@ -830,7 +830,7 @@ pub(crate) fn generate_secret_polynomial<C: Ciphersuite>(
 ///
 /// Implements [`secret_share_shard`] from the spec.
 ///
-/// [`secret_share_shard`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#appendix-C.1
+/// [`secret_share_shard`]: https://datatracker.ietf.org/doc/html/rfc9591#name-shamir-secret-sharing
 pub(crate) fn generate_secret_shares<C: Ciphersuite>(
     secret: &SigningKey<C>,
     max_signers: u16,

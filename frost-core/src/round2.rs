@@ -58,7 +58,7 @@ where
     ///
     /// This is the final step of [`verify_signature_share`] from the spec.
     ///
-    /// [`verify_signature_share`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-share-verificatio
+    /// [`verify_signature_share`]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-share-aggregation
     #[cfg(any(feature = "cheater-detection", feature = "internals"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
@@ -121,7 +121,7 @@ fn compute_signature_share<C: Ciphersuite>(
 /// Assumes the participant has already determined which nonce corresponds with
 /// the commitment that was assigned by the coordinator in the SigningPackage.
 ///
-/// [`sign`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-round-two-signature-share-g
+/// [`sign`]: https://datatracker.ietf.org/doc/html/rfc9591#name-round-two-signature-share-g
 pub fn sign<C: Ciphersuite>(
     signing_package: &SigningPackage<C>,
     signer_nonces: &round1::SigningNonces<C>,

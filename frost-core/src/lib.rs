@@ -62,7 +62,7 @@ pub use verifying_key::VerifyingKey;
 
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
 ///
-/// [challenge]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-challenge-computa
+/// [challenge]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-challenge-computa
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
@@ -114,8 +114,8 @@ where
 ///
 /// This is the only invocation of the H2 hash function from the [RFC].
 ///
-/// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-signature-challenge-computa
-/// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-3.2
+/// [FROST]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-challenge-computa
+/// [RFC]: https://datatracker.ietf.org/doc/html/rfc9591#name-cryptographic-hash-function
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn challenge<C>(
@@ -241,7 +241,7 @@ where
 
 /// [`compute_binding_factors`] in the spec
 ///
-/// [`compute_binding_factors`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.4
+/// [`compute_binding_factors`]: https://datatracker.ietf.org/doc/html/rfc9591#name-binding-factors-computation
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 pub(crate) fn compute_binding_factor_list<C>(
@@ -339,7 +339,7 @@ fn compute_lagrange_coefficient<C: Ciphersuite>(
 ///
 /// Implements [`derive_interpolating_value()`] from the spec.
 ///
-/// [`derive_interpolating_value()`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#name-polynomials
+/// [`derive_interpolating_value()`]: https://datatracker.ietf.org/doc/html/rfc9591#name-polynomials
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn derive_interpolating_value<C: Ciphersuite>(
@@ -489,7 +489,7 @@ where
 ///
 /// Implements [`compute_group_commitment`] from the spec.
 ///
-/// [`compute_group_commitment`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-4.5
+/// [`compute_group_commitment`]: https://datatracker.ietf.org/doc/html/rfc9591#name-group-commitment-computatio
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 fn compute_group_commitment<C>(
@@ -595,7 +595,7 @@ where
     //
     // Implements [`aggregate`] from the spec.
     //
-    // [`aggregate`]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-5.3
+    // [`aggregate`]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-share-aggregation
     let mut z = <<C::Group as Group>::Field>::zero();
 
     for signature_share in signature_shares.values() {
