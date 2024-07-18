@@ -4,6 +4,7 @@
 //! of all the remaining signers. This can be done using a Trusted Dealer or
 //! DKG (not yet implemented)
 
+use alloc::vec::Vec;
 use std::collections::BTreeMap;
 
 use crate::{
