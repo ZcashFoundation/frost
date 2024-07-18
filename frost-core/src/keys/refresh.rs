@@ -19,7 +19,7 @@ use super::{KeyPackage, SecretShare, VerifiableSecretSharingCommitment};
 /// Generates new zero key shares and a public key package using a trusted dealer
 /// Building a new public key package is done by taking the verifying shares from the new public key package and adding
 /// them to the original verifying shares
-pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     old_pub_key_package: PublicKeyPackage<C>,
     max_signers: u16,
     min_signers: u16,

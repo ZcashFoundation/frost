@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::keys::generate_with_dealer;
-use crate::keys::refresh::{calculate_zero_key, refresh_share};
+use crate::keys::refresh::{compute_refreshing_shares, refresh_share};
 use crate::{self as frost};
 use crate::{
     keys::{KeyPackage, PublicKeyPackage, SecretShare},
@@ -56,7 +56,7 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     // Trusted Dealer generates zero keys and new public key package
 
-    let (zero_shares, new_pub_key_package) = calculate_zero_key(
+    let (zero_shares, new_pub_key_package) = compute_refreshing_shares(
         pub_key_package,
         NEW_MAX_SIGNERS,
         MIN_SIGNERS,
@@ -97,7 +97,7 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
 ) {
     let (_old_shares, pub_key_package) =
         generate_with_dealer::<C, R>(5, 2, frost::keys::IdentifierList::Default, &mut rng).unwrap();
-    let out = calculate_zero_key(
+    let out = compute_refreshing_shares(
         pub_key_package,
         new_max_signers,
         min_signers,
@@ -157,7 +157,7 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package<
 
     // Trusted Dealer generates zero keys and new public key package
 
-    let e = calculate_zero_key(
+    let e = compute_refreshing_shares(
         incorrect_pub_key_package,
         NEW_MAX_SIGNERS,
         MIN_SIGNERS,
@@ -203,7 +203,7 @@ pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore
 
     const NEW_MAX_SIGNERS: u16 = 4;
 
-    let (zero_shares, new_pub_key_package) = calculate_zero_key(
+    let (zero_shares, new_pub_key_package) = compute_refreshing_shares(
         pub_key_package,
         NEW_MAX_SIGNERS,
         MIN_SIGNERS,
