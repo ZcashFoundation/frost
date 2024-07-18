@@ -21,7 +21,7 @@ use super::{KeyPackage, SecretShare, VerifiableSecretSharingCommitment};
 /// Building a new public key package is done by taking the verifying shares from the new public key package and adding
 /// them to the original verifying shares
 pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
-    old_pub_key_package: PublicKeyPackage<C>,
+    pub_key_package: PublicKeyPackage<C>,
     max_signers: u16,
     min_signers: u16,
     identifiers: &[Identifier<C>],
@@ -31,18 +31,16 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     if identifiers.len() != max_signers as usize {
         return Err(Error::IncorrectNumberOfIdentifiers);
     }
-
     validate_num_of_signers(min_signers, max_signers)?;
 
-    // Build zero key shares
-    let zero_key = SigningKey {
+    // Build refreshing shares
+    let refreshing_key = SigningKey {
         scalar: <<C::Group as Group>::Field>::zero(),
     };
 
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
-
-    let zero_shares = generate_secret_shares(
-        &zero_key,
+    let refreshing_shares = generate_secret_shares(
+        &refreshing_key,
         max_signers,
         min_signers,
         coefficients,
@@ -50,17 +48,17 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     )?;
 
     let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
-    let mut zero_shares_minus_identity: Vec<SecretShare<C>> = Vec::new();
+    let mut refreshing_shares_minus_identity: Vec<SecretShare<C>> = Vec::new();
 
-    for share in zero_shares.clone() {
-        let zero_verifying_share: VerifyingShare<C> = SigningShare::into(share.signing_share);
+    for share in refreshing_shares.clone() {
+        let refreshing_verifying_share: VerifyingShare<C> = SigningShare::into(share.signing_share);
 
-        let old_verifying_share = old_pub_key_package.verifying_shares.get(&share.identifier);
+        let old_verifying_share = pub_key_package.verifying_shares.get(&share.identifier);
 
         match old_verifying_share {
             Some(old_verifying_share) => {
                 let verifying_share =
-                    zero_verifying_share.to_element() + old_verifying_share.to_element();
+                    refreshing_verifying_share.to_element() + old_verifying_share.to_element();
                 verifying_shares.insert(share.identifier, VerifyingShare::new(verifying_share));
             }
             None => return Err(Error::UnknownIdentifier),
@@ -68,7 +66,7 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
 
         let mut coefficients = share.commitment.0;
         coefficients.remove(0);
-        zero_shares_minus_identity.push(SecretShare {
+        refreshing_shares_minus_identity.push(SecretShare {
             header: share.header,
             identifier: share.identifier,
             signing_share: share.signing_share,
@@ -76,44 +74,39 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
         });
     }
 
-    let pub_key_package = PublicKeyPackage::<C> {
-        header: old_pub_key_package.header,
+    let refreshed_pub_key_package = PublicKeyPackage::<C> {
+        header: pub_key_package.header,
         verifying_shares,
-        verifying_key: old_pub_key_package.verifying_key,
+        verifying_key: pub_key_package.verifying_key,
     };
 
-    Ok((zero_shares_minus_identity, pub_key_package))
+    Ok((refreshing_shares_minus_identity, refreshed_pub_key_package))
 }
 
 /// Each participant refreshes their shares
-/// This is done by taking the `zero_share` received from the trusted dealer and adding it to the original share
+/// This is done by taking the `refreshing_share` received from the trusted dealer and adding it to the original share
 pub fn refresh_share<C: Ciphersuite>(
-    zero_share: SecretShare<C>,
+    mut refreshing_share: SecretShare<C>,
     current_key_package: &KeyPackage<C>,
 ) -> Result<KeyPackage<C>, Error<C>> {
     // The identity commitment needs to be added to the VSS commitment
     let identity_commitment: Vec<CoefficientCommitment<C>> =
         vec![CoefficientCommitment::new(C::Group::identity())];
 
-    let zero_commitments_without_id = zero_share.commitment.0;
-
-    let zero_commitment: Vec<CoefficientCommitment<C>> = identity_commitment
+    let refreshing_share_commitments: Vec<CoefficientCommitment<C>> = identity_commitment
         .into_iter()
-        .chain(zero_commitments_without_id.clone())
+        .chain(refreshing_share.commitment.0.clone())
         .collect();
 
-    let zero_share = SecretShare {
-        header: zero_share.header,
-        identifier: zero_share.identifier,
-        signing_share: zero_share.signing_share,
-        commitment: VerifiableSecretSharingCommitment::<C>::new(zero_commitment),
-    };
+    refreshing_share.commitment =
+        VerifiableSecretSharingCommitment::<C>::new(refreshing_share_commitments);
 
-    // verify zero_share secret share
-    let zero_key_package = KeyPackage::<C>::try_from(zero_share)?;
+    // Verify refreshing_share secret share
+    let refreshed_share_package = KeyPackage::<C>::try_from(refreshing_share)?;
 
     let signing_share: SigningShare<C> = SigningShare::new(
-        zero_key_package.signing_share.to_scalar() + current_key_package.signing_share.to_scalar(),
+        refreshed_share_package.signing_share.to_scalar()
+            + current_key_package.signing_share.to_scalar(),
     );
 
     let mut new_key_package = current_key_package.clone();
