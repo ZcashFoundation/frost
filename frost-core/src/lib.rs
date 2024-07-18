@@ -680,5 +680,6 @@ fn detect_cheater<C: Ciphersuite>(
         )?;
     }
 
-    Ok(())
+    // We should never reach here; but we return an error to be safe.
+    Err(Error::InvalidSignature)
 }
