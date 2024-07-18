@@ -573,6 +573,7 @@ where
     if signing_package.signing_commitments().len() != signature_shares.len() {
         return Err(Error::UnknownIdentifier);
     }
+
     if !signing_package.signing_commitments().keys().all(|id| {
         #[cfg(feature = "cheater-detection")]
         return signature_shares.contains_key(id) && pubkeys.verifying_shares().contains_key(id);
@@ -586,7 +587,6 @@ where
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
         compute_binding_factor_list(signing_package, &pubkeys.verifying_key, &[])?;
-
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
 
@@ -616,52 +616,70 @@ where
     // This approach is more efficient since we don't need to verify all shares
     // if the aggregate signature is valid (which should be the common case).
     #[cfg(feature = "cheater-detection")]
-    if let Err(err) = verification_result {
-        // Compute the per-message challenge.
-        let challenge = crate::challenge::<C>(
-            &group_commitment.0,
-            &pubkeys.verifying_key,
-            signing_package.message().as_slice(),
+    if verification_result.is_err() {
+        detect_cheater(
+            group_commitment,
+            pubkeys,
+            signing_package,
+            signature_shares,
+            &binding_factor_list,
         )?;
-
-        // Verify the signature shares.
-        for (signature_share_identifier, signature_share) in signature_shares {
-            // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
-            // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
-            let signer_pubkey = pubkeys
-                .verifying_shares
-                .get(signature_share_identifier)
-                .ok_or(Error::UnknownIdentifier)?;
-
-            // Compute Lagrange coefficient.
-            let lambda_i = derive_interpolating_value(signature_share_identifier, signing_package)?;
-
-            let binding_factor = binding_factor_list
-                .get(signature_share_identifier)
-                .ok_or(Error::UnknownIdentifier)?;
-
-            // Compute the commitment share.
-            let R_share = signing_package
-                .signing_commitment(signature_share_identifier)
-                .ok_or(Error::UnknownIdentifier)?
-                .to_group_commitment_share(binding_factor);
-
-            // Compute relation values to verify this signature share.
-            signature_share.verify(
-                *signature_share_identifier,
-                &R_share,
-                signer_pubkey,
-                lambda_i,
-                &challenge,
-            )?;
-        }
-
-        // We should never reach here; but we return the verification error to be safe.
-        return Err(err);
     }
 
     #[cfg(not(feature = "cheater-detection"))]
     verification_result?;
 
     Ok(signature)
+}
+
+/// Optional cheater detection feature
+/// Each share is verified to find the cheater
+fn detect_cheater<C: Ciphersuite>(
+    group_commitment: GroupCommitment<C>,
+    pubkeys: &keys::PublicKeyPackage<C>,
+    signing_package: &SigningPackage<C>,
+    signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
+    binding_factor_list: &BindingFactorList<C>,
+) -> Result<(), Error<C>> {
+    // Compute the per-message challenge.
+    let challenge = crate::challenge::<C>(
+        &group_commitment.0,
+        &pubkeys.verifying_key,
+        signing_package.message().as_slice(),
+    )?;
+
+    // Verify the signature shares.
+    for (signature_share_identifier, signature_share) in signature_shares {
+        // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
+        // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
+        let signer_pubkey = pubkeys
+            .verifying_shares
+            .get(signature_share_identifier)
+            .ok_or(Error::UnknownIdentifier)?;
+
+        // Compute Lagrange coefficient.
+        let lambda_i = derive_interpolating_value(signature_share_identifier, signing_package)?;
+
+        let binding_factor = binding_factor_list
+            .get(signature_share_identifier)
+            .ok_or(Error::UnknownIdentifier)?;
+
+        // Compute the commitment share.
+        let R_share = signing_package
+            .signing_commitment(signature_share_identifier)
+            .ok_or(Error::UnknownIdentifier)?
+            .to_group_commitment_share(binding_factor);
+
+        // Compute relation values to verify this signature share.
+        signature_share.verify(
+            *signature_share_identifier,
+            &R_share,
+            signer_pubkey,
+            lambda_i,
+            &challenge,
+        )?;
+    }
+
+    // We should never reach here; but we return an error to be safe.
+    Err(Error::InvalidSignature)
 }

@@ -83,12 +83,12 @@ impl<C> SerializableElement<C>
 where
     C: Ciphersuite,
 {
-    /// Serialize an Element. Returns and error if it's the identity.
+    /// Serialize an Element. Returns an error if it's the identity.
     pub fn serialize(&self) -> Result<Vec<u8>, Error<C>> {
         Ok(<C::Group as Group>::serialize(&self.0)?.as_ref().to_vec())
     }
 
-    /// Deserialized an Element. Returns an error if it's malformed or is the
+    /// Deserialize an Element. Returns an error if it's malformed or is the
     /// identity.
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         let serialized: <C::Group as Group>::Serialization = bytes

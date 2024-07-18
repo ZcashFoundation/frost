@@ -4,6 +4,9 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* Added refresh share functionality for trusted dealer:
+  `frost_core::keys::refresh::{compute_refreshing_shares, refresh_share}`
+
 ## 2.0.0-rc.0
 
 * Changed the `deserialize()` function of Elements and structs containing
