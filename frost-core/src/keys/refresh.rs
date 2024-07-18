@@ -16,7 +16,9 @@ use crate::{
 
 use super::{KeyPackage, SecretShare, VerifiableSecretSharingCommitment};
 
-/// Refreshes shares using a trusted dealer
+/// Generates new zero key shares and a public key package using a trusted dealer
+/// Building a new public key package is done by taking the verifying shares from the new public key package and adding
+/// them to the original verifying shares
 pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
     old_pub_key_package: PublicKeyPackage<C>,
     max_signers: u16,
@@ -25,7 +27,6 @@ pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
     rng: &mut R,
 ) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
     // Validate inputs
-
     if identifiers.len() != max_signers as usize {
         return Err(Error::IncorrectNumberOfIdentifiers);
     }
@@ -33,7 +34,6 @@ pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
     validate_num_of_signers(min_signers, max_signers)?;
 
     // Build zero key shares
-
     let zero_key = SigningKey {
         scalar: <<C::Group as Group>::Field>::zero(),
     };
@@ -52,8 +52,19 @@ pub fn calculate_zero_key<C: Ciphersuite, R: RngCore + CryptoRng>(
     let mut zero_shares_minus_identity: Vec<SecretShare<C>> = Vec::new();
 
     for share in zero_shares.clone() {
-        let signer_public = SigningShare::into(share.signing_share);
-        verifying_shares.insert(share.identifier, signer_public);
+        let zero_verifying_share: VerifyingShare<C> = SigningShare::into(share.signing_share);
+
+        let old_verifying_share = old_pub_key_package.verifying_shares.get(&share.identifier);
+
+        match old_verifying_share {
+            Some(old_verifying_share) => {
+                let verifying_share =
+                    zero_verifying_share.to_element() + old_verifying_share.to_element();
+                verifying_shares.insert(share.identifier, VerifyingShare::new(verifying_share));
+            }
+            None => return Err(Error::UnknownIdentifier),
+        };
+
         let mut coefficients = share.commitment.0;
         coefficients.remove(0);
         zero_shares_minus_identity.push(SecretShare {

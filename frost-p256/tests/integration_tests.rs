@@ -81,6 +81,16 @@ fn check_refresh_shares_with_dealer_serialisation() {
 }
 
 #[test]
+fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package() {
+    let rng = thread_rng();
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_public_key_package::<
+        P256Sha256,
+        _,
+    >(rng);
+}
+
+#[test]
 fn check_refresh_shares_with_dealer_fails_with_invalid_min_signers() {
     let rng = thread_rng();
     let identifiers = vec![
@@ -144,6 +154,25 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_max_signers() {
     let min_signers = 3;
     let max_signers = 1;
     let error = Error::InvalidMaxSigners;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_signers::<
+        P256Sha256,
+        _,
+    >(max_signers, min_signers, &identifiers, error, rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
+    let rng = thread_rng();
+    let identifiers = vec![
+        Identifier::try_from(8).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(6).unwrap(),
+    ];
+    let min_signers = 2;
+    let max_signers = 4;
+    let error = Error::UnknownIdentifier;
 
     frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_signers::<
         P256Sha256,
