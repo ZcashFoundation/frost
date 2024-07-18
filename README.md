@@ -32,6 +32,7 @@ Besides FROST itself, this repository also provides:
 - Distributed key generation as specified in the original paper [FROST20](https://eprint.iacr.org/2020/852.pdf);
 - Repairable Threshold Scheme (RTS) from ['A Survey and Refinement of Repairable Threshold Schemes'](https://eprint.iacr.org/2017/1155) which allows a participant to recover a lost share with the help of a threshold of other participants;
 - Rerandomized FROST (paper under review).
+- Refresh Share functionality using a Trusted Dealer. This can be used to refresh the shares of the participants or to remove a participant.
 
 ## Getting Started
 
