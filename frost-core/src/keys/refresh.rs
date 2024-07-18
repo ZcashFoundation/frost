@@ -5,7 +5,7 @@
 //! DKG (not yet implemented)
 
 use alloc::vec::Vec;
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use crate::{
     keys::{

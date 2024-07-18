@@ -5,6 +5,7 @@
 //! DKG (not yet implemented)
 
 use crate::{frost, Ciphersuite, CryptoRng, Error, Identifier, RngCore};
+use alloc::vec::Vec;
 
 use super::{KeyPackage, PublicKeyPackage, SecretShare};
 
