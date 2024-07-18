@@ -9,7 +9,7 @@ channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 The Trusted Dealer needs to first run `compute_refreshing_shares` where the new SecretShares are generated and then verified.
 This is done with
 [`KeyPackage::try_from()`](https://docs.rs/frost-core/latest/frost_core/frost/keys/struct.KeyPackage.html#method.try_from):
-`caluclate_zero_key` returns a new SecretShare and PublicKeyPackage
+`compute_refreshing_shares` returns a new SecretShare and PublicKeyPackage
 Each new `SecretShare` and `PublicKeyPackage` must then be sent via an [**authenticated** and
 **confidential** channel
 ](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) for each
