@@ -17,9 +17,10 @@ use crate::{
 
 use super::{KeyPackage, SecretShare, VerifiableSecretSharingCommitment};
 
-/// Generates new zero key shares and a public key package using a trusted dealer
-/// Building a new public key package is done by taking the verifying shares from the new public key package and adding
-/// them to the original verifying shares
+/// Generates new zero key shares and a public key package using a trusted
+/// dealer Building a new public key package is done by taking the verifying
+/// shares from the new public key package and adding them to the original
+/// verifying shares
 pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     pub_key_package: PublicKeyPackage<C>,
     max_signers: u16,
@@ -47,44 +48,43 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
         identifiers,
     )?;
 
-    let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
+    let mut refreshed_verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> =
+        BTreeMap::new();
     let mut refreshing_shares_minus_identity: Vec<SecretShare<C>> = Vec::new();
 
-    for share in refreshing_shares.clone() {
+    for mut share in refreshing_shares {
         let refreshing_verifying_share: VerifyingShare<C> = SigningShare::into(share.signing_share);
 
-        let old_verifying_share = pub_key_package.verifying_shares.get(&share.identifier);
+        let verifying_share = pub_key_package.verifying_shares.get(&share.identifier);
 
-        match old_verifying_share {
-            Some(old_verifying_share) => {
-                let verifying_share =
-                    refreshing_verifying_share.to_element() + old_verifying_share.to_element();
-                verifying_shares.insert(share.identifier, VerifyingShare::new(verifying_share));
+        match verifying_share {
+            Some(verifying_share) => {
+                let refreshed_verifying_share =
+                    refreshing_verifying_share.to_element() + verifying_share.to_element();
+                refreshed_verifying_shares.insert(
+                    share.identifier,
+                    VerifyingShare::new(refreshed_verifying_share),
+                );
             }
             None => return Err(Error::UnknownIdentifier),
         };
 
-        let mut coefficients = share.commitment.0;
-        coefficients.remove(0);
-        refreshing_shares_minus_identity.push(SecretShare {
-            header: share.header,
-            identifier: share.identifier,
-            signing_share: share.signing_share,
-            commitment: VerifiableSecretSharingCommitment::new(coefficients),
-        });
+        share.commitment.0.remove(0);
+        refreshing_shares_minus_identity.push(share);
     }
 
     let refreshed_pub_key_package = PublicKeyPackage::<C> {
         header: pub_key_package.header,
-        verifying_shares,
+        verifying_shares: refreshed_verifying_shares,
         verifying_key: pub_key_package.verifying_key,
     };
 
     Ok((refreshing_shares_minus_identity, refreshed_pub_key_package))
 }
 
-/// Each participant refreshes their shares
-/// This is done by taking the `refreshing_share` received from the trusted dealer and adding it to the original share
+/// Each participant refreshes their shares This is done by taking the
+/// `refreshing_share` received from the trusted dealer and adding it to the
+/// original share
 pub fn refresh_share<C: Ciphersuite>(
     mut refreshing_share: SecretShare<C>,
     current_key_package: &KeyPackage<C>,

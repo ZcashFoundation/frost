@@ -840,8 +840,10 @@ pub fn check_sign_with_incorrect_commitments<C: Ciphersuite, R: RngCore + Crypto
 }
 
 // Checks the verifying shares are valid
-// NOTE: If the last verifying share is invalid this test will not detect this. The test is intended
-// for ensuring the correct calculation of verifying shares which is covered in this test
+//
+// NOTE: If the last verifying share is invalid this test will not detect this.
+// The test is intended for ensuring the correct calculation of verifying shares
+// which is covered in this test
 fn check_verifying_shares<C: Ciphersuite>(
     pubkeys: PublicKeyPackage<C>,
     signing_package: SigningPackage<C>,
