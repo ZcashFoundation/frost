@@ -4,8 +4,8 @@
 //! of all the remaining signers. This can be done using a Trusted Dealer or
 //! DKG (not yet implemented)
 
-use alloc::vec::Vec;
 use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 
 use crate::{
     keys::{
