@@ -25,7 +25,7 @@ help with serialization in the following ways:
 ### Default byte-oriented serialization
 
 With the `serialization` feature, which is enabled by default, all structs that
-need to communicated will have `serialize()` and `deserialize()` methods. The
+need to be communicated will have `serialize()` and `deserialize()` methods. The
 serialization format is described in [Serialization
 Format](../user/serialization.md).
 
