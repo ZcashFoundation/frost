@@ -45,14 +45,14 @@ let mut commitments_map = BTreeMap::new();
 ////////////////////////////////////////////////////////////////////////////
 
 // In practice, each iteration of this loop will be executed by its respective participant.
-for participant_index in 1..(min_signers as u16 + 1) {
+for participant_index in 1..=min_signers {
     let participant_identifier = participant_index.try_into().expect("should be nonzero");
     let key_package = &key_packages[&participant_identifier];
     // Generate one (1) nonce and one SigningCommitments instance for each
     // participant, up to _threshold_.
     # // ANCHOR: round1_commit
     let (nonces, commitments) = frost::round1::commit(
-        key_packages[&participant_identifier].signing_share(),
+        key_package.signing_share(),
         &mut rng,
     );
     # // ANCHOR_END: round1_commit
