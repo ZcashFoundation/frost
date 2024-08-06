@@ -321,6 +321,7 @@ fn main() -> ExitCode {
             "README.md",
             "dkg.md",
             "src/keys/dkg.rs",
+            "src/keys/refresh.rs",
             "src/keys/repairable.rs",
             "src/tests/batch.rs",
             "src/tests/coefficient_commitment.rs",

@@ -83,6 +83,39 @@ is still free to start the process with only 2 participants if they wish.
 Signature verification is carried out as normal with single-party signatures,
 along with the signed message and the group verifying key as inputs.
 
+## Repairing
+
+Repairing shares allow participants to help another participant recover their
+share if they have lost it, or also issue a new share to a new participant
+(while keeping the same threshold).
+
+The repair share functionality requires a threshold of participants to work.
+For example, in a 2-of-3 scenario, two participants can help the third recover
+their share, or they could issue a new share to move to a 2-of-4 group.
+
+The functionality works in such a way that each participant running the repair
+share function is not able to obtain the share that is being recovered or
+issued.
+
+## Refreshing
+
+Refreshing shares allow participants (or a subset of them) to update their
+shares in a way that maintains the same group public key. Some applications are:
+
+- Make it harder for attackers to compromise the shares. For example, in a
+  2-of-3 threshold scenario, if an attacker steals one participant's device and
+  all participants refresh their shares, the attacker will need to start over
+  and steal two shares instead of just one more.
+- Remove a participant from the group. For example, in a 2-of-3 threshold
+  scenario, if two participants decide to remove the third they can both refresh
+  their shares and the third participant would no longer be able to participate
+  in signing sessions with the others. (They can also then use the repair share
+  functionality to issue a new share and move from 2-of-2 back to 2-of-3.)
+
+```admonish note
+This is also possible via Distributed Key Generation but this has not yet been
+implemented.
+```
 
 ## Ciphersuites
 

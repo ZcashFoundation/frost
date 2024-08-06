@@ -65,6 +65,122 @@ fn check_rts() {
 }
 
 #[test]
+fn check_refresh_shares_with_dealer() {
+    let rng = thread_rng();
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer::<Ed25519Sha512, _>(rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dealer_serialisation() {
+    let rng = thread_rng();
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_serialisation::<Ed25519Sha512, _>(
+        rng,
+    );
+}
+
+#[test]
+fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package() {
+    let rng = thread_rng();
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_public_key_package::<
+        Ed25519Sha512,
+        _,
+    >(rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dealer_fails_with_invalid_min_signers() {
+    let rng = thread_rng();
+    let identifiers = vec![
+        Identifier::try_from(1).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(5).unwrap(),
+    ];
+    let min_signers = 1;
+    let max_signers = 4;
+    let error = Error::InvalidMinSigners;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(max_signers, min_signers, &identifiers, error, rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dealer_fails_with_unequal_num_identifiers_and_max_signers() {
+    let rng = thread_rng();
+    let identifiers = vec![
+        Identifier::try_from(1).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(5).unwrap(),
+    ];
+    let min_signers = 3;
+    let max_signers = 3;
+    let error: frost_core::Error<Ed25519Sha512> = Error::IncorrectNumberOfIdentifiers;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(max_signers, min_signers, &identifiers, error, rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dealer_fails_with_min_signers_greater_than_max() {
+    let rng = thread_rng();
+    let identifiers = vec![
+        Identifier::try_from(1).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(5).unwrap(),
+    ];
+    let min_signers = 6;
+    let max_signers = 4;
+    let error: frost_core::Error<Ed25519Sha512> = Error::InvalidMinSigners;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(max_signers, min_signers, &identifiers, error, rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dealer_fails_with_invalid_max_signers() {
+    let rng = thread_rng();
+    let identifiers = vec![Identifier::try_from(1).unwrap()];
+    let min_signers = 3;
+    let max_signers = 1;
+    let error = Error::InvalidMaxSigners;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(max_signers, min_signers, &identifiers, error, rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
+    let rng = thread_rng();
+    let identifiers = vec![
+        Identifier::try_from(8).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(6).unwrap(),
+    ];
+    let min_signers = 2;
+    let max_signers = 4;
+    let error = Error::UnknownIdentifier;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_signers::<
+        Ed25519Sha512,
+        _,
+    >(max_signers, min_signers, &identifiers, error, rng);
+}
+
+#[test]
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 

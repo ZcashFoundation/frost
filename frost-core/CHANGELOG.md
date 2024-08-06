@@ -4,6 +4,8 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* Added refresh share functionality for trusted dealer:
+  `frost_core::keys::refresh::{compute_refreshing_shares, refresh_share}`
 * Added a `'static` bound to the `Ciphersuite` trait. This is a breaking change,
   but it's likely to not require any code changes since most ciphersuite
   implementations are probably just empty structs. The bound makes it possible
