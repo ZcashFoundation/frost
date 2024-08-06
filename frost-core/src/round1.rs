@@ -54,7 +54,9 @@ where
         Self::nonce_generate_from_random_bytes(secret, random_bytes)
     }
 
-    fn from_scalar(scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar) -> Self {
+    pub(crate) fn from_scalar(
+        scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
+    ) -> Self {
         Self(SerializableScalar(scalar))
     }
 

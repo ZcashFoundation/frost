@@ -860,3 +860,132 @@ fn check_verifying_shares<C: Ciphersuite>(
     assert_eq!(e.culprit(), Some(id));
     assert_eq!(e, Error::InvalidSignatureShare { culprit: id });
 }
+
+/// Check nested FROST
+///
+///
+pub fn check_nested<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) -> Result<(), Error<C>> {
+    let max_signers = 5;
+    let min_signers = 3;
+    let (shares, pub_key_package) = frost::keys::generate_with_dealer(
+        max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
+
+    // Verifies the secret shares from the dealer
+    let key_packages: BTreeMap<_, _> = shares
+        .into_iter()
+        .map(|(k, v)| (k, frost::keys::KeyPackage::try_from(v).unwrap()))
+        .collect();
+
+    let mut sub_key_packages_map = BTreeMap::new();
+    let mut sub_public_key_packages_map = BTreeMap::new();
+    for k in key_packages.values() {
+        let key = SigningKey::from_scalar(k.signing_share().to_scalar())?;
+        let (sub_shares, sub_public_key_package) = frost::keys::split(
+            &key,
+            max_signers,
+            min_signers,
+            frost::keys::IdentifierList::Default,
+            &mut rng,
+        )?;
+        let sub_key_packages: BTreeMap<_, _> = sub_shares
+            .into_iter()
+            .map(|(k, v)| (k, frost::keys::KeyPackage::try_from(v).unwrap()))
+            .collect();
+        sub_key_packages_map.insert(*k.identifier(), sub_key_packages);
+        sub_public_key_packages_map.insert(*k.identifier(), sub_public_key_package);
+    }
+
+    let message = "message to sign".as_bytes();
+
+    // This keeps track of sub nonces and commitments map, for each subgroup
+    let mut all_sub_nonces_map = BTreeMap::new();
+    let mut all_sub_commitments_map = BTreeMap::new();
+
+    // This is the commitments map of the top coordinator
+    let mut commitments_map = BTreeMap::new();
+
+    for (identifier, sub_key_packages) in sub_key_packages_map.iter() {
+        // As the sub coordinator 'identifier', receive round 1 commitments from sub participants
+        let mut sub_nonces_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
+            BTreeMap::new();
+        let mut sub_commitments_map: BTreeMap<
+            frost::Identifier<C>,
+            frost::round1::SigningCommitments<C>,
+        > = BTreeMap::new();
+        for (sub_identifier, sub_key_package) in sub_key_packages.iter() {
+            // As the sub participant, generate round 1 commitments, store the
+            // nonces for myself in sub_nonces_map (which will be later stored
+            // in all_nonces_map), and send the commitments to the sub
+            // coordinator via sub_commitments_map.
+            let (nonces, commitments) =
+                frost::round1::commit(sub_key_package.signing_share(), &mut rng);
+            sub_nonces_map.insert(*sub_identifier, nonces);
+            sub_commitments_map.insert(*sub_identifier, commitments);
+        }
+        // This is not done by the coordinator; instead just simulates
+        // sub participant storage.
+        all_sub_nonces_map.insert(*identifier, sub_nonces_map);
+        all_sub_commitments_map.insert(*identifier, sub_commitments_map.clone());
+
+        // As the sub coordinator, aggregate commitments and send them to top
+        // coordinator via commitments_map.
+        let (hiding, binding) = sub_commitments_map
+            .values()
+            .map(|n| (n.hiding().value(), n.binding().value()))
+            .reduce(|(acc_h, acc_b), (h, b)| (acc_h + h, acc_b + b))
+            .unwrap();
+        let commitments = frost::round1::SigningCommitments::new(
+            frost::round1::NonceCommitment::new(hiding),
+            frost::round1::NonceCommitment::new(binding),
+        );
+        commitments_map.insert(*identifier, commitments);
+    }
+
+    // As the top coordinator, build the signing package.
+    let signing_package = SigningPackage::new(commitments_map, message);
+    let mut signature_shares = BTreeMap::new();
+
+    for (identifier, sub_key_packages) in sub_key_packages_map.iter() {
+        // As the sub coordinator 'identifier', create the sub signing package
+        // and "send" to sub participants
+        let sub_commitments_map = all_sub_commitments_map[identifier].clone();
+        let sub_signing_package = SigningPackage::new(sub_commitments_map, message);
+        let mut sub_signature_shares: BTreeMap<Identifier<C>, SignatureShare<C>> = BTreeMap::new();
+        for (sub_identifier, sub_nonces) in all_sub_nonces_map[identifier].iter() {
+            // As the sub participant 'sub_identifier', generate signature share
+            let sub_signature_share = frost::round2::nested_sign(
+                &signing_package,
+                &sub_signing_package,
+                sub_nonces,
+                &sub_key_packages[sub_identifier],
+                pub_key_package.verifying_key(),
+                *identifier,
+            )?;
+            // Send to sub coordinator via sub_signature_shares
+            sub_signature_shares.insert(*sub_identifier, sub_signature_share);
+        }
+
+        // As the sub coordinator, aggregate sub signature shares and send them
+        // to top coordinator via signtures_shares map.
+        let scalar = sub_signature_shares
+            .values()
+            .map(|s| s.to_scalar())
+            .reduce(|acc, s| acc + s)
+            .unwrap();
+        let signature_share = SignatureShare::new(scalar);
+        signature_shares.insert(*identifier, signature_share);
+    }
+
+    let group_signature = frost::aggregate(&signing_package, &signature_shares, &pub_key_package)?;
+
+    pub_key_package
+        .verifying_key
+        .verify(message, &group_signature)?;
+
+    Ok(())
+}

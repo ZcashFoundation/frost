@@ -357,3 +357,10 @@ fn check_sign_with_incorrect_commitments() {
         _,
     >(rng);
 }
+
+#[test]
+fn check_nested() {
+    let rng = thread_rng();
+
+    frost_core::tests::ciphersuite_generic::check_nested::<Ristretto255Sha512, _>(rng).unwrap();
+}

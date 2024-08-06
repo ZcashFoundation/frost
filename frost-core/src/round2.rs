@@ -175,3 +175,64 @@ pub fn sign<C: Ciphersuite>(
 
     Ok(signature_share)
 }
+
+/// Nested sign
+pub fn nested_sign<C: Ciphersuite>(
+    signing_package: &SigningPackage<C>,
+    sub_signing_package: &SigningPackage<C>,
+    signer_nonces: &round1::SigningNonces<C>,
+    key_package: &frost::keys::KeyPackage<C>,
+    group_verifying_key: &VerifyingKey<C>,
+    group_identifier: Identifier<C>,
+) -> Result<SignatureShare<C>, Error<C>> {
+    if signing_package.signing_commitments().len() < key_package.min_signers as usize {
+        return Err(Error::IncorrectNumberOfCommitments);
+    }
+
+    // Validate the signer's commitment is present in the signing package
+    let commitment = sub_signing_package
+        .signing_commitments
+        .get(&key_package.identifier)
+        .ok_or(Error::MissingCommitment)?;
+
+    // Validate if the signer's commitment exists
+    if &signer_nonces.commitments != commitment {
+        return Err(Error::IncorrectCommitment);
+    }
+
+    // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
+    // binding factor.
+    let binding_factor_list: BindingFactorList<C> =
+        compute_binding_factor_list(signing_package, group_verifying_key, &[])?;
+    let binding_factor: frost::BindingFactor<C> = binding_factor_list
+        .get(&group_identifier)
+        .ok_or(Error::UnknownIdentifier)?
+        .clone();
+
+    // Compute the group commitment from signing commitments produced in round one.
+    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
+
+    let lambda_i = frost::derive_interpolating_value(&group_identifier, signing_package)?;
+
+    // Compute Lagrange coefficient.
+    let lambda_i_j =
+        frost::derive_interpolating_value(key_package.identifier(), sub_signing_package)?;
+
+    // Compute the per-message challenge.
+    let challenge = challenge::<C>(
+        &group_commitment.0,
+        group_verifying_key,
+        signing_package.message.as_slice(),
+    )?;
+
+    // Compute the Schnorr signature share.
+    let signature_share = compute_signature_share(
+        signer_nonces,
+        binding_factor,
+        lambda_i * lambda_i_j,
+        key_package,
+        challenge,
+    );
+
+    Ok(signature_share)
+}
