@@ -6,6 +6,10 @@ Entries are listed in reverse chronological order.
 
 * Added refresh share functionality for trusted dealer:
   `frost_core::keys::refresh::{compute_refreshing_shares, refresh_share}`
+* Added a `'static` bound to the `Ciphersuite` trait. This is a breaking change,
+  but it's likely to not require any code changes since most ciphersuite
+  implementations are probably just empty structs. The bound makes it possible
+  to use `frost_core::Error<C>` in `Box<dyn std::error::Error>`.
 
 ## 2.0.0-rc.0
 
