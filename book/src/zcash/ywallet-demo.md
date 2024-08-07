@@ -25,16 +25,15 @@ git clone --recurse-submodules --branch frost-demo https://github.com/ZcashFound
 git clone https://github.com/ZcashFoundation/zcash.git
 ```
 
-Download Sprout and Sapling parameters:
+Download Sprout and Sapling parameters and move to the correct directory:
 
+```
+cd zwallet/native/zcash-params/src/
+wget https://download.z.cash/downloads/sprout-groth16.params
+wget https://download.z.cash/downloads/sapling-spend.params)
+wget https://download.z.cash/downloads/sapling-output.params)
 
-[Sprout params](https://download.z.cash/downloads/sprout-groth16.params)
-
-[Sapling spend params](https://download.z.cash/downloads/sapling-spend.params)
-
-[Sapling output params](https://download.z.cash/downloads/sapling-output.params)
-
-Move the params files into `zwallet/native/zcash-params/src/`
+```
 
 
 ## Generating FROST key shares
