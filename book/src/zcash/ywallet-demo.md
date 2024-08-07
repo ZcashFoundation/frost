@@ -30,8 +30,8 @@ Download Sprout and Sapling parameters and move to the correct directory:
 ```
 cd zwallet/native/zcash-params/src/
 wget https://download.z.cash/downloads/sprout-groth16.params
-wget https://download.z.cash/downloads/sapling-spend.params)
-wget https://download.z.cash/downloads/sapling-output.params)
+wget https://download.z.cash/downloads/sapling-spend.params
+wget https://download.z.cash/downloads/sapling-output.params
 
 ```
 
