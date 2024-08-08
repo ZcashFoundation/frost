@@ -277,7 +277,7 @@ pub mod round2 {
 ///
 /// It returns the [`round1::SecretPackage`] that must be kept in memory
 /// by the participant for the other steps, and the [`round1::Package`] that
-/// must be sent to other participants.
+/// must be sent to each other participant in the DKG run.
 pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifier: Identifier<C>,
     max_signers: u16,
@@ -388,19 +388,21 @@ pub(crate) fn verify_proof_of_knowledge<C: Ciphersuite>(
     Ok(())
 }
 
-/// Performs the second part of the distributed key generation protocol
-/// for the participant holding the given [`round1::SecretPackage`],
-/// given the received [`round1::Package`]s received from the other participants.
+/// Performs the second part of the distributed key generation protocol for the
+/// participant holding the given [`round1::SecretPackage`], given the received
+/// [`round1::Package`]s received from the other participants.
 ///
-/// `round1_packages` maps the identifier of each participant to the
-/// [`round1::Package`] they sent. These identifiers must come from whatever mapping
-/// the coordinator has between communication channels and participants, i.e.
-/// they must have assurance that the [`round1::Package`] came from
-/// the participant with that identifier.
+/// `round1_packages` maps the identifier of each other participant to the
+/// [`round1::Package`] they sent to the current participant (the owner of
+/// `secret_package`). These identifiers must come from whatever mapping the
+/// coordinator has between communication channels and participants, i.e. they
+/// must have assurance that the [`round1::Package`] came from the participant
+/// with that identifier.
 ///
-/// It returns the [`round2::SecretPackage`] that must be kept in memory
-/// by the participant for the final step, and the a map of [`round2::Package`]s that
-/// must be sent to each participant who has the given identifier in the map key.
+/// It returns the [`round2::SecretPackage`] that must be kept in memory by the
+/// participant for the final step, and the map of [`round2::Package`]s that
+/// must be sent to each other participant who has the given identifier in the
+/// map key.
 pub fn part2<C: Ciphersuite>(
     secret_package: round1::SecretPackage<C>,
     round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
@@ -461,22 +463,22 @@ pub fn part2<C: Ciphersuite>(
 }
 
 /// Performs the third and final part of the distributed key generation protocol
-/// for the participant holding the given [`round2::SecretPackage`],
-/// given the received [`round1::Package`]s and [`round2::Package`]s received from
-/// the other participants.
+/// for the participant holding the given [`round2::SecretPackage`], given the
+/// received [`round1::Package`]s and [`round2::Package`]s received from the
+/// other participants.
 ///
 /// `round1_packages` must be the same used in [`part2()`].
 ///
-/// `round2_packages` maps the identifier of each participant to the
-/// [`round2::Package`] they sent. These identifiers must come from whatever mapping
-/// the coordinator has between communication channels and participants, i.e.
-/// they must have assurance that the [`round2::Package`] came from
-/// the participant with that identifier.
+/// `round2_packages` maps the identifier of each other participant to the
+/// [`round2::Package`] they sent to the current participant (the owner of
+/// `secret_package`). These identifiers must come from whatever mapping the
+/// coordinator has between communication channels and participants, i.e. they
+/// must have assurance that the [`round2::Package`] came from the participant
+/// with that identifier.
 ///
 /// It returns the [`KeyPackage`] that has the long-lived key share for the
-/// participant, and the [`PublicKeyPackage`]s that has public information
-/// about all participants; both of which are required to compute FROST
-/// signatures.
+/// participant, and the [`PublicKeyPackage`]s that has public information about
+/// all participants; both of which are required to compute FROST signatures.
 pub fn part3<C: Ciphersuite>(
     round2_secret_package: &round2::SecretPackage<C>,
     round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
