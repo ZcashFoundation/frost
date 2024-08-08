@@ -23,7 +23,7 @@ features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-derive-getters = "0.4.0"
+derive-getters = "0.5.0"
 document-features = "0.2.7"
 frost-core = { path = "../frost-core", version = "2.0.0-rc.0", features = [
     "internals"
