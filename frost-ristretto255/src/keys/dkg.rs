@@ -67,7 +67,7 @@ pub fn part1<R: RngCore + CryptoRng>(
 /// with that identifier.
 ///
 /// It returns the [`round2::SecretPackage`] that must be kept in memory by the
-/// participant for the final step, and the a map of [`round2::Package`]s that
+/// participant for the final step, and the map of [`round2::Package`]s that
 /// must be sent to each other participant who has the given identifier in the
 /// map key.
 pub fn part2(
