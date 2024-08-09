@@ -102,18 +102,17 @@ click the arrow button.
 
 The wallet will show the transaction plan. Click the snowflake button. It will
 show a QR code, but we want that information as a file, so click the floppy disk
-button and save the file somewhere (e.g. `tx.json`).
+button and save the file somewhere (e.g. `tx.raw` as suggested by Ywallet).
 
 ## Signing the transaction
 
 Go back to the signer terminal and run the following, replacing `<tx_plan_path>`
 with the path to the file you saved in the previous step, `<ufvk>` with the UFVK
-hex string printed previously, and `<tx_path>` with the path where you want to
-write the signed transaction (e.g. `tx.raw`).
+hex string printed previously, and `<tx_signed_path>` with the path where you
+want to write the signed transaction (e.g. `tx-signed.raw`).
 
 ```
-cd zcash-sign/
-cargo run --release -- sign --tx-plan <tx_plan_path> --ufvk <ufvk> -o <tx_path>
+cargo run --release -- sign --tx-plan <tx_plan_path> --ufvk <ufvk> -o <tx_signed_path>
 ```
 
 The program will print a SIGHASH and a Randomizer.
@@ -180,6 +179,7 @@ transaction to the file you specified.
 ## Broadcasting the transaction
 
 Go back to Ywallet and return to its main screen. In the menu, select "Advanced"
-and "Broadcast". Select the raw signed transaction file you have just generated.
+and "Broadcast". Select the raw signed transaction file you have just generated
+(`tx-signed.raw` if you followed the suggestion).
 
 That's it! You just sent a FROST-signed Zcash transaction.
