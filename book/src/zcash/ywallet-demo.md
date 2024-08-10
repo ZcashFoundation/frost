@@ -17,25 +17,11 @@ Install `cargo` and `git`.
 
 [Install Ywallet](https://ywallet.app/installation/).
 
-Clone the repositories:
+Clone the repository:
 
 ```
 git clone https://github.com/ZcashFoundation/frost-zcash-demo.git
-git clone --recurse-submodules --branch frost-demo https://github.com/ZcashFoundation/zwallet.git
-git clone https://github.com/ZcashFoundation/zcash.git
 ```
-
-Download Sprout and Sapling parameters:
-
-
-[Sprout params](https://download.z.cash/downloads/sprout-groth16.params)
-
-[Sapling spend params](https://download.z.cash/downloads/sapling-spend.params)
-
-[Sapling output params](https://download.z.cash/downloads/sapling-output.params)
-
-Move the params files into `zwallet/native/zcash-params/src/`
-
 
 ## Generating FROST key shares
 
@@ -67,45 +53,22 @@ copy&pasting!)
 
 ## Generating the Full Viewing Key for the wallet
 
-In a new terminal, switch to the folder of the signer tool:
-
-
-```
-cd zwallet/native/zcash-sync/
-```
-
-Before running it, you will need to create a seed phrase which is used to
-generate the Sapling address. This wouldn't be needed since the demo only works
-with an Orchard address, but due to current limitations in the underlying
-crates, we also need to generate a Sapling address which won't be used in the
-demo. Generate a fresh 24-word seed phrase, for example using [this
-site](https://iancoleman.io/bip39/) (reminder: don't use random sites to
-generate seed phrases unless for testing purposes!), then write to a file called
-`.env` in the signer folder in the following format, putting the seed phrase
-inside the quotes:
-
- ```
- KEY="seed phrase"
- ```
-
-We can finally generate a new wallet. Run the following command; it will
-take a bit to compile. It will show a bunch of warnings which is normal.
-
-```
-cargo run --release --bin sign --features dotenv -- -g
-```
-
-When prompted for the `ak`, paste the `verifying_key` value that is listed
-inside the Public Key Package in `public-key-package.json`. For example, in the
-following package
+Get the `verifying_key` value that is listed inside the Public Key Package in
+`public-key-package.json`. For example, in the following package
 
 ```
 {"verifying_shares": ...snip... ,"verifying_key":"d2bf40ca860fb97e9d6d15d7d25e4f17d2e8ba5dd7069188cbf30b023910a71b","ciphersuite":"FROST(Pallas, BLAKE2b-512)"}
 ```
 
-you would need to use
-`d2bf40ca860fb97e9d6d15d7d25e4f17d2e8ba5dd7069188cbf30b023910a71b`. Press
-enter to submit.
+you would need to copy
+`d2bf40ca860fb97e9d6d15d7d25e4f17d2e8ba5dd7069188cbf30b023910a71b`.
+
+The run the following command, replacing `<ak>` with the value you copied.
+
+```
+cd zcash-sign/
+cargo run --release -- generate --ak <ak> --danger-dummy-sapling
+```
 
 It will print an Orchard address, and a Unified Full Viewing Key. Copy and
 paste both somewhere to use them later.
@@ -116,23 +79,18 @@ Open Ywallet and click "New account". Check "Restore an account" and
 paste the Unified Full Viewing Key created in the previous step. Click
 "Import".
 
-In the "Rescan from..." window, pick today's date (since the wallet was just
-created) and press OK. The wallet should open.
-
-You will need to change some of Ywallet configurations. Click the three dots
-at the top right and go to Settings. Switch to Advanced mode and click
-OK. Go back to the Settings and uncheck "Use QR for offline signing".
-
 ## Funding the wallet
 
 Now you will need to fund this wallet with some ZEC. Use the Orchard address
 printed by the signer (see warning below). Send ZEC to that address using
-another account (or try [ZecFaucet](https://zecfaucet.com/)). Wait until the
-funds become spendable (this may take ~10 minutes). You can check if the funds
-are spendable by clicking the arrow button and checking "Spendable Balance"
+another account (or try [ZecFaucet](https://zecfaucet.com/)).
 
 ```admonish warning
-The address being show by Ywallet is a unified address that includes both an Orchard and Sapling address. For the demo to work, you need to receive funds in you Orchard address. Whether that will happen depends on multiple factors so it's probably easier to use just the Orchard-only address printed by the signer.
+The address being show by Ywallet is a unified address that includes both an
+Orchard and Sapling address. For the demo to work, you need to receive funds in
+you Orchard address. Whether that will happen depends on multiple factors so
+it's probably easier to use just the Orchard-only address printed by the signer.
+**If you send it to the Sapling address, the funds will be unspendable and lost!**
 ```
 
 ## Creating the transaction
@@ -140,23 +98,22 @@ The address being show by Ywallet is a unified address that includes both an Orc
 Now you will create the transaction that you wish to sign with FROST. Click
 the arrow button and paste the destination address (send it to yourself if
 you don't know where to send it). Type the amount you want to send and
-click "Send".
+click the arrow button.
 
-The wallet will show the transaction plan. Click "Send". It won't actually
-send - it will prompt you for where to save the transaction plan. Save it
-somewhere.
+The wallet will show the transaction plan. Click the snowflake button. It will
+show a QR code, but we want that information as a file, so click the floppy disk
+button and save the file somewhere (e.g. `tx.raw` as suggested by Ywallet).
 
 ## Signing the transaction
 
-Go back to the signer terminal and run (adjust paths accordingly. The "tx.json"
-input parameters must point to the file you save in the previous step, and the
-"tx.raw" output parameter is where the signed transaction will be written).
+Go back to the signer terminal and run the following, replacing `<tx_plan_path>`
+with the path to the file you saved in the previous step, `<ufvk>` with the UFVK
+hex string printed previously, and `<tx_signed_path>` with the path where you
+want to write the signed transaction (e.g. `tx-signed.raw`).
 
 ```
-cargo run --release --bin sign --features dotenv -- -t ~/Downloads/tx.json -o ~/Downloads/tx.raw
+cargo run --release -- sign --tx-plan <tx_plan_path> --ufvk <ufvk> -o <tx_signed_path>
 ```
-
-When prompted, paste the UFVK generated previously.
 
 The program will print a SIGHASH and a Randomizer.
 
@@ -222,6 +179,7 @@ transaction to the file you specified.
 ## Broadcasting the transaction
 
 Go back to Ywallet and return to its main screen. In the menu, select "Advanced"
-and "Broadcast". Select the raw signed transaction file you have just generated.
+and "Broadcast". Select the raw signed transaction file you have just generated
+(`tx-signed.raw` if you followed the suggestion).
 
 That's it! You just sent a FROST-signed Zcash transaction.
