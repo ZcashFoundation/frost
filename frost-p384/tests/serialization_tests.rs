@@ -2,7 +2,7 @@
 
 mod helpers;
 
-use frost_p256::{
+use frost_p384::{
     keys::{
         dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare,

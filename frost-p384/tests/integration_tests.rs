@@ -1,18 +1,19 @@
-use frost_p256::*;
+use frost_p384::*;
 use lazy_static::lazy_static;
 use rand::thread_rng;
 use serde_json::Value;
 
+
 #[test]
 fn check_zero_key_fails() {
-    frost_core::tests::ciphersuite_generic::check_zero_key_fails::<P256Sha256>();
+    frost_core::tests::ciphersuite_generic::check_zero_key_fails::<P384Sha384>();
 }
 
 #[test]
 fn check_sign_with_dkg() {
     let rng = thread_rng();
 
-    frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<P256Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<P384Sha384, _>(rng);
 }
 
 #[test]
@@ -24,7 +25,7 @@ fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
     let error = Error::InvalidMinSigners;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -35,10 +36,10 @@ fn check_dkg_part1_fails_with_min_signers_greater_than_max() {
 
     let min_signers = 3;
     let max_signers = 2;
-    let error: frost_core::Error<P256Sha256> = Error::InvalidMinSigners;
+    let error: frost_core::Error<P384Sha384> = Error::InvalidMinSigners;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -52,7 +53,7 @@ fn check_dkg_part1_fails_with_invalid_signers_max_signers() {
     let error = Error::InvalidMaxSigners;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -61,14 +62,14 @@ fn check_dkg_part1_fails_with_invalid_signers_max_signers() {
 fn check_rts() {
     let rng = thread_rng();
 
-    frost_core::tests::repairable::check_rts::<P256Sha256, _>(rng);
+    frost_core::tests::repairable::check_rts::<P384Sha384, _>(rng);
 }
 
 #[test]
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 
-    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<P256Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<P384Sha384, _>(rng);
 }
 
 #[test]
@@ -80,7 +81,7 @@ fn check_sign_with_dealer_fails_with_invalid_min_signers() {
     let error = Error::InvalidMinSigners;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -91,10 +92,10 @@ fn check_sign_with_dealer_fails_with_min_signers_greater_than_max() {
 
     let min_signers = 3;
     let max_signers = 2;
-    let error: frost_core::Error<P256Sha256> = Error::InvalidMinSigners;
+    let error: frost_core::Error<P384Sha384> = Error::InvalidMinSigners;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -108,7 +109,7 @@ fn check_sign_with_dealer_fails_with_invalid_max_signers() {
     let error = Error::InvalidMaxSigners;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -118,7 +119,7 @@ fn check_sign_with_dealer_fails_with_invalid_max_signers() {
 #[test]
 fn check_share_generation_p256_sha256() {
     let rng = thread_rng();
-    frost_core::tests::ciphersuite_generic::check_share_generation::<P256Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_share_generation::<P384Sha384, _>(rng);
 }
 
 #[test]
@@ -130,7 +131,7 @@ fn check_share_generation_fails_with_invalid_min_signers() {
     let error = Error::InvalidMinSigners;
 
     frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -141,10 +142,10 @@ fn check_share_generation_fails_with_min_signers_greater_than_max() {
 
     let min_signers = 3;
     let max_signers = 2;
-    let error: frost_core::Error<P256Sha256> = Error::InvalidMinSigners;
+    let error: frost_core::Error<P384Sha384> = Error::InvalidMinSigners;
 
     frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -158,7 +159,7 @@ fn check_share_generation_fails_with_invalid_max_signers() {
     let error = Error::InvalidMaxSigners;
 
     frost_core::tests::ciphersuite_generic::check_share_generation_fails_with_invalid_signers::<
-        P256Sha256,
+        P384Sha384,
         _,
     >(min_signers, max_signers, error, rng);
 }
@@ -177,27 +178,27 @@ lazy_static! {
 
 #[test]
 fn check_sign_with_test_vectors() {
-    frost_core::tests::vectors::check_sign_with_test_vectors::<P256Sha256>(&VECTORS);
+    frost_core::tests::vectors::check_sign_with_test_vectors::<P384Sha384>(&VECTORS);
 }
 
 #[test]
 fn check_sign_with_test_vectors_dkg() {
-    frost_core::tests::vectors_dkg::check_dkg_keygen::<P256Sha256>(&VECTORS_DKG);
+    frost_core::tests::vectors_dkg::check_dkg_keygen::<P384Sha384>(&VECTORS_DKG);
 }
 
 #[test]
 fn check_sign_with_test_vectors_with_big_identifiers() {
-    frost_core::tests::vectors::check_sign_with_test_vectors::<P256Sha256>(&VECTORS_BIG_IDENTIFIER);
+    frost_core::tests::vectors::check_sign_with_test_vectors::<P384Sha384>(&VECTORS_BIG_IDENTIFIER);
 }
 
 #[test]
 fn check_error_culprit() {
-    frost_core::tests::ciphersuite_generic::check_error_culprit::<P256Sha256>();
+    frost_core::tests::ciphersuite_generic::check_error_culprit::<P384Sha384>();
 }
 
 #[test]
 fn check_identifier_derivation() {
-    frost_core::tests::ciphersuite_generic::check_identifier_derivation::<P256Sha256>();
+    frost_core::tests::ciphersuite_generic::check_identifier_derivation::<P384Sha384>();
 }
 
 // Explicit test which is used in a documentation snippet
@@ -215,7 +216,7 @@ fn check_identifier_generation() -> Result<(), Error> {
 fn check_sign_with_dealer_and_identifiers() {
     let rng = thread_rng();
 
-    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<P256Sha256, _>(
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<P384Sha384, _>(
         rng,
     );
 }
@@ -223,7 +224,7 @@ fn check_sign_with_dealer_and_identifiers() {
 #[test]
 fn check_sign_with_missing_identifier() {
     let rng = thread_rng();
-    frost_core::tests::ciphersuite_generic::check_sign_with_missing_identifier::<P256Sha256, _>(
+    frost_core::tests::ciphersuite_generic::check_sign_with_missing_identifier::<P384Sha384, _>(
         rng,
     );
 }
@@ -231,7 +232,7 @@ fn check_sign_with_missing_identifier() {
 #[test]
 fn check_sign_with_incorrect_commitments() {
     let rng = thread_rng();
-    frost_core::tests::ciphersuite_generic::check_sign_with_incorrect_commitments::<P256Sha256, _>(
+    frost_core::tests::ciphersuite_generic::check_sign_with_incorrect_commitments::<P384Sha384, _>(
         rng,
     );
 }

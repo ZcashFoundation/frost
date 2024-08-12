@@ -20,7 +20,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 blake2b_simd = { version = "1", default-features = false }
 document-features = "0.2.8"
 group = "0.13"
-jubjub = { version = "0.10", git = "https://github.com/LIT-Protocol/jubjub.git" }
+jubjub = { package="jubjub-plus",  version = "0.10", git = "https://github.com/LIT-Protocol/jubjub.git" }
 frost-core = { path = "../frost-core", version = "1.0.0" }
 frost-rerandomized = { path = "../frost-rerandomized", version = "1.0.0" }
 rand_core = "0.6"

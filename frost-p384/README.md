@@ -7,10 +7,9 @@ Creating a key with a trusted dealer and splitting into shares; then signing a m
 and aggregating the signature. Note that the example just simulates a distributed
 scenario in a single thread and it abstracts away any communication between peers.
 
-
 ```rust
 # // ANCHOR: tkg_gen
-use frost_p256 as frost;
+use frost_p384 as frost;
 use rand::thread_rng;
 use std::collections::BTreeMap;
 

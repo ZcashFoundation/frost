@@ -1,7 +1,7 @@
 //! Test for recreating packages from their components, which shows that they
 //! can be serialized and deserialized as the user wishes.
 
-use frost_secp256k1::{
+use frost_taproot::{
     keys::{
         dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare,

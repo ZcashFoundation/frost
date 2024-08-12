@@ -1,7 +1,7 @@
 //! Test for recreating packages from their components, which shows that they
 //! can be serialized and deserialized as the user wishes.
 
-use frost_p256::{
+use frost_p384::{
     keys::{
         dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare,

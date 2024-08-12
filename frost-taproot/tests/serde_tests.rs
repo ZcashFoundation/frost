@@ -2,7 +2,7 @@
 
 mod helpers;
 
-use frost_secp256k1::{
+use frost_taproot::{
     keys::{
         dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare,

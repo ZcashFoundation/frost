@@ -19,7 +19,7 @@ proptest! {
 
         // Create a test case for each signature type.
         let msg = b"test message for proptests";
-        let mut sig = SignatureCase::<Secp256K1Sha256>::new(rng, msg.to_vec());
+        let mut sig = SignatureCase::<Secp256K1Taproot>::new(rng, msg.to_vec());
 
         // Apply tweaks to each case.
         for t in &tweaks {

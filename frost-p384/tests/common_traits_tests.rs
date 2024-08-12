@@ -2,7 +2,7 @@
 
 mod helpers;
 
-use frost_p256::SigningKey;
+use frost_p384::SigningKey;
 use helpers::samples;
 use rand::thread_rng;
 

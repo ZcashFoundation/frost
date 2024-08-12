@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use frost_core::{Ciphersuite, Element, Group, Scalar};
-use frost_secp256k1::{
+use frost_taproot::{
     keys::{
         dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
@@ -14,7 +14,7 @@ use frost_secp256k1::{
     Field, Signature, SigningPackage, VerifyingKey,
 };
 
-type C = frost_secp256k1::Secp256K1Sha256;
+type C = frost_taproot::Secp256K1Taproot;
 
 fn element1() -> Element<C> {
     <C as Ciphersuite>::Group::generator()
