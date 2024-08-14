@@ -117,6 +117,9 @@ cargo run --release -- sign --tx-plan <tx_plan_path> --ufvk <ufvk> -o <tx_signed
 
 The program will print a SIGHASH and a Randomizer.
 
+
+### Running the server
+
 Now you will need to simulate two participants and a Coordinator to sign the
 transaction, and the FROST server that handles communications between them.
 It's probably easier to open four terminals.
@@ -128,36 +131,52 @@ run):
 RUST_LOG=debug cargo run --bin server
 ```
 
-In the second one, the Coordinator, run (in the same folder where key generation
-was run):
+### Registering users
+
+In order to interact with the server, you will need to register users. For this
+guide we will need two. In a new terminal, run the following command for user
+"alice" (replace the password if you want):
 
 ```
-cargo run --bin coordinator -- -C redpallas --http -r -
+curl --data-binary '{"username": "alice", "password": "foobar10", "pubkey": ""}' -H 'Content-Type: application/json' http://127.0.0.1:2744/register
 ```
+
+It will output "null". (The "pubkey" parameter is not used currently and should
+be empty.) Also register user "bob":
+
+```
+curl --data-binary '{"username": "bob", "password": "foobar10", "pubkey": ""}' -H 'Content-Type: application/json' http://127.0.0.1:2744/register
+```
+
+You only need to do this once, even if you want to sign more than one
+transaction. If for some reason you want to start over, close the server and
+delete the `db.sqlite` file.
+
+Feel free to close this terminal, or reuse it for the next step.
+
+```admonish warning
+Do not use passwords that you use in practice; use dummy ones instead. (You
+shouldn't reuse passwords anyway!) For real world usage you would need to take
+more care to not end up writing the password to your shell history. (In real
+world usage we'd expect this to be done by applications anyway.)
+```
+
+### Coordinator
+
+In the second terminal, the Coordinator, run (in the same folder where key
+generation was run):
+
+```
+export PW=foobar10
+cargo run --bin coordinator -- -C redpallas --http -u alice -w PW -S alice,bob -r -
+```
+
+We will use "alice" as the Coordinator, so change the value next to `export PW=`
+if you used another password when registering "alice".
 
 And then:
 
 - It should read the public key package from `public-key-package.json`.
-- Type `2` for the number of participants.
-- Copy the session ID that is printed.
-
-
-In the third terminal, Participant 1, run the following, replacing
-`<SESSION_ID>` with the session ID you have just copied:
-
-```
-cargo run --bin participant -- -C redpallas --http --key-package key-package-1.json -s <SESSION_ID>
-```
-
-In the fourth terminal, for Participant 2, run the following, again replacing
-the session ID:
-
-```
-cargo run --bin participant -- -C redpallas --http --key-package key-package-2.json -s <SESSION_ID>
-```
-
-Go back to the Coordinator CLI:
-
 - When prompted for the message to be signed, paste the SIGHASH printed by the
   signer above (just the hex value, e.g.
   ``4d065453cfa4cfb4f98dbc9cff60c4a3904ed91c523b8ef8d67d28bea7f12ea3``).
@@ -169,9 +188,32 @@ If you prefer to pass the randomizer as a file by using the `--randomizer`
 argument, you will need to convert it to binary format.
 ```
 
-The protocol should run and complete succesfully. You should still be at the
-Coordinator CLI. It has just printed the final FROST-generated signature.
-Hurrah! Copy it (just the hex value).
+### Participant 1 (alice)
+
+In the third terminal, Participant 1, run the following:
+
+```
+export PW=foobar10
+cargo run --bin participant -- -C redpallas --http --key-package key-package-1.json -u alice -w PW
+```
+
+(We are using "alice" again. There's nothing stopping a Coordinator from being a
+Partcipant too!)
+
+### Participant 2 (bob)
+
+In the fourth terminal, for Participant 2, run the following:
+
+```
+export PW=foobar10
+cargo run --bin participant -- -C redpallas --http --key-package key-package-2.json -u bob -w PW
+```
+
+### Coordinator
+
+Go back to the Coordinator CLI. The protocol should run and complete
+succesfully. It will print the final FROST-generated signature. Hurrah! Copy it
+(just the hex value).
 
 Go back to the signer and paste the signature. It will write the raw signed
 transaction to the file you specified.
