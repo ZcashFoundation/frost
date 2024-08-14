@@ -141,13 +141,14 @@ guide we will need two. In a new terminal, run the following command for user
 curl --data-binary '{"username": "alice", "password": "foobar10", "pubkey": ""}' -H 'Content-Type: application/json' http://127.0.0.1:2744/register
 ```
 
-It will output "null". Also register user "bob":
+It will output "null". (The "pubkey" parameter is not used currently and should
+be empty.) Also register user "bob":
 
 ```
 curl --data-binary '{"username": "bob", "password": "foobar10", "pubkey": ""}' -H 'Content-Type: application/json' http://127.0.0.1:2744/register
 ```
 
-You only need to do this once, in case you want to sign more than one
+You only need to do this once, even if you want to sign more than one
 transaction. If for some reason you want to start over, close the server and
 delete the `db.sqlite` file.
 
@@ -204,6 +205,7 @@ Partcipant too!)
 In the fourth terminal, for Participant 2, run the following:
 
 ```
+export PW=foobar10
 cargo run --bin participant -- -C redpallas --http --key-package key-package-2.json -u bob -w PW
 ```
 
