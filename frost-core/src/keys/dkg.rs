@@ -524,7 +524,16 @@ pub fn part3<C: Ciphersuite>(
         };
 
         // Verify the share. We don't need the result.
-        let _ = secret_share.verify()?;
+        // Identify the culprit if an InvalidSecretShare error is returned.
+        let _ = secret_share.verify().map_err(|e| {
+            if let Error::InvalidSecretShare { .. } = e {
+                Error::InvalidSecretShare {
+                    culprit: Some(*sender_identifier),
+                }
+            } else {
+                e
+            }
+        })?;
 
         // Round 2, Step 3
         //

@@ -10,6 +10,9 @@ Entries are listed in reverse chronological order.
   but it's likely to not require any code changes since most ciphersuite
   implementations are probably just empty structs. The bound makes it possible
   to use `frost_core::Error<C>` in `Box<dyn std::error::Error>`.
+* It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
+  if an invalid secret share was sent by one of the participants (by calling
+  frost_core::Error<C>::culprit()`).
 
 ## 2.0.0-rc.0
 
