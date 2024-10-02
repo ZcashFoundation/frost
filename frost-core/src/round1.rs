@@ -64,6 +64,11 @@ where
         self.0 .0
     }
 
+    /// Negate `Nonce`.
+    pub fn negate(&mut self) {
+        self.0 .0 = <<C::Group as Group>::Field>::negate(&self.to_scalar());
+    }
+
     /// Generates a nonce from the given random bytes.
     /// This function allows testing and MUST NOT be made public.
     pub(crate) fn nonce_generate_from_random_bytes(
@@ -281,6 +286,12 @@ where
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         Deserialize::deserialize(bytes)
     }
+
+    /// Negate `SigningNonces`.
+    pub fn negate_nonces(&mut self) {
+        self.binding.negate();
+        self.hiding.negate();
+    }
 }
 
 /// Published by each participant in the first round of the signing protocol.
@@ -357,6 +368,14 @@ where
 /// and the binding factor _rho_.
 #[derive(Clone, Copy, PartialEq)]
 pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
+
+impl<C: Ciphersuite> GroupCommitmentShare<C> {
+    /// Return the underlying element.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn to_element(self) -> Element<C> {
+        self.0
+    }
+}
 
 /// Encode the list of group signing commitments.
 ///
