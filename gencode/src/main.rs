@@ -227,7 +227,13 @@ fn main() -> ExitCode {
         &std::fs::read_to_string(format!("{original_folder}/tests/helpers/samples.json")).unwrap(),
     )
     .unwrap();
-    for key in &["identifier", "element1", "element2", "scalar1"] {
+    for key in &[
+        "identifier",
+        "proof_of_knowledge",
+        "element1",
+        "element2",
+        "scalar1",
+    ] {
         original_strings.push(samples[key].as_str().unwrap().to_owned());
     }
     let original_strings: Vec<&str> = original_strings.iter().map(|s| s.as_ref()).collect();
@@ -290,6 +296,19 @@ fn main() -> ExitCode {
                 "<S>",
             ],
         ),
+        (
+            "frost-secp256k1-tr",
+            &[
+                "Secp256K1Sha256",
+                "secp256k1 curve",
+                "Secp256K1",
+                "FROST(secp256k1, SHA-256)",
+                "FROST-secp256k1-SHA256-TR-v1",
+                "secp256k1_tr_sha256",
+                "secp256k1_tr",
+                "<S>",
+            ],
+        ),
     ] {
         // Some test use "sample" values. To make these tests work for another ciphersuites,
         // these values must be replaced. To make it cleaner, the strings are
@@ -300,7 +319,13 @@ fn main() -> ExitCode {
             &std::fs::read_to_string(format!("{folder}/tests/helpers/samples.json")).unwrap(),
         )
         .unwrap();
-        for key in &["identifier", "element1", "element2", "scalar1"] {
+        for key in &[
+            "identifier",
+            "proof_of_knowledge",
+            "element1",
+            "element2",
+            "scalar1",
+        ] {
             replacement_strings.push(samples[key].as_str().unwrap().to_owned());
         }
         let replacement_strings: Vec<&str> =

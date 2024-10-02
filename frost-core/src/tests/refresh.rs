@@ -9,7 +9,7 @@ use crate::keys::refresh::{compute_refreshing_shares, refresh_share};
 use crate::{self as frost};
 use crate::{
     keys::{KeyPackage, PublicKeyPackage, SecretShare},
-    Ciphersuite, Error, Identifier,
+    Ciphersuite, Error, Identifier, SigningTarget,
 };
 
 use super::ciphersuite_generic::check_sign;
@@ -81,7 +81,16 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     for (k, v) in new_shares {
         key_packages.insert(k, v.unwrap());
     }
-    check_sign(MIN_SIGNERS, key_packages, rng, new_pub_key_package).unwrap();
+
+    let signing_target = SigningTarget::from_message(b"hello world");
+    check_sign(
+        MIN_SIGNERS,
+        key_packages,
+        rng,
+        new_pub_key_package,
+        signing_target,
+    )
+    .unwrap();
 }
 
 /// We want to check that shares are refreshed with valid signers

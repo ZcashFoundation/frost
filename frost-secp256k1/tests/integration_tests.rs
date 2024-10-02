@@ -12,7 +12,10 @@ fn check_zero_key_fails() {
 fn check_sign_with_dkg() {
     let rng = thread_rng();
 
-    frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Secp256K1Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Secp256K1Sha256, _>(
+        rng,
+        b"message".into(),
+    );
 }
 
 #[test]
@@ -184,7 +187,10 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 
-    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Secp256K1Sha256, _>(rng);
+    frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Secp256K1Sha256, _>(
+        rng,
+        b"message".into(),
+    );
 }
 
 #[test]
@@ -336,7 +342,7 @@ fn check_sign_with_dealer_and_identifiers() {
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<
         Secp256K1Sha256,
         _,
-    >(rng);
+    >(rng, b"message".into());
 }
 
 #[test]

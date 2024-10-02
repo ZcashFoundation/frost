@@ -28,9 +28,8 @@ use sha2::{Digest, Sha256};
 
 use frost_core as frost;
 
-// TODO
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 // Re-exports in our public API
 #[cfg(feature = "serde")]
