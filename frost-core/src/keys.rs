@@ -760,6 +760,8 @@ where
     }
 }
 
+/// Validates the number of signers.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
 fn validate_num_of_signers<C: Ciphersuite>(
     min_signers: u16,
     max_signers: u16,
