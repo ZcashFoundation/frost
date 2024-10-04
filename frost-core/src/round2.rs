@@ -75,8 +75,8 @@ where
         sig_params: &C::SigningParameters,
     ) -> Result<(), Error<C>> {
         let commitment_share =
-            <C>::effective_commitment_share(group_commitment_share.clone(), &group_commitment);
-        let vsh = <C>::effective_verifying_share(&verifying_share, &verifying_key, &sig_params);
+            <C>::effective_commitment_share(*group_commitment_share, group_commitment);
+        let vsh = <C>::effective_verifying_share(verifying_share, verifying_key, sig_params);
 
         if (<C::Group>::generator() * self.to_scalar())
             != (commitment_share + (vsh * challenge.0 * lambda_i))

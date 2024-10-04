@@ -335,7 +335,7 @@ impl Ciphersuite for Secp256K1Sha256 {
     ) -> Result<Challenge<S>, Error> {
         let mut preimage = vec![];
         let tweaked_pk = tweaked_public_key(
-            &verifying_key,
+            verifying_key,
             sig_target.sig_params().tapscript_merkle_root.as_ref(),
         );
         preimage.extend_from_slice(&R.to_affine().x());
@@ -352,13 +352,13 @@ impl Ciphersuite for Secp256K1Sha256 {
         verifying_key: &VerifyingKey,
         sig_target: &SigningTarget,
     ) -> Result<Signature, Error> {
-        let challenge = Self::challenge(&R, verifying_key, &sig_target)?;
+        let challenge = Self::challenge(&R, verifying_key, sig_target)?;
 
         let t = tweak(
             &verifying_key.to_element(),
             sig_target.sig_params().tapscript_merkle_root.as_ref(),
         );
-        let tc = t * challenge.clone().to_scalar();
+        let tc = t * challenge.to_scalar();
         let tweaked_pubkey = tweaked_public_key(
             verifying_key,
             sig_target.sig_params().tapscript_merkle_root.as_ref(),
@@ -382,7 +382,7 @@ impl Ciphersuite for Secp256K1Sha256 {
     ) -> Signature {
         let tweaked_pubkey =
             tweaked_public_key(verifying_key, sig_params.tapscript_merkle_root.as_ref());
-        let c = challenge.clone().to_scalar();
+        let c = challenge.to_scalar();
         let z = if tweaked_pubkey.to_affine().y_is_odd().into() {
             k - (c * secret)
         } else {

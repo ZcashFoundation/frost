@@ -77,7 +77,7 @@ where
         //
         // where h is the cofactor
         let R = signature.R;
-        let vk = C::effective_pubkey_element(&self, sig_params);
+        let vk = C::effective_pubkey_element(self, sig_params);
 
         let zB = C::Group::generator() * signature.z;
         let cA = vk * challenge.0;

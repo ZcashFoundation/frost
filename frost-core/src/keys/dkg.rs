@@ -331,7 +331,7 @@ where
     let mut preimage = vec![];
 
     preimage.extend_from_slice(identifier.serialize().as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(&verifying_key)?.as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(verifying_key)?.as_ref());
     preimage.extend_from_slice(<C::Group>::serialize(R)?.as_ref());
 
     Ok(Challenge(
