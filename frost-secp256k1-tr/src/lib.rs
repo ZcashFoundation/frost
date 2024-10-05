@@ -545,6 +545,47 @@ impl Ciphersuite for Secp256K1Sha256 {
             vs
         }
     }
+
+    /// We add an unusable taproot tweak to the group key computed by a DKG run,
+    /// to prevent peers from inserting rogue tapscript tweaks into the group's
+    /// joint public key.
+    fn dkg_output_finalize(
+        identifier: Identifier,
+        commitments: BTreeMap<Identifier, &keys::VerifiableSecretSharingCommitment>,
+        signing_share: keys::SigningShare,
+        verifying_share: keys::VerifyingShare,
+        min_signers: u16,
+    ) -> Result<(keys::KeyPackage, keys::PublicKeyPackage), Error> {
+        let untweaked_public_key_package =
+            keys::PublicKeyPackage::from_dkg_commitments(&commitments)?;
+
+        let untweaked_vk = untweaked_public_key_package.verifying_key().to_element();
+        let t = tweak(&untweaked_vk, Some(vec![])); // unspendable script path
+        let tG = ProjectivePoint::GENERATOR * t;
+
+        let tweaked_verifying_shares: BTreeMap<Identifier, keys::VerifyingShare> =
+            untweaked_public_key_package
+                .verifying_shares()
+                .clone()
+                .into_iter()
+                .map(|(id, share)| (id, keys::VerifyingShare::new(share.to_element() + tG)))
+                .collect();
+
+        let tweaked_verifying_key = VerifyingKey::new(untweaked_vk + tG);
+
+        let key_package = keys::KeyPackage::new(
+            identifier,
+            keys::SigningShare::new(signing_share.to_scalar() + t),
+            keys::VerifyingShare::new(verifying_share.to_element() + tG),
+            tweaked_verifying_key,
+            min_signers,
+        );
+
+        let public_key_package =
+            keys::PublicKeyPackage::new(tweaked_verifying_shares, tweaked_verifying_key);
+
+        Ok((key_package, public_key_package))
+    }
 }
 
 impl RandomizedCiphersuite for Secp256K1Sha256 {

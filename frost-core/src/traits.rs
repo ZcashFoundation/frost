@@ -5,14 +5,17 @@ use core::{
     ops::{Add, Mul, Sub},
 };
 
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     challenge,
-    keys::{KeyPackage, VerifyingShare},
+    keys::{
+        KeyPackage, PublicKeyPackage, SigningShare, VerifiableSecretSharingCommitment,
+        VerifyingShare,
+    },
     round1, round2, BindingFactor, Challenge, Error, FieldError, GroupCommitment, GroupError,
-    Signature, SigningTarget, VerifyingKey,
+    Header, Identifier, Signature, SigningTarget, VerifyingKey,
 };
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
@@ -446,5 +449,33 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
         _sig_params: &Self::SigningParameters,
     ) -> <Self::Group as Group>::Element {
         verifying_share.to_element()
+    }
+
+    /// Construct the key packages from the output of a successful DKG execution.
+    /// The signing share and verifying share have already been verified and the
+    /// identifier belongs to our signer.
+    ///
+    /// In frost-sepc256k1-tr, this adds a hash-based tweak to the group key
+    /// to prevent peers from inserting rogue tapscript tweaks into the group's
+    /// joint public key.
+    fn dkg_output_finalize(
+        identifier: Identifier<Self>,
+        commitments: BTreeMap<Identifier<Self>, &VerifiableSecretSharingCommitment<Self>>,
+        signing_share: SigningShare<Self>,
+        verifying_share: VerifyingShare<Self>,
+        min_signers: u16,
+    ) -> Result<(KeyPackage<Self>, PublicKeyPackage<Self>), Error<Self>> {
+        let public_key_package = PublicKeyPackage::from_dkg_commitments(&commitments)?;
+
+        let key_package = KeyPackage {
+            header: Header::default(),
+            identifier,
+            signing_share,
+            verifying_share,
+            verifying_key: public_key_package.verifying_key,
+            min_signers,
+        };
+
+        Ok((key_package, public_key_package))
     }
 }

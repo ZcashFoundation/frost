@@ -562,16 +562,12 @@ pub fn part3<C: Ciphersuite>(
             &round2_secret_package.commitment,
         )))
         .collect();
-    let public_key_package = PublicKeyPackage::from_dkg_commitments(&commitments)?;
 
-    let key_package = KeyPackage {
-        header: Header::default(),
-        identifier: round2_secret_package.identifier,
+    C::dkg_output_finalize(
+        round2_secret_package.identifier,
+        commitments,
         signing_share,
         verifying_share,
-        verifying_key: public_key_package.verifying_key,
-        min_signers: round2_secret_package.min_signers,
-    };
-
-    Ok((key_package, public_key_package))
+        round2_secret_package.min_signers,
+    )
 }
