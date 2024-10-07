@@ -327,8 +327,8 @@ where
             .collect::<Result<_, Error<C>>>()
     }
 
-    /// Returns VerifiableSecretSharingCommitment from a iterator of serialized
-    /// CoefficientCommitments (e.g. a Vec<Vec<u8>>).
+    /// Returns VerifiableSecretSharingCommitment from an iterator of serialized
+    /// CoefficientCommitments (e.g. a [`Vec<Vec<u8>>`]).
     pub fn deserialize<I, V>(serialized_coefficient_commitments: I) -> Result<Self, Error<C>>
     where
         I: IntoIterator<Item = V>,
