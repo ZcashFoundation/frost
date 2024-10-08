@@ -7,9 +7,8 @@ use crate as frost;
 use crate::round2::SignatureShare;
 use crate::{
     keys::PublicKeyPackage, Error, Field, Group, Identifier, Signature, SigningKey, SigningPackage,
-    VerifyingKey,
+    SigningTarget, VerifyingKey,
 };
-use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use rand_core::{CryptoRng, RngCore};
 
@@ -103,7 +102,8 @@ pub fn check_share_generation_fails_with_invalid_signers<C: Ciphersuite, R: RngC
 /// Test FROST signing with trusted dealer with a Ciphersuite.
 pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
-) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
+    signing_target: SigningTarget<C>,
+) -> (SigningTarget<C>, Signature<C>, VerifyingKey<C>) {
     ////////////////////////////////////////////////////////////////////////////
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
@@ -147,10 +147,11 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
             .collect(),
         &mut rng,
         pubkeys.clone(),
+        signing_target.clone(),
     );
     assert_eq!(r, Err(Error::InvalidSignature));
 
-    check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
+    check_sign(min_signers, key_packages, rng, pubkeys, signing_target).unwrap()
 }
 
 /// Test FROST signing with trusted dealer fails with invalid numbers of signers.
@@ -195,7 +196,8 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
     pubkey_package: PublicKeyPackage<C>,
-) -> Result<(Vec<u8>, Signature<C>, VerifyingKey<C>), Error<C>> {
+    signing_target: SigningTarget<C>,
+) -> Result<(SigningTarget<C>, Signature<C>, VerifyingKey<C>), Error<C>> {
     let mut nonces_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
         BTreeMap::new();
     let mut commitments_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningCommitments<C>> =
@@ -223,8 +225,7 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // - decide what message to sign
     // - take one (unused) commitment per signing participant
     let mut signature_shares = BTreeMap::new();
-    let message = "message to sign".as_bytes();
-    let signing_package = SigningPackage::new(commitments_map, message);
+    let signing_package = frost::SigningPackage::new(commitments_map, signing_target.clone());
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
@@ -266,11 +267,18 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Aggregate (also verifies the signature shares)
     let group_signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)?;
 
+    // Check that the effective verifying key can be verified against the raw message,
+    // without exposing the SigningParameters.
+    pubkey_package
+        .verifying_key
+        .effective_key(signing_target.sig_params())
+        .verify(signing_target.message(), &group_signature)?;
+
     // Check that the threshold signature can be verified by the group public
     // key (the verification key).
     pubkey_package
         .verifying_key
-        .verify(message, &group_signature)?;
+        .verify(signing_target.clone(), &group_signature)?;
 
     // Check that the threshold signature can be verified by the group public
     // key (the verification key) from KeyPackage.verifying_key
@@ -279,11 +287,11 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
 
         key_package
             .verifying_key
-            .verify(message, &group_signature)?;
+            .verify(signing_target.clone(), &group_signature)?;
     }
 
     Ok((
-        message.to_owned(),
+        signing_target,
         group_signature,
         pubkey_package.verifying_key,
     ))
@@ -303,7 +311,7 @@ fn check_sign_errors<C: Ciphersuite + PartialEq>(
         .find(|&&id| id != key_package.identifier)
         .unwrap();
     commitments.remove(&id);
-    let signing_package = frost::SigningPackage::new(commitments, signing_package.message());
+    let signing_package = frost::SigningPackage::new(commitments, signing_package.sig_target);
 
     let r = frost::round2::sign(&signing_package, &signing_nonces, &key_package);
     assert_eq!(r, Err(Error::IncorrectNumberOfCommitments));
@@ -376,7 +384,8 @@ fn check_aggregate_invalid_share_identifier_for_verifying_shares<C: Ciphersuite 
 /// Test FROST signing with DKG with a Ciphersuite.
 pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     mut rng: R,
-) -> (Vec<u8>, Signature<C>, VerifyingKey<C>)
+    signing_target: SigningTarget<C>,
+) -> (SigningTarget<C>, Signature<C>, VerifyingKey<C>)
 where
     C::Group: core::cmp::PartialEq,
 {
@@ -533,7 +542,7 @@ where
     let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, verifying_key.unwrap());
 
     // Proceed with the signing test.
-    check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
+    check_sign(min_signers, key_packages, rng, pubkeys, signing_target).unwrap()
 }
 
 /// Check that calling dkg::part3() with distinct sets of participants fail.
@@ -577,7 +586,8 @@ fn check_part3_different_participants<C: Ciphersuite>(
 /// Identifiers.
 pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
-) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
+    signing_target: SigningTarget<C>,
+) -> (SigningTarget<C>, Signature<C>, VerifyingKey<C>) {
     // Check error cases first
     // Check repeated identifiers
 
@@ -643,7 +653,7 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
         let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
         key_packages.insert(k, key_package);
     }
-    check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
+    check_sign(min_signers, key_packages, rng, pubkeys, signing_target).unwrap()
 }
 
 fn check_part2_error<C: Ciphersuite>(

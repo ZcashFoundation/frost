@@ -5,8 +5,8 @@ use alloc::vec::Vec;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    random_nonzero, serialization::SerializableScalar, Ciphersuite, Error, Field, Group, Scalar,
-    Signature, VerifyingKey,
+    random_nonzero, serialization::SerializableScalar, Challenge, Ciphersuite, Error, Field, Group,
+    Scalar, Signature, SigningTarget, VerifyingKey,
 };
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
@@ -40,17 +40,25 @@ where
     }
 
     /// Create a signature `msg` using this `SigningKey`.
-    pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<C> {
-        let k = random_nonzero::<C, R>(&mut rng);
+    pub fn sign<R: RngCore + CryptoRng>(
+        &self,
+        mut rng: R,
+        sig_target: impl Into<SigningTarget<C>>,
+    ) -> Signature<C> {
+        let sig_target = sig_target.into();
 
-        let R = <C::Group>::generator() * k;
+        let public = VerifyingKey::<C>::from(*self);
+        let secret = <C>::effective_secret_key(self.scalar, &public, &sig_target.sig_params);
+
+        let mut k = random_nonzero::<C, R>(&mut rng);
+        let mut R = <C::Group>::generator() * k;
+        k = <C>::effective_nonce_secret(k, &R);
+        R = <C>::effective_nonce_element(R);
 
         // Generate Schnorr challenge
-        let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self), msg).expect("should not return error since that happens only if one of the inputs is the identity. R is not since k is nonzero. The verifying_key is not because signing keys are not allowed to be zero.");
+        let c: Challenge<C> = <C>::challenge(&R, &public, &sig_target).expect("should not return error since that happens only if one of the inputs is the identity. R is not since k is nonzero. The verifying_key is not because signing keys are not allowed to be zero.");
 
-        let z = k + (c.0 * self.scalar);
-
-        Signature { R, z }
+        <C>::single_sig_finalize(k, R, secret, &c, &public, &sig_target.sig_params)
     }
 
     /// Creates a SigningKey from a scalar. Returns an error if the scalar is zero.
