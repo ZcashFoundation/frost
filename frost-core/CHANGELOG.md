@@ -11,6 +11,10 @@ Entries are listed in reverse chronological order.
   implementations are probably just empty structs. The bound makes it possible
   to use `frost_core::Error<C>` in `Box<dyn std::error::Error>`.
 * Added getters to `round1::SecretPackage` and `round2::SecretPackage`.
+* Added a `frost_core::verify_signature_share()` function which allows verifying
+  individual signature shares. This is not required for regular FROST usage but
+  might useful in certain situations where it is desired to verify each
+  individual signature share before aggregating the signature.
 
 ## 2.0.0-rc.0
 
