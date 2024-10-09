@@ -22,7 +22,7 @@
    4. [Frost p256 version number](https://github.com/ZcashFoundation/frost/blob/main/frost-p256/Cargo.toml#L8)
    5. [Frost re randomized version number](https://github.com/ZcashFoundation/frost/blob/main/frost-rerandomized/Cargo.toml#L8)
    6. [Frost ristretto255 version number](https://github.com/ZcashFoundation/frost/blob/main/frost-ristretto255/Cargo.toml#L8)
-   7. [Frost secp256k1 version number](https://github.com/ZcashFoundation/frost/blob/main/frost-secp256k1/Cargo.toml#L7)
+   7. [Frost secp256k1 evm version number](https://github.com/ZcashFoundation/frost/blob/main/frost-secp256k1-evm/Cargo.toml#L7)
 
 5. Decide which version to tag the release with (e.g. v0.3.0). Currently we always use the same release number for all crates, but it's possible for them to get out of sync in the future.
 
@@ -74,7 +74,7 @@
 
 20. Publish it with `cargo publish -p frost-rerandomized`
 
-21. Check if other crates are ready to be published: `for cs in ristretto255 ed25519 secp256k1 p256 ed448; do cargo publish -p frost-$cs --dry-run; done`. Fix any issues if needed.
+21. Check if other crates are ready to be published: `for cs in ristretto255 ed25519 secp256k1-evm p256 ed448; do cargo publish -p frost-$cs --dry-run; done`. Fix any issues if needed.
 
     1. If you get an error like this:
 
@@ -86,7 +86,7 @@
 
     1. Use the same process as described for frost-core above (actions 1 - 3), but you can leave the changelog empty and **uncheck** “Set as the latest release”
 
-23. Publish those crates: `for cs in ristretto255 ed25519 secp256k1 p256 ed448; do cargo publish -p frost-$cs; done`
+23. Publish those crates: `for cs in ristretto255 ed25519 secp256k1-evm p256 ed448; do cargo publish -p frost-$cs; done`
 
 
 ## Confirm
@@ -98,7 +98,7 @@
     3. [Frost ed448](https://crates.io/crates/frost-ed448/versions)
     4. [Frost p256](https://crates.io/crates/frost-p256/versions)
     5. [Frost ristretto255](https://crates.io/crates/frost-ristretto255/versions)
-    6. [Frost secp256k1](https://crates.io/crates/frost-secp256k1/versions)
+    6. [Frost secp256k1 evm](https://crates.io/crates/frost-secp256k1-evm/versions)
     7. [Frost rerandomized](https://crates.io/crates/frost-rerandomized/versions)
 
 25. Let the team know in the #frost slack channel that the release is complete and successful

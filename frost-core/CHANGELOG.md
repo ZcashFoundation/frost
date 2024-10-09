@@ -11,6 +11,8 @@ Entries are listed in reverse chronological order.
   implementations are probably just empty structs. The bound makes it possible
   to use `frost_core::Error<C>` in `Box<dyn std::error::Error>`.
 * Added getters to `round1::SecretPackage` and `round2::SecretPackage`.
+* Added a new ciphersuite `frost-secp256k1-evm` that uses the secp256k1
+  elliptic curve with hash keccak256.
 
 ## 2.0.0-rc.0
 
