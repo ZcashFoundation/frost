@@ -293,19 +293,16 @@ lazy_static! {
 }
 
 #[test]
-#[ignore]
 fn check_sign_with_test_vectors() {
     frost_core::tests::vectors::check_sign_with_test_vectors::<Secp256K1Keccak256>(&VECTORS);
 }
 
 #[test]
-#[ignore]
 fn check_sign_with_test_vectors_dkg() {
     frost_core::tests::vectors_dkg::check_dkg_keygen::<Secp256K1Keccak256>(&VECTORS_DKG);
 }
 
 #[test]
-#[ignore]
 fn check_sign_with_test_vectors_with_big_identifiers() {
     frost_core::tests::vectors::check_sign_with_test_vectors::<Secp256K1Keccak256>(
         &VECTORS_BIG_IDENTIFIER,
