@@ -634,6 +634,7 @@ where
 
 /// Optional cheater detection feature
 /// Each share is verified to find the cheater
+#[cfg(feature = "cheater-detection")]
 fn detect_cheater<C: Ciphersuite>(
     group_commitment: GroupCommitment<C>,
     pubkeys: &keys::PublicKeyPackage<C>,
@@ -649,37 +650,97 @@ fn detect_cheater<C: Ciphersuite>(
     )?;
 
     // Verify the signature shares.
-    for (signature_share_identifier, signature_share) in signature_shares {
+    for (identifier, signature_share) in signature_shares {
         // Look up the public key for this signer, where `signer_pubkey` = _G.ScalarBaseMult(s[i])_,
         // and where s[i] is a secret share of the constant term of _f_, the secret polynomial.
-        let signer_pubkey = pubkeys
+        let verifying_share = pubkeys
             .verifying_shares
-            .get(signature_share_identifier)
+            .get(identifier)
             .ok_or(Error::UnknownIdentifier)?;
 
-        // Compute Lagrange coefficient.
-        let lambda_i = derive_interpolating_value(signature_share_identifier, signing_package)?;
-
-        let binding_factor = binding_factor_list
-            .get(signature_share_identifier)
-            .ok_or(Error::UnknownIdentifier)?;
-
-        // Compute the commitment share.
-        let R_share = signing_package
-            .signing_commitment(signature_share_identifier)
-            .ok_or(Error::UnknownIdentifier)?
-            .to_group_commitment_share(binding_factor);
-
-        // Compute relation values to verify this signature share.
-        signature_share.verify(
-            *signature_share_identifier,
-            &R_share,
-            signer_pubkey,
-            lambda_i,
-            &challenge,
+        verify_signature_share_precomputed(
+            *identifier,
+            signing_package,
+            binding_factor_list,
+            signature_share,
+            verifying_share,
+            challenge,
         )?;
     }
 
     // We should never reach here; but we return an error to be safe.
     Err(Error::InvalidSignature)
+}
+
+/// Verify a signature share for the given participant `identifier`,
+/// `verifying_share` and `signature_share`; with the `signing_package`
+/// for which the signature share was produced and with the group's
+/// `verifying_key`.
+///
+/// This is not required for regular FROST usage but might useful in certain
+/// situations where it is desired to verify each individual signature share
+/// before aggregating the signature.
+pub fn verify_signature_share<C: Ciphersuite>(
+    identifier: Identifier<C>,
+    verifying_share: &keys::VerifyingShare<C>,
+    signature_share: &round2::SignatureShare<C>,
+    signing_package: &SigningPackage<C>,
+    verifying_key: &VerifyingKey<C>,
+) -> Result<(), Error<C>> {
+    // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
+    // binding factor.
+    let binding_factor_list: BindingFactorList<C> =
+        compute_binding_factor_list(signing_package, verifying_key, &[])?;
+    // Compute the group commitment from signing commitments produced in round one.
+    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
+
+    // Compute the per-message challenge.
+    let challenge = crate::challenge::<C>(
+        &group_commitment.to_element(),
+        verifying_key,
+        signing_package.message().as_slice(),
+    )?;
+
+    verify_signature_share_precomputed(
+        identifier,
+        signing_package,
+        &binding_factor_list,
+        signature_share,
+        verifying_share,
+        challenge,
+    )
+}
+
+/// Similar to [`verify_signature_share()`] but using a precomputed
+/// `binding_factor_list` and `challenge`.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+fn verify_signature_share_precomputed<C: Ciphersuite>(
+    signature_share_identifier: Identifier<C>,
+    signing_package: &SigningPackage<C>,
+    binding_factor_list: &BindingFactorList<C>,
+    signature_share: &round2::SignatureShare<C>,
+    verifying_share: &keys::VerifyingShare<C>,
+    challenge: Challenge<C>,
+) -> Result<(), Error<C>> {
+    let lambda_i = derive_interpolating_value(&signature_share_identifier, signing_package)?;
+
+    let binding_factor = binding_factor_list
+        .get(&signature_share_identifier)
+        .ok_or(Error::UnknownIdentifier)?;
+
+    let R_share = signing_package
+        .signing_commitment(&signature_share_identifier)
+        .ok_or(Error::UnknownIdentifier)?
+        .to_group_commitment_share(binding_factor);
+
+    signature_share.verify(
+        signature_share_identifier,
+        &R_share,
+        verifying_share,
+        lambda_i,
+        &challenge,
+    )?;
+
+    Ok(())
 }

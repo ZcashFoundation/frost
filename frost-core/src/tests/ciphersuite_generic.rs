@@ -264,6 +264,8 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
         signature_shares.clone(),
     );
 
+    check_verify_signature_share(&pubkey_package, &signing_package, &signature_shares);
+
     // Aggregate (also verifies the signature shares)
     let group_signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)?;
 
@@ -932,4 +934,37 @@ fn check_verifying_shares<C: Ciphersuite>(
     let e = frost::aggregate(&signing_package, &signature_shares, &pubkeys).unwrap_err();
     assert_eq!(e.culprit(), Some(id));
     assert_eq!(e, Error::InvalidSignatureShare { culprit: id });
+}
+
+// Checks if `verify_signature_share()` works correctly.
+fn check_verify_signature_share<C: Ciphersuite>(
+    pubkeys: &PublicKeyPackage<C>,
+    signing_package: &SigningPackage<C>,
+    signature_shares: &BTreeMap<Identifier<C>, SignatureShare<C>>,
+) {
+    for (identifier, signature_share) in signature_shares {
+        frost::verify_signature_share(
+            *identifier,
+            pubkeys.verifying_shares().get(identifier).unwrap(),
+            signature_share,
+            signing_package,
+            pubkeys.verifying_key(),
+        )
+        .expect("should pass");
+    }
+
+    for (identifier, signature_share) in signature_shares {
+        let one = <<C as Ciphersuite>::Group as Group>::Field::one();
+        // Corrupt  share
+        let signature_share = SignatureShare::new(signature_share.to_scalar() + one);
+
+        frost::verify_signature_share(
+            *identifier,
+            pubkeys.verifying_shares().get(identifier).unwrap(),
+            &signature_share,
+            signing_package,
+            pubkeys.verifying_key(),
+        )
+        .expect_err("should have failed");
+    }
 }
