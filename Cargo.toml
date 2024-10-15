@@ -10,3 +10,6 @@ members = [
     "frost-rerandomized",
     "gencode"
 ]
+
+[profile.test.package."*"]
+opt-level = 3
