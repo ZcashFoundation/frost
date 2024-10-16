@@ -478,7 +478,8 @@ where
     C: Ciphersuite,
 {
     /// Return the underlying element.
-    #[cfg(feature = "internals")]
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub fn to_element(self) -> <C::Group as Group>::Element {
         self.0
     }
