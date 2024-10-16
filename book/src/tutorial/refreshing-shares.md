@@ -32,3 +32,9 @@ Applications should first ensure that all participants who refreshed their
 `KeyPackages`. How this is done is up to the application; it might require
 sucessfully generating a signature with all of those participants.
 ```
+
+```admonish danger
+Refreshing Shares may be not enough to address security concerns
+after a share has been compromised. Refer to to the [Understanding
+FROST](../frost.md#refreshing-shares) section.
+```
