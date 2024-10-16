@@ -4,7 +4,7 @@ The diagram below shows the refresh share process. Dashed lines
 represent data being sent through an [authenticated and confidential communication
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 
-<!-- ![Diagram of Refreshing shares, illustrating what is explained in the text](refreshing.png) -->
+![Diagram of Refreshing shares, illustrating what is explained in the text](refreshing.png)
 
 The Trusted Dealer needs to first run `compute_refreshing_shares()` which
 returns SecretShares (the "refreshing shares") and a PublicKeyPackage. Each
