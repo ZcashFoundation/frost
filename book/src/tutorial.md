@@ -5,7 +5,7 @@ a generic implementation of the protocol, which can't be used directly
 without a concrete instantiation.
 
 The ciphersuite crates (`frost-ristretto255`, `frost-ed25519`, `frost-ed448`,
-`frost-p256`, and `frost-secp256k1`) provide ciphersuites to use with
+`frost-p256`, and `frost-secp256k1-evm`) provide ciphersuites to use with
 `frost-core`, but also re-expose the `frost-core` functions without
 generics. If you will only use a single ciphersuite, then we recommend
 using those functions, and this tutorial will follow this approach.
