@@ -4,6 +4,11 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 2.0.0
+
+* Updated docs
+* Added missing `derive(Getters)` for `dkg::{round1, round2}`
+* Added `internal` feature for `validate_num_of_signers`
 * Added refresh share functionality for trusted dealer:
   `frost_core::keys::refresh::{compute_refreshing_shares, refresh_share}`
 * Added a `'static` bound to the `Ciphersuite` trait. This is a breaking change,
