@@ -4,6 +4,9 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* Added a new ciphersuite `frost-secp256k1-evm` that uses the secp256k1
+  elliptic curve with hash keccak256.
+
 ## 2.0.0
 
 * Updated docs
@@ -20,8 +23,6 @@ Entries are listed in reverse chronological order.
   individual signature shares. This is not required for regular FROST usage but
   might useful in certain situations where it is desired to verify each
   individual signature share before aggregating the signature.
-* Added a new ciphersuite `frost-secp256k1-evm` that uses the secp256k1
-  elliptic curve with hash keccak256.
 
 ## 2.0.0-rc.0
 
