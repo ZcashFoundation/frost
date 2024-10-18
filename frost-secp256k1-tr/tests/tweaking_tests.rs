@@ -1,5 +1,8 @@
 use frost_secp256k1_tr::*;
 use rand::thread_rng;
+use secp256k1::Secp256k1;
+
+mod helpers;
 
 #[test]
 fn check_tweaked_signing_key() {
@@ -10,6 +13,8 @@ fn check_tweaked_signing_key() {
     let message = b"message";
 
     let untweaked_signature = signing_key.sign(&mut rng, &message);
+
+    helpers::verify_signature(message, untweaked_signature, untweaked_verifying_key);
 
     untweaked_verifying_key
         .verify(&message, &untweaked_signature)
@@ -39,6 +44,8 @@ fn check_tweaked_signing_key() {
             "tweaked signature should be valid under untweaked verifying key\
              when signing params are provided",
         );
+
+    helpers::verify_signature(message, tweaked_signature, tweaked_verifying_key);
 }
 
 #[test]
