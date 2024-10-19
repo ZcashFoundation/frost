@@ -163,14 +163,6 @@ const CONTEXT_STRING: &str = "FROST-ED25519-SHA512-v1";
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Ed25519Sha512;
 
-/// The ciphersuite-specific signing parameters which are fed into
-/// signing code to ensure correctly compliant signatures are computed.
-pub type SigningParameters = ();
-
-/// The message target which the group's signature should commit to. Includes
-/// a message byte vector, and a set of ciphersuite-specific parameters.
-pub type SigningTarget = frost_core::SigningTarget<Ed25519Sha512>;
-
 impl Ciphersuite for Ed25519Sha512 {
     const ID: &'static str = CONTEXT_STRING;
 
@@ -180,7 +172,7 @@ impl Ciphersuite for Ed25519Sha512 {
 
     type SignatureSerialization = [u8; 64];
 
-    type SigningParameters = ();
+    type Context = ();
 
     /// H1 for FROST(Ed25519, SHA-512)
     ///

@@ -54,19 +54,20 @@ where
         Self::nonce_generate_from_random_bytes(secret, random_bytes)
     }
 
+    /// Create a nonce from a scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     fn from_scalar(scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar) -> Self {
         Self(SerializableScalar(scalar))
     }
 
+    /// Convert a nonce into a scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn to_scalar(
         self,
     ) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
         self.0 .0
-    }
-
-    /// Negate `Nonce`.
-    pub fn negate(&mut self) {
-        self.0 .0 = <<C::Group as Group>::Field>::negate(&self.to_scalar());
     }
 
     /// Generates a nonce from the given random bytes.
@@ -286,12 +287,6 @@ where
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         Deserialize::deserialize(bytes)
     }
-
-    /// Negate `SigningNonces`.
-    pub fn negate_nonces(&mut self) {
-        self.binding.negate();
-        self.hiding.negate();
-    }
 }
 
 /// Published by each participant in the first round of the signing protocol.
@@ -370,6 +365,12 @@ where
 pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 
 impl<C: Ciphersuite> GroupCommitmentShare<C> {
+    /// Create from an element.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn from_element(element: Element<C>) -> Self {
+        Self(element)
+    }
+
     /// Return the underlying element.
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(crate) fn to_element(self) -> Element<C> {

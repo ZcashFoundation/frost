@@ -6,7 +6,7 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     random_nonzero, serialization::SerializableScalar, Challenge, Ciphersuite, Error, Field, Group,
-    Scalar, Signature, SigningTarget, VerifyingKey,
+    Scalar, Signature, VerifyingKey,
 };
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
@@ -40,25 +40,24 @@ where
     }
 
     /// Create a signature `msg` using this `SigningKey`.
-    pub fn sign<R: RngCore + CryptoRng>(
-        &self,
-        mut rng: R,
-        sig_target: impl Into<SigningTarget<C>>,
-    ) -> Signature<C> {
-        let sig_target = sig_target.into();
+    pub fn sign<R: RngCore + CryptoRng>(&self, rng: R, message: &[u8]) -> Signature<C> {
+        <C>::single_sign(self, rng, message)
+    }
 
+    /// Create a signature `msg` using this `SigningKey` using the default
+    /// signing.
+    #[cfg(feature = "internals")]
+    pub fn default_sign<R: RngCore + CryptoRng>(&self, mut rng: R, message: &[u8]) -> Signature<C> {
         let public = VerifyingKey::<C>::from(*self);
-        let secret = <C>::effective_secret_key(self.scalar, &public, &sig_target.sig_params);
 
-        let mut k = random_nonzero::<C, R>(&mut rng);
-        let mut R = <C::Group>::generator() * k;
-        k = <C>::effective_nonce_secret(k, &R);
-        R = <C>::effective_nonce_element(R);
+        let (k, R) = <C>::generate_nonce(&mut rng);
 
         // Generate Schnorr challenge
-        let c: Challenge<C> = <C>::challenge(&R, &public, &sig_target).expect("should not return error since that happens only if one of the inputs is the identity. R is not since k is nonzero. The verifying_key is not because signing keys are not allowed to be zero.");
+        let c: Challenge<C> = <C>::challenge(&R, &public, message).expect("should not return error since that happens only if one of the inputs is the identity. R is not since k is nonzero. The verifying_key is not because signing keys are not allowed to be zero.");
 
-        <C>::single_sig_finalize(k, R, secret, &c, &public, &sig_target.sig_params)
+        let z = k + (c.0 * self.scalar);
+
+        Signature { R, z }
     }
 
     /// Creates a SigningKey from a scalar. Returns an error if the scalar is zero.

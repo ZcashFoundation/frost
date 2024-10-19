@@ -62,7 +62,6 @@ where
     #[cfg(any(feature = "cheater-detection", feature = "internals"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn verify(
         &self,
         identifier: Identifier<C>,
@@ -70,16 +69,10 @@ where
         verifying_share: &frost::keys::VerifyingShare<C>,
         lambda_i: Scalar<C>,
         challenge: &Challenge<C>,
-        group_commitment: &frost::GroupCommitment<C>,
-        verifying_key: &frost::VerifyingKey<C>,
-        sig_params: &C::SigningParameters,
     ) -> Result<(), Error<C>> {
-        let commitment_share =
-            <C>::effective_commitment_share(*group_commitment_share, group_commitment);
-        let vsh = <C>::effective_verifying_share(verifying_share, verifying_key, sig_params);
-
         if (<C::Group>::generator() * self.to_scalar())
-            != (commitment_share + (vsh * challenge.0 * lambda_i))
+            != (group_commitment_share.to_element()
+                + (verifying_share.to_element() * challenge.0 * lambda_i))
         {
             return Err(Error::InvalidSignatureShare {
                 culprit: identifier,
@@ -150,37 +143,42 @@ pub fn sign<C: Ciphersuite>(
         return Err(Error::IncorrectCommitment);
     }
 
+    let mut ctx = C::Context::default();
+
+    let (signing_package, signer_nonces, key_package) =
+        <C>::pre_sign(&mut ctx, signing_package, signer_nonces, key_package)?;
+
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &key_package.verifying_key, &[])?;
+        compute_binding_factor_list(&signing_package, &key_package.verifying_key, &[])?;
     let binding_factor: frost::BindingFactor<C> = binding_factor_list
         .get(&key_package.identifier)
         .ok_or(Error::UnknownIdentifier)?
         .clone();
 
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
+    let group_commitment =
+        <C>::compute_group_commitment(&mut ctx, &signing_package, &binding_factor_list)?;
 
     // Compute Lagrange coefficient.
-    let lambda_i = frost::derive_interpolating_value(key_package.identifier(), signing_package)?;
+    let lambda_i = frost::derive_interpolating_value(key_package.identifier(), &signing_package)?;
 
     // Compute the per-message challenge.
     let challenge = <C>::challenge(
         &group_commitment.0,
         &key_package.verifying_key,
-        &signing_package.sig_target,
+        signing_package.message(),
     )?;
 
     // Compute the Schnorr signature share.
     let signature_share = <C>::compute_signature_share(
-        signer_nonces,
+        &mut ctx,
+        &signer_nonces,
         binding_factor,
-        group_commitment,
         lambda_i,
-        key_package,
+        &key_package,
         challenge,
-        &signing_package.sig_target.sig_params,
     );
 
     Ok(signature_share)

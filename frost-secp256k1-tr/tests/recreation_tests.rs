@@ -41,9 +41,9 @@ fn check_signing_package_recreation() {
     let signing_package = samples::signing_package();
 
     let commitments = signing_package.signing_commitments();
-    let sig_target = signing_package.sig_target();
+    let message = signing_package.message();
 
-    let new_signing_package = SigningPackage::new(commitments.clone(), sig_target.clone());
+    let new_signing_package = SigningPackage::new(commitments.clone(), message);
     assert!(signing_package == new_signing_package);
 }
 

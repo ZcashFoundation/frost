@@ -4,18 +4,19 @@ use core::{
     fmt::Debug,
     ops::{Add, Mul, Sub},
 };
+use std::borrow::Cow;
 
 use alloc::{collections::BTreeMap, vec::Vec};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    challenge,
-    keys::{
-        KeyPackage, PublicKeyPackage, SigningShare, VerifiableSecretSharingCommitment,
-        VerifyingShare,
-    },
-    round1, round2, BindingFactor, Challenge, Error, FieldError, GroupCommitment, GroupError,
-    Header, Identifier, Signature, SigningTarget, VerifyingKey,
+    challenge, compute_group_commitment,
+    keys::{KeyPackage, PublicKeyPackage, VerifyingShare},
+    random_nonzero,
+    round1::{self},
+    round2::{self, SignatureShare},
+    BindingFactor, BindingFactorList, Challenge, Error, FieldError, GroupCommitment, GroupError,
+    Identifier, Signature, SigningKey, SigningPackage, VerifyingKey,
 };
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
@@ -48,11 +49,6 @@ pub trait Field: Copy + Clone {
     /// Computes the multiplicative inverse of an element of the scalar field, failing if the
     /// element is zero.
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError>;
-
-    /// Computes the negation of the element of the scalar field
-    fn negate(_scalar: &Self::Scalar) -> Self::Scalar {
-        panic!("Not implemented");
-    }
 
     /// Generate a random scalar from the entire space [0, l-1]
     ///
@@ -127,11 +123,6 @@ pub trait Group: Copy + Clone + PartialEq {
     /// [`ScalarBaseMult()`]: https://datatracker.ietf.org/doc/html/rfc9591#section-3.1-4.10
     fn generator() -> Self::Element;
 
-    /// Check if element is odd
-    fn y_is_odd(_element: &Self::Element) -> bool {
-        panic!("Not implemented");
-    }
-
     /// A member function of a group _G_ that maps an [`Element`] to a unique
     /// byte array buf of fixed length Ne. This function raises an error if the
     /// element is the identity element of the group.
@@ -152,24 +143,15 @@ pub trait Group: Copy + Clone + PartialEq {
 /// An element of the [`Ciphersuite`] `C`'s [`Group`].
 pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 
-/// This is a marker trait for types which are passed in to modify the signing logic of a [`Ciphersuite`].
+/// A context which can be used by Ciphersuite implementations to pass context
+/// between methods when using the overriding methods of the Ciphersuite trait.
 ///
-/// If the `serde` feature is enabled, any type implementing this trait must also implement
-/// [`serde::Serialize`] and [`serde::Deserialize`].
-#[cfg(feature = "serde")]
-pub trait SigningParameters:
-    Clone + Debug + Eq + PartialEq + Default + serde::Serialize + for<'d> serde::Deserialize<'d>
-{
-}
+/// This trait is implemented for the unit type `()` which is useful for
+/// Ciphersuites implementations that don't care about the Context.
+pub trait Context: Default {}
 
-/// This is a marker trait for types which are passed in to modify the signing logic of a [`Ciphersuite`].
-///
-/// If the `serde` feature is enabled, any type implementing this trait must also implement
-/// [`serde::Serialize`] and [`serde::Deserialize`].
-#[cfg(not(feature = "serde"))]
-pub trait SigningParameters: Clone + Debug + Eq + PartialEq + Default {}
-
-impl SigningParameters for () {}
+/// Implements Context for the unit type.
+impl Context for () {}
 
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.
@@ -193,9 +175,8 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// `Group::ScalarSerialization`
     type SignatureSerialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
 
-    /// Additional parameters which should be provided to the ciphersuite's signing code
-    /// to produce an effective signature. Most ciphersuites will just set this to `()`.
-    type SigningParameters: SigningParameters;
+    /// Optional context. Most ciphersuites will just set this to `()`.
+    type Context: Context;
 
     /// [H1] for a FROST ciphersuite.
     ///
@@ -254,126 +235,160 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
         None
     }
 
-    /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
-    /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
+    // The following are optional methods that allow customizing steps of the
+    // protocol if required.
+
+    /// Optional. Do regular (non-FROST) signing with a [`SigningKey`]. Called
+    /// by [`SigningKey::sign()`]. This is not used by FROST. Can be overriden
+    /// if required which is useful if FROST signing has been changed by the
+    /// other Ciphersuite trait methods and regular signing should be changed
+    /// accordingly to match.
+    fn single_sign<R: RngCore + CryptoRng>(
+        signing_key: &SigningKey<Self>,
+        rng: R,
+        message: &[u8],
+    ) -> Signature<Self> {
+        signing_key.default_sign(rng, message)
+    }
+
+    /// Optional. Verify a signature for this ciphersuite. Called by
+    /// [`VerifyingKey::verify()`]. The default implementation uses the
+    /// "cofactored" equation (it multiplies by the cofactor returned by
+    /// [`Group::cofactor()`]).
     ///
     /// # Cryptographic Safety
     ///
-    /// You may override this to provide a tailored implementation, but if the ciphersuite defines it,
-    /// it must also multiply by the cofactor to comply with the RFC. Note that batch verification
-    /// (see [`crate::batch::Verifier`]) also uses the default implementation regardless whether a
-    /// tailored implementation was provided.
+    /// You may override this to provide a tailored implementation, but if the
+    /// ciphersuite defines it, it must also multiply by the cofactor to comply
+    /// with the RFC. Note that batch verification (see
+    /// [`crate::batch::Verifier`]) also uses the default implementation
+    /// regardless whether a tailored implementation was provided.
     fn verify_signature(
-        sig_target: &SigningTarget<Self>,
+        message: &[u8],
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
     ) -> Result<(), Error<Self>> {
-        let c = <Self>::challenge(&signature.R, public_key, sig_target)?;
+        let (message, signature, public_key) = <Self>::pre_verify(message, signature, public_key)?;
 
-        public_key.verify_prehashed(c, signature, &sig_target.sig_params)
+        let c = <Self>::challenge(&signature.R, &public_key, &message)?;
+
+        public_key.verify_prehashed(c, &signature)
     }
 
-    /// Generates the challenge as is required for Schnorr signatures.
-    ///
-    /// Deals in bytes, so that [FROST] and singleton signing and verification can use it with different
-    /// types.
-    ///
-    /// This is the only invocation of the H2 hash function from the [RFC].
-    ///
-    /// [FROST]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#name-signature-challenge-computa
-    /// [RFC]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-11.html#section-3.2
+    /// Optional. Pre-process [`round2::sign()`] inputs. The default
+    /// implementation returns them as-is. [`Cow`] is used so implementations
+    /// can choose to return the same passed reference or a modified clone.
+    #[allow(clippy::type_complexity)]
+    fn pre_sign<'a>(
+        _ctx: &mut Self::Context,
+        signing_package: &'a SigningPackage<Self>,
+        signer_nonces: &'a round1::SigningNonces<Self>,
+        key_package: &'a KeyPackage<Self>,
+    ) -> Result<
+        (
+            Cow<'a, SigningPackage<Self>>,
+            Cow<'a, round1::SigningNonces<Self>>,
+            Cow<'a, KeyPackage<Self>>,
+        ),
+        Error<Self>,
+    > {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signer_nonces),
+            Cow::Borrowed(key_package),
+        ))
+    }
+
+    /// Optional. Pre-process [`crate::aggregate()`] inputs. The default implementation
+    /// returns them as-is. [`Cow`] is used so implementations can choose to
+    /// return the same passed reference or a modified clone.
+    #[allow(clippy::type_complexity)]
+    fn pre_aggregate<'a>(
+        _ctx: &mut Self::Context,
+        signing_package: &'a SigningPackage<Self>,
+        signature_shares: &'a BTreeMap<Identifier<Self>, round2::SignatureShare<Self>>,
+        public_key_package: &'a PublicKeyPackage<Self>,
+    ) -> Result<
+        (
+            Cow<'a, SigningPackage<Self>>,
+            Cow<'a, BTreeMap<Identifier<Self>, round2::SignatureShare<Self>>>,
+            Cow<'a, PublicKeyPackage<Self>>,
+        ),
+        Error<Self>,
+    > {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signature_shares),
+            Cow::Borrowed(public_key_package),
+        ))
+    }
+
+    /// Optional. Pre-process [`VerifyingKey::verify()`] inputs. The default
+    /// implementation returns them as-is. [`Cow`] is used so implementations
+    /// can choose to return the same passed reference or a modified clone.
+    #[allow(clippy::type_complexity)]
+    fn pre_verify<'a>(
+        msg: &'a [u8],
+        signature: &'a Signature<Self>,
+        public_key: &'a VerifyingKey<Self>,
+    ) -> Result<
+        (
+            Cow<'a, [u8]>,
+            Cow<'a, Signature<Self>>,
+            Cow<'a, VerifyingKey<Self>>,
+        ),
+        Error<Self>,
+    > {
+        Ok((
+            Cow::Borrowed(msg),
+            Cow::Borrowed(signature),
+            Cow::Borrowed(public_key),
+        ))
+    }
+
+    /// Optional. Generate a nonce and a commitment to it. Used by
+    /// [`SigningKey`] for regular (non-FROST) signing and internally by the DKG
+    /// to generate proof-of-knowledge signatures.
+    fn generate_nonce<R: RngCore + CryptoRng>(
+        rng: &mut R,
+    ) -> (
+        <<Self::Group as Group>::Field as Field>::Scalar,
+        <Self::Group as Group>::Element,
+    ) {
+        let k = random_nonzero::<Self, R>(rng);
+        let R = <Self::Group>::generator() * k;
+        (k, R)
+    }
+
+    /// Optional. Compute the group commitment. Called by [`round2::sign()`] and
+    /// [`crate::aggregate()`].
+    fn compute_group_commitment(
+        _context: &mut Self::Context,
+        signing_package: &SigningPackage<Self>,
+        binding_factor_list: &BindingFactorList<Self>,
+    ) -> Result<GroupCommitment<Self>, Error<Self>> {
+        compute_group_commitment(signing_package, binding_factor_list)
+    }
+
+    /// Optional. Generates the challenge as is required for Schnorr signatures.
+    /// Called by [`round2::sign()`] and [`crate::aggregate()`].
     fn challenge(
         R: &Element<Self>,
         verifying_key: &VerifyingKey<Self>,
-        sig_target: &SigningTarget<Self>,
+        message: &[u8],
     ) -> Result<Challenge<Self>, Error<Self>> {
-        challenge(R, verifying_key, &sig_target.message)
+        challenge(R, verifying_key, message)
     }
 
-    /// Finalize an aggregated group signature. This is used by frost-sepc256k1-tr
-    /// to ensure the signature is valid under BIP340.
-    fn aggregate_sig_finalize(
-        z: <<Self::Group as Group>::Field as Field>::Scalar,
-        R: Element<Self>,
-        _verifying_key: &VerifyingKey<Self>,
-        _sig_target: &SigningTarget<Self>,
-    ) -> Result<Signature<Self>, Error<Self>> {
-        Ok(Signature { R, z })
-    }
-
-    /// Finalize and output a single-signer Schnorr signature.
-    fn single_sig_finalize(
-        k: <<Self::Group as Group>::Field as Field>::Scalar,
-        R: Element<Self>,
-        secret: <<Self::Group as Group>::Field as Field>::Scalar,
-        challenge: &Challenge<Self>,
-        _verifying_key: &VerifyingKey<Self>,
-        _sig_params: &Self::SigningParameters,
-    ) -> Signature<Self> {
-        let z = k + (challenge.0 * secret);
-        Signature { R, z }
-    }
-
-    /// Converts a signature to its [`Ciphersuite::SignatureSerialization`] in bytes.
-    ///
-    /// The default implementation serializes a signature by serializing its `R` point and
-    /// `z` component independently, and then concatenating them.
-    fn serialize_signature(signature: &Signature<Self>) -> Result<Vec<u8>, Error<Self>> {
-        let mut bytes = vec![];
-        bytes.extend(<Self::Group>::serialize(&signature.R)?.as_ref());
-        bytes.extend(<<Self::Group as Group>::Field>::serialize(&signature.z).as_ref());
-        Ok(bytes)
-    }
-
-    /// Converts bytes as [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
-    ///
-    /// The default implementation assumes the serialization is a serialized `R` point
-    /// followed by a serialized `z` component with no padding or extra fields.
-    fn deserialize_signature(bytes: &[u8]) -> Result<Signature<Self>, Error<Self>> {
-        // To compute the expected length of the encoded point, encode the generator
-        // and get its length. Note that we can't use the identity because it can be encoded
-        // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
-        let generator = <Self::Group>::generator();
-        let mut R_bytes = Vec::from(<Self::Group>::serialize(&generator)?.as_ref());
-        let R_bytes_len = R_bytes.len();
-
-        let one = <<Self::Group as Group>::Field as Field>::zero();
-        let mut z_bytes =
-            Vec::from(<<Self::Group as Group>::Field as Field>::serialize(&one).as_ref());
-        let z_bytes_len = z_bytes.len();
-
-        if bytes.len() != R_bytes_len + z_bytes_len {
-            return Err(Error::MalformedSignature);
-        }
-
-        R_bytes[..].copy_from_slice(bytes.get(0..R_bytes_len).ok_or(Error::MalformedSignature)?);
-
-        let R_serialization = &R_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
-
-        // We extract the exact length of bytes we expect, not just the remaining bytes with `bytes[R_bytes_len..]`
-        z_bytes[..].copy_from_slice(
-            bytes
-                .get(R_bytes_len..R_bytes_len + z_bytes_len)
-                .ok_or(Error::MalformedSignature)?,
-        );
-
-        let z_serialization = &z_bytes.try_into().map_err(|_| Error::MalformedSignature)?;
-
-        Ok(Signature {
-            R: <Self::Group>::deserialize(R_serialization)?,
-            z: <<Self::Group as Group>::Field>::deserialize(z_serialization)?,
-        })
-    }
-
-    /// Compute the signature share for a particular signer on a given challenge.
+    /// Optional. Compute the signature share for a particular signer on a given
+    /// challenge. Called by [`round2::sign()`].
     fn compute_signature_share(
+        _ctx: &mut Self::Context,
         signer_nonces: &round1::SigningNonces<Self>,
         binding_factor: BindingFactor<Self>,
-        _group_commitment: GroupCommitment<Self>,
         lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
         key_package: &KeyPackage<Self>,
         challenge: Challenge<Self>,
-        _sig_params: &Self::SigningParameters,
     ) -> round2::SignatureShare<Self> {
         round2::compute_signature_share(
             signer_nonces,
@@ -384,98 +399,50 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
         )
     }
 
-    /// Compute the effective group element which should be used for signature operations
-    /// for the given verifying key.
-    ///
-    /// In frost-sepc256k1-tr, this is used to commit the key to taptree merkle root hashes.
-    fn effective_pubkey_element(
-        verifying_key: &VerifyingKey<Self>,
-        _sig_params: &Self::SigningParameters,
-    ) -> <Self::Group as Group>::Element {
-        verifying_key.to_element()
-    }
-
-    /// Compute the effective nonce element which should be used for signature operations.
-    ///
-    /// In frost-sepc256k1-tr, this negates the nonce if it has an odd parity.
-    fn effective_nonce_element(
-        R: <Self::Group as Group>::Element,
-    ) -> <Self::Group as Group>::Element {
-        R
-    }
-
-    /// Compute the effective secret key which should be used for signature operations
-    /// for the given verifying key.
-    ///
-    /// In frost-sepc256k1-tr, this is used to commit the key to taptree merkle root hashes.
-    fn effective_secret_key(
-        secret: <<Self::Group as Group>::Field as Field>::Scalar,
-        _public: &VerifyingKey<Self>,
-        _sig_params: &Self::SigningParameters,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        secret
-    }
-
-    /// Compute the effective nonce secret which should be used for signature operations.
-    ///
-    /// In frost-sepc256k1-tr, this negates the nonce if it has an odd parity.
-    fn effective_nonce_secret(
-        nonce: <<Self::Group as Group>::Field as Field>::Scalar,
-        _R: &Element<Self>,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        nonce
-    }
-
-    /// Compute the effective nonce commitment share which should be used for
-    /// FROST signing.
-    ///
-    /// In frost-sepc256k1-tr, this negates the commitment share if the group's final
-    /// commitment has an odd parity.
-    fn effective_commitment_share(
-        group_commitment_share: round1::GroupCommitmentShare<Self>,
-        _group_commitment: &GroupCommitment<Self>,
-    ) -> <Self::Group as Group>::Element {
-        group_commitment_share.to_element()
-    }
-
-    /// Compute the effective verifying share which should be used for FROST
-    /// partial signature verification.
-    ///
-    /// In frost-sepc256k1-tr, this negates the verifying share if the group's final
-    /// verifying key has an odd parity.
-    fn effective_verifying_share(
-        verifying_share: &VerifyingShare<Self>,
-        _verifying_key: &VerifyingKey<Self>,
-        _sig_params: &Self::SigningParameters,
-    ) -> <Self::Group as Group>::Element {
-        verifying_share.to_element()
-    }
-
-    /// Construct the key packages from the output of a successful DKG execution.
-    /// The signing share and verifying share have already been verified and the
-    /// identifier belongs to our signer.
-    ///
-    /// In frost-sepc256k1-tr, this adds a hash-based tweak to the group key
-    /// to prevent peers from inserting rogue tapscript tweaks into the group's
-    /// joint public key.
-    fn dkg_output_finalize(
+    /// Optional. Verify a signing share. Called by [`crate::aggregate()`] if
+    /// cheater detection is enabled.
+    fn verify_share(
+        _ctx: &mut Self::Context,
+        signature_share: &SignatureShare<Self>,
         identifier: Identifier<Self>,
-        commitments: BTreeMap<Identifier<Self>, &VerifiableSecretSharingCommitment<Self>>,
-        signing_share: SigningShare<Self>,
-        verifying_share: VerifyingShare<Self>,
-        min_signers: u16,
-    ) -> Result<(KeyPackage<Self>, PublicKeyPackage<Self>), Error<Self>> {
-        let public_key_package = PublicKeyPackage::from_dkg_commitments(&commitments)?;
-
-        let key_package = KeyPackage {
-            header: Header::default(),
+        group_commitment_share: &round1::GroupCommitmentShare<Self>,
+        verifying_share: &VerifyingShare<Self>,
+        lambda_i: Scalar<Self>,
+        challenge: &Challenge<Self>,
+    ) -> Result<(), Error<Self>> {
+        signature_share.verify(
             identifier,
-            signing_share,
+            group_commitment_share,
             verifying_share,
-            verifying_key: public_key_package.verifying_key,
-            min_signers,
-        };
+            lambda_i,
+            challenge,
+        )
+    }
 
+    /// Optional. Converts a signature to its
+    /// [`Ciphersuite::SignatureSerialization`] in bytes.
+    ///
+    /// The default implementation serializes a signature by serializing its `R`
+    /// point and `z` component independently, and then concatenating them.
+    fn serialize_signature(signature: &Signature<Self>) -> Result<Vec<u8>, Error<Self>> {
+        signature.default_serialize()
+    }
+
+    /// Optional. Converts bytes as [`Ciphersuite::SignatureSerialization`] into
+    /// a `Signature<C>`.
+    ///
+    /// The default implementation assumes the serialization is a serialized `R`
+    /// point followed by a serialized `z` component with no padding or extra
+    /// fields.
+    fn deserialize_signature(bytes: &[u8]) -> Result<Signature<Self>, Error<Self>> {
+        Signature::<Self>::default_deserialize(bytes)
+    }
+
+    /// Post-process the output of the DKG for a given participant.
+    fn post_dkg(
+        key_package: KeyPackage<Self>,
+        public_key_package: PublicKeyPackage<Self>,
+    ) -> Result<(KeyPackage<Self>, PublicKeyPackage<Self>), Error<Self>> {
         Ok((key_package, public_key_package))
     }
 }

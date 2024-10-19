@@ -112,9 +112,7 @@ fn check_signing_package_serialization() {
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
         }
       },
-      "sig_target": {
-        "message": "68656c6c6f20776f726c64"
-      }
+      "message": "68656c6c6f20776f726c64"
     }"#;
     let decoded_signing_package: SigningPackage = serde_json::from_str(json).unwrap();
     assert!(signing_package == decoded_signing_package);
@@ -135,9 +133,7 @@ fn check_signing_package_serialization() {
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
         }
       },
-      "sig_target": {
-        "message": "68656c6c6f20776f726c64"
-      }
+      "message": "68656c6c6f20776f726c64"
     }"#;
     assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
 
@@ -157,9 +153,7 @@ fn check_signing_package_serialization() {
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
         }
       },
-      "sig_target": {
-        "message": "68656c6c6f20776f726c64"
-      }
+      "message": "68656c6c6f20776f726c64"
     }"#;
     assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
 
@@ -178,9 +172,7 @@ fn check_signing_package_serialization() {
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
         }
       },
-      "sig_target": {
-        "message": "68656c6c6f20776f726c64"
-      }
+      "message": "68656c6c6f20776f726c64"
     }"#;
     assert!(serde_json::from_str::<SigningPackage>(invalid_json).is_err());
 
@@ -200,9 +192,7 @@ fn check_signing_package_serialization() {
           "binding": "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
         }
       },
-      "sig_target": {
-        "message": "68656c6c6f20776f726c64"
-      },
+      "message": "68656c6c6f20776f726c64",
       "extra": 1
     }
     "#;
