@@ -121,17 +121,14 @@ fn write_docs(
     // To be able to replace the documentation properly, start from the end, which
     // will keep the string positions consistent
     for (old_name, _, old_start, old_end) in old_docs.iter().rev() {
-        let new_doc = docs
-            .get(old_name)
-            .unwrap_or_else(|| {
-                panic!(
-                    "documentation for {} is not available in base file",
-                    old_name
-                )
-            })
-            .1
-            .clone();
-
+        let new_doc = docs.get(old_name).map(|v| v.1.clone());
+        let Some(new_doc) = new_doc else {
+            eprintln!(
+                "WARNING: documentation for {} is not available in base file. This can mean it's a specific type for the ciphersuite, or that there is a bug in gencode",
+                old_name
+            );
+            continue;
+        };
         // Replaces ciphersuite-references in documentation
         let mut new_doc = new_doc.to_string();
         for (old_n, new_n) in zip(original_suite_strings.iter(), new_suite_strings.iter()) {
@@ -299,8 +296,8 @@ fn main() -> ExitCode {
         (
             "frost-secp256k1-tr",
             &[
-                "Secp256K1Sha256",
-                "secp256k1 curve",
+                "Secp256K1Sha256TR",
+                "secp256k1 curve (Taproot)",
                 "Secp256K1",
                 "FROST(secp256k1, SHA-256)",
                 "FROST-secp256k1-SHA256-TR-v1",

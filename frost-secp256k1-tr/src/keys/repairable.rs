@@ -10,7 +10,7 @@ use alloc::collections::BTreeMap;
 // (if it were below, the position of the import would vary between ciphersuites
 //  after `cargo fmt`)
 use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore, Scalar};
-use crate::{Error, Secp256K1Sha256};
+use crate::{Error, Secp256K1Sha256TR};
 
 use super::{SecretShare, VerifiableSecretSharingCommitment};
 
@@ -38,7 +38,7 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 ///
 /// Returns a scalar
 pub fn repair_share_step_2(deltas_j: &[Scalar]) -> Scalar {
-    frost::keys::repairable::repair_share_step_2::<Secp256K1Sha256>(deltas_j)
+    frost::keys::repairable::repair_share_step_2::<Secp256K1Sha256TR>(deltas_j)
 }
 
 /// Step 3 of RTS
@@ -61,7 +61,7 @@ mod tests {
     use rand::thread_rng;
     use serde_json::Value;
 
-    use crate::Secp256K1Sha256;
+    use crate::Secp256K1Sha256TR;
 
     lazy_static! {
         pub static ref REPAIR_SHARE: Value =
@@ -73,18 +73,20 @@ mod tests {
     fn check_repair_share_step_1() {
         let rng = thread_rng();
 
-        frost_core::tests::repairable::check_repair_share_step_1::<Secp256K1Sha256, _>(rng);
+        frost_core::tests::repairable::check_repair_share_step_1::<Secp256K1Sha256TR, _>(rng);
     }
 
     #[test]
     fn check_repair_share_step_2() {
-        frost_core::tests::repairable::check_repair_share_step_2::<Secp256K1Sha256>(&REPAIR_SHARE);
+        frost_core::tests::repairable::check_repair_share_step_2::<Secp256K1Sha256TR>(
+            &REPAIR_SHARE,
+        );
     }
 
     #[test]
     fn check_repair_share_step_3() {
         let rng = thread_rng();
-        frost_core::tests::repairable::check_repair_share_step_3::<Secp256K1Sha256, _>(
+        frost_core::tests::repairable::check_repair_share_step_3::<Secp256K1Sha256TR, _>(
             rng,
             &REPAIR_SHARE,
         );
@@ -94,7 +96,7 @@ mod tests {
     fn check_repair_share_step_1_fails_with_invalid_min_signers() {
         let rng = thread_rng();
         frost_core::tests::repairable::check_repair_share_step_1_fails_with_invalid_min_signers::<
-            Secp256K1Sha256,
+            Secp256K1Sha256TR,
             _,
         >(rng);
     }

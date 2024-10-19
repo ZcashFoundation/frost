@@ -2,18 +2,18 @@ use crate::*;
 
 #[test]
 fn check_deserialize_non_canonical() {
-    let mut encoded_generator = <Secp256K1Sha256 as Ciphersuite>::Group::serialize(
-        &<Secp256K1Sha256 as Ciphersuite>::Group::generator(),
+    let mut encoded_generator = <Secp256K1Sha256TR as Ciphersuite>::Group::serialize(
+        &<Secp256K1Sha256TR as Ciphersuite>::Group::generator(),
     )
     .unwrap();
 
-    let r = <Secp256K1Sha256 as Ciphersuite>::Group::deserialize(&encoded_generator);
+    let r = <Secp256K1Sha256TR as Ciphersuite>::Group::deserialize(&encoded_generator);
     assert!(r.is_ok());
 
     // The first byte should be 0x02 or 0x03. Set other value to
     // create a non-canonical encoding.
     encoded_generator[0] = 0xFF;
-    let r = <Secp256K1Sha256 as Ciphersuite>::Group::deserialize(&encoded_generator);
+    let r = <Secp256K1Sha256TR as Ciphersuite>::Group::deserialize(&encoded_generator);
     assert_eq!(r, Err(GroupError::MalformedElement));
 
     // Besides the first byte, it is still possible to get non-canonical encodings.
@@ -23,7 +23,7 @@ fn check_deserialize_non_canonical() {
             .unwrap()
             .try_into()
             .unwrap();
-    let r = <Secp256K1Sha256 as Ciphersuite>::Group::deserialize(&encoded_point);
+    let r = <Secp256K1Sha256TR as Ciphersuite>::Group::deserialize(&encoded_point);
     assert_eq!(r, Err(GroupError::MalformedElement));
 }
 
@@ -33,6 +33,6 @@ fn check_deserialize_identity() {
     // allow us to change that. Try to send something similar.
     let encoded_identity = [0u8; 33];
 
-    let r = <Secp256K1Sha256 as Ciphersuite>::Group::deserialize(&encoded_identity);
+    let r = <Secp256K1Sha256TR as Ciphersuite>::Group::deserialize(&encoded_identity);
     assert_eq!(r, Err(GroupError::MalformedElement));
 }

@@ -38,7 +38,7 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     Challenge, Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, Signature,
-    SigningKey,
+    SigningKey, VerifyingKey,
 };
 
 #[cfg(feature = "serialization")]
@@ -322,7 +322,7 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Generates the challenge for the proof of knowledge to a secret for the DKG.
 fn challenge<C>(
     identifier: Identifier<C>,
-    verifying_key: &Element<C>,
+    verifying_key: &VerifyingKey<C>,
     R: &Element<C>,
 ) -> Result<Challenge<C>, Error<C>>
 where
@@ -331,7 +331,7 @@ where
     let mut preimage = vec![];
 
     preimage.extend_from_slice(identifier.serialize().as_ref());
-    preimage.extend_from_slice(<C::Group>::serialize(verifying_key)?.as_ref());
+    preimage.extend_from_slice(<C::Group>::serialize(&verifying_key.to_element())?.as_ref());
     preimage.extend_from_slice(<C::Group>::serialize(R)?.as_ref());
 
     Ok(Challenge(
@@ -354,23 +354,12 @@ pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>
     // > a_{i0} by calculating σ_i = (R_i, μ_i), such that k ← Z_q, R_i = g^k,
     // > c_i = H(i, Φ, g^{a_{i0}} , R_i), μ_i = k + a_{i0} · c_i, with Φ being
     // > a context string to prevent replay attacks.
-    let mut k = <<C::Group as Group>::Field>::random(&mut rng);
-    let mut R_i = <C::Group>::generator() * k;
-    k = <C>::effective_nonce_secret(k, &R_i);
-    R_i = <C>::effective_nonce_element(R_i);
-
-    let verifying_key = commitment.verifying_key()?;
-    let sig_params = Default::default();
-
-    let phi_ell0 = <C>::effective_pubkey_element(&verifying_key, &sig_params);
-
-    let c_i = challenge::<C>(identifier, &phi_ell0, &R_i)?;
+    let (k, R_i) = <C>::generate_nonce(&mut rng);
+    let c_i = challenge::<C>(identifier, &commitment.verifying_key()?, &R_i)?;
     let a_i0 = *coefficients
         .first()
         .expect("coefficients must have at least one element");
-    let a_i0_effective = <C>::effective_secret_key(a_i0, &verifying_key, &sig_params);
-
-    let mu_i = k + a_i0_effective * c_i.0;
+    let mu_i = k + a_i0 * c_i.0;
     Ok(Signature { R: R_i, z: mu_i })
 }
 
@@ -390,12 +379,9 @@ pub(crate) fn verify_proof_of_knowledge<C: Ciphersuite>(
     let ell = identifier;
     let R_ell = proof_of_knowledge.R;
     let mu_ell = proof_of_knowledge.z;
-
-    let verifying_key = commitment.verifying_key()?;
-    let phi_ell0 = <C>::effective_pubkey_element(&verifying_key, &Default::default());
+    let phi_ell0 = commitment.verifying_key()?;
     let c_ell = challenge::<C>(ell, &phi_ell0, &R_ell)?;
-
-    if R_ell != <C::Group>::generator() * mu_ell - phi_ell0 * c_ell.0 {
+    if R_ell != <C::Group>::generator() * mu_ell - phi_ell0.to_element() * c_ell.0 {
         return Err(Error::InvalidProofOfKnowledge { culprit: ell });
     }
     Ok(())
@@ -562,12 +548,16 @@ pub fn part3<C: Ciphersuite>(
             &round2_secret_package.commitment,
         )))
         .collect();
+    let public_key_package = PublicKeyPackage::from_dkg_commitments(&commitments)?;
 
-    C::dkg_output_finalize(
-        round2_secret_package.identifier,
-        commitments,
+    let key_package = KeyPackage {
+        header: Header::default(),
+        identifier: round2_secret_package.identifier,
         signing_share,
         verifying_share,
-        round2_secret_package.min_signers,
-    )
+        verifying_key: public_key_package.verifying_key,
+        min_signers: round2_secret_package.min_signers,
+    };
+
+    C::post_dkg(key_package, public_key_package)
 }

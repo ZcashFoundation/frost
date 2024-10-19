@@ -119,11 +119,6 @@ where
     pub(crate) fn from_coefficients(coefficients: &[Scalar<C>], peer: Identifier<C>) -> Self {
         Self::new(evaluate_polynomial(peer, coefficients))
     }
-
-    /// Returns negated SigningShare
-    pub fn negate(&mut self) {
-        self.0 .0 = <<C::Group as Group>::Field>::negate(&self.to_scalar());
-    }
 }
 
 impl<C> Debug for SigningShare<C>
@@ -333,7 +328,7 @@ where
     }
 
     /// Returns VerifiableSecretSharingCommitment from a iterator of serialized
-    /// CoefficientCommitments (e.g. a Vec<Vec<u8>>).
+    /// CoefficientCommitments (e.g. a `Vec<Vec<u8>>`).
     pub fn deserialize<I, V>(serialized_coefficient_commitments: I) -> Result<Self, Error<C>>
     where
         I: IntoIterator<Item = V>,
@@ -634,11 +629,6 @@ where
             verifying_key,
             min_signers,
         }
-    }
-
-    /// Negate `SigningShare`.
-    pub fn negate_signing_share(&mut self) {
-        self.signing_share.negate();
     }
 }
 

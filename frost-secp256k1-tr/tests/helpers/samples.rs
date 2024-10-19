@@ -14,7 +14,7 @@ use frost_secp256k1_tr::{
     Field, Signature, SigningPackage, VerifyingKey,
 };
 
-type C = frost_secp256k1_tr::Secp256K1Sha256;
+type C = frost_secp256k1_tr::Secp256K1Sha256TR;
 
 fn element1() -> Element<C> {
     <C as Ciphersuite>::Group::generator()

@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+use alloc::borrow::Cow;
 use alloc::borrow::ToOwned;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
@@ -26,7 +27,10 @@ use k256::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
 
-use frost_core as frost;
+use frost_core::{self as frost, compute_group_commitment, random_nonzero};
+
+use keys::EvenY;
+use keys::Tweak;
 
 #[cfg(test)]
 mod tests;
@@ -40,7 +44,7 @@ pub use frost_core::{
 pub use rand_core;
 
 /// An error.
-pub type Error = frost_core::Error<Secp256K1Sha256>;
+pub type Error = frost_core::Error<Secp256K1Sha256TR>;
 
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite scalar field.
 #[derive(Clone, Copy)]
@@ -66,10 +70,6 @@ impl Field for Secp256K1ScalarField {
         } else {
             Ok(scalar.invert().unwrap())
         }
-    }
-
-    fn negate(scalar: &Self::Scalar) -> Self::Scalar {
-        -scalar
     }
 
     fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
@@ -124,10 +124,6 @@ impl Group for Secp256K1Group {
 
     fn generator() -> Self::Element {
         ProjectivePoint::GENERATOR
-    }
-
-    fn y_is_odd(element: &Self::Element) -> bool {
-        element.to_affine().y_is_odd().into()
     }
 
     fn serialize(element: &Self::Element) -> Result<Self::Serialization, GroupError> {
@@ -185,7 +181,7 @@ const CONTEXT_STRING: &str = "FROST-secp256k1-SHA256-TR-v1";
 
 /// An implementation of the FROST(secp256k1, SHA-256) ciphersuite.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Secp256K1Sha256;
+pub struct Secp256K1Sha256TR;
 
 /// Digest the hasher to a Scalar
 fn hasher_to_scalar(hasher: Sha256) -> Scalar {
@@ -206,7 +202,7 @@ fn tagged_hash(tag: &str) -> Sha256 {
 
 /// Create a BIP341 compliant taproot tweak
 fn tweak<T: AsRef<[u8]>>(
-    public_key: &<<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element,
+    public_key: &<<Secp256K1Sha256TR as Ciphersuite>::Group as Group>::Element,
     merkle_root: Option<T>,
 ) -> Scalar {
     match merkle_root {
@@ -220,50 +216,31 @@ fn tweak<T: AsRef<[u8]>>(
     }
 }
 
-/// Create a BIP341 compliant tweaked public key
-fn tweaked_public_key<T: AsRef<[u8]>>(
-    public_key: &VerifyingKey,
-    merkle_root: Option<T>,
-) -> <<Secp256K1Sha256 as Ciphersuite>::Group as Group>::Element {
-    let mut pk = public_key.to_element();
-    if pk.to_affine().y_is_odd().into() {
-        pk = -pk;
-    }
-    ProjectivePoint::GENERATOR * tweak(&pk, merkle_root) + pk
+// Negate a Nonce
+fn negate_nonce(nonce: &frost_core::round1::Nonce<S>) -> frost_core::round1::Nonce<S> {
+    frost_core::round1::Nonce::<S>::from_scalar(-nonce.to_scalar())
 }
 
-/// The message target which the group's signature should commit to. Includes
-/// a message byte vector, and a set of ciphersuite-specific parameters.
-pub type SigningTarget = frost_core::SigningTarget<S>;
-
-/// The ciphersuite-specific signing parameters which are fed into
-/// signing code to ensure correctly compliant signatures are computed.
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SigningParameters {
-    /// The tapscript merkle tree root which must be committed to and agreed upon
-    /// in advance by all participants in the signing round.
-    ///
-    /// If set to `None` (the default), then no taproot tweak will be committed to in the signature.
-    /// Best practice suggested by BIP341 is to commit to an empty merkle root in cases
-    /// where no tapscript tweak is needed, i.e. by supplying `&[0; u8]` as the merkle root.
-    /// This prevents hiding of taproot commitments inside a linearly aggregated key.
-    ///
-    /// However, for FROST, this is not strictly required as the group key cannot be
-    /// poisoned as long as the DKG procedure is conducted correctly.
-    /// Thus, the [`Default`] trait implementation of taproot `SigningParameters`
-    /// sets `tapscript_merkle_root` to `None`.
-    ///
-    /// If 3rd party observers outside the FROST group must be able to verify there
-    /// is no hidden script-spending path embedded in the FROST group's taproot output key,
-    /// then you should set `tapscript_merkle_root` to `Some(vec![])`, which proves
-    /// the tapscript commitment for the tweaked output key is unspendable.
-    pub tapscript_merkle_root: Option<Vec<u8>>,
+// Negate a SigningNonces
+fn negate_nonces(signing_nonces: &round1::SigningNonces) -> round1::SigningNonces {
+    // TODO: this recomputes commitments which is expensive, and not needed.
+    // Create an `internals` SigningNonces::from_nonces_and_commitments or
+    // something similar.
+    round1::SigningNonces::from_nonces(
+        negate_nonce(signing_nonces.hiding()),
+        negate_nonce(signing_nonces.binding()),
+    )
 }
 
-impl frost_core::SigningParameters for SigningParameters {}
+/// TODO
+#[derive(Default)]
+pub struct Context {
+    is_group_commitment_even: bool,
+}
 
-impl Ciphersuite for Secp256K1Sha256 {
+impl frost_core::Context for Context {}
+
+impl Ciphersuite for Secp256K1Sha256TR {
     const ID: &'static str = CONTEXT_STRING;
 
     type Group = Secp256K1Group;
@@ -272,7 +249,7 @@ impl Ciphersuite for Secp256K1Sha256 {
 
     type SignatureSerialization = [u8; 64];
 
-    type SigningParameters = SigningParameters;
+    type Context = Context;
 
     /// H1 for FROST(secp256k1, SHA-256)
     ///
@@ -327,68 +304,176 @@ impl Ciphersuite for Secp256K1Sha256 {
         ))
     }
 
-    /// Generates the challenge as is required for Schnorr signatures.
+    // Sign, negating the key if required by BIP-340.
+    fn single_sign<R: RngCore + CryptoRng>(
+        signing_key: &SigningKey,
+        rng: R,
+        message: &[u8],
+    ) -> Signature {
+        let signing_key = signing_key.into_even_y(None);
+        signing_key.default_sign(rng, message)
+    }
+
+    // Preprocess sign inputs, negating the keys in the KeyPackage if required
+    // by BIP-340.
+    fn pre_sign<'a>(
+        _ctx: &mut Self::Context,
+        signing_package: &'a SigningPackage,
+        signer_nonces: &'a round1::SigningNonces,
+        key_package: &'a keys::KeyPackage,
+    ) -> Result<
+        (
+            Cow<'a, SigningPackage>,
+            Cow<'a, round1::SigningNonces>,
+            Cow<'a, keys::KeyPackage>,
+        ),
+        Error,
+    > {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signer_nonces),
+            Cow::Owned(key_package.clone().into_even_y(None)),
+        ))
+    }
+
+    // Preprocess sign inputs, negating the keys in the PublicKeyPackage if
+    // required by BIP-340.
+    fn pre_aggregate<'a>(
+        _ctx: &mut Self::Context,
+        signing_package: &'a SigningPackage,
+        signature_shares: &'a BTreeMap<Identifier, round2::SignatureShare>,
+        public_key_package: &'a keys::PublicKeyPackage,
+    ) -> Result<
+        (
+            Cow<'a, SigningPackage>,
+            Cow<'a, BTreeMap<Identifier, round2::SignatureShare>>,
+            Cow<'a, keys::PublicKeyPackage>,
+        ),
+        Error,
+    > {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signature_shares),
+            Cow::Owned(public_key_package.clone().into_even_y(None)),
+        ))
+    }
+
+    // Preprocess verify inputs, negating the VerifyingKey if required by
+    // BIP-340.
+    fn pre_verify<'a>(
+        message: &'a [u8],
+        signature: &'a Signature,
+        public_key: &'a VerifyingKey,
+    ) -> Result<(Cow<'a, [u8]>, Cow<'a, Signature>, Cow<'a, VerifyingKey>), Error> {
+        let public_key = public_key.into_even_y(None);
+        Ok((
+            Cow::Borrowed(message),
+            Cow::Borrowed(signature),
+            Cow::Owned(public_key),
+        ))
+    }
+
+    // Generate a nonce, negating it if required by BIP-340.
+    fn generate_nonce<R: RngCore + CryptoRng>(
+        rng: &mut R,
+    ) -> (
+        <<Self::Group as Group>::Field as Field>::Scalar,
+        <Self::Group as Group>::Element,
+    ) {
+        let k = random_nonzero::<Self, R>(rng);
+        let R = <Self::Group>::generator() * k;
+        if R.to_affine().y_is_odd().into() {
+            (-k, -R)
+        } else {
+            (k, R)
+        }
+    }
+
+    // Compute the group commitment, negating if required by BIP-340. Note that
+    // only at this point it is possible to check if negation will be required
+    // or not. If it is, it will require negating the participant's nonces (when
+    // signing) or their group commitment share (when aggregating). This is
+    // signaled by setting the `is_group_commitment_even` flag in the Context.
+    fn compute_group_commitment(
+        ctx: &mut Self::Context,
+        signing_package: &SigningPackage,
+        binding_factor_list: &frost_core::BindingFactorList<S>,
+    ) -> Result<GroupCommitment<S>, Error> {
+        let group_commitment = compute_group_commitment(signing_package, binding_factor_list)?;
+        ctx.is_group_commitment_even =
+            (!group_commitment.clone().to_element().to_affine().y_is_odd()).into();
+        let group_commitment = if !ctx.is_group_commitment_even {
+            GroupCommitment::<S>::from_element(-group_commitment.to_element())
+        } else {
+            group_commitment
+        };
+
+        Ok(group_commitment)
+    }
+
+    // Compute the challenge. Per BIP-340, only the X coordinate of R and
+    // verifying_key are hashed, unlike vanilla FROST.
     fn challenge(
         R: &Element<S>,
         verifying_key: &VerifyingKey,
-        sig_target: &SigningTarget,
+        message: &[u8],
     ) -> Result<Challenge<S>, Error> {
         let mut preimage = vec![];
-        let tweaked_pk = tweaked_public_key(
-            verifying_key,
-            sig_target.sig_params().tapscript_merkle_root.as_ref(),
-        );
         preimage.extend_from_slice(&R.to_affine().x());
-        preimage.extend_from_slice(&tweaked_pk.to_affine().x());
-        preimage.extend_from_slice(sig_target.message().as_ref());
+        preimage.extend_from_slice(&verifying_key.to_element().to_affine().x());
+        preimage.extend_from_slice(message);
         Ok(Challenge::from_scalar(S::H2(&preimage[..])))
     }
 
-    /// Finalizes the signature by negating it depending on whether
-    /// the group [`VerifyingKey`] is even or odd parity.
-    fn aggregate_sig_finalize(
-        z_raw: <<Self::Group as Group>::Field as Field>::Scalar,
-        R: Element<Self>,
-        verifying_key: &VerifyingKey,
-        sig_target: &SigningTarget,
-    ) -> Result<Signature, Error> {
-        let challenge = Self::challenge(&R, verifying_key, sig_target)?;
-
-        let t = tweak(
-            &verifying_key.to_element(),
-            sig_target.sig_params().tapscript_merkle_root.as_ref(),
-        );
-        let tc = t * challenge.to_scalar();
-        let tweaked_pubkey = tweaked_public_key(
-            verifying_key,
-            sig_target.sig_params().tapscript_merkle_root.as_ref(),
-        );
-        let z_tweaked = if tweaked_pubkey.to_affine().y_is_odd().into() {
-            z_raw - tc
+    /// Compute a signature share, negating the nonces if required by BIP-340.
+    fn compute_signature_share(
+        ctx: &mut Self::Context,
+        signer_nonces: &round1::SigningNonces,
+        binding_factor: frost::BindingFactor<S>,
+        lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
+        key_package: &frost::keys::KeyPackage<S>,
+        challenge: Challenge<S>,
+    ) -> round2::SignatureShare {
+        let signer_nonces = if !ctx.is_group_commitment_even {
+            negate_nonces(signer_nonces)
         } else {
-            z_raw + tc
+            signer_nonces.clone()
         };
-        Ok(Signature::new(R, z_tweaked))
+
+        frost::round2::compute_signature_share(
+            &signer_nonces,
+            binding_factor,
+            lambda_i,
+            key_package,
+            challenge,
+        )
     }
 
-    /// Finalize a single-signer BIP340 Schnorr signature.
-    fn single_sig_finalize(
-        k: <<Self::Group as Group>::Field as Field>::Scalar,
-        R: Element<Self>,
-        secret: <<Self::Group as Group>::Field as Field>::Scalar,
+    /// Verify a signature share, negating the group commitment share if
+    /// required by BIP-340.
+    fn verify_share(
+        ctx: &mut Self::Context,
+        signature_share: &frost_core::round2::SignatureShare<S>,
+        identifier: Identifier,
+        group_commitment_share: &frost_core::round1::GroupCommitmentShare<S>,
+        verifying_share: &frost_core::keys::VerifyingShare<S>,
+        lambda_i: Scalar,
         challenge: &Challenge<S>,
-        verifying_key: &VerifyingKey,
-        sig_params: &SigningParameters,
-    ) -> Signature {
-        let tweaked_pubkey =
-            tweaked_public_key(verifying_key, sig_params.tapscript_merkle_root.as_ref());
-        let c = challenge.to_scalar();
-        let z = if tweaked_pubkey.to_affine().y_is_odd().into() {
-            k - (c * secret)
+    ) -> Result<(), Error> {
+        let group_commitment_share = if !ctx.is_group_commitment_even {
+            frost_core::round1::GroupCommitmentShare::from_element(
+                -group_commitment_share.to_element(),
+            )
         } else {
-            k + (c * secret)
+            *group_commitment_share
         };
-        Signature::new(R, z)
+        signature_share.verify(
+            identifier,
+            &group_commitment_share,
+            verifying_share,
+            lambda_i,
+            challenge,
+        )
     }
 
     /// Serialize a signature in compact BIP340 format, with an x-only R point.
@@ -421,174 +506,27 @@ impl Ciphersuite for Secp256K1Sha256 {
         Ok(Signature::new(R, z))
     }
 
-    /// Compute a signature share, negating if required by BIP340.
-    fn compute_signature_share(
-        signer_nonces: &round1::SigningNonces,
-        binding_factor: frost::BindingFactor<S>,
-        group_commitment: GroupCommitment<S>,
-        lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
-        key_package: &frost::keys::KeyPackage<S>,
-        challenge: Challenge<S>,
-        sig_params: &SigningParameters,
-    ) -> round2::SignatureShare {
-        let mut sn = signer_nonces.clone();
-        if group_commitment.y_is_odd() {
-            sn.negate_nonces();
-        }
-
-        let mut kp = key_package.clone();
-        let public_key = key_package.verifying_key();
-        let pubkey_is_odd: bool = public_key.y_is_odd();
-        let tweaked_pubkey_is_odd: bool =
-            tweaked_public_key(public_key, sig_params.tapscript_merkle_root.as_ref())
-                .to_affine()
-                .y_is_odd()
-                .into();
-        if pubkey_is_odd != tweaked_pubkey_is_odd {
-            kp.negate_signing_share();
-        }
-
-        frost::round2::compute_signature_share(&sn, binding_factor, lambda_i, &kp, challenge)
-    }
-
-    /// Computes the effective pubkey point by tweaking the verifying key with a
-    /// provably unspendable taproot tweak.
-    fn effective_pubkey_element(
-        public_key: &VerifyingKey,
-        sig_params: &SigningParameters,
-    ) -> <Self::Group as Group>::Element {
-        let tweaked_pubkey =
-            tweaked_public_key(public_key, sig_params.tapscript_merkle_root.as_ref());
-        if Self::Group::y_is_odd(&tweaked_pubkey) {
-            -tweaked_pubkey
-        } else {
-            tweaked_pubkey
-        }
-    }
-
-    /// Ensures the nonce has an even Y coordinate.
-    fn effective_nonce_element(
-        R: <Self::Group as Group>::Element,
-    ) -> <Self::Group as Group>::Element {
-        if Self::Group::y_is_odd(&R) {
-            -R
-        } else {
-            R
-        }
-    }
-
-    /// Ensures the secret key is negated if the public key has odd parity.
-    fn effective_secret_key(
-        secret: <<Self::Group as Group>::Field as Field>::Scalar,
-        public_key: &VerifyingKey,
-        sig_params: &SigningParameters,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        let t = tweak(
-            &public_key.to_element(),
-            sig_params.tapscript_merkle_root.as_ref(),
-        );
-        if Self::Group::y_is_odd(&public_key.to_element()) {
-            -secret + t
-        } else {
-            secret + t
-        }
-    }
-
-    /// Ensures the nonce secret is negated if the public nonce point has odd parity.
-    fn effective_nonce_secret(
-        nonce: <<Self::Group as Group>::Field as Field>::Scalar,
-        R: &Element<Self>,
-    ) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        if R.to_affine().y_is_odd().into() {
-            -nonce
-        } else {
-            nonce
-        }
-    }
-
-    /// Ensures the commitment share is negated if the group's commitment has odd parity.
-    fn effective_commitment_share(
-        group_commitment_share: frost::round1::GroupCommitmentShare<Self>,
-        group_commitment: &GroupCommitment<Self>,
-    ) -> Element<Self> {
-        if group_commitment
-            .clone()
-            .to_element()
-            .to_affine()
-            .y_is_odd()
-            .into()
-        {
-            -group_commitment_share.to_element()
-        } else {
-            group_commitment_share.to_element()
-        }
-    }
-
-    /// Calculate a verifying share compatible with taproot, depending on the parity
-    /// of the tweaked vs untweaked verifying key.
-    fn effective_verifying_share(
-        verifying_share: &keys::VerifyingShare,
-        verifying_key: &VerifyingKey,
-        sig_params: &SigningParameters,
-    ) -> <Self::Group as Group>::Element {
-        let pubkey_is_odd: bool = verifying_key.to_element().to_affine().y_is_odd().into();
-        let tweaked_pubkey_is_odd: bool =
-            tweaked_public_key(verifying_key, sig_params.tapscript_merkle_root.as_ref())
-                .to_affine()
-                .y_is_odd()
-                .into();
-
-        let vs = verifying_share.to_element();
-        if pubkey_is_odd != tweaked_pubkey_is_odd {
-            -vs
-        } else {
-            vs
-        }
-    }
-
-    /// We add an unusable taproot tweak to the group key computed by a DKG run,
-    /// to prevent peers from inserting rogue tapscript tweaks into the group's
-    /// joint public key.
-    fn dkg_output_finalize(
-        identifier: Identifier,
-        commitments: BTreeMap<Identifier, &keys::VerifiableSecretSharingCommitment>,
-        signing_share: keys::SigningShare,
-        verifying_share: keys::VerifyingShare,
-        min_signers: u16,
+    /// Post-process the DKG output. We add an unusable taproot tweak to the
+    /// group key computed by a DKG run, to prevent peers from inserting rogue
+    /// tapscript tweaks into the group's joint public key.
+    fn post_dkg(
+        key_package: keys::KeyPackage,
+        public_key_package: keys::PublicKeyPackage,
     ) -> Result<(keys::KeyPackage, keys::PublicKeyPackage), Error> {
-        let untweaked_public_key_package =
-            keys::PublicKeyPackage::from_dkg_commitments(&commitments)?;
-
-        let untweaked_vk = untweaked_public_key_package.verifying_key().to_element();
-        let t = tweak(&untweaked_vk, Some(vec![])); // unspendable script path
-        let tG = ProjectivePoint::GENERATOR * t;
-
-        let tweaked_verifying_shares: BTreeMap<Identifier, keys::VerifyingShare> =
-            untweaked_public_key_package
-                .verifying_shares()
-                .clone()
-                .into_iter()
-                .map(|(id, share)| (id, keys::VerifyingShare::new(share.to_element() + tG)))
-                .collect();
-
-        let tweaked_verifying_key = VerifyingKey::new(untweaked_vk + tG);
-
-        let key_package = keys::KeyPackage::new(
-            identifier,
-            keys::SigningShare::new(signing_share.to_scalar() + t),
-            keys::VerifyingShare::new(verifying_share.to_element() + tG),
-            tweaked_verifying_key,
-            min_signers,
-        );
-
-        let public_key_package =
-            keys::PublicKeyPackage::new(tweaked_verifying_shares, tweaked_verifying_key);
-
-        Ok((key_package, public_key_package))
+        // From BIP-341:
+        // > If the spending conditions do not require a script path, the output
+        // > key should commit to an unspendable script path instead of having
+        // > no script path. This can be achieved by computing the output key
+        // > point as Q = P + int(hashTapTweak(bytes(P)))G.
+        let merkle_root = key_package.verifying_key().to_element().to_affine().x();
+        Ok((
+            key_package.tweak(Some(merkle_root)),
+            public_key_package.tweak(Some(merkle_root)),
+        ))
     }
 }
 
-impl RandomizedCiphersuite for Secp256K1Sha256 {
+impl RandomizedCiphersuite for Secp256K1Sha256TR {
     fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
             (CONTEXT_STRING.to_owned() + "randomizer").as_bytes(),
@@ -597,7 +535,7 @@ impl RandomizedCiphersuite for Secp256K1Sha256 {
     }
 }
 
-type S = Secp256K1Sha256;
+type S = Secp256K1Sha256TR;
 
 /// A FROST(secp256k1, SHA-256) participant identifier.
 pub type Identifier = frost::Identifier<S>;
@@ -695,6 +633,167 @@ pub mod keys {
     /// ensure that they received the correct (and same) value.
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<S>;
 
+    /// Trait for ensuring the group public key has an even Y coordinate.
+    ///
+    /// In BIP-320, public keys are encoded with only the X coordinate, which
+    /// means that two Y coordinates are possible. The specification says that
+    /// the coordinate which is even must be used. Alternatively, something
+    /// equivalent can be accomplished by simply converting any existing
+    /// (non-encoded) public key to have an even Y coordinate.
+    ///
+    /// This trait is used to enable this procedure, by changing the private and
+    /// public keys to ensure that the public key has a even Y coordinate. This
+    /// is done by simply negating both keys if Y is even (in a field, negating
+    /// is equivalent to computing p - x where p is the prime modulus. Since p
+    /// is odd, if x is odd then the result will be even). Fortunately this
+    /// works even after Shamir secret sharing, in the individual signing and
+    /// verifying shares, since it's linear.
+    pub trait EvenY {
+        /// Return if the given type has a group public key with an even Y
+        /// coordinate.
+        fn has_even_y(&self) -> bool;
+
+        /// Convert the given type to make sure the group public key has an even
+        /// Y coordinate. `is_even` can be specified if evenness was already
+        /// determined beforehand.
+        fn into_even_y(self, is_even: Option<bool>) -> Self;
+    }
+
+    impl EvenY for PublicKeyPackage {
+        fn has_even_y(&self) -> bool {
+            let verifying_key = self.verifying_key();
+            (!verifying_key.to_element().to_affine().y_is_odd()).into()
+        }
+
+        fn into_even_y(self, is_even: Option<bool>) -> Self {
+            let is_even = is_even.unwrap_or_else(|| self.has_even_y());
+            if !is_even {
+                // Negate verifying key
+                let verifying_key = VerifyingKey::new(-self.verifying_key().to_element());
+                // Recreate verifying share map with negated VerifyingShares
+                // values.
+                let verifying_shares: BTreeMap<_, _> = self
+                    .verifying_shares()
+                    .iter()
+                    .map(|(i, vs)| {
+                        let vs = VerifyingShare::new(-vs.to_element());
+                        (*i, vs)
+                    })
+                    .collect();
+                PublicKeyPackage::new(verifying_shares, verifying_key)
+            } else {
+                self
+            }
+        }
+    }
+
+    impl EvenY for KeyPackage {
+        fn has_even_y(&self) -> bool {
+            let verifying_key = self.verifying_key();
+            (!verifying_key.to_element().to_affine().y_is_odd()).into()
+        }
+
+        fn into_even_y(self, is_even: Option<bool>) -> Self {
+            let is_even = is_even.unwrap_or_else(|| self.has_even_y());
+            if !is_even {
+                // Negate all components
+                let verifying_key = VerifyingKey::new(-self.verifying_key().to_element());
+                let signing_share = SigningShare::new(-self.signing_share().to_scalar());
+                let verifying_share = VerifyingShare::new(-self.verifying_share().to_element());
+                KeyPackage::new(
+                    *self.identifier(),
+                    signing_share,
+                    verifying_share,
+                    verifying_key,
+                    *self.min_signers(),
+                )
+            } else {
+                self
+            }
+        }
+    }
+
+    impl EvenY for VerifyingKey {
+        fn has_even_y(&self) -> bool {
+            (!self.to_element().to_affine().y_is_odd()).into()
+        }
+
+        fn into_even_y(self, is_even: Option<bool>) -> Self {
+            let is_even = is_even.unwrap_or_else(|| self.has_even_y());
+            if !is_even {
+                VerifyingKey::new(-self.to_element())
+            } else {
+                self
+            }
+        }
+    }
+
+    impl EvenY for SigningKey {
+        fn has_even_y(&self) -> bool {
+            (!Into::<VerifyingKey>::into(self)
+                .to_element()
+                .to_affine()
+                .y_is_odd())
+            .into()
+        }
+
+        fn into_even_y(self, is_even: Option<bool>) -> Self {
+            let is_even = is_even.unwrap_or_else(|| self.has_even_y());
+            if !is_even {
+                SigningKey::from_scalar(-self.to_scalar())
+                    .expect("the original SigningKey must be nonzero")
+            } else {
+                self
+            }
+        }
+    }
+
+    /// Trait for tweaking a key component following BIP-341
+    pub trait Tweak: EvenY {
+        /// Convert the given type to add a tweak.
+        fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self;
+    }
+
+    impl Tweak for PublicKeyPackage {
+        fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self {
+            let t = tweak(&self.verifying_key().to_element(), merkle_root);
+            let tp = ProjectivePoint::GENERATOR * t;
+            let public_key_package = self.into_even_y(None);
+            let verifying_key =
+                VerifyingKey::new(public_key_package.verifying_key().to_element() + tp);
+            // Recreate verifying share map with negated VerifyingShares
+            // values.
+            let verifying_shares: BTreeMap<_, _> = public_key_package
+                .verifying_shares()
+                .iter()
+                .map(|(i, vs)| {
+                    let vs = VerifyingShare::new(vs.to_element() + tp);
+                    (*i, vs)
+                })
+                .collect();
+            PublicKeyPackage::new(verifying_shares, verifying_key)
+        }
+    }
+
+    impl Tweak for KeyPackage {
+        fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self {
+            let t = tweak(&self.verifying_key().to_element(), merkle_root);
+            let tp = ProjectivePoint::GENERATOR * t;
+            let key_package = self.into_even_y(None);
+            let verifying_key = VerifyingKey::new(key_package.verifying_key().to_element() + tp);
+            let signing_share = SigningShare::new(key_package.signing_share().to_scalar() + t);
+            let verifying_share =
+                VerifyingShare::new(key_package.verifying_share().to_element() + tp);
+            KeyPackage::new(
+                *key_package.identifier(),
+                signing_share,
+                verifying_share,
+                verifying_key,
+                *key_package.min_signers(),
+            )
+        }
+    }
+
     pub mod dkg;
     pub mod repairable;
 }
@@ -739,6 +838,8 @@ pub type SigningPackage = frost::SigningPackage<S>;
 
 /// FROST(secp256k1, SHA-256) Round 2 functionality and types, for signature share generation.
 pub mod round2 {
+    use keys::Tweak;
+
     use super::*;
 
     /// A FROST(secp256k1, SHA-256) participant's signature share, which the Coordinator will aggregate with all other signer's
@@ -759,6 +860,21 @@ pub mod round2 {
         key_package: &keys::KeyPackage,
     ) -> Result<SignatureShare, Error> {
         frost::round2::sign(signing_package, signer_nonces, key_package)
+    }
+
+    /// Same as [`sign()`], but using a Taproot tweak as specified in BIP-341.
+    pub fn sign_with_tweak(
+        signing_package: &SigningPackage,
+        signer_nonces: &round1::SigningNonces,
+        key_package: &keys::KeyPackage,
+        merkle_root: Option<&[u8]>,
+    ) -> Result<SignatureShare, Error> {
+        if merkle_root.is_some() {
+            let key_package = key_package.clone().tweak(merkle_root);
+            frost::round2::sign(signing_package, signer_nonces, &key_package)
+        } else {
+            frost::round2::sign(signing_package, signer_nonces, key_package)
+        }
     }
 }
 
@@ -783,9 +899,24 @@ pub type Signature = frost_core::Signature<S>;
 pub fn aggregate(
     signing_package: &SigningPackage,
     signature_shares: &BTreeMap<Identifier, round2::SignatureShare>,
-    pubkeys: &keys::PublicKeyPackage,
+    public_key_package: &keys::PublicKeyPackage,
 ) -> Result<Signature, Error> {
-    frost::aggregate(signing_package, signature_shares, pubkeys)
+    frost::aggregate(signing_package, signature_shares, public_key_package)
+}
+
+/// Same as [`aggregate()`], but using a Taproot tweak as specified in BIP-341.
+pub fn aggregate_with_tweak(
+    signing_package: &SigningPackage,
+    signature_shares: &BTreeMap<Identifier, round2::SignatureShare>,
+    public_key_package: &keys::PublicKeyPackage,
+    merkle_root: Option<&[u8]>,
+) -> Result<Signature, Error> {
+    if merkle_root.is_some() {
+        let public_key_package = public_key_package.clone().tweak(merkle_root);
+        frost::aggregate(signing_package, signature_shares, &public_key_package)
+    } else {
+        frost::aggregate(signing_package, signature_shares, public_key_package)
+    }
 }
 
 /// A signing key for a Schnorr signature on FROST(secp256k1, SHA-256).

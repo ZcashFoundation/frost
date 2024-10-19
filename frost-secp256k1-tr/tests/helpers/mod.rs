@@ -2,15 +2,15 @@
 // and each one uses only part of the module.
 #![allow(dead_code)]
 
-use frost_secp256k1_tr::Secp256K1Sha256;
+use frost_secp256k1_tr::Secp256K1Sha256TR;
 use secp256k1::Secp256k1;
 
 pub mod samples;
 
 pub fn verify_signature(
     msg: &[u8],
-    group_signature: frost_core::Signature<Secp256K1Sha256>,
-    group_pubkey: frost_core::VerifyingKey<Secp256K1Sha256>,
+    group_signature: &frost_core::Signature<Secp256K1Sha256TR>,
+    group_pubkey: &frost_core::VerifyingKey<Secp256K1Sha256TR>,
 ) {
     let secp = Secp256k1::new();
     let sig = secp256k1::schnorr::Signature::from_byte_array(

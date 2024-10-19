@@ -6,19 +6,19 @@ use crate::*;
 fn check_batch_verify() {
     let rng = thread_rng();
 
-    frost_core::tests::batch::batch_verify::<Secp256K1Sha256, _>(rng);
+    frost_core::tests::batch::batch_verify::<Secp256K1Sha256TR, _>(rng);
 }
 
 #[test]
 fn check_bad_batch_verify() {
     let rng = thread_rng();
 
-    frost_core::tests::batch::bad_batch_verify::<Secp256K1Sha256, _>(rng);
+    frost_core::tests::batch::bad_batch_verify::<Secp256K1Sha256TR, _>(rng);
 }
 
 #[test]
 fn empty_batch_verify() {
     let rng = thread_rng();
 
-    frost_core::tests::batch::empty_batch_verify::<Secp256K1Sha256, _>(rng);
+    frost_core::tests::batch::empty_batch_verify::<Secp256K1Sha256TR, _>(rng);
 }
