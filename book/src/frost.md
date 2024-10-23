@@ -78,12 +78,12 @@ be able to produce the final signature. Of course, the Coordinator
 is still free to start the process with only 2 participants if they wish.
 ```
 
-## Verifying
+## Verifying Signatures
 
 Signature verification is carried out as normal with single-party signatures,
 along with the signed message and the group verifying key as inputs.
 
-## Repairing
+## Repairing Shares
 
 Repairing shares allow participants to help another participant recover their
 share if they have lost it, or also issue a new share to a new participant
@@ -97,7 +97,7 @@ The functionality works in such a way that each participant running the repair
 share function is not able to obtain the share that is being recovered or
 issued.
 
-## Refreshing
+## Refreshing Shares
 
 Refreshing shares allow participants (or a subset of them) to update their
 shares in a way that maintains the same group public key. Some applications are:
@@ -115,6 +115,21 @@ shares in a way that maintains the same group public key. Some applications are:
 ```admonish note
 This is also possible via Distributed Key Generation but this has not yet been
 implemented.
+```
+
+```admonish danger
+It is critically important to keep in mind that the **Refresh Shares
+functionality does not "restore full security" to a group**. While the group
+evolves and participants are removed and new participants are added, the
+security of the group does not depend only on the threshold of the current
+participants being honest, but also **on the threshold of all previous set of
+participants being honest**! For example, if Alice, Mallory and Eve form a group
+and Mallory is eventually excluded from the group and replaced with Bob, it is
+not enough to trust 2 out of 3 between Alice, Bob and Eve. **You also need to
+trust that Mallory won't collude with, say, Eve which could have kept her
+original pre-refresh share and they could both together recompute the original
+key and compromise the group.** If that's a unnaceptable risk to your use case,
+you will need to migrate to a new group if that makes sense to your application.
 ```
 
 ## Ciphersuites
