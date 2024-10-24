@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.2
       - uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: beta
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.2
       # Re-resolve Cargo.lock with minimal versions.
       # This only works with nightly. We pin to a specific version because
       # newer versions use lock file version 4, but the MSRV cargo does not
@@ -51,7 +51,7 @@ jobs:
   #   runs-on: ubuntu-latest
 
   #   steps:
-  #     - uses: actions/checkout@v4.1.7
+  #     - uses: actions/checkout@v4.2.2
   #     - uses: dtolnay/rust-toolchain@stable
   #     - run: cargo install cargo-all-features
   #     # We check and then test because some test dependencies could help
@@ -71,7 +71,7 @@ jobs:
       matrix:
         crate: [ristretto255, ed25519, p256, secp256k1, rerandomized]
     steps:
-    - uses: actions/checkout@v4.1.7
+    - uses: actions/checkout@v4.2.2
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.2
       - uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: beta
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
 
@@ -134,7 +134,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
 
@@ -156,7 +156,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
 
@@ -178,7 +178,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
 
@@ -197,7 +197,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.2
       - uses: reviewdog/action-actionlint@v1.54.0
         with:
           level: warning
