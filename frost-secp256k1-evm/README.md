@@ -1,4 +1,4 @@
-An implementation of Schnorr signatures on the secp256k1 curve for both single and threshold numbers
+An implementation of Schnorr signatures on the secp256k1 curve (EVM) for both single and threshold numbers
 of signers (FROST).
 
 ## Example: key generation with trusted dealer and FROST signing

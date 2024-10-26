@@ -15,7 +15,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
 keywords = ["cryptography", "crypto", "threshold", "signature"]
-description = "A Schnorr signature scheme over the secp256k1 curve that supports FROST."
+description = "A Schnorr signature scheme over the secp256k1 curve that supports FROST and EVM."
 
 [package.metadata.docs.rs]
 features = ["serde"]
