@@ -26,7 +26,7 @@
       "signing_key": "2619be8223b23e0453ddc630a4d164e81f7d8a9e07af33c4d4d02190df8bec13",
       "coefficient": "f7ba0cbbffbea8aaceb3ade54bdbf35bafb1cda15b65ad490e0c63dd069a7c9f",
       "vss_commitments": ["03ef10370a008cd95e179dc51e2cb7828f30b72d254e5166484f927c84ab326582", "022ce0dac0db217ba326fbbe3e6132d45e2a4bfa0a0c3790d91eacce9a1c2d6a10"],
-      "proof_of_knowledge": "19df66bda7724ccfa6a5ea76aac9cc167880d55717fe6887b89aeea94408cc9ce47b65a55f9d00479e9d3ea2c7402e81803e2e724d45d70c2cb93e3b0deb5f78",
+      "proof_of_knowledge": "a319dd51cf64b3896c22f54154812d4ae76cfa95f46f53ef69241fd702456fef32da76cc93d3a541ca495b723e793ee90c32440da5f314e2e58a2dc30550314a",
       "signing_shares": {
         "1": "b489a711942526abbb5330a8215d2e740f7dbddec3452006993a8cea3ac278cb",
         "3": "20255dc07b1fb78bdf90bd85fd2389c988c8250faee11826656a09142fa9fc97"
