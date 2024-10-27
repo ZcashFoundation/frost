@@ -518,10 +518,10 @@ impl Ciphersuite for Secp256K1Sha256TR {
         // > key should commit to an unspendable script path instead of having
         // > no script path. This can be achieved by computing the output key
         // > point as Q = P + int(hashTapTweak(bytes(P)))G.
-        let merkle_root = key_package.verifying_key().to_element().to_affine().x();
+        let merkle_root = [0u8; 0];
         Ok((
-            key_package.tweak(Some(merkle_root)),
-            public_key_package.tweak(Some(merkle_root)),
+            key_package.tweak(Some(&merkle_root)),
+            public_key_package.tweak(Some(&merkle_root)),
         ))
     }
 }
@@ -749,7 +749,7 @@ pub mod keys {
     }
 
     /// Trait for tweaking a key component following BIP-341
-    pub trait Tweak: EvenY {
+    pub trait Tweak {
         /// Convert the given type to add a tweak.
         fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self;
     }
@@ -758,12 +758,10 @@ pub mod keys {
         fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self {
             let t = tweak(&self.verifying_key().to_element(), merkle_root);
             let tp = ProjectivePoint::GENERATOR * t;
-            let public_key_package = self.into_even_y(None);
-            let verifying_key =
-                VerifyingKey::new(public_key_package.verifying_key().to_element() + tp);
+            let verifying_key = VerifyingKey::new(self.verifying_key().to_element() + tp);
             // Recreate verifying share map with negated VerifyingShares
             // values.
-            let verifying_shares: BTreeMap<_, _> = public_key_package
+            let verifying_shares: BTreeMap<_, _> = self
                 .verifying_shares()
                 .iter()
                 .map(|(i, vs)| {
@@ -779,17 +777,15 @@ pub mod keys {
         fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self {
             let t = tweak(&self.verifying_key().to_element(), merkle_root);
             let tp = ProjectivePoint::GENERATOR * t;
-            let key_package = self.into_even_y(None);
-            let verifying_key = VerifyingKey::new(key_package.verifying_key().to_element() + tp);
-            let signing_share = SigningShare::new(key_package.signing_share().to_scalar() + t);
-            let verifying_share =
-                VerifyingShare::new(key_package.verifying_share().to_element() + tp);
+            let verifying_key = VerifyingKey::new(self.verifying_key().to_element() + tp);
+            let signing_share = SigningShare::new(self.signing_share().to_scalar() + t);
+            let verifying_share = VerifyingShare::new(self.verifying_share().to_element() + tp);
             KeyPackage::new(
-                *key_package.identifier(),
+                *self.identifier(),
                 signing_share,
                 verifying_share,
                 verifying_key,
-                *key_package.min_signers(),
+                *self.min_signers(),
             )
         }
     }
