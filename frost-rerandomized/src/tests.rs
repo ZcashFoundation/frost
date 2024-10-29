@@ -6,7 +6,9 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use crate::{frost_core as frost, RandomizedCiphersuite, RandomizedParams, Randomizer};
-use frost_core::{Field, Group, Signature, SigningPackage, VerifyingKey};
+use frost_core::{
+    round1::SigningCommitments, Field, Group, Identifier, Signature, SigningPackage, VerifyingKey,
+};
 use rand_core::{CryptoRng, RngCore};
 
 /// Test re-randomized FROST signing with trusted dealer with a Ciphersuite.
@@ -70,9 +72,12 @@ pub fn check_randomized_sign_with_dealer<C: RandomizedCiphersuite, R: RngCore + 
     let signing_package = frost::SigningPackage::new(commitments, message);
 
     check_randomizer(&pubkeys, &signing_package, &mut rng);
-    let randomizer_params =
-        RandomizedParams::new(pubkeys.verifying_key(), &signing_package, &mut rng).unwrap();
-    let randomizer = randomizer_params.randomizer();
+    let (randomizer_params, randomizer_seed) = RandomizedParams::new_from_commitments(
+        pubkeys.verifying_key(),
+        signing_package.signing_commitments(),
+        &mut rng,
+    )
+    .unwrap();
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
@@ -84,8 +89,13 @@ pub fn check_randomized_sign_with_dealer<C: RandomizedCiphersuite, R: RngCore + 
         let nonces_to_use = &nonces.get(participant_identifier).unwrap();
 
         // Each participant generates their signature share.
-        let signature_share =
-            crate::sign(&signing_package, nonces_to_use, key_package, *randomizer).unwrap();
+        let signature_share = crate::sign_with_randomizer_seed(
+            &signing_package,
+            nonces_to_use,
+            key_package,
+            &randomizer_seed,
+        )
+        .unwrap();
         signature_shares.insert(*participant_identifier, signature_share);
     }
 
@@ -131,6 +141,8 @@ fn check_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
     check_from_randomizer(&mut rng, signing_package, pubkeys);
 
     check_from_randomizer_and_signing_package(&mut rng, signing_package);
+
+    check_from_seed_and_signing_commitments(&mut rng, signing_package.signing_commitments());
 }
 
 fn check_from_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
@@ -138,6 +150,7 @@ fn check_from_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
     signing_package: &SigningPackage<C>,
     pubkeys: &frost::keys::PublicKeyPackage<C>,
 ) {
+    #[allow(deprecated)]
     let randomizer = Randomizer::new(rng, signing_package).unwrap();
 
     let randomizer_params = RandomizedParams::from_randomizer(pubkeys.verifying_key(), randomizer);
@@ -172,6 +185,42 @@ fn check_from_randomizer_and_signing_package<C: RandomizedCiphersuite, R: RngCor
     );
     let randomizer2 =
         Randomizer::from_randomizer_and_signing_package(rng_randomizer1, &signing_package2);
+
+    // Make sure that different packages lead to different randomizers
+    assert!(randomizer1 != randomizer2);
+}
+
+fn check_from_seed_and_signing_commitments<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
+    mut rng: &mut R,
+    signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
+) {
+    // Make sure regeneration returns the same Randomizer.
+    let (randomizer1, randomizer_seed1) =
+        Randomizer::new_from_commitments(&mut rng, signing_commitments).unwrap();
+    let randomizer2 =
+        Randomizer::regenerate_from_seed_and_commitments(&randomizer_seed1, signing_commitments)
+            .unwrap();
+    assert!(randomizer1 == randomizer2);
+
+    let (randomizer2, randomizer_seed2) =
+        Randomizer::new_from_commitments(&mut rng, signing_commitments).unwrap();
+
+    // Make sure that different rng_randomizers lead to different randomizers
+    assert!(randomizer1 != randomizer2);
+    assert!(randomizer_seed1 != randomizer_seed2);
+
+    // Modify the commitments map, by overwriting the first entry with the value
+    // of the last entry.
+    let mut modified_signing_commitments = signing_commitments.clone();
+    modified_signing_commitments
+        .first_entry()
+        .unwrap()
+        .insert(*signing_commitments.last_key_value().unwrap().1);
+    let randomizer2 = Randomizer::regenerate_from_seed_and_commitments(
+        &randomizer_seed1,
+        &modified_signing_commitments,
+    )
+    .unwrap();
 
     // Make sure that different packages lead to different randomizers
     assert!(randomizer1 != randomizer2);

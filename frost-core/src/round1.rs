@@ -369,6 +369,9 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 /// commitment list.
 ///
 /// [`encode_group_commitment_list()`]: https://datatracker.ietf.org/doc/html/rfc9591#name-list-operations
+#[cfg(feature = "internals")]
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 pub(super) fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
 ) -> Result<Vec<u8>, Error<C>> {
