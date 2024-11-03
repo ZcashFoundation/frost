@@ -10,13 +10,13 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    challenge, compute_group_commitment,
+    challenge,
     keys::{KeyPackage, PublicKeyPackage, VerifyingShare},
     random_nonzero,
     round1::{self},
     round2::{self, SignatureShare},
-    BindingFactor, BindingFactorList, Challenge, Error, FieldError, GroupCommitment, GroupError,
-    Identifier, Signature, SigningKey, SigningPackage, VerifyingKey,
+    BindingFactor, Challenge, Error, FieldError, GroupCommitment, GroupError, Identifier,
+    Signature, SigningKey, SigningPackage, VerifyingKey,
 };
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
@@ -143,16 +143,6 @@ pub trait Group: Copy + Clone + PartialEq {
 /// An element of the [`Ciphersuite`] `C`'s [`Group`].
 pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 
-/// A context which can be used by Ciphersuite implementations to pass context
-/// between methods when using the overriding methods of the Ciphersuite trait.
-///
-/// This trait is implemented for the unit type `()` which is useful for
-/// Ciphersuites implementations that don't care about the Context.
-pub trait Context: Default {}
-
-/// Implements Context for the unit type.
-impl Context for () {}
-
 /// A [FROST ciphersuite] specifies the underlying prime-order group details and cryptographic hash
 /// function.
 ///
@@ -174,9 +164,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
     type SignatureSerialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
-
-    /// Optional context. Most ciphersuites will just set this to `()`.
-    type Context: Context;
 
     /// [H1] for a FROST ciphersuite.
     ///
@@ -280,7 +267,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// can choose to return the same passed reference or a modified clone.
     #[allow(clippy::type_complexity)]
     fn pre_sign<'a>(
-        _ctx: &mut Self::Context,
         signing_package: &'a SigningPackage<Self>,
         signer_nonces: &'a round1::SigningNonces<Self>,
         key_package: &'a KeyPackage<Self>,
@@ -304,7 +290,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// return the same passed reference or a modified clone.
     #[allow(clippy::type_complexity)]
     fn pre_aggregate<'a>(
-        _ctx: &mut Self::Context,
         signing_package: &'a SigningPackage<Self>,
         signature_shares: &'a BTreeMap<Identifier<Self>, round2::SignatureShare<Self>>,
         public_key_package: &'a PublicKeyPackage<Self>,
@@ -360,16 +345,6 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
         (k, R)
     }
 
-    /// Optional. Compute the group commitment. Called by [`round2::sign()`] and
-    /// [`crate::aggregate()`].
-    fn compute_group_commitment(
-        _context: &mut Self::Context,
-        signing_package: &SigningPackage<Self>,
-        binding_factor_list: &BindingFactorList<Self>,
-    ) -> Result<GroupCommitment<Self>, Error<Self>> {
-        compute_group_commitment(signing_package, binding_factor_list)
-    }
-
     /// Optional. Generates the challenge as is required for Schnorr signatures.
     /// Called by [`round2::sign()`] and [`crate::aggregate()`].
     fn challenge(
@@ -383,7 +358,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// Optional. Compute the signature share for a particular signer on a given
     /// challenge. Called by [`round2::sign()`].
     fn compute_signature_share(
-        _ctx: &mut Self::Context,
+        _group_commitment: &GroupCommitment<Self>,
         signer_nonces: &round1::SigningNonces<Self>,
         binding_factor: BindingFactor<Self>,
         lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
@@ -402,7 +377,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// Optional. Verify a signing share. Called by [`crate::aggregate()`] if
     /// cheater detection is enabled.
     fn verify_share(
-        _ctx: &mut Self::Context,
+        _group_commitment: &GroupCommitment<Self>,
         signature_share: &SignatureShare<Self>,
         identifier: Identifier<Self>,
         group_commitment_share: &round1::GroupCommitmentShare<Self>,

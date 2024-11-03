@@ -158,8 +158,6 @@ impl Ciphersuite for Ristretto255Sha512 {
 
     type SignatureSerialization = [u8; 64];
 
-    type Context = ();
-
     /// H1 for FROST(ristretto255, SHA-512)
     ///
     /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.2-2.4.2.2

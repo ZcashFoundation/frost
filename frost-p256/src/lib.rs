@@ -184,8 +184,6 @@ impl Ciphersuite for P256Sha256 {
 
     type SignatureSerialization = [u8; 65];
 
-    type Context = ();
-
     /// H1 for FROST(P-256, SHA-256)
     ///
     /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.4-2.4.2.2

@@ -143,10 +143,8 @@ pub fn sign<C: Ciphersuite>(
         return Err(Error::IncorrectCommitment);
     }
 
-    let mut ctx = C::Context::default();
-
     let (signing_package, signer_nonces, key_package) =
-        <C>::pre_sign(&mut ctx, signing_package, signer_nonces, key_package)?;
+        <C>::pre_sign(signing_package, signer_nonces, key_package)?;
 
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
@@ -158,8 +156,7 @@ pub fn sign<C: Ciphersuite>(
         .clone();
 
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment =
-        <C>::compute_group_commitment(&mut ctx, &signing_package, &binding_factor_list)?;
+    let group_commitment = compute_group_commitment(&signing_package, &binding_factor_list)?;
 
     // Compute Lagrange coefficient.
     let lambda_i = frost::derive_interpolating_value(key_package.identifier(), &signing_package)?;
@@ -173,7 +170,7 @@ pub fn sign<C: Ciphersuite>(
 
     // Compute the Schnorr signature share.
     let signature_share = <C>::compute_signature_share(
-        &mut ctx,
+        &group_commitment,
         &signer_nonces,
         binding_factor,
         lambda_i,

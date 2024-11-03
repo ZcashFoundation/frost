@@ -57,7 +57,7 @@ use scalar_mul::VartimeMultiscalarMul;
 pub use serde;
 pub use signature::Signature;
 pub use signing_key::SigningKey;
-pub use traits::{Ciphersuite, Context, Element, Field, Group, Scalar};
+pub use traits::{Ciphersuite, Element, Field, Group, Scalar};
 pub use verifying_key::VerifyingKey;
 
 /// A type refinement for the scalar field element representing the per-message _[challenge]_.
@@ -583,18 +583,15 @@ where
         return Err(Error::UnknownIdentifier);
     }
 
-    let mut ctx = C::Context::default();
-
     let (signing_package, signature_shares, pubkeys) =
-        <C>::pre_aggregate(&mut ctx, signing_package, signature_shares, pubkeys)?;
+        <C>::pre_aggregate(signing_package, signature_shares, pubkeys)?;
 
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
         compute_binding_factor_list(&signing_package, &pubkeys.verifying_key, &[])?;
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment =
-        <C>::compute_group_commitment(&mut ctx, &signing_package, &binding_factor_list)?;
+    let group_commitment = compute_group_commitment(&signing_package, &binding_factor_list)?;
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
@@ -624,7 +621,6 @@ where
     #[cfg(feature = "cheater-detection")]
     if verification_result.is_err() {
         detect_cheater(
-            &mut ctx,
             &group_commitment,
             &pubkeys,
             &signing_package,
@@ -641,7 +637,6 @@ where
 /// Optional cheater detection feature
 /// Each share is verified to find the cheater
 fn detect_cheater<C: Ciphersuite>(
-    ctx: &mut C::Context,
     group_commitment: &GroupCommitment<C>,
     pubkeys: &keys::PublicKeyPackage<C>,
     signing_package: &SigningPackage<C>,
@@ -679,7 +674,7 @@ fn detect_cheater<C: Ciphersuite>(
 
         // Compute relation values to verify this signature share.
         <C>::verify_share(
-            ctx,
+            group_commitment,
             signature_share,
             *signature_share_identifier,
             &R_share,

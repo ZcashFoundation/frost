@@ -172,8 +172,6 @@ impl Ciphersuite for Ed25519Sha512 {
 
     type SignatureSerialization = [u8; 64];
 
-    type Context = ();
-
     /// H1 for FROST(Ed25519, SHA-512)
     ///
     /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.1-2.4.2.2

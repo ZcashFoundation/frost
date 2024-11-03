@@ -27,7 +27,7 @@ use k256::{
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
 
-use frost_core::{self as frost, compute_group_commitment, random_nonzero};
+use frost_core::{self as frost, random_nonzero};
 
 use keys::EvenY;
 use keys::Tweak;
@@ -232,14 +232,6 @@ fn negate_nonces(signing_nonces: &round1::SigningNonces) -> round1::SigningNonce
     )
 }
 
-/// TODO
-#[derive(Default)]
-pub struct Context {
-    is_group_commitment_even: bool,
-}
-
-impl frost_core::Context for Context {}
-
 impl Ciphersuite for Secp256K1Sha256TR {
     const ID: &'static str = CONTEXT_STRING;
 
@@ -248,8 +240,6 @@ impl Ciphersuite for Secp256K1Sha256TR {
     type HashOutput = [u8; 32];
 
     type SignatureSerialization = [u8; 64];
-
-    type Context = Context;
 
     /// H1 for FROST(secp256k1, SHA-256)
     ///
@@ -317,7 +307,6 @@ impl Ciphersuite for Secp256K1Sha256TR {
     // Preprocess sign inputs, negating the keys in the KeyPackage if required
     // by BIP-340.
     fn pre_sign<'a>(
-        _ctx: &mut Self::Context,
         signing_package: &'a SigningPackage,
         signer_nonces: &'a round1::SigningNonces,
         key_package: &'a keys::KeyPackage,
@@ -339,7 +328,6 @@ impl Ciphersuite for Secp256K1Sha256TR {
     // Preprocess sign inputs, negating the keys in the PublicKeyPackage if
     // required by BIP-340.
     fn pre_aggregate<'a>(
-        _ctx: &mut Self::Context,
         signing_package: &'a SigningPackage,
         signature_shares: &'a BTreeMap<Identifier, round2::SignatureShare>,
         public_key_package: &'a keys::PublicKeyPackage,
@@ -358,7 +346,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
         ))
     }
 
-    // Preprocess verify inputs, negating the VerifyingKey if required by
+    // Preprocess verify inputs, negating the VerifyingKey and `signature.R` if required by
     // BIP-340.
     fn pre_verify<'a>(
         message: &'a [u8],
@@ -366,9 +354,10 @@ impl Ciphersuite for Secp256K1Sha256TR {
         public_key: &'a VerifyingKey,
     ) -> Result<(Cow<'a, [u8]>, Cow<'a, Signature>, Cow<'a, VerifyingKey>), Error> {
         let public_key = public_key.into_even_y(None);
+        let signature = signature.into_even_y(None);
         Ok((
             Cow::Borrowed(message),
-            Cow::Borrowed(signature),
+            Cow::Owned(signature),
             Cow::Owned(public_key),
         ))
     }
@@ -389,28 +378,6 @@ impl Ciphersuite for Secp256K1Sha256TR {
         }
     }
 
-    // Compute the group commitment, negating if required by BIP-340. Note that
-    // only at this point it is possible to check if negation will be required
-    // or not. If it is, it will require negating the participant's nonces (when
-    // signing) or their group commitment share (when aggregating). This is
-    // signaled by setting the `is_group_commitment_even` flag in the Context.
-    fn compute_group_commitment(
-        ctx: &mut Self::Context,
-        signing_package: &SigningPackage,
-        binding_factor_list: &frost_core::BindingFactorList<S>,
-    ) -> Result<GroupCommitment<S>, Error> {
-        let group_commitment = compute_group_commitment(signing_package, binding_factor_list)?;
-        ctx.is_group_commitment_even =
-            (!group_commitment.clone().to_element().to_affine().y_is_odd()).into();
-        let group_commitment = if !ctx.is_group_commitment_even {
-            GroupCommitment::<S>::from_element(-group_commitment.to_element())
-        } else {
-            group_commitment
-        };
-
-        Ok(group_commitment)
-    }
-
     // Compute the challenge. Per BIP-340, only the X coordinate of R and
     // verifying_key are hashed, unlike vanilla FROST.
     fn challenge(
@@ -427,14 +394,14 @@ impl Ciphersuite for Secp256K1Sha256TR {
 
     /// Compute a signature share, negating the nonces if required by BIP-340.
     fn compute_signature_share(
-        ctx: &mut Self::Context,
+        group_commitment: &GroupCommitment<S>,
         signer_nonces: &round1::SigningNonces,
         binding_factor: frost::BindingFactor<S>,
         lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
         key_package: &frost::keys::KeyPackage<S>,
         challenge: Challenge<S>,
     ) -> round2::SignatureShare {
-        let signer_nonces = if !ctx.is_group_commitment_even {
+        let signer_nonces = if !group_commitment.has_even_y() {
             negate_nonces(signer_nonces)
         } else {
             signer_nonces.clone()
@@ -452,7 +419,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
     /// Verify a signature share, negating the group commitment share if
     /// required by BIP-340.
     fn verify_share(
-        ctx: &mut Self::Context,
+        group_commitment: &GroupCommitment<S>,
         signature_share: &frost_core::round2::SignatureShare<S>,
         identifier: Identifier,
         group_commitment_share: &frost_core::round1::GroupCommitmentShare<S>,
@@ -460,7 +427,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
         lambda_i: Scalar,
         challenge: &Challenge<S>,
     ) -> Result<(), Error> {
-        let group_commitment_share = if !ctx.is_group_commitment_even {
+        let group_commitment_share = if !group_commitment.has_even_y() {
             frost_core::round1::GroupCommitmentShare::from_element(
                 -group_commitment_share.to_element(),
             )
@@ -722,6 +689,36 @@ pub mod keys {
             let is_even = is_even.unwrap_or_else(|| self.has_even_y());
             if !is_even {
                 VerifyingKey::new(-self.to_element())
+            } else {
+                self
+            }
+        }
+    }
+
+    impl EvenY for GroupCommitment<S> {
+        fn has_even_y(&self) -> bool {
+            (!self.clone().to_element().to_affine().y_is_odd()).into()
+        }
+
+        fn into_even_y(self, is_even: Option<bool>) -> Self {
+            let is_even = is_even.unwrap_or_else(|| self.has_even_y());
+            if !is_even {
+                Self::from_element(-self.to_element())
+            } else {
+                self
+            }
+        }
+    }
+
+    impl EvenY for Signature {
+        fn has_even_y(&self) -> bool {
+            (!self.R().to_affine().y_is_odd()).into()
+        }
+
+        fn into_even_y(self, is_even: Option<bool>) -> Self {
+            let is_even = is_even.unwrap_or_else(|| self.has_even_y());
+            if !is_even {
+                Self::new(-*self.R(), *self.z())
             } else {
                 self
             }

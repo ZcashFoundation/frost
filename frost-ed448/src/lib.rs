@@ -166,8 +166,6 @@ impl Ciphersuite for Ed448Shake256 {
 
     type SignatureSerialization = [u8; 114];
 
-    type Context = ();
-
     /// H1 for FROST(Ed448, SHAKE256)
     ///
     /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#section-6.3-2.4.2.2
