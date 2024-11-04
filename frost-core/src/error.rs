@@ -74,7 +74,11 @@ pub enum Error<C: Ciphersuite> {
     },
     /// Secret share verification failed.
     #[error("Invalid secret share.")]
-    InvalidSecretShare,
+    InvalidSecretShare {
+        /// The identifier of the signer whose secret share validation failed,
+        /// if possible to identify.
+        culprit: Option<Identifier<C>>,
+    },
     /// Round 1 package not found for Round 2 participant.
     #[error("Round 1 package not found for Round 2 participant.")]
     PackageNotFound,
@@ -132,8 +136,10 @@ where
             | Error::InvalidProofOfKnowledge {
                 culprit: identifier,
             } => Some(*identifier),
-            Error::InvalidSecretShare
-            | Error::InvalidMinSigners
+            Error::InvalidSecretShare {
+                culprit: identifier,
+            } => *identifier,
+            Error::InvalidMinSigners
             | Error::InvalidMaxSigners
             | Error::InvalidCoefficients
             | Error::MalformedIdentifier
