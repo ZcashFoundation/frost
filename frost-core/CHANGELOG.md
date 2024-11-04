@@ -4,6 +4,10 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
+  if an invalid secret share was sent by one of the participants (by calling
+  frost_core::Error<C>::culprit()`).
+
 ## 2.0.0
 
 * Updated docs
@@ -20,9 +24,6 @@ Entries are listed in reverse chronological order.
   individual signature shares. This is not required for regular FROST usage but
   might useful in certain situations where it is desired to verify each
   individual signature share before aggregating the signature.
-* It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
-  if an invalid secret share was sent by one of the participants (by calling
-  frost_core::Error<C>::culprit()`).
 
 ## 2.0.0-rc.0
 
