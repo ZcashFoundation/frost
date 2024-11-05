@@ -567,7 +567,7 @@ fn check_part3_errors<C: Ciphersuite>(
 }
 
 /// Check that calling dkg::part3() with distinct sets of participants fail.
-fn check_part3_different_participants<C: Ciphersuite>(
+pub fn check_part3_different_participants<C: Ciphersuite>(
     max_signers: u16,
     round2_secret_packages: BTreeMap<Identifier<C>, frost::keys::dkg::round2::SecretPackage<C>>,
     received_round1_packages: BTreeMap<
