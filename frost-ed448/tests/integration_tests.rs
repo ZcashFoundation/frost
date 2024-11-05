@@ -181,6 +181,32 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
 }
 
 #[test]
+fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
+    let rng = thread_rng();
+    let identifiers = vec![
+        Identifier::try_from(8).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(6).unwrap(),
+    ];
+    let min_signers = 2;
+    let max_signers = 4;
+    let error = Error::UnknownIdentifier;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_signers::<
+        Ed448Shake256,
+        _,
+    >(max_signers, min_signers, &identifiers, error, rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dkg() {
+    let rng = thread_rng();
+
+    frost_core::tests::refresh::check_refresh_shares_with_dkg::<Ed448Shake256, _>(rng);
+}
+
+#[test]
 fn check_sign_with_dealer() {
     let rng = thread_rng();
 

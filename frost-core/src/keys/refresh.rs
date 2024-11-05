@@ -8,7 +8,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use crate::{
-    keys::dkg::{compute_proof_of_knowledge, round1, round2},
+    keys::dkg::{compute_proof_of_knowledge, round1, round2, verify_proof_of_knowledge},
     keys::{
         evaluate_polynomial, generate_coefficients, generate_secret_polynomial,
         generate_secret_shares, validate_num_of_signers, CoefficientCommitment, PublicKeyPackage,
@@ -297,10 +297,23 @@ pub fn refresh_dkg_shares<C: Ciphersuite>(
         let ell = *sender_identifier;
         let f_ell_i = round2_package.signing_share;
 
-        let commitment = &round1_packages
+        let commitment = &new_round_1_packages
             .get(&ell)
             .ok_or(Error::PackageNotFound)?
             .commitment;
+
+        // The verification is exactly the same as the regular SecretShare verification;
+        // however the required components are in different places.
+        // Build a temporary SecretShare so what we can call verify().
+        let secret_share = SecretShare {
+            header: Header::default(),
+            identifier: round2_secret_package.identifier,
+            signing_share: f_ell_i,
+            commitment: commitment.clone(),
+        };
+
+        // Verify the share. We don't need the result.
+        let _ = secret_share.verify()?;
 
         // Round 2, Step 3
         //
@@ -335,7 +348,8 @@ pub fn refresh_dkg_shares<C: Ciphersuite>(
     let mut new_verifying_shares = BTreeMap::new();
 
     for (identifier, verifying_share) in zero_shares_public_key_package.verifying_shares {
-        let new_verifying_share = verifying_share.to_element() + old_pub_key_package.verifying_shares[&identifier].to_element();
+        let new_verifying_share = verifying_share.to_element()
+            + old_pub_key_package.verifying_shares[&identifier].to_element();
         new_verifying_shares.insert(identifier, VerifyingShare::new(new_verifying_share));
     }
 

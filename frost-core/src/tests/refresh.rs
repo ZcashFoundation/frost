@@ -345,7 +345,6 @@ where
             .remove(&participant_identifier)
             .unwrap();
         let round1_packages = &received_round1_packages[&participant_identifier];
-        // check_part2_error(round1_secret_package.clone(), round1_packages.clone()); // TODO
         let (round2_secret_package, round2_packages) =
             refresh_dkg_part2(round1_secret_package, round1_packages).expect("should work");
 
@@ -388,7 +387,6 @@ where
     // for each signature before being aggregated.
     let mut pubkey_packages_by_participant = BTreeMap::new();
 
-    // TODO
     check_part3_different_participants(
         max_signers,
         round2_secret_packages.clone(),
