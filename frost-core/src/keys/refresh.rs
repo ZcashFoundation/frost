@@ -8,7 +8,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use crate::{
-    keys::dkg::{compute_proof_of_knowledge, round1, round2, verify_proof_of_knowledge},
+    keys::dkg::{compute_proof_of_knowledge, round1, round2},
     keys::{
         evaluate_polynomial, generate_coefficients, generate_secret_polynomial,
         generate_secret_shares, validate_num_of_signers, CoefficientCommitment, PublicKeyPackage,
@@ -141,7 +141,8 @@ pub fn refresh_dkg_part_1<C: Ciphersuite, R: RngCore + CryptoRng>(
         generate_secret_polynomial(&refreshing_key, max_signers, min_signers, coefficients)?;
 
     // Remove identity element from coefficients
-    let coeff_comms = commitment.0[1..].to_vec();
+    let mut coeff_comms = commitment.0;
+    coeff_comms.remove(0);
     let commitment = VerifiableSecretSharingCommitment::new(coeff_comms.clone());
 
     let proof_of_knowledge =
@@ -349,7 +350,11 @@ pub fn refresh_dkg_shares<C: Ciphersuite>(
 
     for (identifier, verifying_share) in zero_shares_public_key_package.verifying_shares {
         let new_verifying_share = verifying_share.to_element()
-            + old_pub_key_package.verifying_shares[&identifier].to_element();
+            + old_pub_key_package
+                .verifying_shares
+                .get(&identifier)
+                .ok_or(Error::UnknownIdentifier)?
+                .to_element();
         new_verifying_shares.insert(identifier, VerifyingShare::new(new_verifying_share));
     }
 
