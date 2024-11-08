@@ -131,9 +131,9 @@ fn check_tweaked_sign_with_dealer() -> Result<(), Box<dyn Error>> {
 fn taproot_tweak_pubkey(pubkey: [u8; 32], merkle_root: &[u8]) -> (bool, [u8; 32]) {
     let prefix = Sha256::digest(b"TapTweak");
     let tweak_hash = Sha256::new()
-        .chain_update(&prefix)
-        .chain_update(&prefix)
-        .chain_update(&pubkey)
+        .chain_update(prefix)
+        .chain_update(prefix)
+        .chain_update(pubkey)
         .chain_update(merkle_root)
         .finalize();
     let t = k256::Scalar::from(
