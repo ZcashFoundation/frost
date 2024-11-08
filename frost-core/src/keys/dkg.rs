@@ -116,12 +116,13 @@ pub mod round1 {
     /// # Security
     ///
     /// This package MUST NOT be sent to other participants!
-    #[derive(Clone, PartialEq, Eq)]
+    #[derive(Clone, PartialEq, Eq, Getters)]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
         pub(crate) identifier: Identifier<C>,
         /// Coefficients of the temporary secret polynomial for the participant.
         /// These are (a_{i0}, ..., a_{i(t−1)})) which define the polynomial f_i(x)
+        #[getter(skip)]
         pub(crate) coefficients: Vec<Scalar<C>>,
         /// The public commitment for the participant (C_i)
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
@@ -233,7 +234,7 @@ pub mod round2 {
     /// # Security
     ///
     /// This package MUST NOT be sent to other participants!
-    #[derive(Clone, PartialEq, Eq)]
+    #[derive(Clone, PartialEq, Eq, Getters)]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
         pub(crate) identifier: Identifier<C>,
@@ -523,7 +524,16 @@ pub fn part3<C: Ciphersuite>(
         };
 
         // Verify the share. We don't need the result.
-        let _ = secret_share.verify()?;
+        // Identify the culprit if an InvalidSecretShare error is returned.
+        let _ = secret_share.verify().map_err(|e| {
+            if let Error::InvalidSecretShare { .. } = e {
+                Error::InvalidSecretShare {
+                    culprit: Some(*sender_identifier),
+                }
+            } else {
+                e
+            }
+        })?;
 
         // Round 2, Step 3
         //

@@ -4,6 +4,7 @@
 use alloc::collections::BTreeMap;
 
 use crate as frost;
+use crate::keys::SigningShare;
 use crate::round2::SignatureShare;
 use crate::{
     keys::PublicKeyPackage, Error, Field, Group, Identifier, Signature, SigningKey, SigningPackage,
@@ -262,6 +263,8 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
         signature_shares.clone(),
     );
 
+    check_verify_signature_share(&pubkey_package, &signing_package, &signature_shares);
+
     // Aggregate (also verifies the signature shares)
     let group_signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)?;
 
@@ -496,7 +499,7 @@ where
     // for each signature before being aggregated.
     let mut pubkey_packages_by_participant = BTreeMap::new();
 
-    check_part3_different_participants(
+    check_part3_errors(
         max_signers,
         round2_secret_packages.clone(),
         received_round1_packages.clone(),
@@ -535,6 +538,33 @@ where
     check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
 }
 
+/// Check for error cases related to DKG part3.
+fn check_part3_errors<C: Ciphersuite>(
+    max_signers: u16,
+    round2_secret_packages: BTreeMap<Identifier<C>, frost::keys::dkg::round2::SecretPackage<C>>,
+    received_round1_packages: BTreeMap<
+        Identifier<C>,
+        BTreeMap<Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+    >,
+    received_round2_packages: BTreeMap<
+        Identifier<C>,
+        BTreeMap<Identifier<C>, frost::keys::dkg::round2::Package<C>>,
+    >,
+) {
+    check_part3_different_participants(
+        max_signers,
+        round2_secret_packages.clone(),
+        received_round1_packages.clone(),
+        received_round2_packages.clone(),
+    );
+    check_part3_corrupted_share(
+        max_signers,
+        round2_secret_packages,
+        received_round1_packages,
+        received_round2_packages,
+    );
+}
+
 /// Check that calling dkg::part3() with distinct sets of participants fail.
 fn check_part3_different_participants<C: Ciphersuite>(
     max_signers: u16,
@@ -569,6 +599,49 @@ fn check_part3_different_participants<C: Ciphersuite>(
         )
         .expect_err("Should have failed due to different identifier sets");
         assert_eq!(r, Error::IncorrectPackage)
+    }
+}
+
+/// Check that calling dkg::part3() with a corrupted share fail, and the
+/// culprit is correctly identified.
+fn check_part3_corrupted_share<C: Ciphersuite>(
+    max_signers: u16,
+    round2_secret_packages: BTreeMap<Identifier<C>, frost::keys::dkg::round2::SecretPackage<C>>,
+    received_round1_packages: BTreeMap<
+        Identifier<C>,
+        BTreeMap<Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+    >,
+    received_round2_packages: BTreeMap<
+        Identifier<C>,
+        BTreeMap<Identifier<C>, frost::keys::dkg::round2::Package<C>>,
+    >,
+) {
+    // For each participant, perform the third part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_index in 1..=max_signers {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+
+        // Remove the first package from the map, and reinsert it with an unrelated
+        // Do the same for Round 2 packages
+        let mut received_round2_packages =
+            received_round2_packages[&participant_identifier].clone();
+        let culprit = *received_round2_packages.keys().next().unwrap();
+        let package = received_round2_packages.get_mut(&culprit).unwrap();
+        let one = <<C as Ciphersuite>::Group as Group>::Field::one();
+        package.signing_share = SigningShare::new(package.signing_share().to_scalar() + one);
+
+        let r = frost::keys::dkg::part3(
+            &round2_secret_packages[&participant_identifier],
+            &received_round1_packages[&participant_identifier],
+            &received_round2_packages,
+        )
+        .expect_err("Should have failed due to corrupted share");
+        assert_eq!(
+            r,
+            Error::InvalidSecretShare {
+                culprit: Some(culprit)
+            }
+        )
     }
 }
 
@@ -645,10 +718,12 @@ pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + Crypt
     check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
 }
 
+// Check for error cases in DKG part 2.
 fn check_part2_error<C: Ciphersuite>(
     round1_secret_package: frost::keys::dkg::round1::SecretPackage<C>,
     mut round1_packages: BTreeMap<frost::Identifier<C>, frost::keys::dkg::round1::Package<C>>,
 ) {
+    // Check if a corrupted proof of knowledge results in failure.
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
     // Corrupt a PoK
     let id = *round1_packages.keys().next().unwrap();
@@ -858,4 +933,37 @@ fn check_verifying_shares<C: Ciphersuite>(
     let e = frost::aggregate(&signing_package, &signature_shares, &pubkeys).unwrap_err();
     assert_eq!(e.culprit(), Some(id));
     assert_eq!(e, Error::InvalidSignatureShare { culprit: id });
+}
+
+// Checks if `verify_signature_share()` works correctly.
+fn check_verify_signature_share<C: Ciphersuite>(
+    pubkeys: &PublicKeyPackage<C>,
+    signing_package: &SigningPackage<C>,
+    signature_shares: &BTreeMap<Identifier<C>, SignatureShare<C>>,
+) {
+    for (identifier, signature_share) in signature_shares {
+        frost::verify_signature_share(
+            *identifier,
+            pubkeys.verifying_shares().get(identifier).unwrap(),
+            signature_share,
+            signing_package,
+            pubkeys.verifying_key(),
+        )
+        .expect("should pass");
+    }
+
+    for (identifier, signature_share) in signature_shares {
+        let one = <<C as Ciphersuite>::Group as Group>::Field::one();
+        // Corrupt  share
+        let signature_share = SignatureShare::new(signature_share.to_scalar() + one);
+
+        frost::verify_signature_share(
+            *identifier,
+            pubkeys.verifying_shares().get(identifier).unwrap(),
+            &signature_share,
+            signing_package,
+            pubkeys.verifying_key(),
+        )
+        .expect_err("should have failed");
+    }
 }

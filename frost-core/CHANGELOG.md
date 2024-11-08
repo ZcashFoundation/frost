@@ -4,12 +4,26 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
+  if an invalid secret share was sent by one of the participants (by calling
+  frost_core::Error<C>::culprit()`).
+
+## 2.0.0
+
+* Updated docs
+* Added missing `derive(Getters)` for `dkg::{round1, round2}`
+* Added `internal` feature for `validate_num_of_signers`
 * Added refresh share functionality for trusted dealer:
   `frost_core::keys::refresh::{compute_refreshing_shares, refresh_share}`
 * Added a `'static` bound to the `Ciphersuite` trait. This is a breaking change,
   but it's likely to not require any code changes since most ciphersuite
   implementations are probably just empty structs. The bound makes it possible
   to use `frost_core::Error<C>` in `Box<dyn std::error::Error>`.
+* Added getters to `round1::SecretPackage` and `round2::SecretPackage`.
+* Added a `frost_core::verify_signature_share()` function which allows verifying
+  individual signature shares. This is not required for regular FROST usage but
+  might useful in certain situations where it is desired to verify each
+  individual signature share before aggregating the signature.
 
 ## 2.0.0-rc.0
 
