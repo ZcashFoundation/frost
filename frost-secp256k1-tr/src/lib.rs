@@ -746,7 +746,7 @@ pub mod keys {
     }
 
     /// Trait for tweaking a key component following BIP-341
-    pub trait Tweak {
+    pub trait Tweak: EvenY {
         /// Convert the given type to add a tweak.
         fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self;
     }
@@ -755,10 +755,12 @@ pub mod keys {
         fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self {
             let t = tweak(&self.verifying_key().to_element(), merkle_root);
             let tp = ProjectivePoint::GENERATOR * t;
-            let verifying_key = VerifyingKey::new(self.verifying_key().to_element() + tp);
+            let public_key_package = self.into_even_y(None);
+            let verifying_key =
+                VerifyingKey::new(public_key_package.verifying_key().to_element() + tp);
             // Recreate verifying share map with negated VerifyingShares
             // values.
-            let verifying_shares: BTreeMap<_, _> = self
+            let verifying_shares: BTreeMap<_, _> = public_key_package
                 .verifying_shares()
                 .iter()
                 .map(|(i, vs)| {
@@ -774,15 +776,17 @@ pub mod keys {
         fn tweak<T: AsRef<[u8]>>(self, merkle_root: Option<T>) -> Self {
             let t = tweak(&self.verifying_key().to_element(), merkle_root);
             let tp = ProjectivePoint::GENERATOR * t;
-            let verifying_key = VerifyingKey::new(self.verifying_key().to_element() + tp);
-            let signing_share = SigningShare::new(self.signing_share().to_scalar() + t);
-            let verifying_share = VerifyingShare::new(self.verifying_share().to_element() + tp);
+            let key_package = self.into_even_y(None);
+            let verifying_key = VerifyingKey::new(key_package.verifying_key().to_element() + tp);
+            let signing_share = SigningShare::new(key_package.signing_share().to_scalar() + t);
+            let verifying_share =
+                VerifyingShare::new(key_package.verifying_share().to_element() + tp);
             KeyPackage::new(
-                *self.identifier(),
+                *key_package.identifier(),
                 signing_share,
                 verifying_share,
                 verifying_key,
-                *self.min_signers(),
+                *key_package.min_signers(),
             )
         }
     }
