@@ -111,7 +111,7 @@ impl Group for Ed448Group {
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let compressed = CompressedEdwardsY(*buf);
-        match compressed.decompress().into_option() {
+        match compressed.decompress_unchecked().into_option() {
             Some(point) => {
                 if point == Self::identity() {
                     Err(GroupError::InvalidIdentityElement)

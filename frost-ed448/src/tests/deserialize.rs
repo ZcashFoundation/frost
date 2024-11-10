@@ -30,7 +30,7 @@ fn check_deserialize_non_prime_order() {
             .try_into()
             .unwrap();
     let r = <Ed448Shake256 as Ciphersuite>::Group::deserialize(&encoded_point);
-    assert_eq!(r, Err(GroupError::MalformedElement)); // TODO: it should be `GroupError::NonPrimeOrderElement`
+    assert_eq!(r, Err(GroupError::InvalidNonPrimeOrderElement));
 }
 
 #[test]
