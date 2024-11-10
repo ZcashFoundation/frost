@@ -66,10 +66,9 @@ jobs:
   build_no_std:
     name: build with no_std
     runs-on: ubuntu-latest
-    # Skip ed448 which does not support it.
     strategy:
       matrix:
-        crate: [ristretto255, ed25519, p256, secp256k1, rerandomized]
+        crate: [ed448, ristretto255, ed25519, p256, secp256k1, rerandomized]
     steps:
     - uses: actions/checkout@v4.1.7
     - uses: dtolnay/rust-toolchain@master
