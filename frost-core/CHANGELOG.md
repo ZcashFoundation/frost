@@ -7,6 +7,8 @@ Entries are listed in reverse chronological order.
 * It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
   if an invalid secret share was sent by one of the participants (by calling
   frost_core::Error<C>::culprit()`).
+* Added no-std support for frost-ed448 crate. This became possible after migration to `ed448-goldilocks-plus` (fork of
+  `ed448-goldilocks`).
 
 ## 2.0.0
 
