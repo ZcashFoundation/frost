@@ -3,7 +3,9 @@
 use rand_core::{CryptoRng, RngCore};
 
 use crate::keys::generate_with_dealer;
-use crate::keys::refresh::{compute_refreshing_shares, refresh_share, refresh_dkg_part2, refresh_dkg_part_1};
+use crate::keys::refresh::{
+    compute_refreshing_shares, refresh_dkg_part2, refresh_dkg_part_1, refresh_share,
+};
 use crate::{self as frost};
 use crate::{
     keys::{KeyPackage, PublicKeyPackage, SecretShare},
