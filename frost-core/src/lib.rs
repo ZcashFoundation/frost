@@ -636,8 +636,10 @@ where
 
     Ok(signature)
 }
+
 /// Optional cheater detection feature
 /// Each share is verified to find the cheater
+#[cfg(feature = "cheater-detection")]
 fn detect_cheater<C: Ciphersuite>(
     group_commitment: &GroupCommitment<C>,
     pubkeys: &keys::PublicKeyPackage<C>,

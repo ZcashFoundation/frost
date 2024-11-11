@@ -4,9 +4,8 @@ use core::{
     fmt::Debug,
     ops::{Add, Mul, Sub},
 };
-use std::borrow::Cow;
 
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
