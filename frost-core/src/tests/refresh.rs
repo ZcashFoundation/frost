@@ -1,6 +1,6 @@
 //! Test for Refreshing shares
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use rand_core::{CryptoRng, RngCore};
 

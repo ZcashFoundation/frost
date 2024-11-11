@@ -16,6 +16,7 @@ repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
 keywords = ["cryptography", "crypto", "threshold", "signature", "schnorr"]
 description = "Types and traits to support implementing Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
+rust-version = "1.81"
 
 [package.metadata.docs.rs]
 features = ["serde"]
@@ -32,8 +33,7 @@ postcard = { version = "1.0.0", features = ["alloc"], optional = true }
 rand_core = { version = "0.6", default-features = false }
 serde = { version = "1.0.160", default-features = false, features = ["derive"], optional = true }
 serdect = { version = "0.2.0", optional = true }
-thiserror-nostd-notrait = { version = "1.0.29", default-features = false }
-thiserror = { version = "1.0.29", default-features = false, optional = true }
+thiserror = { version = "2", default-features = false }
 visibility = "0.1.0"
 zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
 itertools = { version = "0.13.0", default-features = false }
@@ -52,10 +52,7 @@ rand_chacha = "0.3"
 serde_json = "1.0"
 
 [features]
-default = ["serialization", "cheater-detection", "std"]
-#! ## Features
-## Enable standard library support.
-std = ["dep:thiserror"]
+default = ["serialization", "cheater-detection"]
 ## Expose internal types, which do not have SemVer guarantees. This is an advanced
 ## feature which can be useful if you need to build a modified version of FROST.
 ## The docs won't list them, you will need to check the source code.

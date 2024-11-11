@@ -17,6 +17,7 @@ repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
 keywords = ["cryptography", "threshold", "signature", "schnorr", "randomized"]
 description = "Types and traits to support implementing a re-randomized variant of Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
+rust-version = "1.81"
 
 [package.metadata.docs.rs]
 features = ["serde"]
@@ -34,11 +35,7 @@ rand_core = "0.6"
 [dev-dependencies]
 
 [features]
-nightly = []
 default = ["serialization", "cheater-detection"]
-#! ## Features
-## Enable standard library support.
-std = ["frost-core/std"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).

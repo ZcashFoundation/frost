@@ -17,6 +17,7 @@ repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
 keywords = ["cryptography", "crypto", "threshold", "signature"]
 description = "A Schnorr signature scheme over the NIST P-256 curve that supports FROST."
+rust-version = "1.81"
 
 [package.metadata.docs.rs]
 features = ["serde"]
@@ -43,11 +44,7 @@ rand_chacha = "0.3"
 serde_json = "1.0"
 
 [features]
-nightly = []
-default = ["serialization", "cheater-detection", "std"]
-#! ## Features
-## Enable standard library support.
-std = ["frost-core/std"]
+default = ["serialization", "cheater-detection"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
