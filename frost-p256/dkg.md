@@ -3,7 +3,7 @@
 The DKG module supports generating FROST key shares in a distributed manner,
 without a trusted dealer.
 
-Before starting, each participant needs an unique identifier, which can be built from
+Before starting, each participant needs a unique identifier, which can be built from
 a `u16`. The process in which these identifiers are allocated is up to the application.
 
 The distributed key generation process has 3 parts, with 2 communication rounds
@@ -140,7 +140,7 @@ let mut key_packages = BTreeMap::new();
 
 // Keep track of each participant's public key package.
 // In practice, if there is a Coordinator, only they need to store the set.
-// If there is not, then all candidates must store their own sets.
+// If there is no, then all candidates must store their own sets.
 // All participants will have the same exact public key package.
 let mut pubkey_packages = BTreeMap::new();
 
