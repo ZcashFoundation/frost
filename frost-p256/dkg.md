@@ -140,7 +140,7 @@ let mut key_packages = BTreeMap::new();
 
 // Keep track of each participant's public key package.
 // In practice, if there is a Coordinator, only they need to store the set.
-// If there is no, then all candidates must store their own sets.
+// If there is not, then all candidates must store their own sets.
 // All participants will have the same exact public key package.
 let mut pubkey_packages = BTreeMap::new();
 
