@@ -33,10 +33,14 @@ where
     where
         M: AsRef<[u8]>,
     {
-        // Compute c now to avoid dependency on the msg lifetime.
-        let c = crate::challenge(&sig.R, &vk, msg.as_ref())?;
+        let (msg, sig, vk) = <C>::pre_verify(msg.as_ref(), &sig, &vk)?;
+        let c = <C>::challenge(&sig.R, &vk, &msg)?;
 
-        Ok(Self { vk, sig, c })
+        Ok(Self {
+            vk: *vk,
+            sig: *sig,
+            c,
+        })
     }
 }
 

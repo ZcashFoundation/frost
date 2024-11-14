@@ -51,6 +51,8 @@ where
 
     /// Verify a purported `signature` with a pre-hashed [`Challenge`] made by this verification
     /// key.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn verify_prehashed(
         &self,
         challenge: Challenge<C>,
