@@ -121,17 +121,14 @@ fn write_docs(
     // To be able to replace the documentation properly, start from the end, which
     // will keep the string positions consistent
     for (old_name, _, old_start, old_end) in old_docs.iter().rev() {
-        let new_doc = docs
-            .get(old_name)
-            .unwrap_or_else(|| {
-                panic!(
-                    "documentation for {} is not available in base file",
-                    old_name
-                )
-            })
-            .1
-            .clone();
-
+        let new_doc = docs.get(old_name).map(|v| v.1.clone());
+        let Some(new_doc) = new_doc else {
+            eprintln!(
+                "WARNING: documentation for {} is not available in base file. This can mean it's a specific type for the ciphersuite, or that there is a bug in gencode",
+                old_name
+            );
+            continue;
+        };
         // Replaces ciphersuite-references in documentation
         let mut new_doc = new_doc.to_string();
         for (old_n, new_n) in zip(original_suite_strings.iter(), new_suite_strings.iter()) {
@@ -227,7 +224,13 @@ fn main() -> ExitCode {
         &std::fs::read_to_string(format!("{original_folder}/tests/helpers/samples.json")).unwrap(),
     )
     .unwrap();
-    for key in &["identifier", "element1", "element2", "scalar1"] {
+    for key in &[
+        "identifier",
+        "proof_of_knowledge",
+        "element1",
+        "element2",
+        "scalar1",
+    ] {
         original_strings.push(samples[key].as_str().unwrap().to_owned());
     }
     let original_strings: Vec<&str> = original_strings.iter().map(|s| s.as_ref()).collect();
@@ -290,6 +293,19 @@ fn main() -> ExitCode {
                 "<S>",
             ],
         ),
+        (
+            "frost-secp256k1-tr",
+            &[
+                "Secp256K1Sha256TR",
+                "secp256k1 curve (Taproot)",
+                "Secp256K1",
+                "FROST(secp256k1, SHA-256)",
+                "FROST-secp256k1-SHA256-TR-v1",
+                "secp256k1_tr_sha256",
+                "secp256k1_tr",
+                "<S>",
+            ],
+        ),
     ] {
         // Some test use "sample" values. To make these tests work for another ciphersuites,
         // these values must be replaced. To make it cleaner, the strings are
@@ -300,7 +316,13 @@ fn main() -> ExitCode {
             &std::fs::read_to_string(format!("{folder}/tests/helpers/samples.json")).unwrap(),
         )
         .unwrap();
-        for key in &["identifier", "element1", "element2", "scalar1"] {
+        for key in &[
+            "identifier",
+            "proof_of_knowledge",
+            "element1",
+            "element2",
+            "scalar1",
+        ] {
             replacement_strings.push(samples[key].as_str().unwrap().to_owned());
         }
         let replacement_strings: Vec<&str> =

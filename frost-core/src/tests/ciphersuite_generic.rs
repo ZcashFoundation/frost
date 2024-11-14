@@ -10,7 +10,6 @@ use crate::{
     keys::PublicKeyPackage, Error, Field, Group, Identifier, Signature, SigningKey, SigningPackage,
     VerifyingKey,
 };
-use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use rand_core::{CryptoRng, RngCore};
 

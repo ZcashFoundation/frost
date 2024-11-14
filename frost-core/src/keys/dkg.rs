@@ -355,8 +355,7 @@ pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>
     // > a_{i0} by calculating σ_i = (R_i, μ_i), such that k ← Z_q, R_i = g^k,
     // > c_i = H(i, Φ, g^{a_{i0}} , R_i), μ_i = k + a_{i0} · c_i, with Φ being
     // > a context string to prevent replay attacks.
-    let k = <<C::Group as Group>::Field>::random(&mut rng);
-    let R_i = <C::Group>::generator() * k;
+    let (k, R_i) = <C>::generate_nonce(&mut rng);
     let c_i = challenge::<C>(identifier, &commitment.verifying_key()?, &R_i)?;
     let a_i0 = *coefficients
         .first()
@@ -570,5 +569,5 @@ pub fn part3<C: Ciphersuite>(
         min_signers: round2_secret_package.min_signers,
     };
 
-    Ok((key_package, public_key_package))
+    C::post_dkg(key_package, public_key_package)
 }
