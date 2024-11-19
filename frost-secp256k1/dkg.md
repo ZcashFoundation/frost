@@ -3,7 +3,7 @@
 The DKG module supports generating FROST key shares in a distributed manner,
 without a trusted dealer.
 
-Before starting, each participant needs an unique identifier, which can be built from
+Before starting, each participant needs a unique identifier, which can be built from
 a `u16`. The process in which these identifiers are allocated is up to the application.
 
 The distributed key generation process has 3 parts, with 2 communication rounds

@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
@@ -7,10 +8,12 @@
 
 extern crate alloc;
 
-use alloc::borrow::Cow;
-use alloc::borrow::ToOwned;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
+use alloc::vec;
+use alloc::{
+    borrow::{Cow, ToOwned},
+    collections::BTreeMap,
+    vec::Vec,
+};
 
 use frost_rerandomized::RandomizedCiphersuite;
 use k256::{
@@ -510,7 +513,6 @@ pub type Identifier = frost::Identifier<S>;
 /// FROST(secp256k1, SHA-256) keys, key generation, key shares.
 pub mod keys {
     use super::*;
-    use std::collections::BTreeMap;
 
     /// The identifier list to use when generating key shares.
     pub type IdentifierList<'a> = frost::keys::IdentifierList<'a, S>;
