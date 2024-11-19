@@ -46,6 +46,7 @@ The following crates and dependencies are out of scope for the audit.
 | Name | Version | Notes
 |------| ------- | -----
 | frost-rerandomized | v0.2.0 | To be audited after the security proof is complete.
+| frost-secp256k1-tr | N/A | frost-secp256k1 with Taproot support, has not been audited yet.
 
 ### `frost-core` Dependencies
 

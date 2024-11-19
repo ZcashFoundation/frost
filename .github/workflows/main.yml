@@ -69,7 +69,7 @@ jobs:
     # Skip ed448 which does not support it.
     strategy:
       matrix:
-        crate: [ristretto255, ed25519, p256, secp256k1, rerandomized]
+        crate: [ristretto255, ed25519, p256, secp256k1, secp256k1-tr, rerandomized]
     steps:
     - uses: actions/checkout@v4.1.7
     - uses: dtolnay/rust-toolchain@master

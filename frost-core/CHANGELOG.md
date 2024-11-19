@@ -7,6 +7,8 @@ Entries are listed in reverse chronological order.
 * It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
   if an invalid secret share was sent by one of the participants (by calling
   frost_core::Error<C>::culprit()`).
+* Added frost-secp256k1-tr crate, allowing to generate Bitcoin Taproot (BIP340/BIP341)
+  compatible signatures.
 
 ## 2.0.0
 

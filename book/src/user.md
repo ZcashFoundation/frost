@@ -7,3 +7,4 @@
 - [frost-p256](https://docs.rs/frost-p256/)
 - [frost-ristretto255](https://docs.rs/frost-ristretto255/)
 - [frost-secp256k1](https://docs.rs/frost-secp256k1/)
+- [frost-secp256k1-tr](https://docs.rs/frost-secp256k1-tr/)
