@@ -1,0 +1,1 @@
+{{#include ../../../../frost-secp256k1-tr/dkg.md}}

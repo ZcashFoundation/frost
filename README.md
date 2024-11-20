@@ -2,15 +2,16 @@
 
 [![CI](https://github.com/ZcashFoundation/frost/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/ZcashFoundation/frost/actions/workflows/main.yml)
 
-| Crate                        |                         | Crates.io                                                                                                             | Documentation                                                                                          |
-| ---------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Generic FROST implementation | [`frost-core`]          | [![crates.io](https://img.shields.io/crates/v/frost-core.svg)](https://crates.io/crates/frost-core)                   | [![Documentation](https://docs.rs/frost-core/badge.svg)](https://docs.rs/frost-core)                   |
-| Ristretto255 ciphersuite     | [`frost-ristretto255`]  | [![crates.io](https://img.shields.io/crates/v/frost-ristretto255.svg)](https://crates.io/crates/frost-ristretto255)   | [![Documentation](https://docs.rs/frost-ristretto255/badge.svg)](https://docs.rs/frost-ristretto255)   |
-| Ed25519 ciphersuite          | [`frost-ed25519`]       | [![crates.io](https://img.shields.io/crates/v/frost-ed25519.svg)](https://crates.io/crates/frost-ed25519)             | [![Documentation](https://docs.rs/frost-ed25519/badge.svg)](https://docs.rs/frost-ed25519)             |
-| Ed448 ciphersuite            | [`frost-ed448`]         | [![crates.io](https://img.shields.io/crates/v/frost-ed448.svg)](https://crates.io/crates/frost-ed448)                 | [![Documentation](https://docs.rs/frost-ed448/badge.svg)](https://docs.rs/frost-ed448)                 |
-| P-256 ciphersuite            | [`frost-p256`]          | [![crates.io](https://img.shields.io/crates/v/frost-p256.svg)](https://crates.io/crates/frost-p256)                   | [![Documentation](https://docs.rs/frost-p256/badge.svg)](https://docs.rs/frost-p256)                   |
-| secp256k1 ciphersuite (EVM)  | [`frost-secp256k1-evm`] | [![crates.io](https://img.shields.io/crates/v/frost-secp256k1-evm.svg)](https://crates.io/crates/frost-secp256k1-evm) | [![Documentation](https://docs.rs/frost-secp256k1-evm/badge.svg)](https://docs.rs/frost-secp256k1-evm) |
-| Generic Re-randomized FROST  | [`frost-rerandomized`]  | [![crates.io](https://img.shields.io/crates/v/frost-rerandomized.svg)](https://crates.io/crates/frost-rerandomized)   | [![Documentation](https://docs.rs/frost-rerandomized/badge.svg)](https://docs.rs/frost-rerandomized)   |
+| Crate                           |                         | Crates.io                                                                                                             | Documentation                                                                                          |
+| ------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Generic FROST implementation    | [`frost-core`]          | [![crates.io](https://img.shields.io/crates/v/frost-core.svg)](https://crates.io/crates/frost-core)                   | [![Documentation](https://docs.rs/frost-core/badge.svg)](https://docs.rs/frost-core)                   |
+| Ristretto255 ciphersuite        | [`frost-ristretto255`]  | [![crates.io](https://img.shields.io/crates/v/frost-ristretto255.svg)](https://crates.io/crates/frost-ristretto255)   | [![Documentation](https://docs.rs/frost-ristretto255/badge.svg)](https://docs.rs/frost-ristretto255)   |
+| Ed25519 ciphersuite             | [`frost-ed25519`]       | [![crates.io](https://img.shields.io/crates/v/frost-ed25519.svg)](https://crates.io/crates/frost-ed25519)             | [![Documentation](https://docs.rs/frost-ed25519/badge.svg)](https://docs.rs/frost-ed25519)             |
+| Ed448 ciphersuite               | [`frost-ed448`]         | [![crates.io](https://img.shields.io/crates/v/frost-ed448.svg)](https://crates.io/crates/frost-ed448)                 | [![Documentation](https://docs.rs/frost-ed448/badge.svg)](https://docs.rs/frost-ed448)                 |
+| P-256 ciphersuite               | [`frost-p256`]          | [![crates.io](https://img.shields.io/crates/v/frost-p256.svg)](https://crates.io/crates/frost-p256)                   | [![Documentation](https://docs.rs/frost-p256/badge.svg)](https://docs.rs/frost-p256)                   |
+| secp256k1 ciphersuite (EVM)     | [`frost-secp256k1-evm`] | [![crates.io](https://img.shields.io/crates/v/frost-secp256k1-evm.svg)](https://crates.io/crates/frost-secp256k1-evm) | [![Documentation](https://docs.rs/frost-secp256k1-evm/badge.svg)](https://docs.rs/frost-secp256k1-evm) |
+| secp256k1 ciphersuite (Taproot) | [`frost-secp256k1-tr`]  | [![crates.io](https://img.shields.io/crates/v/frost-secp256k1-tr.svg)](https://crates.io/crates/frost-secp256k1-tr)   | [![Documentation](https://docs.rs/frost-secp256k1-tr/badge.svg)](https://docs.rs/frost-secp256k1-tr)   |
+| Generic Re-randomized FROST     | [`frost-rerandomized`]  | [![crates.io](https://img.shields.io/crates/v/frost-rerandomized.svg)](https://crates.io/crates/frost-rerandomized)   | [![Documentation](https://docs.rs/frost-rerandomized/badge.svg)](https://docs.rs/frost-rerandomized)   |
 
 Rust implementations of ['Two-Round Threshold Schnorr Signatures with FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/).
 
@@ -59,9 +60,7 @@ of the v0.6.0 release (corresponding to commit 5fa17ed) of the following crates:
 - frost-ristretto255
 
 This includes key generation (both trusted dealer and DKG) and FROST signing.
-This does not include frost-secp256k1-evm and rerandomized FROST.
-However, frost-secp256k1-evm should be safe as it is a copy of frost-secp256k1
-with one difference: it uses the keccak256 hash instead of sha256.
+This does not include frost-secp256k1-evm, frost-secp256k1-tr and rerandomized FROST.
 
 The parts of the
 [`Ed448-Goldilocks`](https://github.com/crate-crypto/Ed448-Goldilocks)
