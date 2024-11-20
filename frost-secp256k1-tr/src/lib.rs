@@ -13,6 +13,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use frost_rerandomized::RandomizedCiphersuite;
+use k256::elliptic_curve::ops::Reduce;
 use k256::{
     elliptic_curve::{
         bigint::U256,
@@ -20,7 +21,7 @@ use k256::{
         hash2curve::{hash_to_field, ExpandMsgXmd},
         point::AffineCoordinates,
         sec1::{FromEncodedPoint, ToEncodedPoint},
-        Field as FFField, PrimeField, ScalarPrimitive,
+        Field as FFField, PrimeField,
     },
     AffinePoint, ProjectivePoint, Scalar,
 };
@@ -185,8 +186,10 @@ pub struct Secp256K1Sha256TR;
 
 /// Digest the hasher to a Scalar
 fn hasher_to_scalar(hasher: Sha256) -> Scalar {
-    let sp = ScalarPrimitive::new(U256::from_be_slice(&hasher.finalize())).unwrap();
-    Scalar::from(&sp)
+    // This is acceptable because secp256k1 curve order is close to 2^256,
+    // and the input is uniformly random since it is a hash output, therefore
+    // the bias is negligibly small.
+    Scalar::reduce(U256::from_be_slice(&hasher.finalize()))
 }
 
 /// Create a BIP340 compliant tagged hash
