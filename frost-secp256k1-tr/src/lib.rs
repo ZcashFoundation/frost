@@ -9,11 +9,7 @@
 extern crate alloc;
 
 use alloc::vec;
-use alloc::{
-    borrow::{Cow, ToOwned},
-    collections::BTreeMap,
-    vec::Vec,
-};
+use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
 
 use frost_rerandomized::RandomizedCiphersuite;
 use k256::{
@@ -170,9 +166,9 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
     output
 }
 
-fn hash_to_scalar(domain: &[u8], msg: &[u8]) -> Scalar {
+fn hash_to_scalar(domain: &[&[u8]], msg: &[u8]) -> Scalar {
     let mut u = [Secp256K1ScalarField::zero()];
-    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], &[domain], &mut u)
+    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], domain, &mut u)
         .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]
 }
@@ -248,7 +244,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.1
     fn H1(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        hash_to_scalar((CONTEXT_STRING.to_owned() + "rho").as_bytes(), m)
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"rho"], m)
     }
 
     /// H2 for FROST(secp256k1, SHA-256)
@@ -264,7 +260,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
     ///
     /// [spec]: https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-14.html#section-6.5-2.2.2.3
     fn H3(m: &[u8]) -> <<Self::Group as Group>::Field as Field>::Scalar {
-        hash_to_scalar((CONTEXT_STRING.to_owned() + "nonce").as_bytes(), m)
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"nonce"], m)
     }
 
     /// H4 for FROST(secp256k1, SHA-256)
@@ -283,18 +279,12 @@ impl Ciphersuite for Secp256K1Sha256TR {
 
     /// HDKG for FROST(secp256k1, SHA-256)
     fn HDKG(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
-        Some(hash_to_scalar(
-            (CONTEXT_STRING.to_owned() + "dkg").as_bytes(),
-            m,
-        ))
+        Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"dkg"], m))
     }
 
     /// HID for FROST(secp256k1, SHA-256)
     fn HID(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
-        Some(hash_to_scalar(
-            (CONTEXT_STRING.to_owned() + "id").as_bytes(),
-            m,
-        ))
+        Some(hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"id"], m))
     }
 
     // Sign, negating the key if required by BIP-340.
@@ -499,7 +489,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
 impl RandomizedCiphersuite for Secp256K1Sha256TR {
     fn hash_randomizer(m: &[u8]) -> Option<<<Self::Group as Group>::Field as Field>::Scalar> {
         Some(hash_to_scalar(
-            (CONTEXT_STRING.to_owned() + "randomizer").as_bytes(),
+            &[CONTEXT_STRING.as_bytes(), b"randomizer"],
             m,
         ))
     }
