@@ -31,7 +31,7 @@ Format](../user/serialization.md).
 
 ### serde
 
-Alternatively, if you would like to user another format such as JSON, you can
+Alternatively, if you would like to use another format such as JSON, you can
 enable the `serde` feature (which is *not* enabled by default). When it is
 enabled, you can use [serde](https://serde.rs/) to serialize any structure that
 needs to be transmitted. The importing would look like:
