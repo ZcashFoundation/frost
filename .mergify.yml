@@ -1,28 +1,30 @@
 queue_rules:
   - name: main
-    allow_inplace_checks: True
-    allow_checks_interruption: True
-    speculative_checks: 1
-    batch_size: 2
-    # Wait for a few minutes to embark 2 tickets together in a merge train
-    batch_max_wait_time: "3 minutes"
-    conditions:
+    queue_conditions: &id001
+      - base=main
+      - -draft
+      - label!=do-not-merge
+    merge_conditions:
       # Mergify automatically applies status check, approval, and conversation rules,
       # which are the same as the GitHub main branch protection rules
       # https://docs.mergify.com/conditions/#about-branch-protection
       - base=main
+    allow_inplace_checks: true
+    batch_size: 2
+    # Wait for a few minutes to embark 2 tickets together in a merge train
+    batch_max_wait_time: "3 minutes"
+    merge_method: squash
 
 pull_request_rules:
-  - name: main queue triggered when CI passes with 1 review
-    conditions:
-      # This queue handles a PR if:
-      # - it targets main
-      # - is not in draft
-      #   including automated dependabot PRs.
-      - base=main
-      - -draft
-      - label!=do-not-merge
+  - name: refactored queue action rule
+    conditions: []
     actions:
       queue:
-        name: main
-        method: squash
+
+priority_rules:
+  - name: Priority rule from queue `{queue_rule['name']}`
+    conditions: *id001
+    allow_checks_interruption: true
+
+merge_queue:
+  max_parallel_checks: 1
