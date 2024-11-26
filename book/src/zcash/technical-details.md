@@ -120,4 +120,5 @@ instead of publishing them on the blockchain.
 ```info
 Another idea is to extend lightwalletd servers to support messaging, since
 wallets are all already connected to a server (not the same one, so inter-server
-communications would be also needed) ```
+communications would be also needed)
+```
