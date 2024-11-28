@@ -1,7 +1,7 @@
 # Technical Details
 
-FROST only works with Schnorr signatures. Zcash transaprent transactions use
-ECDSA, therefore FROST does not work with Zcash transaparent addresses. (This
+FROST only works with Schnorr signatures. Zcash transparent transactions use
+ECDSA, therefore FROST does not work with Zcash transparent addresses. (This
 could change if the Taproot upgrade from Bitcoin is ported to Zcash, but it
 seems unlikely.)
 
@@ -18,7 +18,7 @@ protocol](https://zips.z.cash/protocol/protocol.pdf#addressesandkeys):
 
 To use FROST with Zcash, the key that needs to be split is the **Spend
 Authorizing Key** or `ask`. This is the key that signs transactions and allow
-they to go through.
+them to go through.
 
 ## Key Derivation and DKG Support
 
@@ -70,7 +70,7 @@ For this reason it seems impossible to easily encode a FROST wallet, so using
 something like a JSON file with all this information is advisable.
 
 Of course, unlike regular Zcash wallets, a user losing their FROST wallet is
-not catastrophical. Users can recover their key share with the help of other
+not catastrophic. Users can recover their key share with the help of other
 participants, and would only need to remember their identifier (and other
 participants can probably help with that).
 
