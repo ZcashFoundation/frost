@@ -561,7 +561,6 @@ where
 /// signature, if the coordinator themselves is a signer and misbehaves, they
 /// can avoid that step. However, at worst, this results in a denial of
 /// service attack due to publishing an invalid signature.
-
 pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
     signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
