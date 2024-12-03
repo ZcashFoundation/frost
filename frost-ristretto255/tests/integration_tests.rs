@@ -357,3 +357,12 @@ fn check_sign_with_incorrect_commitments() {
         _,
     >(rng);
 }
+
+// Test if deserializing the identifier 0 fails.
+// https://github.com/ZcashFoundation/frost/issues/793
+#[test]
+fn check_zero_identifier_deserialization() {
+    let arr: [u8; 32] = [0; 32];
+    let r = Identifier::deserialize(&arr);
+    assert_eq!(r, Err(Error::FieldError(FieldError::InvalidZeroScalar)));
+}
