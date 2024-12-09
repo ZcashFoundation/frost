@@ -69,7 +69,7 @@ where
     /// Deserialize an Identifier from a serialized buffer.
     /// Returns an error if it attempts to deserialize zero.
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
-        Ok(Self(SerializableScalar::deserialize(bytes)?))
+        Self::new(SerializableScalar::deserialize(bytes)?.0)
     }
 }
 

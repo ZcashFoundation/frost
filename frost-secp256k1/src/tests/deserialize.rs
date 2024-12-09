@@ -36,3 +36,12 @@ fn check_deserialize_identity() {
     let r = <Secp256K1Sha256 as Ciphersuite>::Group::deserialize(&encoded_identity);
     assert_eq!(r, Err(GroupError::MalformedElement));
 }
+
+// Test if deserializing the identifier 0 fails.
+// https://github.com/ZcashFoundation/frost/issues/793
+#[test]
+fn check_zero_identifier_deserialization() {
+    let arr: [u8; 32] = [0; 32];
+    let r = Identifier::deserialize(&arr);
+    assert_eq!(r, Err(Error::FieldError(FieldError::InvalidZeroScalar)));
+}
