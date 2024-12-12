@@ -31,14 +31,16 @@ pub struct DKGTestVectors<C: Ciphersuite> {
 fn json_to_scalar<C: Ciphersuite>(
     vector: &Value,
 ) -> <<C::Group as Group>::Field as Field>::Serialization {
-    <<C::Group as Group>::Field as Field>::Serialization::try_from(
-        &hex::decode(vector.as_str().unwrap()).unwrap(),
-    )
-    .debugless_unwrap()
+    (hex::decode(vector.as_str().unwrap()).unwrap())
+        .as_slice()
+        .try_into()
+        .debugless_unwrap()
 }
 
 fn json_to_element<C: Ciphersuite>(vector: &Value) -> <C::Group as Group>::Serialization {
-    <C::Group as Group>::Serialization::try_from(&hex::decode(vector.as_str().unwrap()).unwrap())
+    (hex::decode(vector.as_str().unwrap()).unwrap())
+        .as_slice()
+        .try_into()
         .debugless_unwrap()
 }
 
