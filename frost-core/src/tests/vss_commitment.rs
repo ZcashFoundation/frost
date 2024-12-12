@@ -92,7 +92,7 @@ pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + Crypt
 
     let serialized: <C::Group as Group>::Serialization =
         <C::Group as Group>::Serialization::try_from(
-            hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
+            &hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
         )
         .debugless_unwrap();
     // ---
