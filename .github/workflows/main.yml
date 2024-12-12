@@ -176,6 +176,8 @@ jobs:
   docs:
     name: Check Rust doc
     runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
 
     steps:
       - uses: actions/checkout@v4.2.2
