@@ -250,7 +250,7 @@ where
     ///
     /// Returns the Randomizer and the generate randomizer seed. Both can be
     /// used to regenerate the Randomizer with
-    /// [`regenerate_from_seed_and_commitments()`].
+    /// [`Self::regenerate_from_seed_and_commitments()`].
     pub fn new_from_commitments<R: RngCore + CryptoRng>(
         mut rng: R,
         signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
@@ -268,18 +268,20 @@ where
         ))
     }
 
-    /// Regenerates a Randomizer generated with [`new_from_commitments()`]. This
-    /// can be used by Participants after receiving the randomizer seed and
-    /// commitments in Round 2. This is better than the Coordinator simply
-    /// generating a Randomizer and sending it to Participants, because in this
-    /// approach the participants don't need to fully trust the Coordinator's
-    /// random number generator (i.e. even if the randomizer seed was not
-    /// randomly generated the randomizer will still be).
+    /// Regenerates a Randomizer generated with
+    /// [`Self::new_from_commitments()`]. This can be used by Participants after
+    /// receiving the randomizer seed and commitments in Round 2. This is better
+    /// than the Coordinator simply generating a Randomizer and sending it to
+    /// Participants, because in this approach the participants don't need to
+    /// fully trust the Coordinator's random number generator (i.e. even if the
+    /// randomizer seed was not randomly generated the randomizer will still
+    /// be).
     ///
     /// This should be used exclusively with the output of
-    /// [`new_from_commitments()`]; it is strongly suggested to not attempt
-    /// generating the randomizer seed yourself (even if the point of this
-    /// approach is to hedge against issues in the randomizer seed generation).
+    /// [`Self::new_from_commitments()`]; it is strongly suggested to not
+    /// attempt generating the randomizer seed yourself (even if the point of
+    /// this approach is to hedge against issues in the randomizer seed
+    /// generation).
     pub fn regenerate_from_seed_and_commitments(
         randomizer_seed: &[u8],
         signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
@@ -379,7 +381,7 @@ where
     ///
     /// Returns the generated [`RandomizedParams`] and a randomizer seed. Both
     /// can be used to regenerate the [`RandomizedParams`] with
-    /// [`regenerate_from_seed_and_commitments()`].
+    /// [`Self::regenerate_from_seed_and_commitments()`].
     pub fn new_from_commitments<R: RngCore + CryptoRng>(
         group_verifying_key: &VerifyingKey<C>,
         signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
@@ -397,10 +399,10 @@ where
     /// the given given signing commitments.
     ///
     /// Returns the generated [`RandomizedParams`] and a randomizer seed, which
-    /// can be used to regenerate the [`RandomizerParams`].
+    /// can be used to regenerate the [`RandomizedParams`].
     ///
     /// Regenerates a [`RandomizedParams`] generated with
-    /// [`new_from_commitments()`]. This can be used by Participants after
+    /// [`Self::new_from_commitments()`]. This can be used by Participants after
     /// receiving the randomizer seed and commitments in Round 2. This is better
     /// than the Coordinator simply generating a [`Randomizer`] and sending it
     /// to Participants, because in this approach the participants don't need to
@@ -409,9 +411,10 @@ where
     /// be).
     ///
     /// This should be used exclusively with the output of
-    /// [`new_from_commitments()`]; it is strongly suggested to not attempt
-    /// generating the randomizer seed yourself (even if the point of this
-    /// approach is to hedge against issues in the randomizer seed generation).
+    /// [`Self::new_from_commitments()`]; it is strongly suggested to not
+    /// attempt generating the randomizer seed yourself (even if the point of
+    /// this approach is to hedge against issues in the randomizer seed
+    /// generation).
     pub fn regenerate_from_seed_and_commitments(
         group_verifying_key: &VerifyingKey<C>,
         randomizer_seed: &[u8],
