@@ -13,6 +13,7 @@
 - [FROST with Zcash](zcash.md)
   - [Technical Details](zcash/technical-details.md)
   - [Ywallet Demo](zcash/ywallet-demo.md)
+  - [FROST Server](zcash/server.md)
 - [Terminology](terminology.md)
 - [Developer Documentation](dev.md)
     - [List of Dependencies for Audit](dev/frost-dependencies-for-audit.md)
