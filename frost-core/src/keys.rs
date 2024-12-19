@@ -319,7 +319,7 @@ where
         Self(coefficients)
     }
 
-    /// Returns serialized coefficent commitments
+    /// Returns serialized coefficient commitments
     pub fn serialize(&self) -> Result<Vec<Vec<u8>>, Error<C>> {
         self.0
             .iter()
