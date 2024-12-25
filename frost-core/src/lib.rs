@@ -419,7 +419,7 @@ where
     ) -> Result<Vec<(Identifier<C>, Vec<u8>)>, Error<C>> {
         let mut binding_factor_input_prefix = Vec::new();
 
-        // The length of a serialized verifying key of the same cipersuite does
+        // The length of a serialized verifying key of the same ciphersuite does
         // not change between runs of the protocol, so we don't need to hash to
         // get a fixed length.
         binding_factor_input_prefix.extend_from_slice(verifying_key.serialize()?.as_ref());

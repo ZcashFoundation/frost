@@ -30,7 +30,7 @@ The refreshed `KeyPackage` contents must be stored securely and the original
 Applications should first ensure that all participants who refreshed their
 `KeyPackages` were actually able to do so successfully, before deleting their old
 `KeyPackages`. How this is done is up to the application; it might require
-sucessfully generating a signature with all of those participants.
+successfully generating a signature with all of those participants.
 ```
 
 ```admonish danger

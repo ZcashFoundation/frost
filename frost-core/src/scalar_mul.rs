@@ -1,4 +1,4 @@
-//! Non-adjacent form (NAF) implementations for fast batch scalar multiplcation
+//! Non-adjacent form (NAF) implementations for fast batch scalar multiplication
 
 // We expect slicings in this module to never panic due to algorithmic
 // constraints.
