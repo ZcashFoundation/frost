@@ -396,7 +396,7 @@ where
         received_round2_packages.clone(),
     );
 
-    // For each participant, this is where they refresh thair shares
+    // For each participant, this is where they refresh their shares
     // In practice, each participant will perform this on their own environments.
     for participant_identifier in remaining_ids.clone() {
         let (key_package, pubkey_package_for_participant) =
