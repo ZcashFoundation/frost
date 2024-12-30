@@ -208,7 +208,11 @@ fn tweak<T: AsRef<[u8]>>(
     merkle_root: Option<T>,
 ) -> Scalar {
     match merkle_root {
-        None => Secp256K1ScalarField::zero(),
+        None => {
+            let mut hasher = tagged_hash("TapTweak");
+            hasher.update(public_key.to_affine().x());
+            hasher_to_scalar(hasher)
+        }
         Some(root) => {
             let mut hasher = tagged_hash("TapTweak");
             hasher.update(public_key.to_affine().x());
@@ -481,10 +485,9 @@ impl Ciphersuite for Secp256K1Sha256TR {
         // > key should commit to an unspendable script path instead of having
         // > no script path. This can be achieved by computing the output key
         // > point as Q = P + int(hashTapTweak(bytes(P)))G.
-        let merkle_root = [0u8; 0];
         Ok((
-            key_package.tweak(Some(&merkle_root)),
-            public_key_package.tweak(Some(&merkle_root)),
+            key_package.tweak::<&[u8]>(None),
+            public_key_package.tweak::<&[u8]>(None),
         ))
     }
 }
@@ -862,12 +865,8 @@ pub mod round2 {
         key_package: &keys::KeyPackage,
         merkle_root: Option<&[u8]>,
     ) -> Result<SignatureShare, Error> {
-        if merkle_root.is_some() {
-            let key_package = key_package.clone().tweak(merkle_root);
-            frost::round2::sign(signing_package, signer_nonces, &key_package)
-        } else {
-            frost::round2::sign(signing_package, signer_nonces, key_package)
-        }
+        let key_package = key_package.clone().tweak(merkle_root);
+        frost::round2::sign(signing_package, signer_nonces, &key_package)
     }
 }
 
@@ -904,12 +903,8 @@ pub fn aggregate_with_tweak(
     public_key_package: &keys::PublicKeyPackage,
     merkle_root: Option<&[u8]>,
 ) -> Result<Signature, Error> {
-    if merkle_root.is_some() {
-        let public_key_package = public_key_package.clone().tweak(merkle_root);
-        frost::aggregate(signing_package, signature_shares, &public_key_package)
-    } else {
-        frost::aggregate(signing_package, signature_shares, public_key_package)
-    }
+    let public_key_package = public_key_package.clone().tweak(merkle_root);
+    frost::aggregate(signing_package, signature_shares, &public_key_package)
 }
 
 /// A signing key for a Schnorr signature on FROST(secp256k1, SHA-256).
