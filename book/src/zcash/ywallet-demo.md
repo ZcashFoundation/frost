@@ -37,9 +37,9 @@ cargo run --bin trusted-dealer -- -C redpallas
 
 This will by default generate a 2-of-3 key shares. The public key package
 will be written to `public-key-package.json`, while key packages will be
-written to `key-package-1.json` through `-3`. You can change the threhsold,
+written to `key-package-1.json` through `-3`. You can change the threshold,
 number of shares and file names using the command line; append `-- -h`
-to the commend above for the command line help.
+to the command above for the command line help.
 
 ```admonish info
 If you want to use DKG instead of Trusted Dealer, instead of the command above,
@@ -198,7 +198,7 @@ cargo run --bin participant -- -C redpallas --http --key-package key-package-1.j
 ```
 
 (We are using "alice" again. There's nothing stopping a Coordinator from being a
-Partcipant too!)
+Participant too!)
 
 ### Participant 2 (bob)
 
@@ -212,7 +212,7 @@ cargo run --bin participant -- -C redpallas --http --key-package key-package-2.j
 ### Coordinator
 
 Go back to the Coordinator CLI. The protocol should run and complete
-succesfully. It will print the final FROST-generated signature. Hurrah! Copy it
+successfully. It will print the final FROST-generated signature. Hurrah! Copy it
 (just the hex value).
 
 Go back to the signer and paste the signature. It will write the raw signed

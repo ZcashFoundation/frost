@@ -229,7 +229,7 @@ pub trait Ciphersuite: Copy + PartialEq + Debug + 'static {
     // protocol if required.
 
     /// Optional. Do regular (non-FROST) signing with a [`SigningKey`]. Called
-    /// by [`SigningKey::sign()`]. This is not used by FROST. Can be overriden
+    /// by [`SigningKey::sign()`]. This is not used by FROST. Can be overridden
     /// if required which is useful if FROST signing has been changed by the
     /// other Ciphersuite trait methods and regular signing should be changed
     /// accordingly to match.
