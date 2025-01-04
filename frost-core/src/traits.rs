@@ -37,7 +37,7 @@ pub trait Field: Copy {
         + Sub<Output = Self::Scalar>;
 
     /// A unique byte array buf of fixed length N.
-    type Serialization: Copy + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
+    type Serialization: Clone + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
 
     /// Returns the zero element of the field, the additive identity.
     fn zero() -> Self::Scalar;
@@ -102,7 +102,7 @@ pub trait Group: Copy + PartialEq {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: Copy + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
+    type Serialization: Clone + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
 
     /// The order of the the quotient group when the prime order subgroup divides the order of the
     /// full curve group.
@@ -162,7 +162,7 @@ pub trait Ciphersuite: Copy + PartialEq + Debug + 'static {
 
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
-    type SignatureSerialization: Copy
+    type SignatureSerialization: Clone
         + AsRef<[u8]>
         + AsMut<[u8]>
         + for<'a> TryFrom<&'a [u8]>
