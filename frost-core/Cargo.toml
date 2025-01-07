@@ -31,7 +31,7 @@ hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
 postcard = { version = "1.0.0", features = ["alloc"], optional = true }
 rand_core = { version = "0.6", default-features = false }
 serde = { version = "1.0.160", default-features = false, features = ["derive"], optional = true }
-serdect = { version = "0.2.0", optional = true }
+serdect = { version = "0.3.0", optional = true }
 thiserror-nostd-notrait = { version = "1.0.29", default-features = false }
 thiserror = { version = "2.0.3", default-features = false, optional = true }
 visibility = "0.1.0"
