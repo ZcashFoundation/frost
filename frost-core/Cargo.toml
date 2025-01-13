@@ -36,7 +36,7 @@ thiserror-nostd-notrait = { version = "1.0.29", default-features = false }
 thiserror = { version = "2.0.3", default-features = false, optional = true }
 visibility = "0.1.0"
 zeroize = { version = "1.5.4", default-features = false, features = ["derive"] }
-itertools = { version = "0.13.0", default-features = false }
+itertools = { version = "0.14.0", default-features = false }
 
 # Test dependencies used with the test-impl feature
 proptest = { version = "1.0", optional = true }
