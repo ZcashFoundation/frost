@@ -32,7 +32,8 @@
 
 ## Make changes
 
-7. Bump the version of each crate in their Cargo.toml files
+7. Bump the version of the crates in the root Cargo.toml file. (If they ever
+   get out of sync, you wil need to bump in each crate Cargo.toml file.)
 
 8. Bump the version used in the tutorial (importing.md)
 
