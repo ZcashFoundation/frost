@@ -107,6 +107,28 @@ fn check_public_key_package_recreation() {
     assert!(public_key_package == new_public_key_package);
 }
 
+/// Check if round1::SecretPackage can be recreated.
+#[test]
+fn check_round1_secret_package_recreation() {
+    let round1_secret_package = samples::round1_secret_package();
+
+    let identifier = round1_secret_package.identifier();
+    let coefficients = round1_secret_package.coefficients();
+    let commitment = round1_secret_package.commitment();
+    let min_signers = round1_secret_package.min_signers();
+    let max_signers = round1_secret_package.max_signers();
+
+    let new_round1_secret_package = round1::SecretPackage::new(
+        *identifier,
+        coefficients.clone(),
+        commitment.clone(),
+        *min_signers,
+        *max_signers,
+    );
+
+    assert!(round1_secret_package == new_round1_secret_package);
+}
+
 /// Check if round1::Package can be recreated.
 #[test]
 fn check_round1_package_recreation() {
@@ -118,6 +140,28 @@ fn check_round1_package_recreation() {
     let new_round1_package = round1::Package::new(vss_commitment.clone(), *signature);
 
     assert!(round1_package == new_round1_package);
+}
+
+/// Check if round2::SecretPackage can be recreated.
+#[test]
+fn check_round2_secret_package_recreation() {
+    let round2_secret_package = samples::round2_secret_package();
+
+    let identifier = round2_secret_package.identifier();
+    let commitment = round2_secret_package.commitment();
+    let secret_share = round2_secret_package.secret_share();
+    let min_signers = round2_secret_package.min_signers();
+    let max_signers = round2_secret_package.max_signers();
+
+    let new_round2_secret_package = round2::SecretPackage::new(
+        *identifier,
+        commitment.clone(),
+        secret_share,
+        *min_signers,
+        *max_signers,
+    );
+
+    assert!(round2_secret_package == new_round2_secret_package);
 }
 
 /// Check if round2::Package can be recreated.
