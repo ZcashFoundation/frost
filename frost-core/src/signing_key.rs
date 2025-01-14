@@ -46,8 +46,12 @@ where
 
     /// Create a signature `msg` using this `SigningKey` using the default
     /// signing.
-    #[cfg(feature = "internals")]
-    pub fn default_sign<R: RngCore + CryptoRng>(&self, mut rng: R, message: &[u8]) -> Signature<C> {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn default_sign<R: RngCore + CryptoRng>(
+        &self,
+        mut rng: R,
+        message: &[u8],
+    ) -> Signature<C> {
         let public = VerifyingKey::<C>::from(*self);
 
         let (k, R) = <C>::generate_nonce(&mut rng);

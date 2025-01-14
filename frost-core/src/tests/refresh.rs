@@ -6,11 +6,10 @@ use crate::keys::generate_with_dealer;
 use crate::keys::refresh::{
     compute_refreshing_shares, refresh_dkg_part2, refresh_dkg_part_1, refresh_share,
 };
+#[cfg(feature = "serialization")]
+use crate::keys::{PublicKeyPackage, SecretShare};
 use crate::{self as frost};
-use crate::{
-    keys::{KeyPackage, PublicKeyPackage, SecretShare},
-    Ciphersuite, Error, Identifier, Signature, VerifyingKey,
-};
+use crate::{keys::KeyPackage, Ciphersuite, Error, Identifier, Signature, VerifyingKey};
 
 use crate::tests::ciphersuite_generic::check_part3_different_participants;
 
@@ -175,6 +174,7 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package<
 }
 
 /// Check serialisation
+#[cfg(feature = "serialization")]
 pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) {

@@ -59,7 +59,6 @@ where
     /// This is the final step of [`verify_signature_share`] from the spec.
     ///
     /// [`verify_signature_share`]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-share-aggregation
-    #[cfg(any(feature = "cheater-detection", feature = "internals"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn verify(
