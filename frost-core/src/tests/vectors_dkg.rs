@@ -203,13 +203,13 @@ pub fn check_dkg_keygen<C: Ciphersuite>(json_vectors: &Value) {
     )
     .unwrap();
 
-    let round1_secret_package = SecretPackage {
-        identifier: participant_id,
+    let round1_secret_package = SecretPackage::new(
+        participant_id,
         coefficients,
-        commitment: commitment.clone(),
+        commitment.clone(),
         min_signers,
         max_signers,
-    };
+    );
 
     let (round2_secret_package, _round2_packages_1) =
         part2(round1_secret_package, &round1_packages).unwrap();
