@@ -1,5 +1,10 @@
 # Release Checklist
 
+## One-time `gh` setup
+
+Install the [GitHub command line
+tool](https://github.com/cli/cli?tab=readme-ov-file#installation) to make
+releases easier.
 
 ## One-time crates.io setup
 
@@ -70,9 +75,10 @@
 
 18. Check if frost-rerandomized is ready to be published: `cargo publish -p frost-rerandomized --dry-run`. Fix any errors if needed.
 
-19. Draft and publish a frost-rerandomized release
+19. Draft and publish a frost-rerandomized release:
 
-    1. Use the same process as described for frost-core above, but you can leave the changelog empty and **uncheck** “Set as the latest release”
+    1. Run `gh release create "frost-rerandomized/v2.1.0" -n '' -t "frost-rerandomized v2.1.0" --latest=false`
+       (replace both instances of the version)
 
 20. Publish it with `cargo publish -p frost-rerandomized`
 
@@ -84,9 +90,9 @@
 
        This is because the ciphersuite crates aren’t pointing at the new frost-core package. This is because you need to publish frost-core before you can publish the others otherwise they will not have the expected version to point to.
 
-22. Draft and publish releases for each of those crates (sorry, that will be boring)
+22. Draft and publish releases for each of those crates:
 
-    1. Use the same process as described for frost-core above (actions 1 - 3), but you can leave the changelog empty and **uncheck** “Set as the latest release”
+    1. Run `for cs in ristretto255 ed25519 secp256k1 secp256k1-tr p256 ed448; do gh release create "frost-$cs/v2.1.0" -n '' -t "frost-$cs v2.1.0" --latest=false; done` (replace both instances of the version)
 
 23. Publish those crates: `for cs in ristretto255 ed25519 secp256k1 secp256k1-tr p256 ed448; do cargo publish -p frost-$cs; done`
 
