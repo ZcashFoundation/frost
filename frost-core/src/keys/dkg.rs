@@ -160,8 +160,8 @@ pub mod round1 {
         }
 
         /// Returns the secret coefficients.
-        #[cfg(feature = "internals")]
-        pub fn coefficients(&self) -> Vec<Scalar<C>> {
+        #[cfg_attr(feature = "internals", visibility::make(pub))]
+        pub(crate) fn coefficients(&self) -> Vec<Scalar<C>> {
             self.coefficients.iter().map(|s| s.0).collect()
         }
     }
