@@ -323,7 +323,6 @@ where
     /// Computes the [commitment share] from these round one signing commitments.
     ///
     /// [commitment share]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-share-aggregation
-    #[cfg(any(feature = "internals", feature = "cheater-detection"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(super) fn to_group_commitment_share(
@@ -367,6 +366,7 @@ pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
 impl<C: Ciphersuite> GroupCommitmentShare<C> {
     /// Create from an element.
     #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[allow(unused)]
     pub(crate) fn from_element(element: Element<C>) -> Self {
         Self(element)
     }
