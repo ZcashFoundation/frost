@@ -1,20 +1,12 @@
 [package]
 name = "frost-rerandomized"
-edition = "2021"
-# When releasing to crates.io:
-# - Update html_root_url
-# - Update CHANGELOG.md
-# - Create git tag.
-version = "2.0.0"
-authors = [
-    "Deirdre Connolly <durumcrustulum@gmail.com>",
-    "Chelsea Komlo <me@chelseakomlo.com>",
-    "Conrado Gouvea <conradoplg@gmail.com>",
-]
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
 readme = "README.md"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/ZcashFoundation/frost"
-categories = ["cryptography"]
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
 keywords = ["cryptography", "threshold", "signature", "schnorr", "randomized"]
 description = "Types and traits to support implementing a re-randomized variant of Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
 
@@ -24,12 +16,12 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 derive-getters = "0.5.0"
-document-features = "0.2.7"
-frost-core = { path = "../frost-core", version = "2.0.0", features = [
+document-features.workspace = true
+frost-core = { path = "../frost-core", version = "2.1.0", features = [
     "internals"
 ], default-features = false }
-hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
-rand_core = "0.6"
+hex.workspace = true
+rand_core.workspace = true
 
 [dev-dependencies]
 
