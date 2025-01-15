@@ -35,6 +35,6 @@ successfully generating a signature with all of those participants.
 
 ```admonish danger
 Refreshing Shares may be not enough to address security concerns
-after a share has been compromised. Refer to to the [Understanding
+after a share has been compromised. Refer to the [Understanding
 FROST](../frost.md#refreshing-shares) section.
 ```

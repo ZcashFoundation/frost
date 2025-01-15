@@ -6,7 +6,7 @@ This tutorial explaining how to run the FROST demo using Ywallet that was
 Ywallet supports [offline
 signing](https://ywallet.app/advanced/offline_signature/), which allows having a
 view-only account that can generate a transaction plan, which can be signed by
-a offline wallet also running Ywallet. The demo uses this mechanism but signs
+an offline wallet also running Ywallet. The demo uses this mechanism but signs
 the transaction plan with a command line tool, using FROST.
 
 This tutorial assumes familiarity with the command line.
@@ -88,7 +88,7 @@ another account (or try [ZecFaucet](https://zecfaucet.com/)).
 ```admonish warning
 The address being show by Ywallet is a unified address that includes both an
 Orchard and Sapling address. For the demo to work, you need to receive funds in
-you Orchard address. Whether that will happen depends on multiple factors so
+your Orchard address. Whether that will happen depends on multiple factors so
 it's probably easier to use just the Orchard-only address printed by the signer.
 **If you send it to the Sapling address, the funds will be unspendable and lost!**
 ```
