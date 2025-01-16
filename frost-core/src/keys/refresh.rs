@@ -148,13 +148,13 @@ pub fn refresh_dkg_part_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let proof_of_knowledge =
         compute_proof_of_knowledge(identifier, &coefficients, &commitment, &mut rng)?;
 
-    let secret_package = round1::SecretPackage {
+    let secret_package = round1::SecretPackage::new(
         identifier,
-        coefficients: coefficients.clone(),
-        commitment: commitment.clone(),
+        coefficients.clone(),
+        commitment.clone(),
         min_signers,
         max_signers,
-    };
+    );
     let package = round1::Package {
         header: Header::default(),
         commitment,
@@ -217,7 +217,7 @@ pub fn refresh_dkg_part2<C: Ciphersuite>(
         // > Each P_i securely sends to each other participant P_ℓ a secret share (ℓ, f_i(ℓ)),
         // > deleting f_i and each share afterward except for (i, f_i(i)),
         // > which they keep for themselves.
-        let signing_share = SigningShare::from_coefficients(&secret_package.coefficients, ell);
+        let signing_share = SigningShare::from_coefficients(&secret_package.coefficients(), ell);
 
         round2_packages.insert(
             ell,
@@ -227,16 +227,16 @@ pub fn refresh_dkg_part2<C: Ciphersuite>(
             },
         );
     }
-    let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients);
+    let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients());
 
     Ok((
-        round2::SecretPackage {
-            identifier: secret_package.identifier,
-            commitment: secret_package.commitment,
-            secret_share: fii,
-            min_signers: secret_package.min_signers,
-            max_signers: secret_package.max_signers,
-        },
+        round2::SecretPackage::new(
+            secret_package.identifier,
+            secret_package.commitment,
+            fii,
+            secret_package.min_signers,
+            secret_package.max_signers,
+        ),
         round2_packages,
     ))
 }
@@ -323,7 +323,7 @@ pub fn refresh_dkg_shares<C: Ciphersuite>(
         signing_share = signing_share + f_ell_i.to_scalar();
     }
 
-    signing_share = signing_share + round2_secret_package.secret_share;
+    signing_share = signing_share + round2_secret_package.secret_share();
 
     // Build new signing share
     let old_signing_share = old_key_package.signing_share.to_scalar();

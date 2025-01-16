@@ -128,7 +128,7 @@ and Mallory is eventually excluded from the group and replaced with Bob, it is
 not enough to trust 2 out of 3 between Alice, Bob and Eve. **You also need to
 trust that Mallory won't collude with, say, Eve which could have kept her
 original pre-refresh share and they could both together recompute the original
-key and compromise the group.** If that's a unnaceptable risk to your use case,
+key and compromise the group.** If that's an unacceptable risk to your use case,
 you will need to migrate to a new group if that makes sense to your application.
 ```
 

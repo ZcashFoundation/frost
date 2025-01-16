@@ -32,8 +32,8 @@ where
 
     /// Converts default-encoded bytes as
     /// [`Ciphersuite::SignatureSerialization`] into a `Signature<C>`.
-    #[cfg(feature = "internals")]
-    pub fn default_deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn default_deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         // To compute the expected length of the encoded point, encode the generator
         // and get its length. Note that we can't use the identity because it can be encoded
         // shorter in some cases (e.g. P-256, which uses SEC1 encoding).
@@ -72,8 +72,8 @@ where
     }
 
     /// Converts this signature to its default byte serialization.
-    #[cfg(feature = "internals")]
-    pub fn default_serialize(&self) -> Result<Vec<u8>, Error<C>> {
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn default_serialize(&self) -> Result<Vec<u8>, Error<C>> {
         let R_serialization = <C::Group>::serialize(&self.R)?;
         let z_serialization = <<C::Group as Group>::Field>::serialize(&self.z);
 

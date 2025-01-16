@@ -40,8 +40,8 @@ You can specify which identifiers to use by using [`IdentifierList::Custom`](htt
 Which [**authenticated** and **confidential** channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel)
 to use is up to the application. Some examples:
 
-- Manually require the dealer to sent the `SecretShare`s to the
-  partipants using some secure messenger such as Signal;
+- Manually require the dealer to send the `SecretShare`s to the
+  participants using some secure messenger such as Signal;
 - Use a TLS connection, authenticating the server with a certificate
   and the client with some user/password or another suitable authentication
   mechanism;
