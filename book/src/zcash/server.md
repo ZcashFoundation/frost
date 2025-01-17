@@ -1,12 +1,12 @@
-# FROST Server
+# ZF FROST Server (frostd)
 
 One challenge for using FROST is allowing participants to communicate securely
 with one another. Devices are usually behind firewalls and NATs, which make
 direct connections hard.
 
-To mitigate this issue and to make it easier to use FROST, the FROST Server
-was created. It is a JSON-HTTP server with a small API to allow participants
-to create signing sessions and to communicate with one another.
+To mitigate this issue and to make it easier to use FROST, the ZF FROST Server
+(frostd) was created. It is a JSON-HTTP server with a small API to allow
+participants to create signing sessions and to communicate with one another.
 
 It works like this:
 
@@ -31,20 +31,20 @@ Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
 installed. Run:
 
 ```
-cargo install --git https://github.com/ZcashFoundation/frost-zcash-demo.git frost-server
+cargo install --git https://github.com/ZcashFoundation/frost-zcash-demo.git --locked frostd
 ```
 
-The `frost-server` binary will be installed [per `cargo`
+The `frostd` binary will be installed [per `cargo`
 config](https://doc.rust-lang.org/cargo/commands/cargo-install.html#description)
 and it will likely be in your `$PATH`, so you can run by simply running
-`frost-server`.
+`frostd`.
 
 To deploy the FROST Server, **you need TLS/HTTPS certificates**. We strongly
 recommend using a reverse proxy such as `nginx` to handle TLS and to also add
 denial of service protections. In that case, use the `--no-tls-very-insecure`
-flag in `frost-server` and make `nginx` connect to it (see example config below).
+flag in `frostd` and make `nginx` connect to it (see example config below).
 
-If you want to expose `frost-server` directly, use the `--tls-cert` and
+If you want to expose `frostd` directly, use the `--tls-cert` and
 `--tls-key` to specify the paths of the PEM-encoded certificate and key. You can
 use [Let's Encrypt](https://letsencrypt.org/) to get a free certificate.
 
@@ -62,7 +62,7 @@ mkcert localhost 127.0.0.1 ::1
 Then start the server with:
 
 ```
-frost-server  --tls-cert localhost+2.pem --tls-key localhost+2-key.pem
+frostd  --tls-cert localhost+2.pem --tls-key localhost+2-key.pem
 ```
 
 
@@ -70,7 +70,7 @@ frost-server  --tls-cert localhost+2.pem --tls-key localhost+2-key.pem
 
 This is a sample nginx config file tested in a Ubuntu deployment (i.e. it
 assumes it's in a `http` block and it's included by `/etc/nginx/nginx.conf`);
-copy it to `/etc/nginx/sites-enabled/frost-server` and run `sudo service nginx
+copy it to `/etc/nginx/sites-enabled/frostd` and run `sudo service nginx
 restart`.
 
 The config assumes the certificates were copied to `/etc/ssl`.
