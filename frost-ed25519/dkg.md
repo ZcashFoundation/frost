@@ -26,12 +26,11 @@ they can proceed to sign messages with FROST.
 
 ```rust
 # // ANCHOR: dkg_import
-use rand::thread_rng;
 use std::collections::BTreeMap;
 
 use frost_ed25519 as frost;
 
-let mut rng = thread_rng();
+let mut rng = rand::rngs::OsRng;
 
 let max_signers = 5;
 let min_signers = 3;

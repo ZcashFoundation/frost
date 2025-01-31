@@ -1,5 +1,4 @@
 use lazy_static::lazy_static;
-use rand::thread_rng;
 use serde_json::Value;
 
 use crate::*;
@@ -13,13 +12,13 @@ lazy_static! {
 
 #[test]
 fn check_serialize_vss_commitment() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::vss_commitment::check_serialize_vss_commitment::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_deserialize_vss_commitment() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::vss_commitment::check_deserialize_vss_commitment::<Ristretto255Sha512, _>(
         rng,
     );
@@ -27,7 +26,7 @@ fn check_deserialize_vss_commitment() {
 
 #[test]
 fn check_deserialize_vss_commitment_error() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::vss_commitment::check_deserialize_vss_commitment_error::<
         Ristretto255Sha512,
         _,
@@ -36,7 +35,7 @@ fn check_deserialize_vss_commitment_error() {
 
 #[test]
 fn check_compute_public_key_package() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::vss_commitment::check_compute_public_key_package::<Ristretto255Sha512, _>(
         rng,
     );

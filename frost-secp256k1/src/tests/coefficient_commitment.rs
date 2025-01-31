@@ -1,5 +1,4 @@
 use lazy_static::lazy_static;
-use rand::thread_rng;
 use serde_json::Value;
 
 use crate::*;
@@ -13,7 +12,7 @@ lazy_static! {
 
 #[test]
 fn check_serialization_of_coefficient_commitment() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::coefficient_commitment::check_serialization_of_coefficient_commitment::<
         Secp256K1Sha256,
         _,
@@ -22,7 +21,7 @@ fn check_serialization_of_coefficient_commitment() {
 
 #[test]
 fn check_create_coefficient_commitment() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::coefficient_commitment::check_create_coefficient_commitment::<
         Secp256K1Sha256,
         _,
@@ -37,7 +36,7 @@ fn check_create_coefficient_commitment_error() {
 
 #[test]
 fn check_get_value_of_coefficient_commitment() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     frost_core::tests::coefficient_commitment::check_get_value_of_coefficient_commitment::<
         Secp256K1Sha256,

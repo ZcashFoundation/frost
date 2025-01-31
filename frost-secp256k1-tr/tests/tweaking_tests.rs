@@ -12,19 +12,19 @@ mod helpers;
 #[test]
 fn check_tweaked_sign_with_dealer() -> Result<(), Box<dyn Error>> {
     use frost_secp256k1_tr as frost;
-    use rand::thread_rng;
+
     use std::collections::BTreeMap;
 
     let merkle_root: Vec<u8> = vec![12; 32];
 
-    let mut rng = thread_rng();
+    let mut rng = rand::rngs::OsRng;
     let max_signers = 5;
     let min_signers = 3;
     let (shares, pubkey_package) = frost::keys::generate_with_dealer(
         max_signers,
         min_signers,
         frost::keys::IdentifierList::Default,
-        &mut rng,
+        rng,
     )?;
     let mut key_packages: BTreeMap<_, _> = BTreeMap::new();
     for (identifier, secret_share) in shares {
