@@ -124,7 +124,9 @@ body will have a JSON such as:
 { code: 1, msg: "error message" }
 ```
 
-The codes are: (TODO: link to source code?)
+The
+[codes](https://github.com/ZcashFoundation/frost-zcash-demo/blob/548a8a7329c6eed8180464662f430d12cd71dfcc/frostd/src/lib.rs#L95-L98)
+are:
 
 ```
 pub const INVALID_ARGUMENT: usize = 1;
@@ -195,30 +197,30 @@ Returns a challenge that the client will need to sign in order to authenticate.
 
 ### `/login`
 
-To call `/login`, you will need to sign the challenge with XEdDSA, see example
-(TODO: link). Sign the challenge UUID, converted to bytes.
+To call `/login`, you will need to sign the challenge with XEdDSA, see
+[example](https://github.com/ZcashFoundation/frost-zcash-demo/blob/548a8a7329c6eed8180464662f430d12cd71dfcc/frostd/tests/integration_tests.rs#L443-L476).
+Sign the challenge UUID, converted to bytes.
 
-TODO: fill valid signature
 
 Input sample:
 
 ```
 {
-  "challenge":"2c5cdb6d-a7db-470e-9e6f-2a7062532825",
-  "pubkey":"3c9f4a3b2ae28c8e11fbc90b693a9712c181275fb4b554a140c68dc13cdd9b4c",
-  "signature":""
+  "challenge":"b771757e-085a-4a88-ab8f-28bd4ba67f3a",
+  "pubkey":"f5bf1b8194e20ebdd28e662b1efcf1c5cd2aaade5d5dd83cf89b246b5492726b",
+  "signature":"bba398d0963ab88e28134ad41c127eeee816a219838db01dd7bcd9d7fcd975f082330c134e6f7238580ba8434652aa116891495452d9048f5615e07f4ad6b204"
 }
 ```
 
 Output sample:
 
 ```
-{"access_token":"5a21ebf4-3f28-4198-bf3d-6174851adbb9"}
+{"access_token":"061a18ba-2c3c-4685-a79e-2c0c93000af5"}
 ```
 
 The returned access token must be included as a bearer token in an
 `Authorization` header; e.g. `Authorization: Bearer
-5a21ebf4-3f28-4198-bf3d-6174851adbb9`.
+061a18ba-2c3c-4685-a79e-2c0c93000af5`.
 
 Access token are currently valid for 1 hour. It's recommended to login at the
 beginning of each FROST session; log in again if it needs to take longer.
