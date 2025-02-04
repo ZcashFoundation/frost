@@ -169,7 +169,7 @@ Selecting sessions is tricky. Ideally, the user should select what session
 to proceed by checking the message being signed; however, that is usually
 sent in Round 2. There are multiple ways to handle this:
 
-- Simply show the users who are participant, hoping that is enough to
+- Simply show the users who are participants, hoping that is enough to
   disambiguate (we assume that concurrent signing sessions won't be that common)
 - Quietly proceed with all sessions, and only prompt the user after the message
   is received. (It's harmless to do round 1 of FROST even if the user might
@@ -222,7 +222,7 @@ The returned access token must be included as a bearer token in an
 `Authorization` header; e.g. `Authorization: Bearer
 061a18ba-2c3c-4685-a79e-2c0c93000af5`.
 
-Access token are currently valid for 1 hour. It's recommended to login at the
+Access tokens are currently valid for 1 hour. It's recommended to login at the
 beginning of each FROST session; log in again if it needs to take longer.
 
 ### `/logout`
@@ -315,8 +315,8 @@ Coordinator's public key, because that might be ambiguous if they're also a
 Participant).
 
 ```admonish critical
-Messages **MUST** be end-to-end encrypted to their recipients. The server can't
-enforce this and if you will fail to encrypt them then the server could read
+Messages **MUST** be end-to-end encrypted between recipients. The server can't
+enforce this and if you fail to encrypt them then the server could read
 all the messages.
 ```
 
