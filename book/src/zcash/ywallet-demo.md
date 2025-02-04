@@ -90,7 +90,7 @@ number of shares and file names using the command line; append `-h` to the
 commend above for the command line help.
 
 
-## Genearting FROST key shares using DKG
+## Generating FROST key shares using DKG
 
 For real-word usage we commend generating key shares using Distributed Key
 Generation. If you did the previous section, skip to "Generating the Full

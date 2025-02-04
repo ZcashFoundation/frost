@@ -360,4 +360,4 @@ Input sample:
 Output: empty
 
 Closes the given session. Only the Coordinator who created the session can close
-it. Sessions also expire, by default after 24 hours.
+it. Sessions also expire by default after 24 hours.
