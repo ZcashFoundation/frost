@@ -90,14 +90,14 @@ when recovering a wallet.
 
 The biggest challenge in using FROST with Zcash is allowing participants to
 communicate securely with each other, which is required to run the FROST
-protocol. Since wallets don't currently need to communication to each other, a
+protocol. Since wallets don't currently need to communicate with each other, a
 whole new mechanism will need to be implemented.
 
 For this to happen, two things are required:
 
 - Allowing wallets to actually communicate with each other (regardless of
   security). This is challenging because users are usually behind NATs and
-  firewalls, so they can't simply open TCP connections with each other. So
+  firewalls, so they can't simply open TCP connections with each other. So,
   some kind of signaling server may be needed.
 - Making the communication secure. This is actually fairly solvable while not
   trivial and we're planning on working on a library to address it. It needs to

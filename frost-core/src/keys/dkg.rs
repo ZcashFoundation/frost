@@ -17,7 +17,7 @@
 //!
 //! As required for any multi-party protocol using Feldman's VSS, the key
 //! generation stage in FROST requires participants to maintain a consistent
-//! view of the pubic commitments to the secret polynomial coefficients. This
+//! view of the public commitments to the secret polynomial coefficients. This
 //! DKG protocol requires participants to broadcast the commitment values
 //! honestly (e.g., participants do not provide different commitment values to a
 //! subset of participants) over a _[secure broadcast channel]_.

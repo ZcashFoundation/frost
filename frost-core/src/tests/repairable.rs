@@ -16,7 +16,7 @@ use crate::{
     Ciphersuite, Error, Field, Group, Identifier, Scalar,
 };
 
-/// We want to test that recover share matches the original share
+/// We want to test that recovered share matches the original share
 pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     // Compute shares
 

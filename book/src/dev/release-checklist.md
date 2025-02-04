@@ -32,7 +32,7 @@ releases easier.
 ## Make changes
 
 - Bump the version of the crates in the root Cargo.toml file. (If they ever
-   get out of sync, you wil need to bump in each crate Cargo.toml file.)
+   get out of sync, you will need to bump in each crate Cargo.toml file.)
 
 - Run `cargo semver-checks` to check if there are no API changes that break
    SemVer compatibility. ([Installation

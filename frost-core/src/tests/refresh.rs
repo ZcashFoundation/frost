@@ -18,7 +18,7 @@ use alloc::vec::Vec;
 
 use super::ciphersuite_generic::check_sign;
 
-/// We want to test that recover share matches the original share
+/// We want to test that recovered share matches the original share
 pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     // Compute shares
 
