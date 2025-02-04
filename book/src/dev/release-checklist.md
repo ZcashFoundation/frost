@@ -19,18 +19,12 @@ releases easier.
 
 ## Checks
 
-4. Check current version for each crate. This is in the Cargo.toml file for frost-core, frost-ed448 etc.
+4. Currently all crates share the same version number, in the root Cargo.toml
+   file. Take note of that version. (If we ever decide to have specific
+   versions, update those separately as required.)
 
-   1. [Frost core version number](https://github.com/ZcashFoundation/frost/blob/main/frost-core/Cargo.toml#L7)
-   2. [Frost ed25519 version number](https://github.com/ZcashFoundation/frost/blob/main/frost-ed25519/Cargo.toml#L8)
-   3. [Frost ed448 version number](https://github.com/ZcashFoundation/frost/blob/main/frost-ed448/Cargo.toml#L7)
-   4. [Frost p256 version number](https://github.com/ZcashFoundation/frost/blob/main/frost-p256/Cargo.toml#L8)
-   5. [Frost re randomized version number](https://github.com/ZcashFoundation/frost/blob/main/frost-rerandomized/Cargo.toml#L8)
-   6. [Frost ristretto255 version number](https://github.com/ZcashFoundation/frost/blob/main/frost-ristretto255/Cargo.toml#L8)
-   7. [Frost secp256k1 version number](https://github.com/ZcashFoundation/frost/blob/main/frost-secp256k1/Cargo.toml#L7)
-   8. [Frost secp256k1 tr version number](https://github.com/ZcashFoundation/frost/blob/main/frost-secp256k1-tr/Cargo.toml#L7)
-
-5. Decide which version to tag the release with (e.g. v0.3.0). Currently we always use the same release number for all crates, but it's possible for them to get out of sync in the future.
+5. Decide which version to tag the release with (e.g. v0.3.0), considering
+   [SemVer](https://doc.rust-lang.org/cargo/reference/semver.html).
 
 6. Create new issue. E.g. [Release v0.4.0](https://github.com/ZcashFoundation/frost/issues/377)
 
