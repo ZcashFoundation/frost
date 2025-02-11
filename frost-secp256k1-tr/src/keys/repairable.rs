@@ -58,7 +58,7 @@ pub fn repair_share_step_3(
 mod tests {
 
     use lazy_static::lazy_static;
-    use rand::thread_rng;
+
     use serde_json::Value;
 
     use crate::Secp256K1Sha256TR;
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_1() {
-        let rng = thread_rng();
+        let rng = rand::rngs::OsRng;
 
         frost_core::tests::repairable::check_repair_share_step_1::<Secp256K1Sha256TR, _>(rng);
     }
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_3() {
-        let rng = thread_rng();
+        let rng = rand::rngs::OsRng;
         frost_core::tests::repairable::check_repair_share_step_3::<Secp256K1Sha256TR, _>(
             rng,
             &REPAIR_SHARE,
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_1_fails_with_invalid_min_signers() {
-        let rng = thread_rng();
+        let rng = rand::rngs::OsRng;
         frost_core::tests::repairable::check_repair_share_step_1_fails_with_invalid_min_signers::<
             Secp256K1Sha256TR,
             _,
