@@ -1,8 +1,8 @@
 //! Refresh Shares
 //!
-//! Implements the functionality to refresh a share. This requires the participation
-//! of all the remaining signers. This can be done using a Trusted Dealer or
-//! DKG (not yet implemented)
+//! Implements the functionality to refresh a share. This requires the
+//! participation of all the remaining signers. This can be done using a Trusted
+//! Dealer or DKG.
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
