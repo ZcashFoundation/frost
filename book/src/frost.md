@@ -112,11 +112,6 @@ shares in a way that maintains the same group public key. Some applications are:
   in signing sessions with the others. (They can also then use the repair share
   functionality to issue a new share and move from 2-of-2 back to 2-of-3.)
 
-```admonish note
-This is also possible via Distributed Key Generation but this has not yet been
-implemented.
-```
-
 ```admonish danger
 It is critically important to keep in mind that the **Refresh Shares
 functionality does not "restore full security" to a group**. While the group

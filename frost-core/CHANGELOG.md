@@ -8,9 +8,9 @@ Entries are listed in reverse chronological order.
 
 * It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
   if an invalid secret share was sent by one of the participants (by calling
-  frost_core::Error<C>::culprit()`) (#728)
+  `frost_core::Error<C>::culprit()`) (#728)
 * Added frost-secp256k1-tr crate, allowing to generate Bitcoin Taproot
-  (BIP340/BIP341) compatible signatures(#730).
+  (BIP340/BIP341) compatible signatures (#730).
 * Support refreshing shares using the DKG approach using the
   `frost_core::keys::refresh::refresh_dkg_{part1,part2,shares}()` functions
   (#766).

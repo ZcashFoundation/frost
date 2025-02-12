@@ -600,7 +600,7 @@ pub mod keys {
 
     /// Trait for ensuring the group public key has an even Y coordinate.
     ///
-    /// In BIP-320, public keys are encoded with only the X coordinate, which
+    /// In BIP-340, public keys are encoded with only the X coordinate, which
     /// means that two Y coordinates are possible. The specification says that
     /// the coordinate which is even must be used. Alternatively, something
     /// equivalent can be accomplished by simply converting any existing
