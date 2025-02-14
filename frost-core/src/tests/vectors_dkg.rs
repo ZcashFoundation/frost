@@ -1,6 +1,5 @@
 //! Helper function for testing with test vectors.
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
-
 use debugless_unwrap::DebuglessUnwrap;
 use hex::{self};
 use serde_json::Value;
@@ -44,76 +43,79 @@ fn json_to_element<C: Ciphersuite>(vector: &Value) -> <C::Group as Group>::Seria
 
 /// Parse test vectors for a given ciphersuite.
 #[allow(clippy::type_complexity)]
-pub fn parse_test_vectors_dkg<C: Ciphersuite>(json_vectors: &Value) -> DKGTestVectors<C> {
+pub fn parse_test_vectors_dkg<C: Ciphersuite>(json_vectors: &Value) -> Vec<DKGTestVectors<C>> {
+    let mut vectors: Vec<DKGTestVectors<C>> = Vec::new();
     let inputs = &json_vectors["inputs"];
-    let participant = &inputs["1"];
+    let min_signers = json_vectors["config"]["MIN_PARTICIPANTS"].as_u64().unwrap() as u16;
 
-    let participant_1_id: Identifier<C> = (participant["identifier"].as_u64().unwrap() as u16)
-        .try_into()
-        .unwrap();
-    let participant_2_id: Identifier<C> = (inputs["2"]["identifier"].as_u64().unwrap() as u16)
-        .try_into()
-        .unwrap();
-    let participant_3_id: Identifier<C> = (inputs["3"]["identifier"].as_u64().unwrap() as u16)
-        .try_into()
-        .unwrap();
+    for (participant_id_str, participant_data) in inputs.as_object().unwrap() {
+        match participant_id_str.parse::<u16>() {
+            Ok(id) => id,
+            Err(_) => continue,
+        };
+        let participant_id: Identifier<C> = 
+            (participant_data["identifier"].as_u64().unwrap() as u16).try_into().unwrap();
 
-    let mut round1_packages = BTreeMap::new();
-    round1_packages.insert(participant_2_id, build_round_1_package(json_vectors, 2));
-    round1_packages.insert(participant_3_id, build_round_1_package(json_vectors, 3));
+        let mut round1_packages = BTreeMap::new();
+        let mut round2_packages = BTreeMap::new();
+        for (other_participant_id_str, other_participant_data) in inputs.as_object().unwrap() {
+            if participant_id_str == other_participant_id_str {
+                continue;
+            }
+            match other_participant_id_str.parse::<u16>() {
+                Ok(id) => id,
+                Err(_) => continue,
+            };
+            let other_participant_id: Identifier<C> =
+                (other_participant_data["identifier"].as_u64().unwrap() as u16).try_into().unwrap();
+            round1_packages.insert(other_participant_id, build_round_1_package(other_participant_data));
+            round2_packages.insert(other_participant_id, build_round_2_package(participant_data, other_participant_id_str));
+        }
 
-    let mut round2_packages = BTreeMap::new();
-    round2_packages.insert(participant_2_id, build_round_2_package(json_vectors, 2));
-    round2_packages.insert(participant_3_id, build_round_2_package(json_vectors, 3));
+        let secret = 
+            SigningKey::deserialize(json_to_scalar::<C>(&participant_data["signing_key"]).as_ref()).unwrap();
 
-    let secret =
-        SigningKey::deserialize(json_to_scalar::<C>(&participant["signing_key"]).as_ref()).unwrap();
+        let coefficient = <<C::Group as Group>::Field as Field>::deserialize(
+            &json_to_scalar::<C>(&participant_data["coefficient"])).unwrap();
 
-    let coefficient = <<C::Group as Group>::Field as Field>::deserialize(&json_to_scalar::<C>(
-        &participant["coefficient"],
-    ))
-    .unwrap();
+        let public_key_package = build_public_key_package(json_vectors);
+        
+        let verifying_share =
+            VerifyingShare::deserialize(json_to_element::<C>(&participant_data["verifying_share"]).as_ref())
+                .unwrap();
 
-    let public_key_package = build_public_key_package(json_vectors);
+        let verifying_key =
+            VerifyingKey::deserialize(json_to_element::<C>(&inputs["verifying_key"]).as_ref()).unwrap();
 
-    let verifying_share =
-        VerifyingShare::deserialize(json_to_element::<C>(&participant["verifying_share"]).as_ref())
-            .unwrap();
-
-    let verifying_key =
-        VerifyingKey::deserialize(json_to_element::<C>(&inputs["verifying_key"]).as_ref()).unwrap();
-
-    let signing_share =
-        SigningShare::deserialize(json_to_scalar::<C>(&participant["signing_share"]).as_ref())
-            .unwrap();
-
-    let key_package = KeyPackage {
-        header: Header::default(),
-        identifier: participant_1_id,
-        signing_share,
-        verifying_share,
-        verifying_key,
-        min_signers: 2,
-    };
-
-    DKGTestVectors {
-        secret,
-        coefficient,
-        round1_packages,
-        round2_packages,
-        public_key_package,
-        key_package,
-        participant_id: participant_1_id,
+        let signing_share =
+            SigningShare::deserialize(json_to_scalar::<C>(&participant_data["signing_share"]).as_ref())
+                .unwrap();
+        
+        let key_package = KeyPackage {
+            header: Header::default(),
+            identifier: participant_id,
+            signing_share,
+            verifying_share,
+            verifying_key,
+            min_signers
+        };
+        vectors.push(DKGTestVectors {
+            secret,
+            coefficient,
+            round1_packages,
+            round2_packages,
+            public_key_package,
+            key_package,
+            participant_id: participant_id,
+        })
     }
+    vectors
 }
 
 fn build_round_1_package<C: Ciphersuite>(
-    json_vectors: &Value,
-    participant_num: usize,
+    json_vectors: &Value
 ) -> Round1Package<C> {
-    let inputs = &json_vectors["inputs"];
-    let participant = &inputs[participant_num.to_string()];
-    let vss_commitment = participant["vss_commitments"]
+    let vss_commitment = json_vectors["vss_commitments"]
         .as_array()
         .unwrap()
         .iter()
@@ -123,7 +125,7 @@ fn build_round_1_package<C: Ciphersuite>(
     let commitment = VerifiableSecretSharingCommitment::deserialize(vss_commitment).unwrap();
 
     let proof_of_knowledge = Signature::deserialize(
-        &hex::decode(participant["proof_of_knowledge"].as_str().unwrap()).unwrap(),
+        &hex::decode(json_vectors["proof_of_knowledge"].as_str().unwrap()).unwrap(),
     )
     .debugless_unwrap();
 
@@ -136,12 +138,11 @@ fn build_round_1_package<C: Ciphersuite>(
 
 fn build_round_2_package<C: Ciphersuite>(
     json_vectors: &Value,
-    sender_num: usize,
+    sender_num: &String,
 ) -> Round2Package<C> {
-    let inputs = &json_vectors["inputs"];
 
     let signing_share = SigningShare::deserialize(
-        json_to_scalar::<C>(&inputs["1"]["signing_shares"][sender_num.to_string()]).as_ref(),
+        json_to_scalar::<C>(&json_vectors["signing_shares"][sender_num]).as_ref(),
     )
     .unwrap();
 
@@ -182,41 +183,43 @@ fn build_public_key_package<C: Ciphersuite>(json_vectors: &Value) -> PublicKeyPa
 
 /// Test DKG with the given test vectors for a ciphersuite
 pub fn check_dkg_keygen<C: Ciphersuite>(json_vectors: &Value) {
-    let DKGTestVectors {
-        secret,
-        coefficient,
-        round1_packages,
-        round2_packages,
-        public_key_package,
-        key_package,
-        participant_id,
-    } = parse_test_vectors_dkg(json_vectors);
+    for dkg_vectors in parse_test_vectors_dkg(json_vectors) {
+        let DKGTestVectors {
+            secret,
+            coefficient,
+            round1_packages,
+            round2_packages,
+            public_key_package,
+            key_package,
+            participant_id,
+        } = dkg_vectors;
 
-    let min_signers = 2;
-    let max_signers = 3;
+        let min_signers = 2;
+        let max_signers = 3;
 
-    let (coefficients, commitment) = generate_secret_polynomial(
-        &secret as &SigningKey<C>,
-        max_signers,
-        min_signers,
-        vec![coefficient],
-    )
-    .unwrap();
+        let (coefficients, commitment) = generate_secret_polynomial(
+            &secret as &SigningKey<C>,
+            max_signers,
+            min_signers,
+            vec![coefficient],
+        )
+            .unwrap();
 
-    let round1_secret_package = SecretPackage::new(
-        participant_id,
-        coefficients,
-        commitment.clone(),
-        min_signers,
-        max_signers,
-    );
+        let round1_secret_package = SecretPackage::new(
+            participant_id,
+            coefficients,
+            commitment.clone(),
+            min_signers,
+            max_signers,
+        );
 
-    let (round2_secret_package, _round2_packages_1) =
-        part2(round1_secret_package, &round1_packages).unwrap();
+        let (round2_secret_package, _round2_packages_1) =
+            part2(round1_secret_package, &round1_packages).unwrap();
 
-    let (expected_key_package, expected_public_key_package) =
-        part3(&round2_secret_package, &round1_packages, &round2_packages).unwrap();
+        let (expected_key_package, expected_public_key_package) =
+            part3(&round2_secret_package, &round1_packages, &round2_packages).unwrap();
 
-    assert_eq!(public_key_package, expected_public_key_package);
-    assert_eq!(key_package, expected_key_package);
+        assert_eq!(public_key_package, expected_public_key_package);
+        assert_eq!(key_package, expected_key_package);   
+    }
 }
