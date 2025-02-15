@@ -7,7 +7,7 @@ readme = "README.md"
 license.workspace = true
 repository.workspace = true
 categories.workspace = true
-keywords = ["cryptography", "crypto", "threshold", "signature"]
+keywords = ["cryptography", "crypto", "p256", "threshold", "signature"]
 description = "A Schnorr signature scheme over the NIST P-256 curve that supports FROST."
 
 [package.metadata.docs.rs]
@@ -17,15 +17,15 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 document-features.workspace = true
 p256 = { version = "0.13.0", features = ["hash2curve"], default-features = false }
-frost-core = { path = "../frost-core", version = "2.1.0", default-features = false }
-frost-rerandomized = { path = "../frost-rerandomized", version = "2.1.0", default-features = false }
+frost-core.workspace = true
+frost-rerandomized.workspace = true
 rand_core.workspace = true
 sha2 = { version = "0.10.2", default-features = false }
 
 [dev-dependencies]
 criterion.workspace = true
-frost-core = { path = "../frost-core", version = "2.1.0", features = ["test-impl"] }
-frost-rerandomized = { path = "../frost-rerandomized", version = "2.1.0", features = ["test-impl"] }
+frost-core = { workspace = true, features = ["std", "test-impl"] }
+frost-rerandomized = { workspace = true, features = ["std", "test-impl"] }
 insta.workspace = true
 hex.workspace = true
 lazy_static.workspace = true
