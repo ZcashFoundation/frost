@@ -46,15 +46,16 @@ fn json_to_element<C: Ciphersuite>(vector: &Value) -> <C::Group as Group>::Seria
 pub fn parse_test_vectors_dkg<C: Ciphersuite>(json_vectors: &Value) -> Vec<DKGTestVectors<C>> {
     let mut vectors: Vec<DKGTestVectors<C>> = Vec::new();
     let inputs = &json_vectors["inputs"];
+    let max_participants = json_vectors["config"]["MAX_PARTICIPANTS"].as_u64().unwrap() as u16;
     let min_signers = json_vectors["config"]["MIN_PARTICIPANTS"].as_u64().unwrap() as u16;
 
-    for (participant_id_str, participant_data) in inputs.as_object().unwrap() {
-        match participant_id_str.parse::<u16>() {
-            Ok(id) => id,
-            Err(_) => continue,
-        };
-        let participant_id: Identifier<C> = 
-            (participant_data["identifier"].as_u64().unwrap() as u16).try_into().unwrap();
+    for i in 1..=max_participants {
+        let participant_id_str = &i.to_string();
+        let participant_data = &inputs[participant_id_str];
+        let participant_id: Identifier<C> = (participant_data["identifier"].as_u64().unwrap()
+            as u16)
+            .try_into()
+            .unwrap();
 
         let mut round1_packages = BTreeMap::new();
         let mut round2_packages = BTreeMap::new();
