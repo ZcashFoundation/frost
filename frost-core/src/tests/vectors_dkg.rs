@@ -68,37 +68,51 @@ pub fn parse_test_vectors_dkg<C: Ciphersuite>(json_vectors: &Value) -> Vec<DKGTe
                 Err(_) => continue,
             };
             let other_participant_id: Identifier<C> =
-                (other_participant_data["identifier"].as_u64().unwrap() as u16).try_into().unwrap();
-            round1_packages.insert(other_participant_id, build_round_1_package(other_participant_data));
-            round2_packages.insert(other_participant_id, build_round_2_package(participant_data, other_participant_id_str));
+                (other_participant_data["identifier"].as_u64().unwrap() as u16)
+                    .try_into()
+                    .unwrap();
+            round1_packages.insert(
+                other_participant_id,
+                build_round_1_package(other_participant_data),
+            );
+            round2_packages.insert(
+                other_participant_id,
+                build_round_2_package(participant_data, other_participant_id_str),
+            );
         }
 
-        let secret = 
-            SigningKey::deserialize(json_to_scalar::<C>(&participant_data["signing_key"]).as_ref()).unwrap();
+        let secret =
+            SigningKey::deserialize(json_to_scalar::<C>(&participant_data["signing_key"]).as_ref())
+                .unwrap();
 
-        let coefficient = <<C::Group as Group>::Field as Field>::deserialize(
-            &json_to_scalar::<C>(&participant_data["coefficient"])).unwrap();
+        let coefficient = <<C::Group as Group>::Field as Field>::deserialize(&json_to_scalar::<C>(
+            &participant_data["coefficient"],
+        ))
+        .unwrap();
 
         let public_key_package = build_public_key_package(json_vectors);
-        
-        let verifying_share =
-            VerifyingShare::deserialize(json_to_element::<C>(&participant_data["verifying_share"]).as_ref())
-                .unwrap();
+
+        let verifying_share = VerifyingShare::deserialize(
+            json_to_element::<C>(&participant_data["verifying_share"]).as_ref(),
+        )
+        .unwrap();
 
         let verifying_key =
-            VerifyingKey::deserialize(json_to_element::<C>(&inputs["verifying_key"]).as_ref()).unwrap();
-
-        let signing_share =
-            SigningShare::deserialize(json_to_scalar::<C>(&participant_data["signing_share"]).as_ref())
+            VerifyingKey::deserialize(json_to_element::<C>(&inputs["verifying_key"]).as_ref())
                 .unwrap();
-        
+
+        let signing_share = SigningShare::deserialize(
+            json_to_scalar::<C>(&participant_data["signing_share"]).as_ref(),
+        )
+        .unwrap();
+
         let key_package = KeyPackage {
             header: Header::default(),
             identifier: participant_id,
             signing_share,
             verifying_share,
             verifying_key,
-            min_signers
+            min_signers,
         };
         vectors.push(DKGTestVectors {
             secret,
@@ -107,15 +121,13 @@ pub fn parse_test_vectors_dkg<C: Ciphersuite>(json_vectors: &Value) -> Vec<DKGTe
             round2_packages,
             public_key_package,
             key_package,
-            participant_id: participant_id,
+            participant_id,
         })
     }
     vectors
 }
 
-fn build_round_1_package<C: Ciphersuite>(
-    json_vectors: &Value
-) -> Round1Package<C> {
+fn build_round_1_package<C: Ciphersuite>(json_vectors: &Value) -> Round1Package<C> {
     let vss_commitment = json_vectors["vss_commitments"]
         .as_array()
         .unwrap()
@@ -141,7 +153,6 @@ fn build_round_2_package<C: Ciphersuite>(
     json_vectors: &Value,
     sender_num: &String,
 ) -> Round2Package<C> {
-
     let signing_share = SigningShare::deserialize(
         json_to_scalar::<C>(&json_vectors["signing_shares"][sender_num]).as_ref(),
     )
@@ -204,7 +215,7 @@ pub fn check_dkg_keygen<C: Ciphersuite>(json_vectors: &Value) {
             min_signers,
             vec![coefficient],
         )
-            .unwrap();
+        .unwrap();
 
         let round1_secret_package = SecretPackage::new(
             participant_id,
@@ -221,6 +232,6 @@ pub fn check_dkg_keygen<C: Ciphersuite>(json_vectors: &Value) {
             part3(&round2_secret_package, &round1_packages, &round2_packages).unwrap();
 
         assert_eq!(public_key_package, expected_public_key_package);
-        assert_eq!(key_package, expected_key_package);   
+        assert_eq!(key_package, expected_key_package);
     }
 }
