@@ -46,7 +46,7 @@ releases easier.
    - Move version in changelog to Released
    - Create a new version in “unreleased” in changelog
 
-- Update the version number for frost-core and frost-rerandomized in the Ciphersuite crates, e.g. in `frost-core = { path = "../frost-core", version = "0.4.0", features = ["test-impl"] }`. You'll need to do this for dependencies and dev-dependencies
+- Update the version number for frost-core and frost-rerandomized in the root Cargo.toml file, e.g. in `frost-core = { path = "frost-core", version = "0.4.0", default-features = false }`
 
 - Create a PR with subject `Release \<version number>` containing all these changes
 
