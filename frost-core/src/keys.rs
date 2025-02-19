@@ -327,6 +327,11 @@ where
             .collect::<Result<_, Error<C>>>()
     }
 
+    /// Serialize to bytes
+    pub fn serialize_whole(&self) -> Result<Vec<u8>, Error<C>> {
+        self.serialize().map(|v| v.concat())
+    }
+
     /// Returns VerifiableSecretSharingCommitment from an iterator of serialized
     /// CoefficientCommitments (e.g. a [`Vec<Vec<u8>>`]).
     pub fn deserialize<I, V>(serialized_coefficient_commitments: I) -> Result<Self, Error<C>>
@@ -340,6 +345,24 @@ where
         }
 
         Ok(Self::new(coefficient_commitments))
+    }
+
+    /// Deserialize from bytes
+    pub fn deserialize_whole(bytes: &[u8]) -> Result<Self, Error<C>> {
+        // Get size from the size of the generator
+        let generator = <C::Group>::generator();
+        let len = <C::Group>::serialize(&generator)
+            .expect("serializing the generator always works")
+            .as_ref()
+            .len();
+
+        let serialized_coefficient_commitments = bytes.chunks_exact(len);
+
+        if !serialized_coefficient_commitments.remainder().is_empty() {
+            return Err(Error::InvalidCoefficient);
+        }
+
+        Self::deserialize(serialized_coefficient_commitments)
     }
 
     /// Get the VerifyingKey matching this commitment vector (which is the first
