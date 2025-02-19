@@ -327,7 +327,7 @@ where
             .collect::<Result<_, Error<C>>>()
     }
 
-    /// Serialize to bytes
+    /// Serialize the whole commitment vector as a single byte vector.
     pub fn serialize_whole(&self) -> Result<Vec<u8>, Error<C>> {
         self.serialize().map(|v| v.concat())
     }
