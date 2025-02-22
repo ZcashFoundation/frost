@@ -347,7 +347,8 @@ where
         Ok(Self::new(coefficient_commitments))
     }
 
-    /// Deserialize a whole commitment vector from a single byte vector as returned by [`serialize_whole()`].
+    /// Deserialize a whole commitment vector from a single byte vector as returned by
+    /// [`VerifiableSecretSharingCommitment::serialize_whole()`].
     pub fn deserialize_whole(bytes: &[u8]) -> Result<Self, Error<C>> {
         // Get size from the size of the generator
         let generator = <C::Group>::generator();
