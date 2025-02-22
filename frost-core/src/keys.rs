@@ -327,7 +327,7 @@ where
             .collect::<Result<_, Error<C>>>()
     }
 
-    /// Serialize to bytes
+    /// Serialize the whole commitment vector as a single byte vector.
     pub fn serialize_whole(&self) -> Result<Vec<u8>, Error<C>> {
         self.serialize().map(|v| v.concat())
     }
@@ -347,7 +347,7 @@ where
         Ok(Self::new(coefficient_commitments))
     }
 
-    /// Deserialize from bytes
+    /// Deserialize a whole commitment vector from a single byte vector as returned by [`serialize_whole()`].
     pub fn deserialize_whole(bytes: &[u8]) -> Result<Self, Error<C>> {
         // Get size from the size of the generator
         let generator = <C::Group>::generator();
