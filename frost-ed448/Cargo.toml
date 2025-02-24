@@ -16,11 +16,11 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 document-features.workspace = true
-ed448-goldilocks = { version = "0.9.0" }
+ed448-goldilocks = { workspace = true }
 frost-core.workspace = true
 frost-rerandomized.workspace = true
 rand_core.workspace = true
-sha3 = { version = "0.10.6", default-features = false }
+sha3 = { workspace = true }
 
 [dev-dependencies]
 criterion.workspace = true

@@ -18,9 +18,9 @@ rustdoc-args = ["--cfg", "docsrs"]
 document-features.workspace = true
 frost-core.workspace = true
 frost-rerandomized.workspace = true
-k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"], default-features = false }
+k256 = { workspace = true, features = ["arithmetic", "expose-field", "hash2curve"] }
 rand_core.workspace = true
-sha2 = { version = "0.10.2", default-features = false }
+sha2 = { workspace = true }
 
 [dev-dependencies]
 criterion.workspace = true
@@ -32,7 +32,7 @@ lazy_static.workspace = true
 proptest.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
-secp256k1 = "0.30.0"
+secp256k1 = { workspace = true }
 serde_json.workspace = true
 
 [features]
