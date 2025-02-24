@@ -17,6 +17,14 @@ fn check_serialize_vss_commitment() {
 }
 
 #[test]
+fn check_serialize_whole_vss_commitment() {
+    let rng = rand::rngs::OsRng;
+    frost_core::tests::vss_commitment::check_serialize_whole_vss_commitment::<Ristretto255Sha512, _>(
+        rng,
+    );
+}
+
+#[test]
 fn check_deserialize_vss_commitment() {
     let rng = rand::rngs::OsRng;
     frost_core::tests::vss_commitment::check_deserialize_vss_commitment::<Ristretto255Sha512, _>(
@@ -25,9 +33,27 @@ fn check_deserialize_vss_commitment() {
 }
 
 #[test]
+fn check_deserialize_whole_vss_commitment() {
+    let rng = rand::rngs::OsRng;
+    frost_core::tests::vss_commitment::check_deserialize_whole_vss_commitment::<
+        Ristretto255Sha512,
+        _,
+    >(rng);
+}
+
+#[test]
 fn check_deserialize_vss_commitment_error() {
     let rng = rand::rngs::OsRng;
     frost_core::tests::vss_commitment::check_deserialize_vss_commitment_error::<
+        Ristretto255Sha512,
+        _,
+    >(rng, &ELEMENTS);
+}
+
+#[test]
+fn check_deserialize_whole_vss_commitment_error() {
+    let rng = rand::rngs::OsRng;
+    frost_core::tests::vss_commitment::check_deserialize_whole_vss_commitment_error::<
         Ristretto255Sha512,
         _,
     >(rng, &ELEMENTS);
