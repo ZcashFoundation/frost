@@ -35,7 +35,7 @@
           "3": "7fde55b354d5d8dddc940fe932de5d1a6110b9bc4edeba2db7b32c34074d3a0a"
         },
         "verifying_share": "f326b756ed38b43a94bdac698e044d9e3f3a08a40e7c9d2e5346dd5bfaadf2f5",
-        "signing_share": "80a16ad6cf78be27995d5e312722ff2d42a5b08380b49dbc2e7e65c124220e0a"
+        "signing_share": "b9ed88cb30a9ddbc00dbdf7c40d6c76f791989cf9f3119bad899287c5f6c2303"
       },
       "3": {
         "identifier": 3,
@@ -49,7 +49,7 @@
           "2": "6b3e57fab1e74e61aacfd93d4926172a7e878a48540fe97367721e38485b3a00"
         },
         "verifying_share": "6bc91a2755902d955ce220ad0df6fbf57162260949d40bcf5a69cfffec9c085a",
-        "signing_share": "8bd411475cdc423c1ba94cf11b80e776592d5f675419398800d17173d673f40a"
+        "signing_share": "35b2b8fad8352f6e6a7c8fee082f45a339a37f0085c1f662c44c3f10903d970d"
       }
     }
   }
