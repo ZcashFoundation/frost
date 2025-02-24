@@ -27,10 +27,8 @@ where
 
     /// Deserialize a Scalar from a serialized buffer.
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
-        let serialized: <<C::Group as Group>::Field as Field>::Serialization = bytes
-            .to_vec()
-            .try_into()
-            .map_err(|_| FieldError::MalformedScalar)?;
+        let serialized: <<C::Group as Group>::Field as Field>::Serialization =
+            bytes.try_into().map_err(|_| FieldError::MalformedScalar)?;
         let scalar = <<C::Group as Group>::Field>::deserialize(&serialized)?;
         Ok(Self(scalar))
     }
@@ -59,18 +57,13 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        // Get size from the size of the zero scalar
+        // Get serialization buffer from the zero scalar
         let zero = <<C::Group as Group>::Field as Field>::zero();
-        let len = <<C::Group as Group>::Field as Field>::serialize(&zero)
-            .as_ref()
-            .len();
+        let mut serialization = <<C::Group as Group>::Field as Field>::serialize(&zero);
 
-        let mut bytes = vec![0u8; len];
-        serdect::array::deserialize_hex_or_bin(&mut bytes[..], deserializer)?;
-        let array = bytes
-            .try_into()
-            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        <<C as Ciphersuite>::Group as Group>::Field::deserialize(&array)
+        serdect::array::deserialize_hex_or_bin(serialization.as_mut(), deserializer)?;
+
+        <<C as Ciphersuite>::Group as Group>::Field::deserialize(&serialization)
             .map(|scalar| Self(scalar))
             .map_err(serde::de::Error::custom)
     }
@@ -91,10 +84,8 @@ where
     /// Deserialize an Element. Returns an error if it's malformed or is the
     /// identity.
     pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
-        let serialized: <C::Group as Group>::Serialization = bytes
-            .to_vec()
-            .try_into()
-            .map_err(|_| FieldError::MalformedScalar)?;
+        let serialized: <C::Group as Group>::Serialization =
+            bytes.try_into().map_err(|_| FieldError::MalformedScalar)?;
         let scalar = <C::Group as Group>::deserialize(&serialized)?;
         Ok(Self(scalar))
     }
@@ -124,19 +115,14 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        // Get size from the size of the generator
+        // Get serialization buffer from the generator
         let generator = <C::Group>::generator();
-        let len = <C::Group>::serialize(&generator)
-            .expect("serializing the generator always works")
-            .as_ref()
-            .len();
+        let mut serialization =
+            <C::Group>::serialize(&generator).expect("serializing the generator always works");
 
-        let mut bytes = vec![0u8; len];
-        serdect::array::deserialize_hex_or_bin(&mut bytes[..], deserializer)?;
-        let array = bytes
-            .try_into()
-            .map_err(|_| serde::de::Error::custom("invalid byte length"))?;
-        <C::Group as Group>::deserialize(&array)
+        serdect::array::deserialize_hex_or_bin(serialization.as_mut(), deserializer)?;
+
+        <C::Group as Group>::deserialize(&serialization)
             .map(|element| Self(element))
             .map_err(serde::de::Error::custom)
     }
