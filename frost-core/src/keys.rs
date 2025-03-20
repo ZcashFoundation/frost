@@ -548,7 +548,6 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         }
     };
     let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
-
     let mut secret_shares_by_id: BTreeMap<Identifier<C>, SecretShare<C>> = BTreeMap::new();
 
     for secret_share in secret_shares {
@@ -558,14 +557,13 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         secret_shares_by_id.insert(secret_share.identifier, secret_share);
     }
 
-    Ok((
-        secret_shares_by_id,
-        PublicKeyPackage {
-            header: Header::default(),
-            verifying_shares,
-            verifying_key,
-        },
-    ))
+    let public_key_package = PublicKeyPackage {
+        header: Header::default(),
+        verifying_shares,
+        verifying_key,
+    };
+
+    Ok((secret_shares_by_id, public_key_package))
 }
 
 /// Evaluate the polynomial with the given coefficients (constant term first)
@@ -696,14 +694,28 @@ where
     fn try_from(secret_share: SecretShare<C>) -> Result<Self, Error<C>> {
         let (verifying_share, verifying_key) = secret_share.verify()?;
 
-        Ok(KeyPackage {
+        let key_package = KeyPackage {
             header: Header::default(),
             identifier: secret_share.identifier,
             signing_share: secret_share.signing_share,
             verifying_share,
             verifying_key,
             min_signers: secret_share.commitment.0.len() as u16,
-        })
+        };
+
+        // Create a temporary PublicKeyPackage for post_generate
+        let mut verifying_shares = BTreeMap::new();
+        verifying_shares.insert(secret_share.identifier, verifying_share);
+        let public_key_package = PublicKeyPackage {
+            header: Header::default(),
+            verifying_shares,
+            verifying_key,
+        };
+
+        // Apply the post-processing
+        let (processed_key_package, _) = C::post_generate(key_package, public_key_package)?;
+        
+        Ok(processed_key_package)
     }
 }
 
