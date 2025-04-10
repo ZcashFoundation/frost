@@ -2,6 +2,7 @@
 
 [ZF FROST](index.md)
 - [Understanding FROST](frost.md)
+  - [Network Topologies](frost.md#network-topologies)
 - [Tutorial](tutorial.md)
   - [Importing and General Information](tutorial/importing.md)
   - [Trusted Dealer Key Generation](tutorial/trusted-dealer.md)
