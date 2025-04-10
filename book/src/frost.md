@@ -78,6 +78,62 @@ be able to produce the final signature. Of course, the Coordinator
 is still free to start the process with only 2 participants if they wish.
 ```
 
+## Verifying Signatures
+
+Signature verification is carried out as normal with single-party signatures,
+along with the signed message and the group verifying key as inputs.
+
+## Repairing Shares
+
+Repairing shares allow participants to help another participant recover their
+share if they have lost it, or also issue a new share to a new participant
+(while keeping the same threshold).
+
+The repair share functionality requires a threshold of participants to work.
+For example, in a 2-of-3 scenario, two participants can help the third recover
+their share, or they could issue a new share to move to a 2-of-4 group.
+
+The functionality works in such a way that each participant running the repair
+share function is not able to obtain the share that is being recovered or
+issued.
+
+## Refreshing Shares
+
+Refreshing shares allow participants (or a subset of them) to update their
+shares in a way that maintains the same group public key. Some applications are:
+
+- Make it harder for attackers to compromise the shares. For example, in a
+  2-of-3 threshold scenario, if an attacker steals one participant's device and
+  all participants refresh their shares, the attacker will need to start over
+  and steal two shares instead of just one more.
+- Remove a participant from the group. For example, in a 2-of-3 threshold
+  scenario, if two participants decide to remove the third they can both refresh
+  their shares and the third participant would no longer be able to participate
+  in signing sessions with the others. (They can also then use the repair share
+  functionality to issue a new share and move from 2-of-2 back to 2-of-3.)
+
+```admonish danger
+It is critically important to keep in mind that the **Refresh Shares
+functionality does not "restore full security" to a group**. While the group
+evolves and participants are removed and new participants are added, the
+security of the group does not depend only on the threshold of the current
+participants being honest, but also **on the threshold of all previous set of
+participants being honest**! For example, if Alice, Mallory and Eve form a group
+and Mallory is eventually excluded from the group and replaced with Bob, it is
+not enough to trust 2 out of 3 between Alice, Bob and Eve. **You also need to
+trust that Mallory won't collude with, say, Eve which could have kept her
+original pre-refresh share and they could both together recompute the original
+key and compromise the group.** If that's an unacceptable risk to your use case,
+you will need to migrate to a new group if that makes sense to your application.
+```
+
+## Ciphersuites
+
+FROST is a generic protocol that works with any adequate prime-order group,
+which in practice are constructed from elliptic curves. The spec specifies
+five ciphersuites with the Ristretto255, Ed25519, Ed448, P-256 and secp256k1
+groups. It's possible (though not recommended) to use your own ciphersuite.
+
 ## Network Topologies
 
 FROST supports different network topologies for both signing and DKG (Distributed Key Generation) processes. Understanding these topologies is crucial for implementing FROST in a way that best suits your application's needs.
@@ -152,59 +208,3 @@ Alternative DKG setup:
 - Simpler networking requirements
 - Hub must be trusted for message delivery (but cannot learn secrets)
 - May be suitable for controlled environments
-
-## Verifying Signatures
-
-Signature verification is carried out as normal with single-party signatures,
-along with the signed message and the group verifying key as inputs.
-
-## Repairing Shares
-
-Repairing shares allow participants to help another participant recover their
-share if they have lost it, or also issue a new share to a new participant
-(while keeping the same threshold).
-
-The repair share functionality requires a threshold of participants to work.
-For example, in a 2-of-3 scenario, two participants can help the third recover
-their share, or they could issue a new share to move to a 2-of-4 group.
-
-The functionality works in such a way that each participant running the repair
-share function is not able to obtain the share that is being recovered or
-issued.
-
-## Refreshing Shares
-
-Refreshing shares allow participants (or a subset of them) to update their
-shares in a way that maintains the same group public key. Some applications are:
-
-- Make it harder for attackers to compromise the shares. For example, in a
-  2-of-3 threshold scenario, if an attacker steals one participant's device and
-  all participants refresh their shares, the attacker will need to start over
-  and steal two shares instead of just one more.
-- Remove a participant from the group. For example, in a 2-of-3 threshold
-  scenario, if two participants decide to remove the third they can both refresh
-  their shares and the third participant would no longer be able to participate
-  in signing sessions with the others. (They can also then use the repair share
-  functionality to issue a new share and move from 2-of-2 back to 2-of-3.)
-
-```admonish danger
-It is critically important to keep in mind that the **Refresh Shares
-functionality does not "restore full security" to a group**. While the group
-evolves and participants are removed and new participants are added, the
-security of the group does not depend only on the threshold of the current
-participants being honest, but also **on the threshold of all previous set of
-participants being honest**! For example, if Alice, Mallory and Eve form a group
-and Mallory is eventually excluded from the group and replaced with Bob, it is
-not enough to trust 2 out of 3 between Alice, Bob and Eve. **You also need to
-trust that Mallory won't collude with, say, Eve which could have kept her
-original pre-refresh share and they could both together recompute the original
-key and compromise the group.** If that's an unacceptable risk to your use case,
-you will need to migrate to a new group if that makes sense to your application.
-```
-
-## Ciphersuites
-
-FROST is a generic protocol that works with any adequate prime-order group,
-which in practice are constructed from elliptic curves. The spec specifies
-five ciphersuites with the Ristretto255, Ed25519, Ed448, P-256 and secp256k1
-groups. It's possible (though not recommended) to use your own ciphersuite.
