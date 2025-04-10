@@ -153,14 +153,6 @@ Alternative DKG setup:
 - Hub must be trusted for message delivery (but cannot learn secrets)
 - May be suitable for controlled environments
 
-```admonish warning
-The choice of topology can significantly impact the security and performance of your FROST implementation. Consider your specific requirements around trust, network capabilities, and fault tolerance when choosing a topology.
-```
-
-```admonish note
-For high-security applications, it's recommended to use the Full Mesh topology for DKG and either Distributed Coordination or Centralized Coordinator (with backup coordinators) for signing.
-```
-
 ## Verifying Signatures
 
 Signature verification is carried out as normal with single-party signatures,
