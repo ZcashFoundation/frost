@@ -89,6 +89,8 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
     let mut group = c.benchmark_group(format!("FROST Signing {name}"));
     for &n in [3u16, 10, 100, 1000].iter() {
         let max_signers = n;
+        // div_ceil is in 1.73.0 which is larger than the current MSRV
+        #[allow(clippy::manual_div_ceil)]
         let min_signers = (n * 2 + 2) / 3;
 
         group.bench_with_input(
