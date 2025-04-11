@@ -31,7 +31,7 @@ Install the `zcash-sign` tool:
 cargo install --git https://github.com/ZcashFoundation/frost-zcash-demo.git --locked zcash-sign
 ```
 
-Switch to an empty folder which will store the files generate in the demo.
+Switch to an empty folder which will store the files generated in the demo.
 For example:
 
 ```
@@ -154,7 +154,7 @@ strings with the public keys of the contacts which will participate (along with
 the user running the command):
 
 ```
-frost-client dkg -d 'Alice, Bob and Eve's group' -s localhost:2744 -S <pubkey1>,<pubkey2> -t 2 -C redpallas -c alice.toml
+frost-client dkg -d "Alice, Bob and Eve's group" -s localhost:2744 -S <pubkey1>,<pubkey2> -t 2 -C redpallas -c alice.toml
 ```
 
 The user should then notify the others that a signing session has started (e.g.
@@ -163,7 +163,7 @@ They should then run the following, replacing the name of the group if they wish
 and the threshold number with the one given by the first participant.
 
 ```
-frost-client dkg -d 'Alice, Bob and Eve's group' -s localhost:2744 -t 2 -C redpallas
+frost-client dkg -d "Alice, Bob and Eve's group" -s localhost:2744 -t 2 -C redpallas
 ```
 
 ```admonish note
