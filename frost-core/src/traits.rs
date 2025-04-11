@@ -422,4 +422,12 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     ) -> Result<(KeyPackage<Self>, PublicKeyPackage<Self>), Error<Self>> {
         Ok((key_package, public_key_package))
     }
+
+    /// Post-process the output of the key generation for a participant.
+    fn post_generate(
+        key_package: KeyPackage<Self>,
+        public_key_package: PublicKeyPackage<Self>,
+    ) -> Result<(KeyPackage<Self>, PublicKeyPackage<Self>), Error<Self>> {
+        Ok((key_package, public_key_package))
+    }
 }
