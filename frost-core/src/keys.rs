@@ -548,6 +548,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         }
     };
     let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
+    
     let mut secret_shares_by_id: BTreeMap<Identifier<C>, SecretShare<C>> = BTreeMap::new();
 
     for secret_share in secret_shares {
