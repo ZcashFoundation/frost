@@ -75,6 +75,12 @@ The `round2::Package`s must be sent to their respective participants with the
 given `Identifier`s, using an [authenticated and confidential communication
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 
+```admonish danger
+The `round2::Package`s MUST be encrypted, otherwise an attacker who can read
+the content of the packages will be able to recreate the secret being
+generated.
+```
+
 ## Part 3
 
 Finally, upon receiving the other participant's `round2::Package`, the DKG is
