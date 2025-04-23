@@ -104,7 +104,7 @@ pub trait Group: Copy + Clone + PartialEq {
     /// Little-endian!
     type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>>;
 
-    /// The order of the the quotient group when the prime order subgroup divides the order of the
+    /// The order of the quotient group when the prime order subgroup divides the order of the
     /// full curve group.
     ///
     /// If using a prime order elliptic curve, the cofactor should be 1 in the scalar field.
@@ -187,21 +187,21 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
 
     /// [H4] for a FROST ciphersuite.
     ///
-    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
+    /// Usually an alias for the ciphersuite hash function _H_ with domain separation applied.
     ///
     /// [H4]: https://datatracker.ietf.org/doc/html/rfc9591#name-cryptographic-hash-function
     fn H4(m: &[u8]) -> Self::HashOutput;
 
     /// [H5] for a FROST ciphersuite.
     ///
-    /// Usually an an alias for the ciphersuite hash function _H_ with domain separation applied.
+    /// Usually an alias for the ciphersuite hash function _H_ with domain separation applied.
     ///
     /// [H5]: https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#cryptographic-hash
     fn H5(m: &[u8]) -> Self::HashOutput;
 
     /// Hash function for a FROST ciphersuite, used for the DKG.
     ///
-    /// The DKG it not part of the specification, thus this is optional.
+    /// The DKG is not part of the specification, thus this is optional.
     /// It can return None if DKG is not supported by the Ciphersuite. This is
     /// the default implementation.
     ///
