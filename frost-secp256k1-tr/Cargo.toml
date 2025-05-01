@@ -32,7 +32,7 @@ lazy_static.workspace = true
 proptest.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
-secp256k1 = "0.30.0"
+secp256k1 = "0.31.0"
 serde_json.workspace = true
 
 [features]
