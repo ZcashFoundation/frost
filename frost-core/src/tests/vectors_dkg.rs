@@ -1,5 +1,9 @@
 //! Helper function for testing with test vectors.
-use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    vec::Vec,
+};
 use debugless_unwrap::DebuglessUnwrap;
 use hex::{self};
 use serde_json::Value;
