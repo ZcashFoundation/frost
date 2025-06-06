@@ -1,6 +1,7 @@
 [package]
 name = "frost-core"
 edition.workspace = true
+rust-version.workspace = true
 version.workspace = true
 authors.workspace = true
 readme = "README.md"

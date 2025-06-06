@@ -4,6 +4,8 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* MSRV has been bumped to Rust 1.73
+
 ## 2.1.0
 
 * It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
