@@ -564,7 +564,7 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
     };
 
     // Apply post-processing
-    let (processed_secret_shares, processed_public_key_package) = 
+    let (processed_secret_shares, processed_public_key_package) =
         C::post_generate(secret_shares_by_id, public_key_package)?;
 
     Ok((processed_secret_shares, processed_public_key_package))
