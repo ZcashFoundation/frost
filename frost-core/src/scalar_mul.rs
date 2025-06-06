@@ -14,27 +14,6 @@ use alloc::vec::Vec;
 
 use crate::{Ciphersuite, Element, Field, Group, Scalar};
 
-/// Calculates the quotient of `self` and `rhs`, rounding the result towards positive infinity.
-///
-/// # Panics
-///
-/// This function will panic if `rhs` is 0 or the division results in overflow.
-///
-/// This function is similar to `div_ceil` that is [available on
-/// Nightly](https://github.com/rust-lang/rust/issues/88581).
-///
-// TODO: remove this function and use `div_ceil()` instead when `int_roundings`
-// is stabilized.
-const fn div_ceil(lhs: usize, rhs: usize) -> usize {
-    let d = lhs / rhs;
-    let r = lhs % rhs;
-    if r > 0 && rhs > 0 {
-        d + 1
-    } else {
-        d
-    }
-}
-
 /// A trait for transforming a scalar generic over a ciphersuite to a non-adjacent form (NAF).
 pub trait NonAdjacentForm<C: Ciphersuite> {
     fn non_adjacent_form(&self, w: usize) -> Vec<i8>;
@@ -81,7 +60,7 @@ where
         let mut naf = vec![0; naf_length];
 
         // Get the number of 64-bit limbs we need.
-        let num_limbs: usize = div_ceil(naf_length, u64::BITS as usize);
+        let num_limbs: usize = naf_length.div_ceil(u64::BITS as usize);
 
         let mut x_u64 = vec![0u64; num_limbs];
 

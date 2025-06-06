@@ -5,6 +5,7 @@ use crate::{
     tests::helpers::generate_element,
     Error, Group,
 };
+use alloc::vec::Vec;
 use debugless_unwrap::DebuglessUnwrap;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;

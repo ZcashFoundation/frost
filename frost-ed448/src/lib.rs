@@ -7,7 +7,7 @@
 
 extern crate alloc;
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use ed448_goldilocks::{
     curve::{edwards::CompressedEdwardsY, ExtendedPoint},
