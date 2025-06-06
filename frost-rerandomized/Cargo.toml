@@ -25,11 +25,8 @@ rand_core.workspace = true
 [dev-dependencies]
 
 [features]
-nightly = []
 default = ["serialization", "cheater-detection"]
 #! ## Features
-## Enable standard library support.
-std = ["frost-core/std"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
