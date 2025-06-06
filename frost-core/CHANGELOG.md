@@ -4,7 +4,8 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
-* MSRV has been bumped to Rust 1.73
+* MSRV has been bumped to Rust 1.81, making all crates no-std (except
+  `frost-ed448`). The `std` and `nightly` features were removed from all crates
 
 ## 2.1.0
 

@@ -25,8 +25,8 @@ sha2 = { version = "0.10.2", default-features = false }
 
 [dev-dependencies]
 criterion.workspace = true
-frost-core = { workspace = true, features = ["std", "test-impl"] }
-frost-rerandomized = { workspace = true, features = ["std", "test-impl"] }
+frost-core = { workspace = true, features = ["test-impl"] }
+frost-rerandomized = { workspace = true, features = ["test-impl"] }
 insta.workspace = true
 hex.workspace = true
 lazy_static.workspace = true
@@ -36,11 +36,8 @@ rand_chacha.workspace = true
 serde_json.workspace = true
 
 [features]
-nightly = []
-default = ["serialization", "cheater-detection", "std"]
+default = ["serialization", "cheater-detection"]
 #! ## Features
-## Enable standard library support.
-std = ["frost-core/std"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
