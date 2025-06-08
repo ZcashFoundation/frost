@@ -17,7 +17,7 @@ pub fn verify_signature(
         group_signature.serialize().unwrap().try_into().unwrap(),
     );
     let pubkey = secp256k1::XOnlyPublicKey::from_byte_array(
-        &group_pubkey.serialize().unwrap()[1..33].try_into().unwrap(),
+        group_pubkey.serialize().unwrap()[1..33].try_into().unwrap(),
     )
     .unwrap();
     secp.verify_schnorr(&sig, msg, &pubkey).unwrap();

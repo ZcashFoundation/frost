@@ -1,13 +1,14 @@
 [package]
 name = "frost-secp256k1"
 edition.workspace = true
+rust-version.workspace = true
 version.workspace = true
 authors.workspace = true
 readme = "README.md"
 license.workspace = true
 repository.workspace = true
 categories.workspace = true
-keywords = ["cryptography", "crypto", "threshold", "signature"]
+keywords = ["cryptography", "crypto", "secp256k1", "threshold", "signature"]
 description = "A Schnorr signature scheme over the secp256k1 curve that supports FROST."
 
 [package.metadata.docs.rs]
@@ -16,16 +17,16 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 document-features.workspace = true
-frost-core = { path = "../frost-core", version = "2.1.0", default-features = false }
-frost-rerandomized = { path = "../frost-rerandomized", version = "2.1.0", default-features = false }
+frost-core.workspace = true
+frost-rerandomized.workspace = true
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"], default-features = false }
 rand_core.workspace = true
 sha2 = { version = "0.10.2", default-features = false }
 
 [dev-dependencies]
 criterion.workspace = true
-frost-core = { path = "../frost-core", version = "2.1.0", features = ["test-impl"] }
-frost-rerandomized = { path = "../frost-rerandomized", version = "2.1.0", features = ["test-impl"] }
+frost-core = { workspace = true, features = ["test-impl"] }
+frost-rerandomized = { workspace = true, features = ["test-impl"] }
 insta.workspace = true
 hex.workspace = true
 lazy_static.workspace = true
@@ -35,11 +36,8 @@ rand_chacha.workspace = true
 serde_json.workspace = true
 
 [features]
-nightly = []
-default = ["serialization", "cheater-detection", "std"]
+default = ["serialization", "cheater-detection"]
 #! ## Features
-## Enable standard library support.
-std = ["frost-core/std"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).

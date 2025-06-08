@@ -10,7 +10,7 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     challenge,
-    keys::{KeyPackage, PublicKeyPackage, VerifyingShare},
+    keys::{KeyPackage, PublicKeyPackage, SecretShare, VerifyingShare},
     random_nonzero,
     round1::{self},
     round2::{self, SignatureShare},
@@ -425,5 +425,20 @@ pub trait Ciphersuite: Copy + PartialEq + Debug + 'static {
         public_key_package: PublicKeyPackage<Self>,
     ) -> Result<(KeyPackage<Self>, PublicKeyPackage<Self>), Error<Self>> {
         Ok((key_package, public_key_package))
+    }
+
+    /// Post-process the output of the key generation for a participant.
+    #[allow(clippy::type_complexity)]
+    fn post_generate(
+        secret_shares: BTreeMap<Identifier<Self>, SecretShare<Self>>,
+        public_key_package: PublicKeyPackage<Self>,
+    ) -> Result<
+        (
+            BTreeMap<Identifier<Self>, SecretShare<Self>>,
+            PublicKeyPackage<Self>,
+        ),
+        Error<Self>,
+    > {
+        Ok((secret_shares, public_key_package))
     }
 }

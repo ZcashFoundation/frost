@@ -9,7 +9,7 @@
 //! - Each participant should call [`sign`] and send the resulting
 //!   [`frost::round2::SignatureShare`] back to the Coordinator;
 //! - The Coordinator should then call [`aggregate`].
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![allow(non_snake_case)]
 
 extern crate alloc;

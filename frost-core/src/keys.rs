@@ -327,6 +327,11 @@ where
             .collect::<Result<_, Error<C>>>()
     }
 
+    /// Serialize the whole commitment vector as a single byte vector.
+    pub fn serialize_whole(&self) -> Result<Vec<u8>, Error<C>> {
+        self.serialize().map(|v| v.concat())
+    }
+
     /// Returns VerifiableSecretSharingCommitment from an iterator of serialized
     /// CoefficientCommitments (e.g. a [`Vec<Vec<u8>>`]).
     pub fn deserialize<I, V>(serialized_coefficient_commitments: I) -> Result<Self, Error<C>>
@@ -340,6 +345,25 @@ where
         }
 
         Ok(Self::new(coefficient_commitments))
+    }
+
+    /// Deserialize a whole commitment vector from a single byte vector as returned by
+    /// [`VerifiableSecretSharingCommitment::serialize_whole()`].
+    pub fn deserialize_whole(bytes: &[u8]) -> Result<Self, Error<C>> {
+        // Get size from the size of the generator
+        let generator = <C::Group>::generator();
+        let len = <C::Group>::serialize(&generator)
+            .expect("serializing the generator always works")
+            .as_ref()
+            .len();
+
+        let serialized_coefficient_commitments = bytes.chunks_exact(len);
+
+        if !serialized_coefficient_commitments.remainder().is_empty() {
+            return Err(Error::InvalidCoefficient);
+        }
+
+        Self::deserialize(serialized_coefficient_commitments)
     }
 
     /// Get the VerifyingKey matching this commitment vector (which is the first
@@ -524,7 +548,6 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         }
     };
     let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
-
     let mut secret_shares_by_id: BTreeMap<Identifier<C>, SecretShare<C>> = BTreeMap::new();
 
     for secret_share in secret_shares {
@@ -534,14 +557,17 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         secret_shares_by_id.insert(secret_share.identifier, secret_share);
     }
 
-    Ok((
-        secret_shares_by_id,
-        PublicKeyPackage {
-            header: Header::default(),
-            verifying_shares,
-            verifying_key,
-        },
-    ))
+    let public_key_package = PublicKeyPackage {
+        header: Header::default(),
+        verifying_shares,
+        verifying_key,
+    };
+
+    // Apply post-processing
+    let (processed_secret_shares, processed_public_key_package) =
+        C::post_generate(secret_shares_by_id, public_key_package)?;
+
+    Ok((processed_secret_shares, processed_public_key_package))
 }
 
 /// Evaluate the polynomial with the given coefficients (constant term first)

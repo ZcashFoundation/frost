@@ -9,23 +9,17 @@ on:
       - main
 
 jobs:
-
   build_default:
     name: build with default features
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: beta
-          override: true
-      - uses: actions-rs/cargo@v1.0.3
-        with:
-          command: build
+      - uses: dtolnay/rust-toolchain@beta
+      - run: cargo build
 
   build_msrv:
-    name: build with MSRV (1.66.1)
+    name: build with MSRV (1.81)
     runs-on: ubuntu-latest
 
     steps:
@@ -40,7 +34,7 @@ jobs:
       - run: cargo update -Z minimal-versions
       # Now check that `cargo build` works with respect to the oldest possible
       # deps and the stated MSRV
-      - uses: dtolnay/rust-toolchain@1.66.1
+      - uses: dtolnay/rust-toolchain@1.81
       - run: cargo build --all-features
 
   # TODO: this is filling up the disk space in CI. See if there is a way to
@@ -85,14 +79,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: beta
-          override: true
-      - uses: actions-rs/cargo@v1.0.3
-        with:
-          command: test
-          args: --release --all-features
+      - uses: dtolnay/rust-toolchain@beta
+      - run: cargo test --release --all-features
 
   clippy:
     name: Clippy
@@ -103,10 +91,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Check workflow permissions
         id: check_permissions
@@ -117,12 +102,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run clippy action to produce annotations
-        uses: actions-rs/clippy-check@v1.0.7
+        uses: clechasseur/rs-clippy-check@v4
         if: ${{ steps.check_permissions.outputs.has-permission }}
         with:
-          # GitHub displays the clippy job and its results as separate entries
-          name: Clippy (stable) Results
-          token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features --all-targets -- -D warnings
 
       - name: Run clippy manually without annotations
@@ -138,18 +120,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions-rs/toolchain@v1.0.7
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt
-          override: true
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: actions-rs/cargo@v1.0.3
-        with:
-          command: fmt
-          args: --all -- --check
+      - run: cargo fmt --all -- --check
 
   gencode:
     name: Check if automatically generated code is up to date
@@ -160,18 +137,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions-rs/toolchain@v1.0.7
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt
-          override: true
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: actions-rs/cargo@v1.0.3
-        with:
-          command: run
-          args: --bin gencode -- --check
+      - run: cargo run --bin gencode -- --check
 
   docs:
     name: Check Rust doc
@@ -184,16 +156,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
 
-      - uses: actions-rs/cargo@v1.0.3
-        with:
-          command: doc
-          args: --no-deps --document-private-items --all-features
+      - run: cargo doc --no-deps --document-private-items --all-features
 
   actionlint:
     runs-on: ubuntu-latest
@@ -203,4 +168,4 @@ jobs:
       - uses: reviewdog/action-actionlint@v1.64.1
         with:
           level: warning
-          fail_on_error: false
+          fail_level: none

@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]

@@ -7,7 +7,7 @@
 
 extern crate alloc;
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use ed448_goldilocks::{
     curve::{edwards::CompressedEdwardsY, ExtendedPoint},
@@ -230,7 +230,6 @@ pub type Identifier = frost::Identifier<E>;
 /// FROST(Ed448, SHAKE256) keys, key generation, key shares.
 pub mod keys {
     use super::*;
-    use std::collections::BTreeMap;
 
     /// The identifier list to use when generating key shares.
     pub type IdentifierList<'a> = frost::keys::IdentifierList<'a, E>;

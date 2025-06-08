@@ -41,11 +41,7 @@ jobs:
           persist-credentials: false
 
       - name: Install latest beta
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: beta
-          components: rust-docs
-          override: true
+        uses: dtolnay/rust-toolchain@beta
 
       - uses: Swatinem/rust-cache@v2
 

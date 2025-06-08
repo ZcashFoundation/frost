@@ -1,6 +1,7 @@
 [package]
 name = "frost-ristretto255"
 edition.workspace = true
+rust-version.workspace = true
 version.workspace = true
 authors.workspace = true
 readme = "README.md"
@@ -17,15 +18,15 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 curve25519-dalek = { version = "=4.1.3", features = ["rand_core"] }
 document-features.workspace = true
-frost-core = { path = "../frost-core", version = "2.1.0", default-features = false }
-frost-rerandomized = { path = "../frost-rerandomized", version = "2.1.0", default-features = false }
+frost-core.workspace = true
+frost-rerandomized.workspace = true
 rand_core.workspace = true
 sha2 = { version = "0.10.2", default-features = false }
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
-frost-core = { path = "../frost-core", version = "2.1.0", features = ["test-impl"] }
-frost-rerandomized = { path = "../frost-rerandomized", version = "2.1.0", features = ["test-impl"] }
+criterion = { workspace = true, features = ["html_reports"] }
+frost-core = { workspace = true, features = ["test-impl"] }
+frost-rerandomized = { workspace = true, features = ["test-impl"] }
 insta.workspace = true
 hex.workspace = true
 lazy_static.workspace = true
@@ -36,11 +37,8 @@ rand_chacha.workspace = true
 serde_json.workspace = true
 
 [features]
-nightly = []
-default = ["serialization", "cheater-detection", "std"]
+default = ["serialization", "cheater-detection"]
 #! ## Features
-## Enable standard library support.
-std = ["frost-core/std"]
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
 ## `serde` (e.g. JSON with `serde_json`).
