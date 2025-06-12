@@ -19,7 +19,7 @@ Please [create an issue](https://github.com/ZcashFoundation/frost/issues/new) on
 [pull-requests]: #pull-requests
 
 PRs are welcome for small and large changes, but please don't make large PRs
-without coordinating with us via the [issue tracker](https://github.com/ZcashFoundation/frost/issues) or [Discord](https://discord.gg/yVNhQwQE68). This helps
+without coordinating with us via the [issue tracker](https://github.com/ZcashFoundation/frost/issues) or [Discord](https://discord.gg/muKwd2F83D). This helps
 increase development coordination and makes PRs easier to merge. Low-effort PRs, including but not limited to fixing typos and grammatical corrections, will generally be redone by us to dissuade metric farming.
 
 Check out the [help wanted][hw] label if you're looking for a place to get started!
