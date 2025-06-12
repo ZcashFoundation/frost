@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use rand_core::TryRngCore;
 use serde_json::Value;
 
 use crate::*;
@@ -12,7 +13,7 @@ lazy_static! {
 
 #[test]
 fn check_serialization_of_coefficient_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::coefficient_commitment::check_serialization_of_coefficient_commitment::<
         Ed448Shake256,
         _,
@@ -21,7 +22,7 @@ fn check_serialization_of_coefficient_commitment() {
 
 #[test]
 fn check_create_coefficient_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::coefficient_commitment::check_create_coefficient_commitment::<
         Ed448Shake256,
         _,
@@ -36,7 +37,7 @@ fn check_create_coefficient_commitment_error() {
 
 #[test]
 fn check_get_value_of_coefficient_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::tests::coefficient_commitment::check_get_value_of_coefficient_commitment::<
         Ed448Shake256,

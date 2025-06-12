@@ -56,12 +56,10 @@ pub fn repair_share_step_3(
 
 #[cfg(test)]
 mod tests {
-
-    use lazy_static::lazy_static;
-
-    use serde_json::Value;
-
     use crate::Ed448Shake256;
+    use lazy_static::lazy_static;
+    use rand_core::TryRngCore;
+    use serde_json::Value;
 
     lazy_static! {
         pub static ref REPAIR_SHARE: Value =
@@ -71,7 +69,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_1() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand::rngs::OsRng.unwrap_err();
 
         frost_core::tests::repairable::check_repair_share_step_1::<Ed448Shake256, _>(rng);
     }
@@ -83,7 +81,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_3() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand::rngs::OsRng.unwrap_err();
         frost_core::tests::repairable::check_repair_share_step_3::<Ed448Shake256, _>(
             rng,
             &REPAIR_SHARE,
@@ -92,7 +90,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_1_fails_with_invalid_min_signers() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand::rngs::OsRng.unwrap_err();
         frost_core::tests::repairable::check_repair_share_step_1_fails_with_invalid_min_signers::<
             Ed448Shake256,
             _,

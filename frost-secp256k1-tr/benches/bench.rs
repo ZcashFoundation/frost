@@ -1,15 +1,16 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use frost_secp256k1_tr::*;
+use rand_core::TryRngCore;
 
 fn bench_secp256k1_batch_verify(c: &mut Criterion) {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::benches::bench_batch_verify::<Secp256K1Sha256TR, _>(c, "secp256k1", &mut rng);
 }
 
 fn bench_secp256k1_sign(c: &mut Criterion) {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::benches::bench_sign::<Secp256K1Sha256TR, _>(c, "secp256k1", &mut rng);
 }

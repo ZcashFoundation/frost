@@ -1,15 +1,16 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use frost_p256::*;
+use rand_core::TryRngCore;
 
 fn bench_p256_batch_verify(c: &mut Criterion) {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::benches::bench_batch_verify::<P256Sha256, _>(c, "p256", &mut rng);
 }
 
 fn bench_p256_sign(c: &mut Criterion) {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::benches::bench_sign::<P256Sha256, _>(c, "p256", &mut rng);
 }

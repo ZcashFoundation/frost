@@ -14,11 +14,11 @@ use frost_rerandomized::RandomizedCiphersuite;
 use k256::{
     elliptic_curve::{
         group::prime::PrimeCurveAffine,
-        hash2curve::{hash_to_field, ExpandMsgXmd},
+        hash2curve::{hash_to_field, ExpandMsgXmd, GroupDigest},
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
     },
-    AffinePoint, ProjectivePoint, Scalar,
+    AffinePoint, ProjectivePoint, Scalar, Secp256k1,
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
@@ -160,8 +160,12 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
 
 fn hash_to_scalar(domain: &[&[u8]], msg: &[u8]) -> Scalar {
     let mut u = [Secp256K1ScalarField::zero()];
-    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], domain, &mut u)
-        .expect("should never return error according to error cases described in ExpandMsgXmd");
+    hash_to_field::<ExpandMsgXmd<Sha256>, <Secp256k1 as GroupDigest>::K, Scalar>(
+        &[msg],
+        domain,
+        &mut u,
+    )
+    .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]
 }
 
