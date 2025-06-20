@@ -8,6 +8,8 @@
 
 extern crate alloc;
 
+use core::ops::DerefMut;
+
 use alloc::vec;
 use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
 
@@ -17,12 +19,12 @@ use k256::{
     elliptic_curve::{
         bigint::U256,
         group::prime::PrimeCurveAffine,
-        hash2curve::{hash_to_field, ExpandMsgXmd},
+        hash2curve::{hash_to_field, ExpandMsgXmd, GroupDigest},
         point::AffineCoordinates,
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
     },
-    AffinePoint, ProjectivePoint, Scalar,
+    AffinePoint, ProjectivePoint, Scalar, Secp256k1,
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
@@ -169,8 +171,12 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
 
 fn hash_to_scalar(domain: &[&[u8]], msg: &[u8]) -> Scalar {
     let mut u = [Secp256K1ScalarField::zero()];
-    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], domain, &mut u)
-        .expect("should never return error according to error cases described in ExpandMsgXmd");
+    hash_to_field::<ExpandMsgXmd<Sha256>, <Secp256k1 as GroupDigest>::K, Scalar>(
+        &[msg],
+        domain,
+        &mut u,
+    )
+    .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]
 }
 
@@ -295,7 +301,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
     }
 
     // Sign, negating the key if required by BIP-340.
-    fn single_sign<R: RngCore + CryptoRng>(
+    fn single_sign<R: RngCore + CryptoRng + DerefMut>(
         signing_key: &SigningKey,
         rng: R,
         message: &[u8],
