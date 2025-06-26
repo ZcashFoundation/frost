@@ -10,7 +10,7 @@ use rand_core::TryRngCore;
 fn check_common_traits_for_type<T: Clone + Eq + PartialEq + std::fmt::Debug>(v: T) {
     // Make sure can be debug-printed. This also catches if the Debug does not
     // have an endless recursion (a popular mistake).
-    println!("{:?}", v);
+    println!("{v:?}");
     // Test Clone and Eq
     assert_eq!(v, v.clone());
     // Make sure it can be unwrapped in a Result (which requires Debug).
