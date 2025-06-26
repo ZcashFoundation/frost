@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use rand_core::TryRngCore;
 use serde_json::Value;
 
 use crate::*;
@@ -12,13 +13,13 @@ lazy_static! {
 
 #[test]
 fn check_serialize_vss_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_serialize_vss_commitment::<Secp256K1Sha256, _>(rng);
 }
 
 #[test]
 fn check_serialize_whole_vss_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_serialize_whole_vss_commitment::<Secp256K1Sha256, _>(
         rng,
     );
@@ -26,13 +27,13 @@ fn check_serialize_whole_vss_commitment() {
 
 #[test]
 fn check_deserialize_vss_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_deserialize_vss_commitment::<Secp256K1Sha256, _>(rng);
 }
 
 #[test]
 fn check_deserialize_whole_vss_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_deserialize_whole_vss_commitment::<Secp256K1Sha256, _>(
         rng,
     );
@@ -40,7 +41,7 @@ fn check_deserialize_whole_vss_commitment() {
 
 #[test]
 fn check_deserialize_vss_commitment_error() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_deserialize_vss_commitment_error::<Secp256K1Sha256, _>(
         rng, &ELEMENTS,
     );
@@ -48,7 +49,7 @@ fn check_deserialize_vss_commitment_error() {
 
 #[test]
 fn check_deserialize_whole_vss_commitment_error() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_deserialize_whole_vss_commitment_error::<
         Secp256K1Sha256,
         _,
@@ -57,6 +58,6 @@ fn check_deserialize_whole_vss_commitment_error() {
 
 #[test]
 fn check_compute_public_key_package() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_compute_public_key_package::<Secp256K1Sha256, _>(rng);
 }
