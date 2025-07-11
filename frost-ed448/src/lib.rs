@@ -10,7 +10,9 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 
-use ed448_goldilocks::{CompressedEdwardsY, EdwardsPoint, Scalar, ScalarBytes, WideScalarBytes};
+use ed448_goldilocks::{
+    CompressedEdwardsY, EdwardsPoint, EdwardsScalar, EdwardsScalarBytes, WideEdwardsScalarBytes,
+};
 use frost_rerandomized::RandomizedCiphersuite;
 use rand_core::{CryptoRng, RngCore};
 use sha3::{
@@ -37,16 +39,16 @@ pub type Error = frost_core::Error<Ed448Shake256>;
 pub struct Ed448ScalarField;
 
 impl Field for Ed448ScalarField {
-    type Scalar = Scalar;
+    type Scalar = EdwardsScalar;
 
     type Serialization = [u8; 57];
 
     fn zero() -> Self::Scalar {
-        Scalar::ZERO
+        EdwardsScalar::ZERO
     }
 
     fn one() -> Self::Scalar {
-        Scalar::ONE
+        EdwardsScalar::ONE
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
@@ -58,7 +60,7 @@ impl Field for Ed448ScalarField {
     }
 
     fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
-        Scalar::random(rng)
+        EdwardsScalar::random(rng)
     }
 
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
@@ -67,7 +69,7 @@ impl Field for Ed448ScalarField {
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
         #[allow(deprecated)]
-        match Scalar::from_canonical_bytes(ScalarBytes::from_slice(buf)).into() {
+        match EdwardsScalar::from_canonical_bytes(EdwardsScalarBytes::from_slice(buf)).into() {
             Some(s) => Ok(s),
             None => Err(FieldError::MalformedScalar),
         }
@@ -90,7 +92,7 @@ impl Group for Ed448Group {
     type Serialization = [u8; 57];
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
-        Scalar::ONE
+        EdwardsScalar::ONE
     }
 
     fn identity() -> Self::Element {
@@ -142,11 +144,11 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 114] {
     output
 }
 
-fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
+fn hash_to_scalar(inputs: &[&[u8]]) -> EdwardsScalar {
     let temp = hash_to_array(inputs);
     #[allow(deprecated)]
-    let output = WideScalarBytes::from_slice(&temp);
-    Scalar::from_bytes_mod_order_wide(output)
+    let output = WideEdwardsScalarBytes::from_slice(&temp);
+    EdwardsScalar::from_bytes_mod_order_wide(output)
 }
 
 /// Context string from the ciphersuite in the [spec]

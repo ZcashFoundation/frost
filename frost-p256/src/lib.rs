@@ -11,9 +11,9 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 
 use frost_rerandomized::RandomizedCiphersuite;
+use hash2curve::{hash_to_field, ExpandMsgXmd, GroupDigest};
 use p256::{
     elliptic_curve::{
-        hash2curve::{hash_to_field, ExpandMsgXmd, GroupDigest},
         sec1::{FromEncodedPoint, ToEncodedPoint},
         Field as FFField, PrimeField,
     },
