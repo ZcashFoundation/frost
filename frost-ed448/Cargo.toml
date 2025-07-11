@@ -17,7 +17,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 document-features.workspace = true
-ed448-goldilocks = { version = "0.14.0-pre.1", git = "https://github.com/RustCrypto/elliptic-curves", rev = "6b4a696", default-features = false }
+ed448-goldilocks = { version = "0.14.0-pre.2", default-features = false }
 frost-core.workspace = true
 frost-rerandomized.workspace = true
 rand_core.workspace = true
