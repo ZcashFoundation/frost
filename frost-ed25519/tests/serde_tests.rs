@@ -19,7 +19,7 @@ fn check_signing_commitments_serialization() {
     let commitments = samples::signing_commitments();
 
     let json = serde_json::to_string_pretty(&commitments).unwrap();
-    println!("{}", json);
+    println!("{json}");
 
     let decoded_commitments: SigningCommitments = serde_json::from_str(&json).unwrap();
     assert!(commitments == decoded_commitments);
@@ -89,7 +89,7 @@ fn check_signing_package_serialization() {
     let signing_package = samples::signing_package();
 
     let json = serde_json::to_string_pretty(&signing_package).unwrap();
-    println!("{}", json);
+    println!("{json}");
 
     let decoded_signing_package: SigningPackage = serde_json::from_str(&json).unwrap();
     assert!(signing_package == decoded_signing_package);
@@ -204,7 +204,7 @@ fn check_signature_share_serialization() {
     let signature_share = samples::signature_share();
 
     let json = serde_json::to_string_pretty(&signature_share).unwrap();
-    println!("{}", json);
+    println!("{json}");
 
     let decoded_signature_share: SignatureShare = serde_json::from_str(&json).unwrap();
     assert!(signature_share == decoded_signature_share);
@@ -258,7 +258,7 @@ fn check_secret_share_serialization() {
     let secret_share = samples::secret_share();
 
     let json = serde_json::to_string_pretty(&secret_share).unwrap();
-    println!("{}", json);
+    println!("{json}");
 
     let decoded_secret_share: SecretShare = serde_json::from_str(&json).unwrap();
     assert!(secret_share == decoded_secret_share);
@@ -342,7 +342,7 @@ fn check_key_package_serialization() {
     let key_package = samples::key_package();
 
     let json = serde_json::to_string_pretty(&key_package).unwrap();
-    println!("{}", json);
+    println!("{json}");
 
     let decoded_key_package: KeyPackage = serde_json::from_str(&json).unwrap();
     assert!(key_package == decoded_key_package);
@@ -437,7 +437,7 @@ fn check_public_key_package_serialization() {
     let public_key_package = samples::public_key_package();
 
     let json = serde_json::to_string_pretty(&public_key_package).unwrap();
-    println!("{}", json);
+    println!("{json}");
 
     let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(&json).unwrap();
     assert!(public_key_package == decoded_public_key_package);
@@ -516,7 +516,7 @@ fn check_round1_package_serialization() {
     let round1_package = samples::round1_package();
 
     let json = serde_json::to_string_pretty(&round1_package).unwrap();
-    println!("{}", json);
+    println!("{json}");
 
     let decoded_round1_package: round1::Package = serde_json::from_str(&json).unwrap();
     assert!(round1_package == decoded_round1_package);
@@ -582,7 +582,7 @@ fn check_round2_package_serialization() {
     let round2_package = samples::round2_package();
 
     let json = serde_json::to_string_pretty(&round2_package).unwrap();
-    println!("{}", json);
+    println!("{json}");
 
     let decoded_round2_package: round2::Package = serde_json::from_str(&json).unwrap();
     assert!(round2_package == decoded_round2_package);

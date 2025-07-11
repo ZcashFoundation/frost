@@ -2,7 +2,7 @@
 
 use core::{
     fmt::Debug,
-    ops::{Add, Mul, Sub},
+    ops::{Add, DerefMut, Mul, Sub},
 };
 
 use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
@@ -229,7 +229,7 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// if required which is useful if FROST signing has been changed by the
     /// other Ciphersuite trait methods and regular signing should be changed
     /// accordingly to match.
-    fn single_sign<R: RngCore + CryptoRng>(
+    fn single_sign<R: RngCore + CryptoRng + DerefMut>(
         signing_key: &SigningKey<Self>,
         rng: R,
         message: &[u8],
