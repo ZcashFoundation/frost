@@ -484,7 +484,7 @@ pub(crate) fn verify_proof_of_knowledge<C: Ciphersuite>(
 /// `round1_packages` maps the identifier of each other participant to the
 /// [`round1::Package`] they sent to the current participant (the owner of
 /// `secret_package`). These identifiers must come from whatever mapping the
-/// coordinator has between communication channels and participants, i.e. they
+/// participant has between communication channels and participants, i.e. they
 /// must have assurance that the [`round1::Package`] came from the participant
 /// with that identifier.
 ///
@@ -561,7 +561,7 @@ pub fn part2<C: Ciphersuite>(
 /// `round2_packages` maps the identifier of each other participant to the
 /// [`round2::Package`] they sent to the current participant (the owner of
 /// `secret_package`). These identifiers must come from whatever mapping the
-/// coordinator has between communication channels and participants, i.e. they
+/// participant has between communication channels and participants, i.e. they
 /// must have assurance that the [`round2::Package`] came from the participant
 /// with that identifier.
 ///
