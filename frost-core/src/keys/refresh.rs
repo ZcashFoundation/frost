@@ -20,8 +20,8 @@
 //! itself](`https://frost.zfnd.org/tutorial/dkg.html`). Each participant calls
 //! [`refresh_dkg_part_1()`], keeps the returned secret package and sends the
 //! returned package to other participants. Then each participants calls
-//! [`refresh_dkg_part_2()`] and sends the returned packages to the other
-//! participants. Finally each participant calls [`refresh_dkg_part_3()`].
+//! [`refresh_dkg_part2()`] and sends the returned packages to the other
+//! participants. Finally each participant calls [`refresh_dkg_shares()`].
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
@@ -52,7 +52,7 @@ use super::{dkg::round1::Package, KeyPackage, SecretShare, VerifiableSecretShari
 /// - `identifiers`: The identifiers of all participants that want to refresh
 ///   their shares. Must be the same length as `max_signers`.
 ///
-/// It returns a vectors of [`SecretPackage`] that must be sent to the participants
+/// It returns a vectors of [`SecretShare`] that must be sent to the participants
 /// in the same order as `identifiers`, and the refreshed [`PublicKeyPackage`].
 pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     pub_key_package: PublicKeyPackage<C>,
