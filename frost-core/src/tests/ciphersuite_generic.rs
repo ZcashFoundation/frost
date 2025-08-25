@@ -536,7 +536,7 @@ where
 
     // Map of the verifying key of each participant.
     // Used by the signing test that follows.
-    let mut verifying_keys = BTreeMap::new();
+    let mut verifying_shares = BTreeMap::new();
     // The group public key, used by the signing test that follows.
     let mut verifying_key = None;
     // For each participant, store the set of verifying keys they have computed.
@@ -564,7 +564,7 @@ where
             &received_round2_packages[&participant_identifier],
         )
         .unwrap();
-        verifying_keys.insert(participant_identifier, key_package.verifying_share);
+        verifying_shares.insert(participant_identifier, key_package.verifying_share);
         // Test if all verifying_key are equal
         if let Some(previous_verifying_key) = verifying_key {
             assert_eq!(previous_verifying_key, key_package.verifying_key)
@@ -577,10 +577,14 @@ where
 
     // Test if the set of verifying keys is correct for all participants.
     for verifying_keys_for_participant in pubkey_packages_by_participant.values() {
-        assert!(verifying_keys_for_participant.verifying_shares == verifying_keys);
+        assert!(verifying_keys_for_participant.verifying_shares == verifying_shares);
     }
 
-    let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, verifying_key.unwrap());
+    let pubkeys = pubkey_packages_by_participant
+        .first_key_value()
+        .unwrap()
+        .1
+        .clone();
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys).unwrap()

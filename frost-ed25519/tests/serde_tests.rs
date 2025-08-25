@@ -434,7 +434,7 @@ fn check_key_package_serialization() {
 
 #[test]
 fn check_public_key_package_serialization() {
-    let public_key_package = samples::public_key_package();
+    let public_key_package = samples::public_key_package_new();
 
     let json = serde_json::to_string_pretty(&public_key_package).unwrap();
     println!("{}", json);
@@ -450,10 +450,26 @@ fn check_public_key_package_serialization() {
         "verifying_shares": {
           "2a00000000000000000000000000000000000000000000000000000000000000": "5866666666666666666666666666666666666666666666666666666666666666"
         },
-        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666"
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666",
+        "min_signers": 2
       }"#;
     let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(json).unwrap();
     assert!(public_key_package == decoded_public_key_package);
+
+    // Old version without min_signers
+    let json = r#"{
+        "header": {
+          "version": 0,
+          "ciphersuite": "FROST-ED25519-SHA512-v1"
+        },
+        "verifying_shares": {
+          "2a00000000000000000000000000000000000000000000000000000000000000": "5866666666666666666666666666666666666666666666666666666666666666"
+        },
+        "verifying_key": "5866666666666666666666666666666666666666666666666666666666666666"
+      }"#;
+    let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(json).unwrap();
+    assert!(public_key_package.verifying_key() == decoded_public_key_package.verifying_key());
+    assert!(public_key_package.verifying_shares() == decoded_public_key_package.verifying_shares());
 
     let invalid_json = "{}";
     assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());
