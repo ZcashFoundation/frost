@@ -434,7 +434,7 @@ fn check_key_package_serialization() {
 
 #[test]
 fn check_public_key_package_serialization() {
-    let public_key_package = samples::public_key_package();
+    let public_key_package = samples::public_key_package_new();
 
     let json = serde_json::to_string_pretty(&public_key_package).unwrap();
     println!("{}", json);
@@ -450,10 +450,26 @@ fn check_public_key_package_serialization() {
         "verifying_shares": {
           "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
         },
-        "verifying_key": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
+        "verifying_key": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900",
+        "min_signers": 2
       }"#;
     let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(json).unwrap();
     assert!(public_key_package == decoded_public_key_package);
+
+    // Old version without min_signers
+    let json = r#"{
+        "header": {
+          "version": 0,
+          "ciphersuite": "FROST-ED448-SHAKE256-v1"
+        },
+        "verifying_shares": {
+          "2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
+        },
+        "verifying_key": "14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"
+      }"#;
+    let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(json).unwrap();
+    assert!(public_key_package.verifying_key() == decoded_public_key_package.verifying_key());
+    assert!(public_key_package.verifying_shares() == decoded_public_key_package.verifying_shares());
 
     let invalid_json = "{}";
     assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());

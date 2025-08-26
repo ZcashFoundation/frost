@@ -645,7 +645,7 @@ pub mod keys {
                         (*i, vs)
                     })
                     .collect();
-                PublicKeyPackage::new(verifying_shares, verifying_key)
+                PublicKeyPackage::new_internal(verifying_shares, verifying_key, self.min_signers())
             } else {
                 self
             }
@@ -766,7 +766,11 @@ pub mod keys {
                     (*i, vs)
                 })
                 .collect();
-            PublicKeyPackage::new(verifying_shares, verifying_key)
+            PublicKeyPackage::new_internal(
+                verifying_shares,
+                verifying_key,
+                public_key_package.min_signers(),
+            )
         }
     }
 

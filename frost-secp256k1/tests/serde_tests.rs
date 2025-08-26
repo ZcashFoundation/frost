@@ -434,7 +434,7 @@ fn check_key_package_serialization() {
 
 #[test]
 fn check_public_key_package_serialization() {
-    let public_key_package = samples::public_key_package();
+    let public_key_package = samples::public_key_package_new();
 
     let json = serde_json::to_string_pretty(&public_key_package).unwrap();
     println!("{}", json);
@@ -450,10 +450,26 @@ fn check_public_key_package_serialization() {
         "verifying_shares": {
           "000000000000000000000000000000000000000000000000000000000000002a": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
         },
-        "verifying_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+        "verifying_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        "min_signers": 2
       }"#;
     let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(json).unwrap();
     assert!(public_key_package == decoded_public_key_package);
+
+    // Old version without min_signers
+    let json = r#"{
+        "header": {
+          "version": 0,
+          "ciphersuite": "FROST-secp256k1-SHA256-v1"
+        },
+        "verifying_shares": {
+          "000000000000000000000000000000000000000000000000000000000000002a": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+        },
+        "verifying_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+      }"#;
+    let decoded_public_key_package: PublicKeyPackage = serde_json::from_str(json).unwrap();
+    assert!(public_key_package.verifying_key() == decoded_public_key_package.verifying_key());
+    assert!(public_key_package.verifying_shares() == decoded_public_key_package.verifying_shares());
 
     let invalid_json = "{}";
     assert!(serde_json::from_str::<PublicKeyPackage>(invalid_json).is_err());
