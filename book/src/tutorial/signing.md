@@ -9,7 +9,7 @@ channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 ## Coordinator, Round 1
 
 To sign, the
-[Coordinator](file:///home/conrado/zfnd/frost/book/book/frost.html#signing) must
+[Coordinator](../frost.md#signing) must
 select which participants are going to generate the signature, and must signal
 to start the process. This needs to be implemented by users of the ZF FROST library and will depend on
 the communication channel being used.
