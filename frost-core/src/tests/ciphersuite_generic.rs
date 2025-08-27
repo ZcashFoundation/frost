@@ -342,16 +342,65 @@ fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
     mut signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) {
-    use crate::round2::SignatureShare;
+    use crate::{round2::SignatureShare, CheaterDetection};
 
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
-    // Corrupt a share
-    let id = *signature_shares.keys().next().unwrap();
-    *signature_shares.get_mut(&id).unwrap() =
-        SignatureShare::new(signature_shares[&id].to_scalar() + one);
+    // Corrupt two shares
+    let id1 = *signature_shares.keys().next().unwrap();
+    *signature_shares.get_mut(&id1).unwrap() =
+        SignatureShare::new(signature_shares[&id1].to_scalar() + one);
+    let id2 = *signature_shares.keys().nth(1).unwrap();
+    *signature_shares.get_mut(&id2).unwrap() =
+        SignatureShare::new(signature_shares[&id2].to_scalar() + one);
+
     let e = frost::aggregate(&signing_package, &signature_shares, &pubkey_package).unwrap_err();
-    assert_eq!(e.culprit(), Some(id));
-    assert_eq!(e, Error::InvalidSignatureShare { culprit: id });
+    assert_eq!(e.culprits(), vec![id1]);
+    assert_eq!(
+        e,
+        Error::InvalidSignatureShare {
+            culprits: vec![id1]
+        }
+    );
+
+    let e = frost::aggregate_custom(
+        &signing_package,
+        &signature_shares,
+        &pubkey_package,
+        crate::CheaterDetection::Disabled,
+    )
+    .unwrap_err();
+    assert_eq!(e.culprits(), vec![]);
+    assert_eq!(e, Error::InvalidSignature);
+
+    let e = frost::aggregate_custom(
+        &signing_package,
+        &signature_shares,
+        &pubkey_package,
+        crate::CheaterDetection::FirstCheater,
+    )
+    .unwrap_err();
+    assert_eq!(e.culprits(), vec![id1]);
+    assert_eq!(
+        e,
+        Error::InvalidSignatureShare {
+            culprits: vec![id1]
+        }
+    );
+
+    let e = frost::aggregate_custom(
+        &signing_package,
+        &signature_shares,
+        &pubkey_package,
+        CheaterDetection::AllCheaters,
+    )
+    .unwrap_err();
+    assert_eq!(e.culprits(), vec![id1, id2]);
+    assert_eq!(
+        e,
+        Error::InvalidSignatureShare {
+            culprits: vec![id1, id2]
+        }
+    );
 }
 
 /// Test NCC-E008263-4VP audit finding (PublicKeyPackage).
@@ -729,7 +778,7 @@ fn check_part2_error<C: Ciphersuite>(
     round1_packages.get_mut(&id).unwrap().proof_of_knowledge.z =
         round1_packages[&id].proof_of_knowledge.z + one;
     let e = frost::keys::dkg::part2(round1_secret_package, &round1_packages).unwrap_err();
-    assert_eq!(e.culprit(), Some(id));
+    assert_eq!(e.culprits(), vec![id]);
     assert_eq!(e, Error::InvalidProofOfKnowledge { culprit: id });
 }
 
@@ -738,17 +787,17 @@ pub fn check_error_culprit<C: Ciphersuite>() {
     let identifier: frost::Identifier<C> = 42u16.try_into().unwrap();
 
     let e = Error::InvalidSignatureShare {
-        culprit: identifier,
+        culprits: vec![identifier],
     };
-    assert_eq!(e.culprit(), Some(identifier));
+    assert_eq!(e.culprits(), vec![identifier]);
 
     let e = Error::InvalidProofOfKnowledge {
         culprit: identifier,
     };
-    assert_eq!(e.culprit(), Some(identifier));
+    assert_eq!(e.culprits(), vec![identifier]);
 
     let e: Error<C> = Error::InvalidSignature;
-    assert_eq!(e.culprit(), None);
+    assert_eq!(e.culprits(), vec![]);
 }
 
 /// Test identifier derivation with a Ciphersuite
@@ -930,8 +979,8 @@ fn check_verifying_shares<C: Ciphersuite>(
         SignatureShare::new(signature_shares[&id].to_scalar() + one);
 
     let e = frost::aggregate(&signing_package, &signature_shares, &pubkeys).unwrap_err();
-    assert_eq!(e.culprit(), Some(id));
-    assert_eq!(e, Error::InvalidSignatureShare { culprit: id });
+    assert_eq!(e.culprits(), vec![id]);
+    assert_eq!(e, Error::InvalidSignatureShare { culprits: vec![id] });
 }
 
 // Checks if `verify_signature_share()` works correctly.

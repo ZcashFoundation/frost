@@ -569,18 +569,66 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
+    #[cfg(feature = "cheater-detection")]
+    {
+        aggregate_custom(
+            signing_package,
+            signature_shares,
+            pubkeys,
+            CheaterDetection::FirstCheater,
+        )
+    }
+    #[cfg(not(feature = "cheater-detection"))]
+    {
+        aggregate_custom(
+            signing_package,
+            signature_shares,
+            pubkeys,
+            CheaterDetection::Disabled,
+        )
+    }
+}
+
+/// The type of cheater detection to use.
+pub enum CheaterDetection {
+    /// Disable cheater detection. Fast in case there are invalid
+    /// shares.
+    Disabled,
+    /// Detect the first cheater and stop. Performance will depend on where
+    /// the cheater's share is in the list.
+    FirstCheater,
+    /// Detect all cheaters. Slower since all shares must be verified.
+    /// Performance will be proportional on the size of participants.
+    AllCheaters,
+}
+
+/// Like [`aggregate()`], but allow specifying a specific cheater detection
+/// strategy.
+pub fn aggregate_custom<C>(
+    signing_package: &SigningPackage<C>,
+    signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
+    pubkeys: &keys::PublicKeyPackage<C>,
+    cheater_detection: CheaterDetection,
+) -> Result<Signature<C>, Error<C>>
+where
+    C: Ciphersuite,
+{
     // Check if signing_package.signing_commitments and signature_shares have
     // the same set of identifiers, and if they are all in pubkeys.verifying_shares.
     if signing_package.signing_commitments().len() != signature_shares.len() {
         return Err(Error::UnknownIdentifier);
     }
 
-    if !signing_package.signing_commitments().keys().all(|id| {
-        #[cfg(feature = "cheater-detection")]
-        return signature_shares.contains_key(id) && pubkeys.verifying_shares().contains_key(id);
-        #[cfg(not(feature = "cheater-detection"))]
-        return signature_shares.contains_key(id);
-    }) {
+    if !signing_package
+        .signing_commitments()
+        .keys()
+        .all(|id| match cheater_detection {
+            CheaterDetection::Disabled => signature_shares.contains_key(id),
+            CheaterDetection::FirstCheater | CheaterDetection::AllCheaters => {
+                signature_shares.contains_key(id) && pubkeys.verifying_shares().contains_key(id)
+            }
+        })
+    {
         return Err(Error::UnknownIdentifier);
     }
 
@@ -619,32 +667,36 @@ where
     // Only if the verification of the aggregate signature failed; verify each share to find the cheater.
     // This approach is more efficient since we don't need to verify all shares
     // if the aggregate signature is valid (which should be the common case).
-    #[cfg(feature = "cheater-detection")]
-    if verification_result.is_err() {
-        detect_cheater(
-            &group_commitment,
-            &pubkeys,
-            &signing_package,
-            &signature_shares,
-            &binding_factor_list,
-        )?;
+    match cheater_detection {
+        CheaterDetection::Disabled => {
+            verification_result?;
+        }
+        CheaterDetection::FirstCheater | CheaterDetection::AllCheaters => {
+            if verification_result.is_err() {
+                detect_cheater(
+                    &group_commitment,
+                    &pubkeys,
+                    &signing_package,
+                    &signature_shares,
+                    &binding_factor_list,
+                    cheater_detection,
+                )?;
+            }
+        }
     }
-
-    #[cfg(not(feature = "cheater-detection"))]
-    verification_result?;
 
     Ok(signature)
 }
 
 /// Optional cheater detection feature
 /// Each share is verified to find the cheater
-#[cfg(feature = "cheater-detection")]
 fn detect_cheater<C: Ciphersuite>(
     group_commitment: &GroupCommitment<C>,
     pubkeys: &keys::PublicKeyPackage<C>,
     signing_package: &SigningPackage<C>,
     signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
     binding_factor_list: &BindingFactorList<C>,
+    cheater_detection: CheaterDetection,
 ) -> Result<(), Error<C>> {
     // Compute the per-message challenge.
     let challenge = <C>::challenge(
@@ -652,6 +704,8 @@ fn detect_cheater<C: Ciphersuite>(
         &pubkeys.verifying_key,
         signing_package.message(),
     )?;
+
+    let mut all_culprits = Vec::new();
 
     // Verify the signature shares.
     for (identifier, signature_share) in signature_shares {
@@ -662,7 +716,7 @@ fn detect_cheater<C: Ciphersuite>(
             .get(identifier)
             .ok_or(Error::UnknownIdentifier)?;
 
-        verify_signature_share_precomputed(
+        let r = verify_signature_share_precomputed(
             *identifier,
             signing_package,
             binding_factor_list,
@@ -670,7 +724,22 @@ fn detect_cheater<C: Ciphersuite>(
             signature_share,
             verifying_share,
             challenge,
-        )?;
+        );
+        match r {
+            Ok(_) => {}
+            Err(Error::InvalidSignatureShare { culprits }) => {
+                all_culprits.extend(culprits);
+                if let CheaterDetection::FirstCheater = cheater_detection {
+                    break;
+                }
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    if !all_culprits.is_empty() {
+        return Err(Error::InvalidSignatureShare {
+            culprits: all_culprits,
+        });
     }
 
     // We should never reach here; but we return an error to be safe.
