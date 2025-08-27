@@ -181,10 +181,30 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
 }
 
 #[test]
+fn check_refresh_shares_with_dealer_fails_with_different_min_signers() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_different_min_signers::<
+        Ristretto255Sha512,
+        _,
+    >(rng);
+}
+
+#[test]
 fn check_refresh_shares_with_dkg() {
     let rng = rand::rngs::OsRng;
 
     frost_core::tests::refresh::check_refresh_shares_with_dkg::<Ristretto255Sha512, _>(rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dkg_smaller_threshold() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dkg_smaller_threshold::<
+        Ristretto255Sha512,
+        _,
+    >(rng);
 }
 
 #[test]

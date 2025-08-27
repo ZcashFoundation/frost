@@ -6,6 +6,9 @@ Entries are listed in reverse chronological order.
 
 * MSRV has been bumped to Rust 1.81, making all crates no-std (except
   `frost-ed448`). The `std` and `nightly` features were removed from all crates
+* Added validation for the `min_signers` parameter in the
+  `frost_core::keys::refresh` functions.
+* Added DKG refresh functions to the crate-specific `refresh` modules.
 
 ## 2.1.0
 
