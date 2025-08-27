@@ -6,7 +6,7 @@ Add to your `Cargo.toml` file:
 
 ```
 [dependencies]
-frost-ristretto255 = "2.1.0"
+frost-ristretto255 = "2.2.0"
 ```
 
 ## Handling errors
@@ -38,7 +38,7 @@ needs to be transmitted. The importing would look like:
 
 ```
 [dependencies]
-frost-ristretto255 = { version = "2.1.0", features = ["serde"] }
+frost-ristretto255 = { version = "2.2.0", features = ["serde"] }
 ```
 
 Note that serde usage is optional. Applications can use different encodings, and
