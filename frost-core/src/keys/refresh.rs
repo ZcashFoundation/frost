@@ -1,8 +1,27 @@
 //! Refresh Shares
 //!
-//! Implements the functionality to refresh a share. This requires the
-//! participation of all the remaining signers. This can be done using a Trusted
-//! Dealer or DKG.
+//! Refreshing shares has two purposes:
+//!
+//! - Mitigate against share compromise.
+//! - Remove participants from a group.
+//!
+//! Refer to the [FROST
+//! book](https://frost.zfnd.org/frost.html#refreshing-shares) for important
+//! details.
+//!
+//! This modules supports refreshing shares using a Trusted Dealer or DKG. You
+//! probably want to use the same approach as the original share generation.
+//!
+//! For the Trusted Dealer approach, the trusted dealer should call
+//! [`compute_refreshing_shares()`] and send the returned refreshing shares to
+//! the participants. Each participant should then call [`refresh_share()`].
+//!
+//! For the DKG approach, the flow is very similar to [DKG
+//! itself](`https://frost.zfnd.org/tutorial/dkg.html`). Each participant calls
+//! [`refresh_dkg_part_1()`], keeps the returned secret package and sends the
+//! returned package to other participants. Then each participants calls
+//! [`refresh_dkg_part2()`] and sends the returned packages to the other
+//! participants. Finally each participant calls [`refresh_dkg_shares()`].
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
@@ -21,10 +40,20 @@ use core::iter;
 
 use super::{dkg::round1::Package, KeyPackage, SecretShare, VerifiableSecretSharingCommitment};
 
-/// Generates new zero key shares and a public key package using a trusted
-/// dealer Building a new public key package is done by taking the verifying
-/// shares from the new public key package and adding them to the original
-/// verifying shares
+/// Compute refreshing shares for the Trusted Dealer refresh procedure.
+///
+/// - `pub_key_package`: the current public key package.
+/// - `max_signers`: the number of participants that are refreshing their
+///   shares. It can be smaller than the original value, but still equal to or
+///   greater than `min_signers`.
+/// - `min_signers`: the threshold needed to sign. It must be equal to the
+///   original value for the group (i.e. the refresh process can't reduce
+///   the threshold).
+/// - `identifiers`: The identifiers of all participants that want to refresh
+///   their shares. Must be the same length as `max_signers`.
+///
+/// It returns a vectors of [`SecretShare`] that must be sent to the participants
+/// in the same order as `identifiers`, and the refreshed [`PublicKeyPackage`].
 pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     pub_key_package: PublicKeyPackage<C>,
     max_signers: u16,
@@ -86,9 +115,11 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     Ok((refreshing_shares_minus_identity, refreshed_pub_key_package))
 }
 
-/// Each participant refreshes their shares This is done by taking the
-/// `refreshing_share` received from the trusted dealer and adding it to the
-/// original share
+/// Refresh a share in the Trusted Dealer refresh procedure.
+///
+/// Must be called by each participant refreshing the shares, with the
+/// `refreshing_share` received from the trusted dealer and the
+/// `current_key_package` of the participant.
 pub fn refresh_share<C: Ciphersuite>(
     mut refreshing_share: SecretShare<C>,
     current_key_package: &KeyPackage<C>,
@@ -108,6 +139,10 @@ pub fn refresh_share<C: Ciphersuite>(
     // Verify refreshing_share secret share
     let refreshed_share_package = KeyPackage::<C>::try_from(refreshing_share)?;
 
+    if refreshed_share_package.min_signers() != current_key_package.min_signers() {
+        return Err(Error::InvalidMinSigners);
+    }
+
     let signing_share: SigningShare<C> = SigningShare::new(
         refreshed_share_package.signing_share.to_scalar()
             + current_key_package.signing_share.to_scalar(),
@@ -119,8 +154,20 @@ pub fn refresh_share<C: Ciphersuite>(
     Ok(new_key_package)
 }
 
-/// Part 1 of refresh share with DKG. A refreshing_key is generated and a new package and secret_package are generated.
-/// The identity commitment is removed from the packages.
+/// Part 1 of refresh share with DKG.
+///
+/// - `identifier`: The identifier of the participant that wants to refresh
+///   their share.
+/// - `max_signers`: the number of participants that are refreshing their
+///   shares. It can be smaller than the original value, but still equal to or
+///   greater than `min_signers`.
+/// - `min_signers`: the threshold needed to sign. It must be equal to the
+///   original value for the group (i.e. the refresh process can't reduce
+///   the threshold).
+///
+/// It returns the [`round1::SecretPackage`] that must be kept in memory
+/// by the participant for the other steps, and the [`round1::Package`] that
+/// must be sent to each other participant in the refresh run.
 pub fn refresh_dkg_part_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifier: Identifier<C>,
     max_signers: u16,
@@ -164,7 +211,21 @@ pub fn refresh_dkg_part_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     Ok((secret_package, package))
 }
 
-/// Part 2 of refresh share with DKG. The identity commitment needs to be added back into the secret package.
+/// Performs the second part of the refresh procedure for the
+/// participant holding the given [`round1::SecretPackage`], given the received
+/// [`round1::Package`]s received from the other participants.
+///
+/// `round1_packages` maps the identifier of each other participant to the
+/// [`round1::Package`] they sent to the current participant (the owner of
+/// `secret_package`). These identifiers must come from whatever mapping the
+/// participant has between communication channels and participants, i.e. they
+/// must have assurance that the [`round1::Package`] came from the participant
+/// with that identifier.
+///
+/// It returns the [`round2::SecretPackage`] that must be kept in memory by the
+/// participant for the final step, and the map of [`round2::Package`]s that
+/// must be sent to each other participant who has the given identifier in the
+/// map key.
 pub fn refresh_dkg_part2<C: Ciphersuite>(
     mut secret_package: round1::SecretPackage<C>,
     round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
@@ -241,8 +302,28 @@ pub fn refresh_dkg_part2<C: Ciphersuite>(
     ))
 }
 
-/// This is the step that actually refreshes the shares. New public key packages
-/// and key packages are created.
+/// Performs the third and final part of the refresh procedure for the
+/// participant holding the given [`round2::SecretPackage`], given the received
+/// [`round1::Package`]s and [`round2::Package`]s received from the other
+/// participants.
+///
+/// `round1_packages` must be the same used in [`refresh_dkg_part2()`].
+///
+/// `round2_packages` maps the identifier of each other participant to the
+/// [`round2::Package`] they sent to the current participant (the owner of
+/// `secret_package`). These identifiers must come from whatever mapping the
+/// participant has between communication channels and participants, i.e. they
+/// must have assurance that the [`round2::Package`] came from the participant
+/// with that identifier.
+///
+/// `old_pub_key_package` and `old_key_package` are the old values from the
+/// participant, which are being refreshed.
+///
+/// It returns the refreshed [`KeyPackage`] that has the long-lived key share
+/// for the participant, and the refreshed [`PublicKeyPackage`]s that has public
+/// information about all participants; both of which are required to compute
+/// FROST signatures. Note that while the verifying (group) key of the
+/// [`PublicKeyPackage`] will stay the same, the verifying shares will change.
 pub fn refresh_dkg_shares<C: Ciphersuite>(
     round2_secret_package: &round2::SecretPackage<C>,
     round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
@@ -250,6 +331,10 @@ pub fn refresh_dkg_shares<C: Ciphersuite>(
     old_pub_key_package: PublicKeyPackage<C>,
     old_key_package: KeyPackage<C>,
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
+    if round2_secret_package.min_signers() != old_key_package.min_signers() {
+        return Err(Error::InvalidMinSigners);
+    }
+
     // Add identity commitment back into round1_packages
     let mut new_round_1_packages = BTreeMap::new();
     for (sender_identifier, round1_package) in round1_packages {
