@@ -45,7 +45,8 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         .iter()
         .map(|v| {
             let vec = hex::decode(v.as_str().unwrap()).unwrap();
-            <<C::Group as Group>::Field>::deserialize(&vec.try_into().debugless_unwrap()).unwrap()
+            <<C::Group as Group>::Field>::deserialize(&vec.as_slice().try_into().debugless_unwrap())
+                .unwrap()
         })
         .collect();
 
