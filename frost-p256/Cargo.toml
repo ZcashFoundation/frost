@@ -37,7 +37,9 @@ rand_chacha.workspace = true
 serde_json.workspace = true
 
 [features]
-default = ["serialization", "cheater-detection"]
+default = ["serialization", "cheater-detection", "std"]
+# No longer needed. Kept for retrocompatibility until 3.0.0
+std = []
 #! ## Features
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports

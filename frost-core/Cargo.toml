@@ -45,7 +45,9 @@ rand_chacha.workspace = true
 serde_json.workspace = true
 
 [features]
-default = ["serialization", "cheater-detection"]
+default = ["serialization", "cheater-detection", "std"]
+# No longer needed. Kept for retrocompatibility until 3.0.0
+std = []
 #! ## Features
 ## Expose internal types, which do not have SemVer guarantees. This is an advanced
 ## feature which can be useful if you need to build a modified version of FROST.

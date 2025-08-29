@@ -3,9 +3,6 @@
 use crate::{Ciphersuite, Identifier};
 use thiserror::Error;
 
-#[derive(Error, Debug, Clone, Copy, Eq, PartialEq)]
-pub struct ParticipantError<C: Ciphersuite>(Identifier<C>);
-
 /// An error related to FROST.
 #[non_exhaustive]
 #[derive(Error, Debug, Copy, Clone, Eq, PartialEq)]

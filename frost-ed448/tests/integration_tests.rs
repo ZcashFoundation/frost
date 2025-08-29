@@ -181,10 +181,29 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
 }
 
 #[test]
+fn check_refresh_shares_with_dealer_fails_with_different_min_signers() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_different_min_signers::<
+        Ed448Shake256,
+        _,
+    >(rng);
+}
+
+#[test]
 fn check_refresh_shares_with_dkg() {
     let rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::tests::refresh::check_refresh_shares_with_dkg::<Ed448Shake256, _>(rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dkg_smaller_threshold() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dkg_smaller_threshold::<Ed448Shake256, _>(
+        rng,
+    );
 }
 
 #[test]
