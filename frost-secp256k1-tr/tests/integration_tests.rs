@@ -183,7 +183,7 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_different_min_signers() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_different_min_signers::<
         Secp256K1Sha256TR,
@@ -200,7 +200,7 @@ fn check_refresh_shares_with_dkg() {
 
 #[test]
 fn check_refresh_shares_with_dkg_smaller_threshold() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::tests::refresh::check_refresh_shares_with_dkg_smaller_threshold::<
         Secp256K1Sha256TR,
