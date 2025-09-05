@@ -124,8 +124,7 @@ fn write_docs(
         let new_doc = docs.get(old_name).map(|v| v.1.clone());
         let Some(new_doc) = new_doc else {
             eprintln!(
-                "WARNING: documentation for {} is not available in base file. This can mean it's a specific type for the ciphersuite, or that there is a bug in gencode",
-                old_name
+                "WARNING: documentation for {old_name} is not available in base file. This can mean it's a specific type for the ciphersuite, or that there is a bug in gencode",
             );
             continue;
         };
