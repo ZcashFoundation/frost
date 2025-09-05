@@ -16,18 +16,18 @@ features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-curve25519-dalek = { version = "5.0.0-pre.0", features = ["rand_core"] }
+curve25519-dalek = { version = "5.0.0-pre.1", features = ["rand_core"] }
 document-features.workspace = true
 frost-core.workspace = true
 frost-rerandomized.workspace = true
 rand_core.workspace = true
-sha2 = { version = "0.11.0-rc.0", default-features = false }
+sha2 = { version = "0.11.0-rc.2", default-features = false }
 
 [dev-dependencies]
 criterion.workspace = true
 frost-core = { workspace = true, features = ["test-impl"] }
 frost-rerandomized = { workspace = true, features = ["test-impl"] }
-ed25519-dalek = "3.0.0-pre.0"
+ed25519-dalek = "3.0.0-pre.1"
 insta.workspace = true
 hex.workspace = true
 lazy_static.workspace = true

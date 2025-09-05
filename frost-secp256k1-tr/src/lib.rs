@@ -14,7 +14,7 @@ use alloc::vec;
 use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
 
 use frost_rerandomized::RandomizedCiphersuite;
-use hash2curve::{hash_to_field, ExpandMsgXmd, GroupDigest};
+use hash2curve::{hash_to_field, ExpandMsgXmd, GroupDigest, MapToCurve};
 use k256::elliptic_curve::ops::Reduce;
 use k256::{
     elliptic_curve::{
@@ -170,12 +170,13 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
 }
 
 fn hash_to_scalar(domain: &[&[u8]], msg: &[u8]) -> Scalar {
-    let mut u = [Secp256K1ScalarField::zero()];
-    hash_to_field::<ExpandMsgXmd<Sha256>, <Secp256k1 as GroupDigest>::K, Scalar>(
-        &[msg],
-        domain,
-        &mut u,
-    )
+    let u = hash_to_field::<
+        1,
+        ExpandMsgXmd<Sha256>,
+        <Secp256k1 as GroupDigest>::SecurityLevel,
+        Scalar,
+        <Secp256k1 as MapToCurve>::FieldLength,
+    >(&[msg], domain)
     .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]
 }
@@ -194,7 +195,7 @@ fn hasher_to_scalar(hasher: Sha256) -> Scalar {
     // This is acceptable because secp256k1 curve order is close to 2^256,
     // and the input is uniformly random since it is a hash output, therefore
     // the bias is negligibly small.
-    Scalar::reduce(U256::from_be_slice(&hasher.finalize()))
+    Scalar::reduce(&U256::from_be_slice(&hasher.finalize()))
 }
 
 /// Create a BIP340 compliant tagged hash
