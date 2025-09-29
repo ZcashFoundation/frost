@@ -386,7 +386,7 @@ where
                 })?;
 
                 // For the `min_signers` field, fill it with None if
-                // `next_element()` fails (i.e. there are not other elements)
+                // `next_element()` fails (i.e. there are no other elements)
                 let min_signers = match seq.next_element::<Option<u16>>() {
                     Ok(Some(min_signers)) => min_signers,
                     _ => None,

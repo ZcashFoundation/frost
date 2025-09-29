@@ -534,7 +534,7 @@ where
     // will have all the participant's packages.
     let mut key_packages = BTreeMap::new();
 
-    // Map of the verifying key of each participant.
+    // Map of the verifying share of each participant.
     // Used by the signing test that follows.
     let mut verifying_shares = BTreeMap::new();
     // The group public key, used by the signing test that follows.
