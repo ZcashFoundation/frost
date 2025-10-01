@@ -27,7 +27,7 @@ repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
 
 [workspace.dependencies]
-criterion = "0.6"
+criterion = "0.7"
 document-features = "0.2.7"
 hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
 insta = { version = "1.31.0", features = ["yaml"] }
