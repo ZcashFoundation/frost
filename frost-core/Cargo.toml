@@ -19,7 +19,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 byteorder = { version = "1.4", default-features = false }
 const-crc32 = { version = "1.2.0", package = "const-crc32-nostd" }
 document-features.workspace = true
-debugless-unwrap = "0.0.4"
+debugless-unwrap = "1.0.0"
 derive-getters = "0.5.0"
 hex.workspace = true
 postcard = { version = "1.0.0", features = ["alloc"], optional = true }
