@@ -266,9 +266,7 @@ where
 
         // The following are copied from the `serde::Deserialize` derive, and
         // are required to support `visit_map()` which in turn is required for
-        // `serde_json`. We don't need to change any of it, because of
-        // `#[serde(default)]` on the `min_signers` field which makes it work
-        // with JSON and other formats that support defaults.
+        // `serde_json`.
 
         enum Field {
             Field0,
@@ -400,7 +398,8 @@ where
                 })
             }
 
-            // Again this is copied from the `serde::Deserialize` derive.
+            // Again this is copied from the `serde::Deserialize` derive;
+            // the only change is not requiring `min_signers` to be present.
             fn visit_map<__A>(self, mut __map: __A) -> Result<Self::Value, __A::Error>
             where
                 __A: serde::de::MapAccess<'de>,
@@ -467,12 +466,7 @@ where
                         "verifying_key",
                     ))?,
                 };
-                let __field3 = match __field3 {
-                    Some(__field3) => __field3,
-                    None => Err(<__A::Error as serde::de::Error>::missing_field(
-                        "min_signers",
-                    ))?,
-                };
+                let __field3 = __field3.unwrap_or_default();
                 Ok(PublicKeyPackage {
                     header: __field0,
                     verifying_shares: __field1,
