@@ -453,19 +453,25 @@ where
                 }
                 let __field0 = match __field0 {
                     Some(__field0) => __field0,
-                    None => serde::__private::de::missing_field("header")?,
+                    None => Err(<__A::Error as serde::de::Error>::missing_field("header"))?,
                 };
                 let __field1 = match __field1 {
                     Some(__field1) => __field1,
-                    None => serde::__private::de::missing_field("verifying_shares")?,
+                    None => Err(<__A::Error as serde::de::Error>::missing_field(
+                        "verifying_shares",
+                    ))?,
                 };
                 let __field2 = match __field2 {
                     Some(__field2) => __field2,
-                    None => serde::__private::de::missing_field("verifying_key")?,
+                    None => Err(<__A::Error as serde::de::Error>::missing_field(
+                        "verifying_key",
+                    ))?,
                 };
                 let __field3 = match __field3 {
                     Some(__field3) => __field3,
-                    None => serde::__private::de::missing_field("min_signers")?,
+                    None => Err(<__A::Error as serde::de::Error>::missing_field(
+                        "min_signers",
+                    ))?,
                 };
                 Ok(PublicKeyPackage {
                     header: __field0,
