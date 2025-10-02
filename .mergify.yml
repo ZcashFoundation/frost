@@ -9,7 +9,6 @@ queue_rules:
       # which are the same as the GitHub main branch protection rules
       # https://docs.mergify.com/conditions/#about-branch-protection
       - base=main
-    allow_inplace_checks: true
     batch_size: 2
     # Wait for a few minutes to embark 2 tickets together in a merge train
     batch_max_wait_time: "3 minutes"
