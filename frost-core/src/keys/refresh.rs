@@ -18,7 +18,7 @@
 //!
 //! For the DKG approach, the flow is very similar to [DKG
 //! itself](`https://frost.zfnd.org/tutorial/dkg.html`). Each participant calls
-//! [`refresh_dkg_part_1()`], keeps the returned secret package and sends the
+//! [`refresh_dkg_part1()`], keeps the returned secret package and sends the
 //! returned package to other participants. Then each participants calls
 //! [`refresh_dkg_part2()`] and sends the returned packages to the other
 //! participants. Finally each participant calls [`refresh_dkg_shares()`].
@@ -168,7 +168,7 @@ pub fn refresh_share<C: Ciphersuite>(
 /// It returns the [`round1::SecretPackage`] that must be kept in memory
 /// by the participant for the other steps, and the [`round1::Package`] that
 /// must be sent to each other participant in the refresh run.
-pub fn refresh_dkg_part_1<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn refresh_dkg_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifier: Identifier<C>,
     max_signers: u16,
     min_signers: u16,

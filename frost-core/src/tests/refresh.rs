@@ -4,7 +4,7 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate::keys::generate_with_dealer;
 use crate::keys::refresh::{
-    compute_refreshing_shares, refresh_dkg_part2, refresh_dkg_part_1, refresh_share,
+    compute_refreshing_shares, refresh_dkg_part1, refresh_dkg_part2, refresh_share,
 };
 #[cfg(feature = "serialization")]
 use crate::keys::{PublicKeyPackage, SecretShare};
@@ -384,7 +384,7 @@ where
     // In practice, each participant will perform this on their own environments.
     for participant_identifier in remaining_ids.clone() {
         let (round1_secret_package, round1_package) =
-            refresh_dkg_part_1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
+            refresh_dkg_part1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
@@ -573,7 +573,7 @@ pub fn check_refresh_shares_with_dkg_smaller_threshold<
     // In practice, each participant will perform this on their own environments.
     for participant_identifier in remaining_ids.clone() {
         let (round1_secret_package, round1_package) =
-            refresh_dkg_part_1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
+            refresh_dkg_part1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.

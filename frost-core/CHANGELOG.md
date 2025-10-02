@@ -2,6 +2,18 @@
 
 Entries are listed in reverse chronological order.
 
+## Unreleased
+
+### Breaking changes
+
+* The `std` and `nightly` features were removed from all crates
+* Renamed `frost_core::keys::refresh::refresh_dkg_part_1` to `refresh_dkg_part1`.
+* Fixed the crate-specific versions of the `refresh` module to be non-generic.
+
+### Additional changes
+
+* Added DKG refresh functions to the crate-specific `refresh` modules.
+
 ## 2.2.0
 
 ### Security Fixes
