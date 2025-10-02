@@ -92,6 +92,8 @@ jobs:
           persist-credentials: false
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - name: Check workflow permissions
         id: check_permissions
