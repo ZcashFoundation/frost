@@ -292,7 +292,8 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         .map(|(i, key_package)| (i, *key_package.verifying_share()))
         .collect();
 
-    let pubkey_package = frost::keys::PublicKeyPackage::new(verifying_shares, verifying_key);
+    let pubkey_package =
+        frost::keys::PublicKeyPackage::new(verifying_shares, verifying_key, min_signers as u16);
 
     ////////////////////////////////////////////////////////////////////////////
     // Aggregation:  collects the signing shares from all participants,

@@ -61,6 +61,14 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifiers: &[Identifier<C>],
     rng: &mut R,
 ) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
+    // Validate min_signers. It's OK if the min_signers is missing, because
+    // we validate it again in `refresh_share()`.
+    if let Some(package_min_signers) = pub_key_package.min_signers {
+        if min_signers != package_min_signers {
+            return Err(Error::InvalidMinSigners);
+        }
+    }
+
     // Validate inputs
     if identifiers.len() != max_signers as usize {
         return Err(Error::IncorrectNumberOfIdentifiers);
@@ -110,6 +118,7 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
         header: pub_key_package.header,
         verifying_shares: refreshed_verifying_shares,
         verifying_key: pub_key_package.verifying_key,
+        min_signers: Some(pub_key_package.min_signers.unwrap_or(min_signers)),
     };
 
     Ok((refreshing_shares_minus_identity, refreshed_pub_key_package))
@@ -447,6 +456,7 @@ pub fn refresh_dkg_shares<C: Ciphersuite>(
         header: old_pub_key_package.header,
         verifying_shares: new_verifying_shares,
         verifying_key: old_pub_key_package.verifying_key,
+        min_signers: Some(round2_secret_package.min_signers),
     };
 
     let key_package = KeyPackage {
