@@ -101,8 +101,10 @@ fn check_public_key_package_recreation() {
 
     let verifying_shares = public_key_package.verifying_shares();
     let verifying_key = public_key_package.verifying_key();
+    let min_signers = public_key_package.min_signers();
 
-    let new_public_key_package = PublicKeyPackage::new(verifying_shares.clone(), *verifying_key);
+    let new_public_key_package =
+        PublicKeyPackage::new_internal(verifying_shares.clone(), *verifying_key, min_signers);
 
     assert!(public_key_package == new_public_key_package);
 }

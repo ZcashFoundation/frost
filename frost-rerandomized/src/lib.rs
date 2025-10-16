@@ -111,9 +111,10 @@ impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
             })
             .collect();
 
-        Ok(PublicKeyPackage::new(
+        Ok(PublicKeyPackage::new_internal(
             randomized_verifying_shares,
             randomized_params.randomized_verifying_key,
+            self.min_signers(),
         ))
     }
 }

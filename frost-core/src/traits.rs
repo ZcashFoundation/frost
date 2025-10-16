@@ -287,9 +287,9 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
     /// Optional. Pre-process [`crate::aggregate()`] and
     /// [`crate::verify_signature_share()`] inputs. In the latter case, "dummy"
     /// container BTreeMap and PublicKeyPackage are passed with the relevant
-    /// values. The default implementation returns them as-is. [`Cow`] is used
-    /// so implementations can choose to return the same passed reference or a
-    /// modified clone.
+    /// values (PublicKeyPackage.min_signers will be None). The default
+    /// implementation returns them as-is. [`Cow`] is used so implementations
+    /// can choose to return the same passed reference or a modified clone.
     #[allow(clippy::type_complexity)]
     fn pre_aggregate<'a>(
         signing_package: &'a SigningPackage<Self>,

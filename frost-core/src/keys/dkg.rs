@@ -507,7 +507,7 @@ pub fn part2<C: Ciphersuite>(
     }
 
     for package in round1_packages.values() {
-        if package.commitment.0.len() != secret_package.min_signers as usize {
+        if package.commitment.min_signers() != secret_package.min_signers {
             return Err(Error::IncorrectNumberOfCommitments);
         }
     }
