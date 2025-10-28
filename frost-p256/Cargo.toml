@@ -17,8 +17,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 document-features.workspace = true
-p256 = { version = "0.14.0-pre.10", features = ["hash2curve"], default-features = false }
-hash2curve = "0.14.0-rc.1"
+p256 = { version = "0.14.0-rc.0", features = ["hash2curve"], default-features = false }
+hash2curve = "0.14.0-rc.3"
 frost-core.workspace = true
 frost-rerandomized.workspace = true
 rand_core.workspace = true

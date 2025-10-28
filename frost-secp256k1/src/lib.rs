@@ -11,7 +11,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 
 use frost_rerandomized::RandomizedCiphersuite;
-use hash2curve::{hash_to_field, ExpandMsgXmd, GroupDigest, MapToCurve};
+use hash2curve::{hash_to_field, ExpandMsgXmd, MapToCurve};
 use k256::{
     elliptic_curve::{
         group::prime::PrimeCurveAffine,
@@ -162,9 +162,9 @@ fn hash_to_scalar(domain: &[&[u8]], msg: &[u8]) -> Scalar {
     let u = hash_to_field::<
         1,
         ExpandMsgXmd<Sha256>,
-        <Secp256k1 as GroupDigest>::SecurityLevel,
+        <Secp256k1 as MapToCurve>::SecurityLevel,
         Scalar,
-        <Secp256k1 as MapToCurve>::FieldLength,
+        <Secp256k1 as MapToCurve>::Length,
     >(&[msg], domain)
     .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]

@@ -138,7 +138,7 @@ fn taproot_tweak_pubkey(pubkey: [u8; 32], merkle_root: &[u8]) -> (bool, [u8; 32]
         .chain_update(merkle_root)
         .finalize();
     let t = k256::Scalar::from(
-        k256::elliptic_curve::ScalarPrimitive::new(k256::U256::from_be_slice(&tweak_hash)).unwrap(),
+        k256::elliptic_curve::ScalarValue::new(k256::U256::from_be_slice(&tweak_hash)).unwrap(),
     );
 
     let mut pubkey_even_bytes = [0x02; 33];
