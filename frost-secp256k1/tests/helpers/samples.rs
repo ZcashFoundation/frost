@@ -104,7 +104,19 @@ pub fn public_key_package() -> PublicKeyPackage {
     let verifying_key = VerifyingKey::deserialize(serialized_element.as_ref()).unwrap();
     let verifying_shares = BTreeMap::from([(identifier, verifying_share)]);
 
-    PublicKeyPackage::new(verifying_shares, verifying_key)
+    PublicKeyPackage::new_internal(verifying_shares, verifying_key, None)
+}
+
+/// Generate a sample PublicKeyPackage with `min_signers`.
+pub fn public_key_package_new() -> PublicKeyPackage {
+    let identifier = 42u16.try_into().unwrap();
+    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1()).unwrap();
+    let verifying_share = VerifyingShare::deserialize(serialized_element.as_ref()).unwrap();
+    let serialized_element = <C as Ciphersuite>::Group::serialize(&element1()).unwrap();
+    let verifying_key = VerifyingKey::deserialize(serialized_element.as_ref()).unwrap();
+    let verifying_shares = BTreeMap::from([(identifier, verifying_share)]);
+
+    PublicKeyPackage::new(verifying_shares, verifying_key, 2)
 }
 
 /// Generate a sample round1::SecretPackage.

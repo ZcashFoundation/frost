@@ -5,14 +5,14 @@
 use crate::{
     frost,
     keys::dkg::{round1, round2},
-    Ciphersuite, CryptoRng, Error, Identifier, RngCore,
+    CryptoRng, Error, Identifier, RngCore,
 };
 use alloc::{collections::btree_map::BTreeMap, vec::Vec};
 
 use super::{KeyPackage, PublicKeyPackage, SecretShare};
 
 /// Refer to [`frost_core::keys::refresh::compute_refreshing_shares`].
-pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn compute_refreshing_shares<R: RngCore + CryptoRng>(
     old_pub_key_package: PublicKeyPackage,
     max_signers: u16,
     min_signers: u16,
@@ -29,21 +29,21 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// Refer to [`frost_core::keys::refresh::refresh_share`].
-pub fn refresh_share<C: Ciphersuite>(
+pub fn refresh_share(
     zero_share: SecretShare,
     current_share: &KeyPackage,
 ) -> Result<KeyPackage, Error> {
     frost::keys::refresh::refresh_share(zero_share, current_share)
 }
 
-/// Refer to [`frost_core::keys::refresh::refresh_dkg_part_1`].
+/// Refer to [`frost_core::keys::refresh::refresh_dkg_part1`].
 pub fn refresh_dkg_part1<R: RngCore + CryptoRng>(
     identifier: Identifier,
     max_signers: u16,
     min_signers: u16,
     mut rng: R,
 ) -> Result<(round1::SecretPackage, round1::Package), Error> {
-    frost::keys::refresh::refresh_dkg_part_1(identifier, max_signers, min_signers, &mut rng)
+    frost::keys::refresh::refresh_dkg_part1(identifier, max_signers, min_signers, &mut rng)
 }
 
 /// Refer to [`frost_core::keys::refresh::refresh_dkg_part2`].
