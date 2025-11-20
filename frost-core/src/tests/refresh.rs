@@ -2,6 +2,7 @@
 
 use rand_core::{CryptoRng, RngCore};
 
+use crate::keys::dkg::{round1, round2};
 use crate::keys::generate_with_dealer;
 use crate::keys::refresh::{
     compute_refreshing_shares, refresh_dkg_part2, refresh_dkg_part_1, refresh_share,
@@ -388,7 +389,12 @@ where
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
-        round1_secret_packages.insert(participant_identifier, round1_secret_package);
+        round1_secret_packages.insert(
+            participant_identifier,
+            // Serialization roundtrip to simulate storage for later
+            round1::SecretPackage::deserialize(&round1_secret_package.serialize().unwrap())
+                .unwrap(),
+        );
 
         // "Send" the round 1 package to all other participants. In this
         // test this is simulated using a BTreeMap; in practice this will be
@@ -400,7 +406,11 @@ where
             received_round1_packages
                 .entry(receiver_participant_identifier)
                 .or_default()
-                .insert(participant_identifier, round1_package.clone());
+                .insert(
+                    participant_identifier,
+                    // Serialization roundtrip to simulate communication
+                    round1::Package::deserialize(&round1_package.serialize().unwrap()).unwrap(),
+                );
         }
     }
 
@@ -429,7 +439,12 @@ where
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
-        round2_secret_packages.insert(participant_identifier, round2_secret_package);
+        round2_secret_packages.insert(
+            participant_identifier,
+            // Serialization roundtrip to simulate storage for later
+            round2::SecretPackage::deserialize(&round2_secret_package.serialize().unwrap())
+                .unwrap(),
+        );
 
         // "Send" the round 2 package to all other participants. In this
         // test this is simulated using a BTreeMap; in practice this will be
@@ -440,7 +455,11 @@ where
             received_round2_packages
                 .entry(receiver_identifier)
                 .or_insert_with(BTreeMap::new)
-                .insert(participant_identifier, round2_package);
+                .insert(
+                    participant_identifier,
+                    // Serialization roundtrip to simulate communication
+                    round2::Package::deserialize(&round2_package.serialize().unwrap()).unwrap(),
+                );
         }
     }
 
