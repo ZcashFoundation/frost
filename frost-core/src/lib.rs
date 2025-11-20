@@ -272,13 +272,12 @@ where
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
 
-        let ret = match v.as_slice().try_into() {
+        match v.as_slice().try_into() {
             Ok(bytes) => <<C::Group as Group>::Field>::deserialize(&bytes)
                 .map(|scalar| Self(scalar))
                 .map_err(|_| "malformed scalar encoding"),
             Err(_) => Err("malformed scalar encoding"),
-        };
-        ret
+        }
     }
 }
 

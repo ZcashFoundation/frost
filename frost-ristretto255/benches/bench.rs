@@ -1,15 +1,16 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use frost_ristretto255::*;
+use rand_core::TryRngCore;
 
 fn bench_ristretto255_batch_verify(c: &mut Criterion) {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::benches::bench_batch_verify::<Ristretto255Sha512, _>(c, "ristretto255", &mut rng);
 }
 
 fn bench_ristretto255_sign(c: &mut Criterion) {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rngs::OsRng.unwrap_err();
 
     frost_core::benches::bench_sign::<Ristretto255Sha512, _>(c, "ristretto255", &mut rng);
 }
