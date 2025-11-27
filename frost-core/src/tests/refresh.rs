@@ -57,18 +57,10 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         Identifier::try_from(5).unwrap(),
     ];
 
-    const NEW_MAX_SIGNERS: u16 = 4;
-
     // Trusted Dealer generates zero keys and new public key package
 
-    let (zero_shares, new_pub_key_package) = compute_refreshing_shares(
-        pub_key_package,
-        NEW_MAX_SIGNERS,
-        MIN_SIGNERS,
-        &remaining_ids,
-        &mut rng,
-    )
-    .unwrap();
+    let (zero_shares, new_pub_key_package) =
+        compute_refreshing_shares(pub_key_package, &remaining_ids, &mut rng).unwrap();
     // Simulate serialization / deserialization to ensure it works
     let new_pub_key_package =
         frost::keys::PublicKeyPackage::deserialize(&new_pub_key_package.serialize().unwrap())
@@ -102,21 +94,13 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
     C: Ciphersuite,
     R: RngCore + CryptoRng,
 >(
-    new_max_signers: u16,
-    min_signers: u16,
     identifiers: &[Identifier<C>],
     error: Error<C>,
     mut rng: R,
 ) {
     let (_old_shares, pub_key_package) =
         generate_with_dealer::<C, R>(5, 2, frost::keys::IdentifierList::Default, &mut rng).unwrap();
-    let out = compute_refreshing_shares(
-        pub_key_package,
-        new_max_signers,
-        min_signers,
-        identifiers,
-        &mut rng,
-    );
+    let out = compute_refreshing_shares(pub_key_package, identifiers, &mut rng);
 
     assert!(out.is_err());
     assert!(out == Err(error))
@@ -166,18 +150,10 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package<
         Identifier::try_from(5).unwrap(),
     ];
 
-    const NEW_MAX_SIGNERS: u16 = 4;
-
     // Trusted Dealer generates zero keys and new public key package
 
-    let e = compute_refreshing_shares(
-        incorrect_pub_key_package,
-        NEW_MAX_SIGNERS,
-        MIN_SIGNERS,
-        &remaining_ids,
-        &mut rng,
-    )
-    .unwrap_err();
+    let e =
+        compute_refreshing_shares(incorrect_pub_key_package, &remaining_ids, &mut rng).unwrap_err();
 
     assert_eq!(e, Error::UnknownIdentifier)
 }
@@ -215,16 +191,8 @@ pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore
         Identifier::try_from(5).unwrap(),
     ];
 
-    const NEW_MAX_SIGNERS: u16 = 4;
-
-    let (zero_shares, new_pub_key_package) = compute_refreshing_shares(
-        pub_key_package,
-        NEW_MAX_SIGNERS,
-        MIN_SIGNERS,
-        &remaining_ids,
-        &mut rng,
-    )
-    .unwrap();
+    let (zero_shares, new_pub_key_package) =
+        compute_refreshing_shares(pub_key_package, &remaining_ids, &mut rng).unwrap();
 
     // Trusted dealer serialises zero shares and key package
 
@@ -252,65 +220,6 @@ pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore
     let key_package = KeyPackage::<C>::try_from(zero_share.unwrap());
 
     assert!(key_package.is_ok());
-}
-
-/// We want to test that using a different min_signers than original fails.
-pub fn check_refresh_shares_with_dealer_fails_with_different_min_signers<
-    C: Ciphersuite,
-    R: RngCore + CryptoRng,
->(
-    mut rng: R,
-) {
-    // Compute shares
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Old Key generation
-    ////////////////////////////////////////////////////////////////////////////
-
-    const MAX_SIGNERS: u16 = 5;
-    const MIN_SIGNERS: u16 = 3;
-    let (old_shares, pub_key_package) = generate_with_dealer(
-        MAX_SIGNERS,
-        MIN_SIGNERS,
-        frost::keys::IdentifierList::Default,
-        &mut rng,
-    )
-    .unwrap();
-
-    let mut old_key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
-
-    for (k, v) in old_shares {
-        let key_package = KeyPackage::try_from(v).unwrap();
-        old_key_packages.insert(k, key_package);
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // New Key generation
-    ////////////////////////////////////////////////////////////////////////////
-
-    // Signer 2 will be removed and Signers 1, 3, 4 & 5 will remain
-
-    let remaining_ids = vec![
-        Identifier::try_from(1).unwrap(),
-        Identifier::try_from(3).unwrap(),
-        Identifier::try_from(4).unwrap(),
-        Identifier::try_from(5).unwrap(),
-    ];
-
-    const NEW_MAX_SIGNERS: u16 = 4;
-    const NEW_MIN_SIGNERS: u16 = 2;
-
-    // Trusted Dealer generates zero keys and new public key package
-
-    let r = compute_refreshing_shares(
-        pub_key_package,
-        NEW_MAX_SIGNERS,
-        NEW_MIN_SIGNERS,
-        &remaining_ids,
-        &mut rng,
-    );
-
-    assert_eq!(r, Err(Error::InvalidMinSigners));
 }
 
 /// Test FROST signing with DKG with a Ciphersuite.
