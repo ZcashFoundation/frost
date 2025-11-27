@@ -77,7 +77,9 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     for i in 0..remaining_ids.len() {
         let identifier = remaining_ids[i];
         let current_share = &old_key_packages[&identifier];
-        let new_share = refresh_share(zero_shares[i].clone(), current_share);
+        // Do a serialization roundtrip to simulate real usage
+        let zero_share = SecretShare::deserialize(&zero_shares[i].serialize().unwrap()).unwrap();
+        let new_share = refresh_share(zero_share, current_share);
         new_shares.insert(identifier, new_share);
     }
 
