@@ -109,6 +109,21 @@ fn check_public_key_package_recreation() {
     assert!(public_key_package == new_public_key_package);
 }
 
+/// Check if PublicKeyPackage can be recreated.
+#[test]
+fn check_public_key_package_new_recreation() {
+    let public_key_package = samples::public_key_package_new();
+
+    let verifying_shares = public_key_package.verifying_shares();
+    let verifying_key = public_key_package.verifying_key();
+    let min_signers = public_key_package.min_signers().unwrap();
+
+    let new_public_key_package =
+        PublicKeyPackage::new(verifying_shares.clone(), *verifying_key, min_signers);
+
+    assert!(public_key_package == new_public_key_package);
+}
+
 /// Check if round1::SecretPackage can be recreated.
 #[test]
 fn check_round1_secret_package_recreation() {

@@ -1,14 +1,21 @@
 //! Serialization support.
 
+#[cfg(feature = "serde")]
 use alloc::collections::BTreeMap;
+use alloc::string::String;
 use alloc::vec::Vec;
+#[cfg(feature = "serde")]
 use core::fmt::Formatter;
+#[cfg(feature = "serde")]
 use core::marker::PhantomData;
 
 #[cfg(feature = "serde")]
 use crate::keys::PublicKeyPackage;
+#[cfg(feature = "serde")]
 use crate::keys::VerifyingShare;
-use crate::{Ciphersuite, FieldError, Header, Identifier, VerifyingKey};
+use crate::{Ciphersuite, FieldError};
+#[cfg(feature = "serde")]
+use crate::{Header, Identifier, VerifyingKey};
 
 use crate::{Element, Error, Field, Group};
 
@@ -336,7 +343,7 @@ where
         {
             type Value = PublicKeyPackage<C>;
 
-            fn expecting(&self, fmt: &mut Formatter) -> std::fmt::Result {
+            fn expecting(&self, fmt: &mut Formatter) -> core::fmt::Result {
                 Formatter::write_str(fmt, "struct PublicKeyPackage")
             }
 

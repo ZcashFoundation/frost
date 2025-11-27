@@ -734,8 +734,8 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     pub(crate) verifying_key: VerifyingKey<C>,
     /// The minimum number of signers (threshold) required for the group.
     /// This can be None in packages created with `frost_core` prior to 3.0.0.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(feature = "serde", serde(default))]
     #[getter(copy)]
     pub(crate) min_signers: Option<u16>,
 }
