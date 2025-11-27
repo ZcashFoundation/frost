@@ -25,7 +25,7 @@ use crate::{
 /// pass-through, implemented for a type just for the ciphersuite, and calls through to another
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
-pub trait Field: Copy + Clone {
+pub trait Field: Copy {
     /// An element of the scalar field GF(p).
     /// The Eq/PartialEq implementation MUST be constant-time.
     type Scalar: Add<Output = Self::Scalar>
@@ -37,7 +37,7 @@ pub trait Field: Copy + Clone {
         + Sub<Output = Self::Scalar>;
 
     /// A unique byte array buf of fixed length N.
-    type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>>;
+    type Serialization: Clone + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
 
     /// Returns the zero element of the field, the additive identity.
     fn zero() -> Self::Scalar;
@@ -85,7 +85,7 @@ pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Sca
 /// pass-through, implemented for a type just for the ciphersuite, and calls through to another
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
-pub trait Group: Copy + Clone + PartialEq {
+pub trait Group: Copy + PartialEq {
     /// A prime order finite field GF(q) over which all scalar values for our prime order group can
     /// be multiplied are defined.
     type Field: Field;
@@ -102,7 +102,7 @@ pub trait Group: Copy + Clone + PartialEq {
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>>;
+    type Serialization: Clone + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
 
     /// The order of the the quotient group when the prime order subgroup divides the order of the
     /// full curve group.
@@ -147,7 +147,7 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 ///
 /// [FROST ciphersuite]: https://datatracker.ietf.org/doc/html/rfc9591#name-ciphersuites
 // See https://github.com/ZcashFoundation/frost/issues/693 for reasoning about the 'static bound.
-pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
+pub trait Ciphersuite: Copy + PartialEq + Debug + 'static {
     /// The ciphersuite ID string. It should be equal to the contextString in
     /// the spec. For new ciphersuites, this should be a string that identifies
     /// the ciphersuite; it's recommended to use a similar format to the
@@ -162,7 +162,11 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
 
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
-    type SignatureSerialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
+    type SignatureSerialization: Clone
+        + AsRef<[u8]>
+        + AsMut<[u8]>
+        + for<'a> TryFrom<&'a [u8]>
+        + Debug;
 
     /// [H1] for a FROST ciphersuite.
     ///

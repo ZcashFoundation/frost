@@ -44,7 +44,7 @@ pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(
     let values = &commitment_helpers["elements"];
     let serialized: <C::Group as Group>::Serialization =
         <C::Group as Group>::Serialization::try_from(
-            hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
+            &hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
         )
         .debugless_unwrap();
 

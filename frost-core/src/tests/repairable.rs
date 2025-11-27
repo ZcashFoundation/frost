@@ -92,9 +92,11 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
 fn generate_scalar_from_byte_string<C: Ciphersuite>(
     bs: &str,
-) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
+) -> <<C::Group as Group>::Field as Field>::Scalar {
     let decoded = hex::decode(bs).unwrap();
-    let out = <<C::Group as Group>::Field>::deserialize(&decoded.try_into().debugless_unwrap());
+    let out = <<C::Group as Group>::Field>::deserialize(
+        &decoded.as_slice().try_into().debugless_unwrap(),
+    );
     out.unwrap()
 }
 
@@ -160,7 +162,7 @@ pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helpers: &Value) {
 
     let expected: Scalar<C> = repair_share_step_2::<C>(&[value_1, value_2, value_3]);
 
-    let actual: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar =
+    let actual: <<C::Group as Group>::Field as Field>::Scalar =
         generate_scalar_from_byte_string::<C>(values["random_scalar_sum"].as_str().unwrap());
 
     assert!(actual == expected);
@@ -198,7 +200,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
         &commitment,
     );
 
-    let actual_sigma: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar =
+    let actual_sigma: <<C::Group as Group>::Field as Field>::Scalar =
         generate_scalar_from_byte_string::<C>(sigmas["sigma_sum"].as_str().unwrap());
     let actual: SecretShare<C> = SecretShare::new(
         Identifier::try_from(2).unwrap(),
