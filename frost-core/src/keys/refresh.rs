@@ -42,38 +42,37 @@ use super::{dkg::round1::Package, KeyPackage, SecretShare, VerifiableSecretShari
 
 /// Compute refreshing shares for the Trusted Dealer refresh procedure.
 ///
-/// - `pub_key_package`: the current public key package.
-/// - `max_signers`: the number of participants that are refreshing their
-///   shares. It can be smaller than the original value, but still equal to or
-///   greater than `min_signers`.
-/// - `min_signers`: the threshold needed to sign. It must be equal to the
-///   original value for the group (i.e. the refresh process can't reduce
-///   the threshold).
+/// - `pub_key_package`: the current public key package. Note: if a pre-3.0.0
+///   generate package is used, you will need to manually set the `min_signers`
+///   field with the theshold that was used in the original share generation.
+///   (You can't change the threshold when refreshing shares.)
 /// - `identifiers`: The identifiers of all participants that want to refresh
-///   their shares. Must be the same length as `max_signers`.
+///   their shares. Must be a subset of the identifiers in `pub_key_package`. If
+///   not all identifiers are passed, the refresh procedure will effectively
+///   remove the missing participants. The length must be equal to or greater
+///   than the threshold of the group.
 ///
-/// It returns a vectors of [`SecretShare`] that must be sent to the participants
-/// in the same order as `identifiers`, and the refreshed [`PublicKeyPackage`].
+/// It returns a vectors of [`SecretShare`] that must be sent to the
+/// participants in the same order as `identifiers`, and the refreshed
+/// [`PublicKeyPackage`].
 pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     pub_key_package: PublicKeyPackage<C>,
-    max_signers: u16,
-    min_signers: u16,
     identifiers: &[Identifier<C>],
     rng: &mut R,
 ) -> Result<(Vec<SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
-    // Validate min_signers. It's OK if the min_signers is missing, because
-    // we validate it again in `refresh_share()`.
-    if let Some(package_min_signers) = pub_key_package.min_signers {
-        if min_signers != package_min_signers {
-            return Err(Error::InvalidMinSigners);
-        }
-    }
+    let min_signers = pub_key_package
+        .min_signers
+        .ok_or(Error::InvalidMinSigners)?;
 
-    // Validate inputs
-    if identifiers.len() != max_signers as usize {
-        return Err(Error::IncorrectNumberOfIdentifiers);
+    let signers = identifiers.len() as u16;
+    validate_num_of_signers(min_signers, signers)?;
+
+    if identifiers
+        .iter()
+        .any(|i| !pub_key_package.verifying_shares().contains_key(i))
+    {
+        return Err(Error::UnknownIdentifier);
     }
-    validate_num_of_signers(min_signers, max_signers)?;
 
     // Build refreshing shares
     let refreshing_key = SigningKey {
@@ -83,7 +82,7 @@ pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
     let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, rng);
     let refreshing_shares = generate_secret_shares(
         &refreshing_key,
-        max_signers,
+        signers,
         min_signers,
         coefficients,
         identifiers,
