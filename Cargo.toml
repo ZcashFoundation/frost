@@ -30,7 +30,7 @@ categories = ["cryptography"]
 criterion = "0.6"
 document-features = "0.2.7"
 hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
-insta = { version = "1.31.0", features = ["yaml"] }
+insta = { version = "1.44.3", features = ["yaml"] }
 lazy_static = "1.4"
 proptest = "1.0"
 rand = "0.8"
