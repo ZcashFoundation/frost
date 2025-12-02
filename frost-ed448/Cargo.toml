@@ -34,6 +34,7 @@ proptest.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
 serde_json.workspace = true
+tokio.workspace = true
 
 [features]
 default = ["serialization", "std"]
