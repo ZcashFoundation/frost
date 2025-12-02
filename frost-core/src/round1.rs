@@ -131,10 +131,15 @@ where
     C: Ciphersuite,
 {
     /// Create a new [`NonceCommitment`] from an [`Element`]
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn new(value: Element<C>) -> Self {
         Self(SerializableElement(value))
     }
 
+    /// Get the inner [`Element`] of the [`NonceCommitment`]
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn value(&self) -> Element<C> {
         self.0 .0
     }
