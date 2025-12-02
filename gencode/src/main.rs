@@ -167,6 +167,8 @@ fn copy_and_replace(
 
 pub fn rustfmt(source: String) -> String {
     let mut child = Command::new("rustfmt")
+        .arg("--edition")
+        .arg("2021")
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
@@ -181,6 +183,11 @@ pub fn rustfmt(source: String) -> String {
     });
 
     let output = child.wait_with_output().expect("Failed to read stdout");
+    assert!(
+        output.status.success(),
+        "rustfmt failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
