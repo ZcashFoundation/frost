@@ -13,7 +13,7 @@
 | secp256k1 ciphersuite (Taproot) | [`frost-secp256k1-tr`] | [![crates.io](https://img.shields.io/crates/v/frost-secp256k1-tr.svg)](https://crates.io/crates/frost-secp256k1-tr) | [![Documentation](https://docs.rs/frost-secp256k1-tr/badge.svg)](https://docs.rs/frost-secp256k1-tr) |
 | Generic Re-randomized FROST     | [`frost-rerandomized`] | [![crates.io](https://img.shields.io/crates/v/frost-rerandomized.svg)](https://crates.io/crates/frost-rerandomized) | [![Documentation](https://docs.rs/frost-rerandomized/badge.svg)](https://docs.rs/frost-rerandomized) |
 
-Rust implementations of ['Two-Round Threshold Schnorr Signatures with FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/).
+Rust implementations of ['RFC 9591: Two-Round Threshold Schnorr Signatures with FROST'](https://datatracker.ietf.org/doc/rfc9591/).
 
 Unlike signatures in a single-party setting, threshold signatures require cooperation among a
 threshold number of signers, each holding a share of a common private key. The security of threshold
@@ -21,7 +21,7 @@ schemes in general assume that an adversary can corrupt strictly fewer than a th
 participants.
 
 ['Two-Round Threshold Schnorr Signatures with
-FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/) presents a variant of a Flexible
+FROST'](https://datatracker.ietf.org/doc/rfc9591/) presents a variant of a Flexible
 Round-Optimized Schnorr Threshold (FROST) signature scheme originally defined in
 [FROST20](https://eprint.iacr.org/2020/852.pdf). FROST reduces network overhead during threshold
 signing operations while employing a novel technique to protect against forgery attacks applicable
@@ -29,22 +29,29 @@ to prior Schnorr-based threshold signature constructions.
 
 Besides FROST itself, this repository also provides:
 
-- Trusted dealer key generation as specified in the appendix of ['Two-Round Threshold Schnorr Signatures with FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/);
+- Trusted dealer key generation as specified in the appendix of ['Two-Round Threshold Schnorr Signatures with FROST'](https://datatracker.ietf.org/doc/rfc9591/);
 - Distributed key generation as specified in the original paper [FROST20](https://eprint.iacr.org/2020/852.pdf);
 - Repairable Threshold Scheme (RTS) from ['A Survey and Refinement of Repairable Threshold Schemes'](https://eprint.iacr.org/2017/1155) which allows a participant to recover a lost share with the help of a threshold of other participants;
-- Rerandomized FROST (paper under review).
-- Refresh Share functionality using a Trusted Dealer. This can be used to refresh the shares of the participants or to remove a participant.
+- [Re-Randomized FROST](https://eprint.iacr.org/2024/436).
+- Refresh Share functionality using a Trusted Dealer or Distributed Key
+  Agreement. This can be used to refresh the shares of the participants or to
+  remove a participant.
 
 ## Getting Started
 
-Refer to the [ZF FROST book](https://frost.zfnd.org/).
+If you're not familiar with FROST, first read [Understanding FROST](frost.md).
 
-## Status ⚠
+Then read the [Tutorial](tutorial.md), and use the [Rust docs](user.md) as
+reference.
 
-The FROST specification is not yet finalized, though no significant changes are
-expected at this point. This code base has been partially audited by NCC, see
-below for details. The APIs and types in the crates contained in this repository
-follow SemVer guarantees.
+## Status
+
+The crates are considered stable and feature complete, though eventual API
+cleanups and additional functionality might be included in future releases.
+
+This code base has been partially audited by NCC, see below for details. The
+APIs and types in the crates contained in this repository follow SemVer
+guarantees.
 
 ### NCC Audit
 
@@ -74,7 +81,7 @@ All issues identified in the audit were addressed by us and reviewed by NCC.
 
 `frost-core` implements the base traits and types in a generic manner, to enable top-level
 implementations for different ciphersuites / curves without having to implement all of FROST from
-scratch. End-users should not use `frost-core` if they want to sign and verify signatures, they
+scratch. End-users should not use `frost-core` if they want to just sign and verify signatures for a specific ciphersuite; they
 should use the crate specific to their ciphersuite/curve parameters that uses `frost-core` as a
 dependency.
 

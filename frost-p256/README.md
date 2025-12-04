@@ -1,6 +1,13 @@
 An implementation of Schnorr signatures on the P-256 curve for both single and threshold numbers
 of signers (FROST).
 
+This crate is a re-export of the ciphersuite-generic
+[frost-core](https://crates.io/crates/frost-core) crate, parametrized with the
+P-256 curve. For more details, refer to [The ZF FROST
+Book](https://frost.zfnd.org/).
+
+<!-- PLACEHOLDER -->
+
 ## Example: key generation with trusted dealer and FROST signing
 
 Creating a key with a trusted dealer and splitting into shares; then signing a message
