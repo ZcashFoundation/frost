@@ -551,7 +551,8 @@ where
 /// [`round2::SignatureShare`] they sent. These identifiers must come from whatever mapping
 /// the coordinator has between communication channels and participants, i.e.
 /// they must have assurance that the [`round2::SignatureShare`] came from
-/// the participant with that identifier.
+/// the participant with that identifier. (This means that you *MUST NOT* send
+/// the identifier along with the [`round2::SignatureShare`].)
 ///
 /// This operation is performed by a coordinator that can communicate with all
 /// the signing participants before publishing the final signature. The
@@ -604,7 +605,9 @@ pub enum CheaterDetection {
 }
 
 /// Like [`aggregate()`], but allow specifying a specific cheater detection
-/// strategy.
+/// strategy. If you are disabling cheater detection, then the identifiers
+/// in `signature_shares` do not need to correspond to the senders (i.e.
+/// you don't need to authenticate the origin of the shares).
 pub fn aggregate_custom<C>(
     signing_package: &SigningPackage<C>,
     signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
