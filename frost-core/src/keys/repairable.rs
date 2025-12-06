@@ -1,39 +1,127 @@
 //! Repairable Threshold Scheme
 //!
-//! Implements the Repairable Threshold Scheme (RTS) from <https://eprint.iacr.org/2017/1155>.
-//! The RTS is used to help a signer (participant) repair their lost share. This is achieved
-//! using a subset of the other signers known here as `helpers`.
+//! Implements the Repairable Threshold Scheme (RTS) from
+//! <https://eprint.iacr.org/2017/1155>. The RTS is used to help a signer
+//! (participant) repair their lost share. This is achieved using a subset of
+//! the other signers known here as `helpers`.
+//!
+//! The repair procedure should be run as follows:
+//!
+//! - Participants need to agree somehow on who are going to be the `helpers`
+//!   for the repair, and which participant is going to repair their share.
+//! - Each helper runs `repair_share_step_1`, generating a set of `delta` values
+//!   to be sent to each helper (including themselves).
+//! - Each helper runs `repair_share_step_2`, passing the received `delta`
+//!   values, generating a `sigma` value to be sent to the participant repairing
+//!   their share.
+//! - The participant repairing their share runs `repair_share_step_3`, passing
+//!   all the received `sigma` values, recovering their lost `KeyPackage`. (They
+//!   will also need the `PublicKeyPackage` for this step which could be
+//!   provided by any of the helpers).
 
 use alloc::collections::{BTreeMap, BTreeSet};
 
 use alloc::vec::Vec;
 
+use crate::keys::{KeyPackage, PublicKeyPackage};
+use crate::serialization::SerializableScalar;
 use crate::{
-    compute_lagrange_coefficient, Ciphersuite, CryptoRng, Error, Field, Group, Header, Identifier,
-    RngCore, Scalar,
+    compute_lagrange_coefficient, Ciphersuite, CryptoRng, Error, Field, Group, Identifier, RngCore,
+    Scalar,
 };
 
-use super::{generate_coefficients, SecretShare, SigningShare, VerifiableSecretSharingCommitment};
+use super::{generate_coefficients, SigningShare};
+
+/// A delta value which is the output of step 1 of RTS.
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct Delta<C: Ciphersuite>(pub(crate) SerializableScalar<C>);
+
+impl<C> Delta<C>
+where
+    C: Ciphersuite,
+{
+    /// Create a new [`Delta`] from a scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn new(scalar: Scalar<C>) -> Self {
+        Self(SerializableScalar(scalar))
+    }
+
+    /// Get the inner scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn to_scalar(&self) -> Scalar<C> {
+        self.0 .0
+    }
+
+    /// Deserialize from bytes
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self(SerializableScalar::deserialize(bytes)?))
+    }
+
+    /// Serialize to bytes
+    pub fn serialize(&self) -> Vec<u8> {
+        self.0.serialize()
+    }
+}
+
+/// A sigma value which is the output of step 2 of RTS.
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct Sigma<C: Ciphersuite>(pub(crate) SerializableScalar<C>);
+
+impl<C> Sigma<C>
+where
+    C: Ciphersuite,
+{
+    /// Create a new [`Sigma`] from a scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn new(scalar: Scalar<C>) -> Self {
+        Self(SerializableScalar(scalar))
+    }
+
+    /// Get the inner scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn to_scalar(&self) -> Scalar<C> {
+        self.0 .0
+    }
+
+    /// Deserialize from bytes
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        Ok(Self(SerializableScalar::deserialize(bytes)?))
+    }
+
+    /// Serialize to bytes
+    pub fn serialize(&self) -> Vec<u8> {
+        self.0.serialize()
+    }
+}
 
 /// Step 1 of RTS.
 ///
-/// Generates the "delta" values from `helper_i` to help `participant` recover their share
-/// where `helpers` contains the identifiers of all the helpers (including `helper_i`), and `share_i`
-/// is the share of `helper_i`.
+/// Generates the "delta" values from the helper with `key_package_i` to send to
+/// `helpers` (which includes the helper with `key_package_i`), to help
+/// `participant` recover their share.
 ///
 /// Returns a BTreeMap mapping which value should be sent to which participant.
 pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     helpers: &[Identifier<C>],
-    share_i: &SecretShare<C>,
+    key_package_i: &KeyPackage<C>,
     rng: &mut R,
     participant: Identifier<C>,
-) -> Result<BTreeMap<Identifier<C>, Scalar<C>>, Error<C>> {
+) -> Result<BTreeMap<Identifier<C>, Delta<C>>, Error<C>> {
     if helpers.len() < 2 {
-        return Err(Error::InvalidMinSigners);
-    }
-
-    if helpers.is_empty() {
         return Err(Error::IncorrectNumberOfIdentifiers);
+    }
+    if !helpers.contains(&key_package_i.identifier) {
+        return Err(Error::UnknownIdentifier);
     }
     let xset: BTreeSet<_> = helpers.iter().cloned().collect();
     if xset.len() != helpers.len() {
@@ -42,7 +130,7 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let rand_val: Vec<Scalar<C>> = generate_coefficients::<C, R>(helpers.len() - 1, rng);
 
-    compute_last_random_value(&xset, share_i, &rand_val, participant)
+    compute_last_random_value(&xset, key_package_i, &rand_val, participant)
 }
 
 /// Compute the last delta value given the (generated uniformly at random) remaining ones
@@ -51,19 +139,20 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// Returns a BTreeMap mapping which value should be sent to which participant.
 fn compute_last_random_value<C: Ciphersuite>(
     helpers: &BTreeSet<Identifier<C>>,
-    share_i: &SecretShare<C>,
+    key_package_i: &KeyPackage<C>,
     random_values: &Vec<Scalar<C>>,
     participant: Identifier<C>,
-) -> Result<BTreeMap<Identifier<C>, Scalar<C>>, Error<C>> {
+) -> Result<BTreeMap<Identifier<C>, Delta<C>>, Error<C>> {
     // Calculate Lagrange Coefficient for helper_i
-    let zeta_i = compute_lagrange_coefficient(helpers, Some(participant), share_i.identifier)?;
+    let zeta_i =
+        compute_lagrange_coefficient(helpers, Some(participant), key_package_i.identifier)?;
 
-    let lhs = zeta_i * share_i.signing_share.to_scalar();
+    let lhs = zeta_i * key_package_i.signing_share.to_scalar();
 
-    let mut out: BTreeMap<Identifier<C>, Scalar<C>> = helpers
+    let mut out: BTreeMap<Identifier<C>, Delta<C>> = helpers
         .iter()
         .copied()
-        .zip(random_values.iter().copied())
+        .zip(random_values.iter().map(|v| Delta::new(*v)))
         .collect();
 
     let mut sum_i_deltas = <<C::Group as Group>::Field>::zero();
@@ -74,58 +163,56 @@ fn compute_last_random_value<C: Ciphersuite>(
 
     out.insert(
         *helpers.last().ok_or(Error::IncorrectNumberOfIdentifiers)?,
-        lhs - sum_i_deltas,
+        Delta::new(lhs - sum_i_deltas),
     );
 
     Ok(out)
 }
 
-// Communication round
-//
-// `helper_i` sends 1 `delta_j` to all other helpers (j)
-// `helper_i` retains 1 `delta_j`
-
 /// Step 2 of RTS.
 ///
-/// Generates the `sigma` values from all `deltas` received from `helpers`
-/// to help `participant` recover their share.
-/// `sigma` is the sum of all received `delta` and the `delta_i` generated for `helper_i`.
-///
-/// Returns a scalar
-pub fn repair_share_step_2<C: Ciphersuite>(deltas_j: &[Scalar<C>]) -> Scalar<C> {
+/// Generates the "sigma" value from all `deltas` received from all helpers.
+/// The "sigma" value must be sent to the participant repairing their share.
+pub fn repair_share_step_2<C: Ciphersuite>(deltas: &[Delta<C>]) -> Sigma<C> {
     let mut sigma_j = <<C::Group as Group>::Field>::zero();
 
-    for d in deltas_j {
-        sigma_j = sigma_j + *d;
+    for d in deltas {
+        sigma_j = sigma_j + d.to_scalar();
     }
 
-    sigma_j
+    Sigma::new(sigma_j)
 }
 
-// Communication round
-//
-// `helper_j` sends 1 `sigma_j` to the `participant` repairing their share.
-
-/// Step 3 of RTS
+/// Step 3 of RTS.
 ///
-/// The `participant` sums all `sigma_j` received to compute the `share`. The `SecretShare`
-/// is made up of the `identifier`and `commitment` of the `participant` as well as the
-/// `value` which is the `SigningShare`.
+/// The participant with the given `identifier` recovers their `KeyPackage`
+/// with the "sigma" values received from all helpers and the `PublicKeyPackage`
+/// of the group (which can be sent by any of the helpers).
+///
+/// Returns an error if the `min_signers` field is not set in the `PublicKeyPackage`.
+/// This happens for `PublicKeyPackage`s created before the 3.0.0 release;
+/// in that case, the user should set the `min_signers` field manually.
 pub fn repair_share_step_3<C: Ciphersuite>(
-    sigmas: &[Scalar<C>],
+    sigmas: &[Sigma<C>],
     identifier: Identifier<C>,
-    commitment: &VerifiableSecretSharingCommitment<C>,
-) -> SecretShare<C> {
+    public_key_package: &PublicKeyPackage<C>,
+) -> Result<KeyPackage<C>, Error<C>> {
     let mut share = <<C::Group as Group>::Field>::zero();
 
     for s in sigmas {
-        share = share + *s;
+        share = share + s.to_scalar();
     }
+    let signing_share = SigningShare::new(share);
+    let verifying_share = signing_share.into();
 
-    SecretShare {
-        header: Header::default(),
+    Ok(KeyPackage {
+        header: Default::default(),
         identifier,
-        signing_share: SigningShare::new(share),
-        commitment: commitment.clone(),
-    }
+        signing_share,
+        verifying_share,
+        verifying_key: *public_key_package.verifying_key(),
+        min_signers: public_key_package
+            .min_signers()
+            .ok_or(Error::InvalidMinSigners)?,
+    })
 }

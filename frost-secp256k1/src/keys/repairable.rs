@@ -6,13 +6,18 @@
 
 use alloc::collections::BTreeMap;
 
+use crate::keys::{KeyPackage, PublicKeyPackage};
 // This is imported separately to make `gencode` work.
 // (if it were below, the position of the import would vary between ciphersuites
 //  after `cargo fmt`)
-use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore, Scalar};
+use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore};
 use crate::{Error, Secp256K1Sha256};
 
-use super::{SecretShare, VerifiableSecretSharingCommitment};
+/// A delta value which is the output of step 1 of RTS.
+pub type Delta = frost::keys::repairable::Delta<Secp256K1Sha256>;
+
+/// A sigma value which is the output of step 2 of RTS.
+pub type Sigma = frost::keys::repairable::Sigma<Secp256K1Sha256>;
 
 /// Step 1 of RTS.
 ///
@@ -23,11 +28,11 @@ use super::{SecretShare, VerifiableSecretSharingCommitment};
 /// Returns a BTreeMap mapping which value should be sent to which participant.
 pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     helpers: &[Identifier],
-    share_i: &SecretShare,
+    key_package_i: &KeyPackage,
     rng: &mut R,
     participant: Identifier,
-) -> Result<BTreeMap<Identifier, Scalar>, Error> {
-    frost::keys::repairable::repair_share_step_1(helpers, share_i, rng, participant)
+) -> Result<BTreeMap<Identifier, Delta>, Error> {
+    frost::keys::repairable::repair_share_step_1(helpers, key_package_i, rng, participant)
 }
 
 /// Step 2 of RTS.
@@ -37,7 +42,7 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// `sigma` is the sum of all received `delta` and the `delta_i` generated for `helper_i`.
 ///
 /// Returns a scalar
-pub fn repair_share_step_2(deltas_j: &[Scalar]) -> Scalar {
+pub fn repair_share_step_2(deltas_j: &[Delta]) -> Sigma {
     frost::keys::repairable::repair_share_step_2::<Secp256K1Sha256>(deltas_j)
 }
 
@@ -47,11 +52,11 @@ pub fn repair_share_step_2(deltas_j: &[Scalar]) -> Scalar {
 /// is made up of the `identifier`and `commitment` of the `participant` as well as the
 /// `value` which is the `SigningShare`.
 pub fn repair_share_step_3(
-    sigmas: &[Scalar],
+    sigmas: &[Sigma],
     identifier: Identifier,
-    commitment: &VerifiableSecretSharingCommitment,
-) -> SecretShare {
-    frost::keys::repairable::repair_share_step_3(sigmas, identifier, commitment)
+    public_key_package: &PublicKeyPackage,
+) -> Result<KeyPackage, Error> {
+    frost::keys::repairable::repair_share_step_3(sigmas, identifier, public_key_package)
 }
 
 #[cfg(test)]
