@@ -37,7 +37,7 @@ rand_chacha.workspace = true
 serde_json.workspace = true
 
 [features]
-default = ["serialization", "cheater-detection", "std"]
+default = ["serialization", "std"]
 # No longer needed. Kept for retrocompatibility until 3.0.0
 std = []
 #! ## Features
@@ -47,8 +47,6 @@ std = []
 serde = ["frost-core/serde", "curve25519-dalek/serde"]
 ## Enable a default serialization format. Enables `serde`.
 serialization = ["serde", "frost-core/serialization", "frost-rerandomized/serialization"]
-## Enable cheater detection
-cheater-detection = ["frost-core/cheater-detection", "frost-rerandomized/cheater-detection"]
 
 [lib]
 # Disables non-criterion benchmark which is not used; prevents errors

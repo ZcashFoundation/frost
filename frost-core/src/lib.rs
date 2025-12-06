@@ -570,24 +570,12 @@ pub fn aggregate<C>(
 where
     C: Ciphersuite,
 {
-    #[cfg(feature = "cheater-detection")]
-    {
-        aggregate_custom(
-            signing_package,
-            signature_shares,
-            pubkeys,
-            CheaterDetection::FirstCheater,
-        )
-    }
-    #[cfg(not(feature = "cheater-detection"))]
-    {
-        aggregate_custom(
-            signing_package,
-            signature_shares,
-            pubkeys,
-            CheaterDetection::Disabled,
-        )
-    }
+    aggregate_custom(
+        signing_package,
+        signature_shares,
+        pubkeys,
+        CheaterDetection::FirstCheater,
+    )
 }
 
 /// The type of cheater detection to use.
