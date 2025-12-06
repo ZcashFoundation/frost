@@ -549,6 +549,7 @@ dependencies = [
  "thiserror",
  "visibility",
  "zeroize",
+ "zeroize_derive",
 ]
 
 [[package]]
