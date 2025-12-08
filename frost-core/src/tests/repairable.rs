@@ -2,7 +2,7 @@
 
 use alloc::collections::BTreeMap;
 
-use debugless_unwrap::DebuglessUnwrap;
+use debugless_unwrap::DebuglessUnwrapExt;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
 

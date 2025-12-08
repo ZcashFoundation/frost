@@ -19,7 +19,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 byteorder = { version = "1.4", default-features = false }
 const-crc32 = { version = "1.2.0", package = "const-crc32-nostd" }
 document-features.workspace = true
-debugless-unwrap = "0.0.4"
+debugless-unwrap = { version = "1.0.0", optional = true }
 derive-getters = "0.5.0"
 hex.workspace = true
 postcard = { version = "1.0.0", features = ["alloc"], optional = true }
@@ -37,6 +37,7 @@ serde_json = { version = "1.0", optional = true }
 criterion = { workspace = true, optional = true }
 
 [dev-dependencies]
+debugless-unwrap = "1.0.0"
 criterion.workspace = true
 lazy_static.workspace = true
 proptest.workspace = true
@@ -59,7 +60,7 @@ internals = []
 serde = ["dep:serde", "dep:serdect"]
 serialization = ["serde", "dep:postcard"]
 # Exposes ciphersuite-generic tests for other crates to use
-test-impl = ["dep:proptest", "dep:serde_json", "dep:criterion"]
+test-impl = ["dep:proptest", "dep:serde_json", "dep:criterion", "dep:debugless-unwrap"]
 # Enable cheater detection
 cheater-detection = []
 

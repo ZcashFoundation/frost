@@ -1,7 +1,7 @@
 //! Helper function for testing with test vectors.
 use alloc::collections::BTreeMap;
 
-use debugless_unwrap::DebuglessUnwrap;
+use debugless_unwrap::DebuglessUnwrapExt;
 use hex::{self, FromHex};
 use serde_json::Value;
 
