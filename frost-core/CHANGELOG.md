@@ -2,6 +2,13 @@
 
 Entries are listed in reverse chronological order.
 
+## Unreleased
+
+* All crates from RustCrypto have been bumped to the latest versions,
+  version `rand` has been updated to `0.9`
+* MSRV has been bumped to Rust 1.85, making all crates no-std.
+  The `std` and `nightly` features were removed from all crates
+
 ## 2.2.0
 
 ### Security Fixes

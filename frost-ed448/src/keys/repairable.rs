@@ -9,7 +9,7 @@ use alloc::collections::BTreeMap;
 // This is imported separately to make `gencode` work.
 // (if it were below, the position of the import would vary between ciphersuites
 //  after `cargo fmt`)
-use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore, Scalar};
+use crate::{frost, Ciphersuite, CryptoRng, EdwardsScalar, Identifier, RngCore};
 use crate::{Ed448Shake256, Error};
 
 use super::{SecretShare, VerifiableSecretSharingCommitment};
@@ -26,7 +26,7 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
     share_i: &SecretShare,
     rng: &mut R,
     participant: Identifier,
-) -> Result<BTreeMap<Identifier, Scalar>, Error> {
+) -> Result<BTreeMap<Identifier, EdwardsScalar>, Error> {
     frost::keys::repairable::repair_share_step_1(helpers, share_i, rng, participant)
 }
 
@@ -37,7 +37,7 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// `sigma` is the sum of all received `delta` and the `delta_i` generated for `helper_i`.
 ///
 /// Returns a scalar
-pub fn repair_share_step_2(deltas_j: &[Scalar]) -> Scalar {
+pub fn repair_share_step_2(deltas_j: &[EdwardsScalar]) -> EdwardsScalar {
     frost::keys::repairable::repair_share_step_2::<Ed448Shake256>(deltas_j)
 }
 
@@ -47,7 +47,7 @@ pub fn repair_share_step_2(deltas_j: &[Scalar]) -> Scalar {
 /// is made up of the `identifier`and `commitment` of the `participant` as well as the
 /// `value` which is the `SigningShare`.
 pub fn repair_share_step_3(
-    sigmas: &[Scalar],
+    sigmas: &[EdwardsScalar],
     identifier: Identifier,
     commitment: &VerifiableSecretSharingCommitment,
 ) -> SecretShare {
@@ -56,12 +56,10 @@ pub fn repair_share_step_3(
 
 #[cfg(test)]
 mod tests {
-
-    use lazy_static::lazy_static;
-
-    use serde_json::Value;
-
     use crate::Ed448Shake256;
+    use lazy_static::lazy_static;
+    use rand_core::TryRngCore;
+    use serde_json::Value;
 
     lazy_static! {
         pub static ref REPAIR_SHARE: Value =
@@ -71,7 +69,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_1() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand::rngs::OsRng.unwrap_err();
 
         frost_core::tests::repairable::check_repair_share_step_1::<Ed448Shake256, _>(rng);
     }
@@ -83,7 +81,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_3() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand::rngs::OsRng.unwrap_err();
         frost_core::tests::repairable::check_repair_share_step_3::<Ed448Shake256, _>(
             rng,
             &REPAIR_SHARE,
@@ -92,7 +90,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_step_1_fails_with_invalid_min_signers() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand::rngs::OsRng.unwrap_err();
         frost_core::tests::repairable::check_repair_share_step_1_fails_with_invalid_min_signers::<
             Ed448Shake256,
             _,

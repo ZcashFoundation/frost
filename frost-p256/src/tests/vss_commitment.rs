@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use rand_core::TryRngCore;
 use serde_json::Value;
 
 use crate::*;
@@ -12,31 +13,31 @@ lazy_static! {
 
 #[test]
 fn check_serialize_vss_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_serialize_vss_commitment::<P256Sha256, _>(rng);
 }
 
 #[test]
 fn check_serialize_whole_vss_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_serialize_whole_vss_commitment::<P256Sha256, _>(rng);
 }
 
 #[test]
 fn check_deserialize_vss_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_deserialize_vss_commitment::<P256Sha256, _>(rng);
 }
 
 #[test]
 fn check_deserialize_whole_vss_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_deserialize_whole_vss_commitment::<P256Sha256, _>(rng);
 }
 
 #[test]
 fn check_deserialize_vss_commitment_error() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_deserialize_vss_commitment_error::<P256Sha256, _>(
         rng, &ELEMENTS,
     );
@@ -44,7 +45,7 @@ fn check_deserialize_vss_commitment_error() {
 
 #[test]
 fn check_deserialize_whole_vss_commitment_error() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_deserialize_whole_vss_commitment_error::<P256Sha256, _>(
         rng, &ELEMENTS,
     );
@@ -52,6 +53,6 @@ fn check_deserialize_whole_vss_commitment_error() {
 
 #[test]
 fn check_compute_public_key_package() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand::rngs::OsRng.unwrap_err();
     frost_core::tests::vss_commitment::check_compute_public_key_package::<P256Sha256, _>(rng);
 }

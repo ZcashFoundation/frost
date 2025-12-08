@@ -11,9 +11,10 @@ scenario in a single thread and it abstracts away any communication between peer
 ```rust
 # // ANCHOR: tkg_gen
 use frost_secp256k1_tr as frost;
+use rand_core::TryRngCore;
 use std::collections::BTreeMap;
 
-let mut rng = rand::rngs::OsRng;
+let mut rng = rand::rngs::OsRng.unwrap_err();
 let max_signers = 5;
 let min_signers = 3;
 let (shares, pubkey_package) = frost::keys::generate_with_dealer(

@@ -1,7 +1,8 @@
 //! Schnorr signature signing keys
 
-use alloc::vec::Vec;
+use core::ops::DerefMut;
 
+use alloc::vec::Vec;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
@@ -40,14 +41,14 @@ where
     }
 
     /// Create a signature `msg` using this `SigningKey`.
-    pub fn sign<R: RngCore + CryptoRng>(&self, rng: R, message: &[u8]) -> Signature<C> {
+    pub fn sign<R: RngCore + CryptoRng + DerefMut>(&self, rng: R, message: &[u8]) -> Signature<C> {
         <C>::single_sign(self, rng, message)
     }
 
     /// Create a signature `msg` using this `SigningKey` using the default
     /// signing.
     #[cfg_attr(feature = "internals", visibility::make(pub))]
-    pub(crate) fn default_sign<R: RngCore + CryptoRng>(
+    pub(crate) fn default_sign<R: RngCore + CryptoRng + DerefMut>(
         &self,
         mut rng: R,
         message: &[u8],
