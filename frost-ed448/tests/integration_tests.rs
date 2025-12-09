@@ -117,7 +117,7 @@ fn check_refresh_shares_with_dealer_fails_with_unequal_num_identifiers_and_max_s
         Identifier::try_from(4).unwrap(),
         Identifier::try_from(5).unwrap(),
     ];
-    let min_signers = 3;
+    let min_signers = 2;
     let max_signers = 3;
     let error: frost_core::Error<Ed448Shake256> = Error::IncorrectNumberOfIdentifiers;
 
@@ -150,7 +150,7 @@ fn check_refresh_shares_with_dealer_fails_with_min_signers_greater_than_max() {
 fn check_refresh_shares_with_dealer_fails_with_invalid_max_signers() {
     let rng = rand::rngs::OsRng;
     let identifiers = vec![Identifier::try_from(1).unwrap()];
-    let min_signers = 3;
+    let min_signers = 2;
     let max_signers = 1;
     let error = Error::InvalidMaxSigners;
 
