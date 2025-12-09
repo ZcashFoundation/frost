@@ -2,6 +2,17 @@
 
 Entries are listed in reverse chronological order.
 
+## Unreleases
+
+### Breaking Changes
+
+* The `cheater-detection` feature was removed. If you relied on it (either by
+  using the default features, or by explicitly enabling it), then you don't have
+  to do anything (other than not enabling it explicitly if you were doing so);
+  the default behaviour is now as if `cheater-detection` was enabled. If you
+  explicitly *did not enable* it, you can avoid cheater detection by calling
+  `aggregate_custom()` with `CheaterDetection::Disabled`.
+
 ## 2.2.0
 
 ### Security Fixes
