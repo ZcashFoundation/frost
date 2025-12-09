@@ -155,6 +155,8 @@ pub fn sign<C: Ciphersuite>(
         .clone();
 
     // Compute the group commitment from signing commitments produced in round one.
+    let (signing_package, signer_nonces) =
+        <C>::pre_commitment_sign(&signing_package, &signer_nonces, &binding_factor_list)?;
     let group_commitment = compute_group_commitment(&signing_package, &binding_factor_list)?;
 
     // Compute Lagrange coefficient.

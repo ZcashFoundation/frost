@@ -12,10 +12,10 @@ use crate::{
     challenge,
     keys::{KeyPackage, PublicKeyPackage, SecretShare, VerifyingShare},
     random_nonzero,
-    round1::{self},
+    round1::{self, SigningNonces},
     round2::{self, SignatureShare},
-    BindingFactor, Challenge, Error, FieldError, GroupCommitment, GroupError, Identifier,
-    Signature, SigningKey, SigningPackage, VerifyingKey,
+    BindingFactor, BindingFactorList, Challenge, Error, FieldError, GroupCommitment, GroupError,
+    Identifier, Signature, SigningKey, SigningPackage, VerifyingKey,
 };
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
@@ -335,6 +335,29 @@ pub trait Ciphersuite: Copy + PartialEq + Debug + 'static {
             Cow::Borrowed(signature),
             Cow::Borrowed(public_key),
         ))
+    }
+
+    /// Optional. Pre-process [`crate::compute_group_commitment()`] inputs in
+    /// [`round2::sign()`].
+    #[allow(clippy::type_complexity)]
+    fn pre_commitment_sign<'a>(
+        signing_package: &'a SigningPackage<Self>,
+        signing_nonces: &'a SigningNonces<Self>,
+        _binding_factor_list: &'a BindingFactorList<Self>,
+    ) -> Result<(Cow<'a, SigningPackage<Self>>, Cow<'a, SigningNonces<Self>>), Error<Self>> {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signing_nonces),
+        ))
+    }
+
+    /// Optional. Pre-process [`crate::compute_group_commitment()`] inputs in
+    /// [`crate::aggregate()`].
+    fn pre_commitment_aggregate<'a>(
+        signing_package: &'a SigningPackage<Self>,
+        _binding_factor_list: &'a BindingFactorList<Self>,
+    ) -> Result<Cow<'a, SigningPackage<Self>>, Error<Self>> {
+        Ok(Cow::Borrowed(signing_package))
     }
 
     /// Optional. Generate a nonce and a commitment to it. Used by
