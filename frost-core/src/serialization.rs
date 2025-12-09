@@ -1,6 +1,7 @@
 //! Serialization support.
 
 use alloc::vec::Vec;
+use zeroize::Zeroize;
 
 use crate::{Ciphersuite, FieldError};
 
@@ -31,6 +32,15 @@ where
             bytes.try_into().map_err(|_| FieldError::MalformedScalar)?;
         let scalar = <<C::Group as Group>::Field>::deserialize(&serialized)?;
         Ok(Self(scalar))
+    }
+}
+
+impl<C> Zeroize for SerializableScalar<C>
+where
+    C: Ciphersuite,
+{
+    fn zeroize(&mut self) {
+        self.0 = <<C::Group as Group>::Field as Field>::zero();
     }
 }
 

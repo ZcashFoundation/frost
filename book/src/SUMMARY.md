@@ -9,6 +9,7 @@
   - [Distributed Key Generation](tutorial/dkg.md)
   - [Refreshing Shares](tutorial/refreshing-shares.md)
 - [User Documentation](user.md)
+  - [Zeroization](user/zeroization.md)
   - [Serialization Format](user/serialization.md)
 - [FROST with Zcash](zcash.md)
   - [Technical Details](zcash/technical-details.md)
