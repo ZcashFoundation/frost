@@ -23,7 +23,7 @@ jobs:
       RUST_BACKTRACE: full
 
     steps:
-      - uses: actions/checkout@v6.0.0
+      - uses: actions/checkout@v6.0.1
         with:
           persist-credentials: false
 
