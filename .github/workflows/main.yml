@@ -18,6 +18,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@beta
       - run: cargo build
 
+  build_latest:
+    name: build with latest versions of dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6.0.0
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo update && cargo build --all-features
+
   build_msrv:
     name: build with MSRV (1.81)
     runs-on: ubuntu-latest
@@ -167,7 +176,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v6.0.0
-      - uses: reviewdog/action-actionlint@v1.68.0
+      - uses: reviewdog/action-actionlint@v1.69.0
         with:
           level: warning
           fail_level: none
