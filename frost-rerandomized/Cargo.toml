@@ -25,7 +25,7 @@ rand_core.workspace = true
 [dev-dependencies]
 
 [features]
-default = ["serialization", "cheater-detection", "std"]
+default = ["serialization", "std"]
 # No longer needed. Kept for retrocompatibility until 3.0.0
 std = []
 #! ## Features
@@ -35,7 +35,5 @@ std = []
 serde = ["frost-core/serde"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["frost-core/test-impl", "serialization"]
-## Enable cheater detection
-cheater-detection = ["frost-core/cheater-detection"]
 ## Enable a default serialization format. Enables `serde`.
 serialization = ["serde", "frost-core/serialization"]

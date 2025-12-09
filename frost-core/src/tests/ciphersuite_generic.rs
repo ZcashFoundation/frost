@@ -315,14 +315,6 @@ fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
     signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) {
-    #[cfg(not(feature = "cheater-detection"))]
-    let pubkey_package = PublicKeyPackage {
-        header: pubkey_package.header,
-        verifying_shares: BTreeMap::new(),
-        verifying_key: pubkey_package.verifying_key,
-    };
-
-    #[cfg(feature = "cheater-detection")]
     check_aggregate_corrupted_share(
         signing_package.clone(),
         signature_shares.clone(),
@@ -336,7 +328,6 @@ fn check_aggregate_errors<C: Ciphersuite + PartialEq>(
     );
 }
 
-#[cfg(feature = "cheater-detection")]
 fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
     signing_package: frost::SigningPackage<C>,
     mut signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
