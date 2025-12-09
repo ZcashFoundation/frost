@@ -212,6 +212,7 @@ fn main() -> ExitCode {
         "ristretto255_sha512",
         "ristretto255",
         "<R>",
+        "<!-- PLACEHOLDER -->",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -252,6 +253,7 @@ fn main() -> ExitCode {
                 "p256_sha256",
                 "p256",
                 "<P>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -265,6 +267,7 @@ fn main() -> ExitCode {
                 "ed25519_sha512",
                 "ed25519",
                 "<E>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -278,6 +281,7 @@ fn main() -> ExitCode {
                 "ed448_shake256",
                 "ed448",
                 "<E>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -291,6 +295,7 @@ fn main() -> ExitCode {
                 "secp256k1_sha256",
                 "secp256k1",
                 "<S>",
+                "*This crate is not compatible with Bitcoin BIP-340 (Taproot) signatures. Use [frost-secp256k1-tr](https://crates.io/crates/frost-secp256k1-tr) instead*",
             ],
         ),
         (
@@ -304,6 +309,7 @@ fn main() -> ExitCode {
                 "secp256k1_tr_sha256",
                 "secp256k1_tr",
                 "<S>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
     ] {
