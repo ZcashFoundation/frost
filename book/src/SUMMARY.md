@@ -12,6 +12,7 @@
   - [Serialization Format](user/serialization.md)
 - [FROST with Zcash](zcash.md)
   - [Technical Details](zcash/technical-details.md)
+  - [zcash-devtool Demo](zcash/devtool-demo.md)
   - [Ywallet Demo](zcash/ywallet-demo.md)
   - [FROST Server](zcash/server.md)
 - [Terminology](terminology.md)
