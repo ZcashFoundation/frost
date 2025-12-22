@@ -14,18 +14,10 @@ use super::{KeyPackage, PublicKeyPackage, SecretShare};
 /// Refer to [`frost_core::keys::refresh::compute_refreshing_shares`].
 pub fn compute_refreshing_shares<R: RngCore + CryptoRng>(
     old_pub_key_package: PublicKeyPackage,
-    max_signers: u16,
-    min_signers: u16,
     identifiers: &[Identifier],
     mut rng: &mut R,
 ) -> Result<(Vec<SecretShare>, PublicKeyPackage), Error> {
-    frost::keys::refresh::compute_refreshing_shares(
-        old_pub_key_package,
-        max_signers,
-        min_signers,
-        identifiers,
-        &mut rng,
-    )
+    frost::keys::refresh::compute_refreshing_shares(old_pub_key_package, identifiers, &mut rng)
 }
 
 /// Refer to [`frost_core::keys::refresh::refresh_share`].
