@@ -28,7 +28,7 @@ The `SigningNonces` must be kept by the participant to use in Round 2, while the
 `SigningCommitments` must be sent to the Coordinator.
 
 ```admonish info
-FROST does not require using a [authenticated nor encrypted
+FROST does not require using an [authenticated nor encrypted
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel)
 during the **signing** process.
 ```
