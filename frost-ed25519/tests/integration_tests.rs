@@ -379,3 +379,13 @@ fn check_sign_with_incorrect_commitments() {
         rng,
     );
 }
+
+#[tokio::test]
+async fn check_async_sign_with_dealer() {
+    tokio::spawn(async {
+        let rng = rand::rngs::OsRng;
+        frost_core::tests::ciphersuite_generic::async_check_sign::<Ed25519Sha512, _>(rng).await;
+    })
+    .await
+    .unwrap();
+}
