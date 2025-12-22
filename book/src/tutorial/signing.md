@@ -100,6 +100,19 @@ What should be done in that case is up to the application. The misbehaving parti
 could be excluded from future signing sessions, for example.
 ```
 
+```admonish danger
+In `aggregate()` you need to provide a map from `Identifier` to
+`SignatureShare`. If you need cheater detection, then it is important that these
+identifiers come from a mapping between authenticated channels and identifiers;
+i.e. you should not simply send the `Identifier` along with the
+`SignatureShare`; otherwise the cheater could simply lie about their identifier.
+
+For example, if you authenticate the communication channels with TLS, then you
+will need to create a public key -> identifier mapping, and use that mapping
+to get the identifier for the connection where the `SignatureShare` was read
+from.
+```
+
 
 ## Verifying signatures
 
