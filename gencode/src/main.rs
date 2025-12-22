@@ -167,6 +167,8 @@ fn copy_and_replace(
 
 pub fn rustfmt(source: String) -> String {
     let mut child = Command::new("rustfmt")
+        .arg("--edition")
+        .arg("2021")
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
@@ -181,6 +183,11 @@ pub fn rustfmt(source: String) -> String {
     });
 
     let output = child.wait_with_output().expect("Failed to read stdout");
+    assert!(
+        output.status.success(),
+        "rustfmt failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
@@ -212,6 +219,7 @@ fn main() -> ExitCode {
         "ristretto255_sha512",
         "ristretto255",
         "<R>",
+        "<!-- PLACEHOLDER -->",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -252,6 +260,7 @@ fn main() -> ExitCode {
                 "p256_sha256",
                 "p256",
                 "<P>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -265,6 +274,7 @@ fn main() -> ExitCode {
                 "ed25519_sha512",
                 "ed25519",
                 "<E>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -278,6 +288,7 @@ fn main() -> ExitCode {
                 "ed448_shake256",
                 "ed448",
                 "<E>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -291,6 +302,7 @@ fn main() -> ExitCode {
                 "secp256k1_sha256",
                 "secp256k1",
                 "<S>",
+                "*This crate is not compatible with Bitcoin BIP-340 (Taproot) signatures. Use [frost-secp256k1-tr](https://crates.io/crates/frost-secp256k1-tr) instead*",
             ],
         ),
         (
@@ -304,6 +316,7 @@ fn main() -> ExitCode {
                 "secp256k1_tr_sha256",
                 "secp256k1_tr",
                 "<S>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
     ] {

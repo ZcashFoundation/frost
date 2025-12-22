@@ -12,10 +12,10 @@ use crate::{
     challenge,
     keys::{KeyPackage, PublicKeyPackage, SecretShare, VerifyingShare},
     random_nonzero,
-    round1::{self},
+    round1::{self, SigningNonces},
     round2::{self, SignatureShare},
-    BindingFactor, Challenge, Error, FieldError, GroupCommitment, GroupError, Identifier,
-    Signature, SigningKey, SigningPackage, VerifyingKey,
+    BindingFactor, BindingFactorList, Challenge, Error, FieldError, GroupCommitment, GroupError,
+    Identifier, Signature, SigningKey, SigningPackage, VerifyingKey,
 };
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
@@ -34,7 +34,9 @@ pub trait Field: Copy {
         + Eq
         + Mul<Output = Self::Scalar>
         + PartialEq
-        + Sub<Output = Self::Scalar>;
+        + Sub<Output = Self::Scalar>
+        + Send
+        + Sync;
 
     /// A unique byte array buf of fixed length N.
     type Serialization: Clone + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
@@ -97,7 +99,9 @@ pub trait Group: Copy + PartialEq {
         + Eq
         + Mul<<Self::Field as Field>::Scalar, Output = Self::Element>
         + PartialEq
-        + Sub<Output = Self::Element>;
+        + Sub<Output = Self::Element>
+        + Send
+        + Sync;
 
     /// A unique byte array buf of fixed length N.
     ///
@@ -147,7 +151,7 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 ///
 /// [FROST ciphersuite]: https://datatracker.ietf.org/doc/html/rfc9591#name-ciphersuites
 // See https://github.com/ZcashFoundation/frost/issues/693 for reasoning about the 'static bound.
-pub trait Ciphersuite: Copy + PartialEq + Debug + 'static {
+pub trait Ciphersuite: Copy + PartialEq + Debug + 'static + Send + Sync {
     /// The ciphersuite ID string. It should be equal to the contextString in
     /// the spec. For new ciphersuites, this should be a string that identifies
     /// the ciphersuite; it's recommended to use a similar format to the
@@ -335,6 +339,29 @@ pub trait Ciphersuite: Copy + PartialEq + Debug + 'static {
             Cow::Borrowed(signature),
             Cow::Borrowed(public_key),
         ))
+    }
+
+    /// Optional. Pre-process [`crate::compute_group_commitment()`] inputs in
+    /// [`round2::sign()`].
+    #[allow(clippy::type_complexity)]
+    fn pre_commitment_sign<'a>(
+        signing_package: &'a SigningPackage<Self>,
+        signing_nonces: &'a SigningNonces<Self>,
+        _binding_factor_list: &'a BindingFactorList<Self>,
+    ) -> Result<(Cow<'a, SigningPackage<Self>>, Cow<'a, SigningNonces<Self>>), Error<Self>> {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signing_nonces),
+        ))
+    }
+
+    /// Optional. Pre-process [`crate::compute_group_commitment()`] inputs in
+    /// [`crate::aggregate()`].
+    fn pre_commitment_aggregate<'a>(
+        signing_package: &'a SigningPackage<Self>,
+        _binding_factor_list: &'a BindingFactorList<Self>,
+    ) -> Result<Cow<'a, SigningPackage<Self>>, Error<Self>> {
+        Ok(Cow::Borrowed(signing_package))
     }
 
     /// Optional. Generate a nonce and a commitment to it. Used by

@@ -1,5 +1,7 @@
 //! FROST keys, keygen, key shares
 #![allow(clippy::type_complexity)]
+// Remove after https://github.com/rust-lang/rust/issues/147648 is fixed
+#![allow(unused_assignments)]
 
 use core::iter;
 
@@ -15,7 +17,7 @@ use derive_getters::Getters;
 use hex::FromHex;
 
 use rand_core::{CryptoRng, RngCore};
-use zeroize::{DefaultIsZeroes, Zeroize};
+use zeroize::{DefaultIsZeroes, Zeroize, ZeroizeOnDrop};
 
 use crate::{
     serialization::{SerializableElement, SerializableScalar},
@@ -397,7 +399,7 @@ where
 ///
 /// To derive a FROST keypair, the receiver of the [`SecretShare`] *must* call
 /// .into(), which under the hood also performs validation.
-#[derive(Clone, Debug, Zeroize, PartialEq, Eq, Getters)]
+#[derive(Clone, Debug, Zeroize, PartialEq, Eq, Getters, ZeroizeOnDrop)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
@@ -626,7 +628,7 @@ fn evaluate_vss<C: Ciphersuite>(
 /// When using a central dealer, [`SecretShare`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize)]
+#[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize, ZeroizeOnDrop)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
