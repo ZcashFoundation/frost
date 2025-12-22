@@ -3,7 +3,7 @@
 The ZF FROST crates have limited best-effort support at zeroization. The
 top-level structs (`KeyPackage`, `SecretShare`, etc.) implement the
 `Zeroize` and `ZeroizeOnDrop` from the `zeroize` crate. This means that
-whey they are dropped they are cleared from memory.
+when they are dropped they are cleared from memory.
 
 However, be advised that the user is responsible for everything else. For
 example, if you serialize the structs, then you will be responsible for
