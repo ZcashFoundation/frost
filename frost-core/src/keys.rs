@@ -1,5 +1,7 @@
 //! FROST keys, keygen, key shares
 #![allow(clippy::type_complexity)]
+// Remove after https://github.com/rust-lang/rust/issues/147648 is fixed
+#![allow(unused_assignments)]
 
 use core::iter;
 
