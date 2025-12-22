@@ -34,7 +34,7 @@ Besides FROST itself, this repository also provides:
 - Repairable Threshold Scheme (RTS) from ['A Survey and Refinement of Repairable Threshold Schemes'](https://eprint.iacr.org/2017/1155) which allows a participant to recover a lost share with the help of a threshold of other participants;
 - [Re-Randomized FROST](https://eprint.iacr.org/2024/436).
 - Refresh Share functionality using a Trusted Dealer or Distributed Key
-  Agreement. This can be used to refresh the shares of the participants or to
+  Generation. This can be used to refresh the shares of the participants or to
   remove a participant.
 
 ## Getting Started
