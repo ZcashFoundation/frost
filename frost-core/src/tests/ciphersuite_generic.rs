@@ -119,13 +119,11 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     .unwrap();
 
     // Verifies the secret shares from the dealer
-    let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
-        BTreeMap::new();
+    let key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> = shares
+        .into_iter()
+        .map(|(k, v)| (k, frost::keys::KeyPackage::try_from(v).unwrap()))
+        .collect();
 
-    for (k, v) in shares {
-        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
-        key_packages.insert(k, key_package);
-    }
     // Check if it fails with not enough signers. Usually this would return an
     // error before even running the signing procedure, because `KeyPackage`
     // contains the correct `min_signers` value and the signing procedure checks
@@ -1024,4 +1022,90 @@ fn check_verify_signature_share<C: Ciphersuite>(
         )
         .expect_err("should have failed");
     }
+}
+
+/// Test FROST signing in an async context.
+/// The ultimate goal of the test is to ensure that types are Send + Sync.
+pub async fn async_check_sign<C: Ciphersuite, R: RngCore + CryptoRng + 'static + Send + Sync>(
+    mut rng: R,
+) {
+    tokio::spawn(async move {
+        let max_signers = 5;
+        let min_signers = 3;
+        let (shares, pubkey_package) = frost::keys::generate_with_dealer(
+            max_signers,
+            min_signers,
+            frost::keys::IdentifierList::Default,
+            &mut rng,
+        )
+        .unwrap();
+
+        // The test is sprinkled with await points to ensure that types that
+        // cross them are Send + Sync.
+        tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+
+        // Verifies the secret shares from the dealer
+        let key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> = shares
+            .into_iter()
+            .map(|(k, v)| (k, frost::keys::KeyPackage::try_from(v).unwrap()))
+            .collect();
+
+        tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+
+        let mut nonces_map: BTreeMap<frost::Identifier<C>, frost::round1::SigningNonces<C>> =
+            BTreeMap::new();
+        let mut commitments_map: BTreeMap<
+            frost::Identifier<C>,
+            frost::round1::SigningCommitments<C>,
+        > = BTreeMap::new();
+
+        for participant_identifier in key_packages.keys().take(min_signers as usize).cloned() {
+            // Generate one (1) nonce and one SigningCommitments instance for each
+            // participant, up to _min_signers_.
+            let (nonces, commitments) = frost::round1::commit(
+                key_packages
+                    .get(&participant_identifier)
+                    .unwrap()
+                    .signing_share(),
+                &mut rng,
+            );
+            tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+            nonces_map.insert(participant_identifier, nonces);
+            commitments_map.insert(participant_identifier, commitments);
+        }
+
+        let mut signature_shares = BTreeMap::new();
+        let message = "message to sign".as_bytes();
+        let signing_package = SigningPackage::new(commitments_map, message);
+
+        for participant_identifier in nonces_map.keys() {
+            let key_package = key_packages.get(participant_identifier).unwrap();
+            let nonces_to_use = nonces_map.get(participant_identifier).unwrap();
+            let signature_share =
+                frost::round2::sign(&signing_package, nonces_to_use, key_package).unwrap();
+            tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+            signature_shares.insert(*participant_identifier, signature_share);
+        }
+
+        let group_signature =
+            frost::aggregate(&signing_package, &signature_shares, &pubkey_package).unwrap();
+        tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+
+        pubkey_package
+            .verifying_key
+            .verify(message, &group_signature)
+            .unwrap();
+        tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+
+        for (participant_identifier, _) in nonces_map.clone() {
+            let key_package = key_packages.get(&participant_identifier).unwrap();
+            key_package
+                .verifying_key
+                .verify(message, &group_signature)
+                .unwrap();
+            tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+        }
+    })
+    .await
+    .unwrap();
 }

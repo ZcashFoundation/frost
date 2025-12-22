@@ -380,3 +380,13 @@ fn check_sign_with_incorrect_commitments() {
         _,
     >(rng);
 }
+
+#[tokio::test]
+async fn check_async_sign_with_dealer() {
+    tokio::spawn(async {
+        let rng = rand::rngs::OsRng;
+        frost_core::tests::ciphersuite_generic::async_check_sign::<Secp256K1Sha256, _>(rng).await;
+    })
+    .await
+    .unwrap();
+}

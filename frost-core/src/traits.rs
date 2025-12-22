@@ -34,7 +34,9 @@ pub trait Field: Copy {
         + Eq
         + Mul<Output = Self::Scalar>
         + PartialEq
-        + Sub<Output = Self::Scalar>;
+        + Sub<Output = Self::Scalar>
+        + Send
+        + Sync;
 
     /// A unique byte array buf of fixed length N.
     type Serialization: Clone + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
@@ -97,7 +99,9 @@ pub trait Group: Copy + PartialEq {
         + Eq
         + Mul<<Self::Field as Field>::Scalar, Output = Self::Element>
         + PartialEq
-        + Sub<Output = Self::Element>;
+        + Sub<Output = Self::Element>
+        + Send
+        + Sync;
 
     /// A unique byte array buf of fixed length N.
     ///
@@ -147,7 +151,7 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 ///
 /// [FROST ciphersuite]: https://datatracker.ietf.org/doc/html/rfc9591#name-ciphersuites
 // See https://github.com/ZcashFoundation/frost/issues/693 for reasoning about the 'static bound.
-pub trait Ciphersuite: Copy + PartialEq + Debug + 'static {
+pub trait Ciphersuite: Copy + PartialEq + Debug + 'static + Send + Sync {
     /// The ciphersuite ID string. It should be equal to the contextString in
     /// the spec. For new ciphersuites, this should be a string that identifies
     /// the ciphersuite; it's recommended to use a similar format to the

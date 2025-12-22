@@ -38,6 +38,7 @@ itertools = { version = "0.14.0", default-features = false }
 proptest = { version = "1.0", optional = true }
 serde_json = { version = "1.0", optional = true }
 criterion = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
 criterion.workspace = true
@@ -46,6 +47,7 @@ proptest.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
 serde_json.workspace = true
+
 
 [features]
 default = ["serialization", "std"]
@@ -62,7 +64,7 @@ internals = []
 serde = ["dep:serde", "dep:serdect"]
 serialization = ["serde", "dep:postcard"]
 # Exposes ciphersuite-generic tests for other crates to use
-test-impl = ["dep:proptest", "dep:serde_json", "dep:criterion"]
+test-impl = ["dep:proptest", "dep:serde_json", "dep:criterion", "dep:tokio"]
 
 [lib]
 bench = false
