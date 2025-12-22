@@ -5,7 +5,7 @@ use rand_core::{CryptoRng, RngCore};
 use crate::keys::dkg::{round1, round2};
 use crate::keys::generate_with_dealer;
 use crate::keys::refresh::{
-    compute_refreshing_shares, refresh_dkg_part2, refresh_dkg_part_1, refresh_share,
+    compute_refreshing_shares, refresh_dkg_part1, refresh_dkg_part2, refresh_share,
 };
 #[cfg(feature = "serialization")]
 use crate::keys::{PublicKeyPackage, SecretShare};
@@ -296,33 +296,15 @@ pub fn check_refresh_shares_with_dealer_fails_with_different_min_signers<
 
     // Trusted Dealer generates zero keys and new public key package
 
-    let (zero_shares, _new_pub_key_package) = compute_refreshing_shares(
+    let r = compute_refreshing_shares(
         pub_key_package,
         NEW_MAX_SIGNERS,
         NEW_MIN_SIGNERS,
         &remaining_ids,
         &mut rng,
-    )
-    .unwrap();
-
-    // Each participant refreshes their share
-
-    let mut new_shares = BTreeMap::new();
-
-    for i in 0..remaining_ids.len() {
-        let identifier = remaining_ids[i];
-        let current_share = &old_key_packages[&identifier];
-        let new_share = refresh_share(zero_shares[i].clone(), current_share);
-        new_shares.insert(identifier, new_share);
-    }
-
-    assert!(
-        new_shares
-            .iter()
-            .all(|(_, v)| v.is_err() && matches!(v, Err(Error::InvalidMinSigners))),
-        "{:?}",
-        new_shares
     );
+
+    assert_eq!(r, Err(Error::InvalidMinSigners));
 }
 
 /// Test FROST signing with DKG with a Ciphersuite.
@@ -387,7 +369,7 @@ where
     // In practice, each participant will perform this on their own environments.
     for participant_identifier in remaining_ids.clone() {
         let (round1_secret_package, round1_package) =
-            refresh_dkg_part_1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
+            refresh_dkg_part1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
@@ -474,9 +456,9 @@ where
     // will have all the participant's packages.
     let mut key_packages = BTreeMap::new();
 
-    // Map of the verifying key of each participant.
+    // Map of the verifying share of each participant.
     // Used by the signing test that follows.
-    let mut verifying_keys = BTreeMap::new();
+    let mut verifying_shares = BTreeMap::new();
     // The group public key, used by the signing test that follows.
     let mut verifying_key = None;
     // For each participant, store the set of verifying keys they have computed.
@@ -506,7 +488,7 @@ where
                 old_key_packages[&participant_identifier].clone(),
             )
             .unwrap();
-        verifying_keys.insert(participant_identifier, key_package.verifying_share);
+        verifying_shares.insert(participant_identifier, key_package.verifying_share);
         // Test if all verifying_key are equal
         if let Some(previous_verifying_key) = verifying_key {
             assert_eq!(previous_verifying_key, key_package.verifying_key)
@@ -519,10 +501,14 @@ where
 
     // Test if the set of verifying keys is correct for all participants.
     for verifying_keys_for_participant in pubkey_packages_by_participant.values() {
-        assert!(verifying_keys_for_participant.verifying_shares == verifying_keys);
+        assert!(verifying_keys_for_participant.verifying_shares == verifying_shares);
     }
 
-    let pubkeys = frost::keys::PublicKeyPackage::new(verifying_keys, verifying_key.unwrap());
+    let pubkeys = pubkey_packages_by_participant
+        .first_key_value()
+        .unwrap()
+        .1
+        .clone();
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
@@ -594,7 +580,7 @@ pub fn check_refresh_shares_with_dkg_smaller_threshold<
     // In practice, each participant will perform this on their own environments.
     for participant_identifier in remaining_ids.clone() {
         let (round1_secret_package, round1_package) =
-            refresh_dkg_part_1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
+            refresh_dkg_part1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
 
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.

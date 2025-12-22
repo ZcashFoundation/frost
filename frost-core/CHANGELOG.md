@@ -2,7 +2,7 @@
 
 Entries are listed in reverse chronological order.
 
-## Unreleases
+## Unreleased
 
 ### Breaking Changes
 
@@ -12,6 +12,13 @@ Entries are listed in reverse chronological order.
   the default behaviour is now as if `cheater-detection` was enabled. If you
   explicitly *did not enable* it, you can avoid cheater detection by calling
   `aggregate_custom()` with `CheaterDetection::Disabled`.
+* The `std` and `nightly` features were removed from all crates
+* Renamed `frost_core::keys::refresh::refresh_dkg_part_1` to `refresh_dkg_part1`.
+* Fixed the crate-specific versions of the `refresh` module to be non-generic.
+
+### Additional changes
+
+* Added DKG refresh functions to the crate-specific `refresh` modules.
 
 ## 2.2.0
 

@@ -176,6 +176,7 @@ fn build_public_key_package<C: Ciphersuite>(json_vectors: &Value) -> PublicKeyPa
     let mut verifying_shares = BTreeMap::new();
 
     let max_participants = json_vectors["config"]["MAX_PARTICIPANTS"].as_u64().unwrap() as u8;
+    let min_participants = json_vectors["config"]["MIN_PARTICIPANTS"].as_u64().unwrap() as u8;
 
     for i in 1..=max_participants {
         let participant_id: Identifier<C> = (inputs[i.to_string()]["identifier"].as_u64().unwrap()
@@ -196,6 +197,7 @@ fn build_public_key_package<C: Ciphersuite>(json_vectors: &Value) -> PublicKeyPa
         header: Header::default(),
         verifying_shares,
         verifying_key,
+        min_signers: Some(min_participants as u16),
     }
 }
 

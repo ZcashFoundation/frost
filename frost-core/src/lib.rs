@@ -758,7 +758,15 @@ pub fn verify_signature_share<C: Ciphersuite>(
     // In order to reuse `pre_aggregate()`, we need to create some "dummy" containers
     let signature_shares = BTreeMap::from([(identifier, *signature_share)]);
     let verifying_shares = BTreeMap::from([(identifier, *verifying_share)]);
-    let public_key_package = PublicKeyPackage::new(verifying_shares, *verifying_key);
+    let public_key_package = PublicKeyPackage {
+        verifying_shares,
+        verifying_key: *verifying_key,
+        // Use None since we don't have the min_signers value here. This
+        // can only cause problems if the `pre_aggregate` function relies on it.
+        // This has been documented in `pre_aggregate()`.
+        min_signers: None,
+        header: Header::default(),
+    };
 
     let (signing_package, signature_shares, pubkeys) =
         <C>::pre_aggregate(signing_package, &signature_shares, &public_key_package)?;
