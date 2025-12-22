@@ -29,6 +29,8 @@ repository = "https://github.com/ZcashFoundation/frost"
 categories = ["cryptography"]
 
 [workspace.dependencies]
+# Currently holding back from updating due to MSRV 1.86 of criterion 0.8
+# (we don't want to raise our MSRV just for this)
 criterion = "0.6"
 document-features = "0.2.7"
 hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }
