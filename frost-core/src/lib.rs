@@ -631,7 +631,9 @@ where
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
         compute_binding_factor_list(&signing_package, &pubkeys.verifying_key, &[])?;
+
     // Compute the group commitment from signing commitments produced in round one.
+    let signing_package = <C>::pre_commitment_aggregate(&signing_package, &binding_factor_list)?;
     let group_commitment = compute_group_commitment(&signing_package, &binding_factor_list)?;
 
     // The aggregation of the signature shares by summing them up, resulting in
