@@ -1,6 +1,13 @@
 An implementation of Schnorr signatures on the secp256k1 curve for both single and threshold numbers
 of signers (FROST).
 
+This crate is a re-export of the ciphersuite-generic
+[frost-core](https://crates.io/crates/frost-core) crate, parametrized with the
+secp256k1 curve. For more details, refer to [The ZF FROST
+Book](https://frost.zfnd.org/).
+
+*This crate is not compatible with Bitcoin BIP-340 (Taproot) signatures. Use [frost-secp256k1-tr](https://crates.io/crates/frost-secp256k1-tr) instead*
+
 ## Example: key generation with trusted dealer and FROST signing
 
 Creating a key with a trusted dealer and splitting into shares; then signing a message
