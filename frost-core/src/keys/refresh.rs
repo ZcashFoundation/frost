@@ -290,6 +290,8 @@ pub fn refresh_dkg_part2<C: Ciphersuite>(
     }
     let fii = evaluate_polynomial(secret_package.identifier, &secret_package.coefficients());
 
+    // We remove the identity again to make it serializable
+    secret_package.commitment.0.remove(0);
     Ok((
         round2::SecretPackage::new(
             secret_package.identifier,
@@ -334,6 +336,17 @@ pub fn refresh_dkg_shares<C: Ciphersuite>(
     if round2_secret_package.min_signers() != old_key_package.min_signers() {
         return Err(Error::InvalidMinSigners);
     }
+
+    // Add identity commitment back into the round2_secret_package
+    let mut commitment = round2_secret_package.commitment.0.clone();
+    commitment.insert(0, CoefficientCommitment::new(C::Group::identity()));
+    let round2_secret_package = round2::SecretPackage::new(
+        round2_secret_package.identifier,
+        VerifiableSecretSharingCommitment::<C>::new(commitment),
+        round2_secret_package.secret_share.0,
+        round2_secret_package.min_signers,
+        round2_secret_package.max_signers,
+    );
 
     // Add identity commitment back into round1_packages
     let mut new_round_1_packages = BTreeMap::new();
