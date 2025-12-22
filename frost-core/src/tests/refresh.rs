@@ -69,6 +69,10 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         &mut rng,
     )
     .unwrap();
+    // Simulate serialization / deserialization to ensure it works
+    let new_pub_key_package =
+        frost::keys::PublicKeyPackage::deserialize(&new_pub_key_package.serialize().unwrap())
+            .unwrap();
 
     // Each participant refreshes their share
 
@@ -79,14 +83,16 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         let current_share = &old_key_packages[&identifier];
         // Do a serialization roundtrip to simulate real usage
         let zero_share = SecretShare::deserialize(&zero_shares[i].serialize().unwrap()).unwrap();
-        let new_share = refresh_share(zero_share, current_share);
+        let new_share = refresh_share(zero_share, current_share).unwrap();
         new_shares.insert(identifier, new_share);
     }
 
     let mut key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
 
     for (k, v) in new_shares {
-        key_packages.insert(k, v.unwrap());
+        // Simulate serialization / deserialization to ensure it works
+        let v = KeyPackage::<C>::deserialize(&v.serialize().unwrap()).unwrap();
+        key_packages.insert(k, v);
     }
     check_sign(MIN_SIGNERS, key_packages, rng, new_pub_key_package).unwrap();
 }
@@ -371,6 +377,16 @@ where
         let (round1_secret_package, round1_package) =
             refresh_dkg_part1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
 
+        // Simulate serialization / deserialization to ensure it works
+        let round1_secret_package = frost::keys::dkg::round1::SecretPackage::<C>::deserialize(
+            &round1_secret_package.serialize().unwrap(),
+        )
+        .unwrap();
+        let round1_package = frost::keys::dkg::round1::Package::<C>::deserialize(
+            &round1_package.serialize().unwrap(),
+        )
+        .unwrap();
+
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
         round1_secret_packages.insert(
@@ -421,6 +437,12 @@ where
         let (round2_secret_package, round2_packages) =
             refresh_dkg_part2(round1_secret_package, round1_packages).expect("should work");
 
+        // Simulate serialization / deserialization to ensure it works
+        let round2_secret_package = frost::keys::dkg::round2::SecretPackage::<C>::deserialize(
+            &round2_secret_package.serialize().unwrap(),
+        )
+        .unwrap();
+
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
         round2_secret_packages.insert(
@@ -436,6 +458,11 @@ where
         // Note that, in contrast to the previous part, here each other participant
         // gets its own specific package.
         for (receiver_identifier, round2_package) in round2_packages {
+            // Simulate serialization / deserialization to ensure it works
+            let round2_package = frost::keys::dkg::round2::Package::<C>::deserialize(
+                &round2_package.serialize().unwrap(),
+            )
+            .unwrap();
             received_round2_packages
                 .entry(receiver_identifier)
                 .or_insert_with(BTreeMap::new)
@@ -488,6 +515,12 @@ where
                 old_key_packages[&participant_identifier].clone(),
             )
             .unwrap();
+        // Simulate serialization / deserialization to ensure it works
+        let key_package = KeyPackage::deserialize(&key_package.serialize().unwrap()).unwrap();
+        let pubkey_package_for_participant = frost::keys::PublicKeyPackage::deserialize(
+            &pubkey_package_for_participant.serialize().unwrap(),
+        )
+        .unwrap();
         verifying_shares.insert(participant_identifier, key_package.verifying_share);
         // Test if all verifying_key are equal
         if let Some(previous_verifying_key) = verifying_key {
@@ -509,6 +542,9 @@ where
         .unwrap()
         .1
         .clone();
+    // Simulate serialization / deserialization to ensure it works
+    let pubkeys =
+        frost::keys::PublicKeyPackage::deserialize(&pubkeys.serialize().unwrap()).unwrap();
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys).unwrap()

@@ -6,7 +6,8 @@ use rand_core::{CryptoRng, RngCore};
 
 use crate as frost;
 use crate::keys::dkg::{round1, round2};
-use crate::keys::SigningShare;
+use crate::keys::{SecretShare, SigningShare};
+use crate::round1::SigningNonces;
 use crate::round2::SignatureShare;
 use crate::{
     keys::PublicKeyPackage, Error, Field, Group, Identifier, Signature, SigningKey, SigningPackage,
@@ -26,6 +27,8 @@ pub fn check_zero_key_fails<C: Ciphersuite>() {
 /// Test share generation with a Ciphersuite
 pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     let secret = crate::SigningKey::<C>::new(&mut rng);
+    // Simulate serialization / deserialization to ensure it works
+    let secret = SigningKey::deserialize(&secret.serialize()).unwrap();
 
     let max_signers = 5;
     let min_signers = 3;
@@ -110,20 +113,30 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 
     let max_signers = 5;
     let min_signers = 3;
-    let (shares, pubkeys) = frost::keys::generate_with_dealer(
+    let (shares, pub_key_package) = frost::keys::generate_with_dealer(
         max_signers,
         min_signers,
         frost::keys::IdentifierList::Default,
         &mut rng,
     )
     .unwrap();
+    // Simulate serialization / deserialization to ensure it works
+    let pub_key_package =
+        PublicKeyPackage::deserialize(&pub_key_package.serialize().unwrap()).unwrap();
 
     // Verifies the secret shares from the dealer
-    let key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> = shares
-        .into_iter()
-        .map(|(k, v)| (k, frost::keys::KeyPackage::try_from(v).unwrap()))
-        .collect();
+    let mut key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>> =
+        BTreeMap::new();
 
+    for (k, v) in shares {
+        // Simulate serialization / deserialization to ensure it works
+        let v = SecretShare::<C>::deserialize(&v.serialize().unwrap()).unwrap();
+        let key_package = frost::keys::KeyPackage::try_from(v).unwrap();
+        // Simulate serialization / deserialization to ensure it works
+        let key_package =
+            frost::keys::KeyPackage::deserialize(&key_package.serialize().unwrap()).unwrap();
+        key_packages.insert(k, key_package);
+    }
     // Check if it fails with not enough signers. Usually this would return an
     // error before even running the signing procedure, because `KeyPackage`
     // contains the correct `min_signers` value and the signing procedure checks
@@ -144,11 +157,11 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
             })
             .collect(),
         &mut rng,
-        pubkeys.clone(),
+        pub_key_package.clone(),
     );
     assert_eq!(r, Err(Error::InvalidSignature));
 
-    check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
+    check_sign(min_signers, key_packages, rng, pub_key_package).unwrap()
 }
 
 /// Test FROST signing with trusted dealer fails with invalid numbers of signers.
@@ -203,7 +216,10 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     // Round 1: generating nonces and signing commitments for each participant
     ////////////////////////////////////////////////////////////////////////////
 
-    for participant_identifier in key_packages.keys().take(min_signers as usize).cloned() {
+    for participant_identifier in key_packages.keys().take(min_signers as usize) {
+        // Simulate serialization / deserialization to ensure it works
+        let participant_identifier =
+            Identifier::deserialize(&participant_identifier.serialize()).unwrap();
         // Generate one (1) nonce and one SigningCommitments instance for each
         // participant, up to _min_signers_.
         let (nonces, commitments) = frost::round1::commit(
@@ -213,6 +229,11 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
                 .signing_share(),
             &mut rng,
         );
+        // Simulate serialization / deserialization to ensure it works
+        let nonces = SigningNonces::deserialize(&nonces.serialize().unwrap()).unwrap();
+        let commitments =
+            frost::round1::SigningCommitments::deserialize(&commitments.serialize().unwrap())
+                .unwrap();
         nonces_map.insert(participant_identifier, nonces);
         commitments_map.insert(participant_identifier, commitments);
     }
@@ -223,6 +244,9 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
     let mut signature_shares = BTreeMap::new();
     let message = "message to sign".as_bytes();
     let signing_package = SigningPackage::new(commitments_map, message);
+    // Simulate serialization / deserialization to ensure it works
+    let signing_package =
+        SigningPackage::deserialize(&signing_package.serialize().unwrap()).unwrap();
 
     ////////////////////////////////////////////////////////////////////////////
     // Round 2: each participant generates their signature share
@@ -241,6 +265,8 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
 
         // Each participant generates their signature share.
         let signature_share = frost::round2::sign(&signing_package, nonces_to_use, key_package)?;
+        // Simulate serialization / deserialization to ensure it works
+        let signature_share = SignatureShare::deserialize(&signature_share.serialize()).unwrap();
         signature_shares.insert(*participant_identifier, signature_share);
     }
 
@@ -265,6 +291,8 @@ pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
 
     // Aggregate (also verifies the signature shares)
     let group_signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)?;
+    // Simulate serialization / deserialization to ensure it works
+    let group_signature = Signature::deserialize(&group_signature.serialize().unwrap()).unwrap();
 
     // Check that the threshold signature can be verified by the group public
     // key (the verification key).
@@ -451,6 +479,16 @@ where
             frost::keys::dkg::part1(participant_identifier, max_signers, min_signers, &mut rng)
                 .unwrap();
 
+        // Simulate serialization / deserialization to ensure it works
+        let round1_secret_package = frost::keys::dkg::round1::SecretPackage::<C>::deserialize(
+            &round1_secret_package.serialize().unwrap(),
+        )
+        .unwrap();
+        let round1_package = frost::keys::dkg::round1::Package::<C>::deserialize(
+            &round1_package.serialize().unwrap(),
+        )
+        .unwrap();
+
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
         round1_secret_packages.insert(
@@ -507,6 +545,12 @@ where
         let (round2_secret_package, round2_packages) =
             frost::keys::dkg::part2(round1_secret_package, round1_packages).expect("should work");
 
+        // Simulate serialization / deserialization to ensure it works
+        let round2_secret_package = frost::keys::dkg::round2::SecretPackage::<C>::deserialize(
+            &round2_secret_package.serialize().unwrap(),
+        )
+        .unwrap();
+
         // Store the participant's secret package for later use.
         // In practice each participant will store it in their own environment.
         round2_secret_packages.insert(
@@ -522,6 +566,11 @@ where
         // Note that, in contrast to the previous part, here each other participant
         // gets its own specific package.
         for (receiver_identifier, round2_package) in round2_packages {
+            // Simulate serialization / deserialization to ensure it works
+            let round2_package = frost::keys::dkg::round2::Package::<C>::deserialize(
+                &round2_package.serialize().unwrap(),
+            )
+            .unwrap();
             received_round2_packages
                 .entry(receiver_identifier)
                 .or_insert_with(BTreeMap::new)
@@ -572,6 +621,13 @@ where
             &received_round2_packages[&participant_identifier],
         )
         .unwrap();
+        // Simulate serialization / deserialization to ensure it works
+        let key_package =
+            frost::keys::KeyPackage::deserialize(&key_package.serialize().unwrap()).unwrap();
+        let pubkey_package_for_participant = frost::keys::PublicKeyPackage::deserialize(
+            &pubkey_package_for_participant.serialize().unwrap(),
+        )
+        .unwrap();
         verifying_shares.insert(participant_identifier, key_package.verifying_share);
         // Test if all verifying_key are equal
         if let Some(previous_verifying_key) = verifying_key {
@@ -593,6 +649,9 @@ where
         .unwrap()
         .1
         .clone();
+    // Simulate serialization / deserialization to ensure it works
+    let pubkeys =
+        frost::keys::PublicKeyPackage::deserialize(&pubkeys.serialize().unwrap()).unwrap();
 
     // Proceed with the signing test.
     check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
