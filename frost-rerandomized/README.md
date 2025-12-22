@@ -11,7 +11,7 @@ FROST under re-randomized keys.
 
 Currently, the main ciphersuite crates do not re-expose the rerandomization
 functions; if you want to use this functionality, you will need to use this
-crate parametrized with the chosen ciphersuite. The exception are the Zcash
+crate parametrized with the chosen ciphersuite. The exceptions are the Zcash
 ciphersuites in [`reddsa`](https://github.com/ZcashFoundation/reddsa/) which
 do expose the randomized functionality.
 
