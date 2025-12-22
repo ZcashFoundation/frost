@@ -2,7 +2,7 @@
 
 use crate as frost;
 use crate::{keys::CoefficientCommitment, tests::helpers::generate_element, Group};
-use debugless_unwrap::DebuglessUnwrap;
+use debugless_unwrap::DebuglessUnwrapExt;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
 
