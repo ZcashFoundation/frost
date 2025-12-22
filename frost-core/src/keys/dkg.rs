@@ -54,7 +54,7 @@ use super::{
 pub mod round1 {
     use alloc::vec::Vec;
     use derive_getters::Getters;
-    use zeroize::Zeroize;
+    use zeroize::{Zeroize, ZeroizeOnDrop};
 
     use super::*;
 
@@ -117,18 +117,20 @@ pub mod round1 {
     /// # Security
     ///
     /// This package MUST NOT be sent to other participants!
-    #[derive(Clone, PartialEq, Eq, Getters)]
+    #[derive(Clone, PartialEq, Eq, Getters, Zeroize, ZeroizeOnDrop)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
+        #[zeroize(skip)]
         pub(crate) identifier: Identifier<C>,
         /// Coefficients of the temporary secret polynomial for the participant.
         /// These are (a_{i0}, ..., a_{i(t−1)})) which define the polynomial f_i(x)
         #[getter(skip)]
         pub(crate) coefficients: Vec<SerializableScalar<C>>,
         /// The public commitment for the participant (C_i)
+        #[zeroize(skip)]
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The minimum number of signers.
         pub(crate) min_signers: u16,
@@ -196,23 +198,12 @@ pub mod round1 {
                 .finish()
         }
     }
-
-    impl<C> Zeroize for SecretPackage<C>
-    where
-        C: Ciphersuite,
-    {
-        fn zeroize(&mut self) {
-            for c in self.coefficients.iter_mut() {
-                *c = SerializableScalar(<<C::Group as Group>::Field>::zero());
-            }
-        }
-    }
 }
 
 /// DKG Round 2 structures.
 pub mod round2 {
     use derive_getters::Getters;
-    use zeroize::Zeroize;
+    use zeroize::{Zeroize, ZeroizeOnDrop};
 
     #[cfg(feature = "serialization")]
     use alloc::vec::Vec;
@@ -275,14 +266,16 @@ pub mod round2 {
     /// # Security
     ///
     /// This package MUST NOT be sent to other participants!
-    #[derive(Clone, PartialEq, Eq, Getters)]
+    #[derive(Clone, PartialEq, Eq, Getters, Zeroize, ZeroizeOnDrop)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
     pub struct SecretPackage<C: Ciphersuite> {
         /// The identifier of the participant holding the secret.
+        #[zeroize(skip)]
         pub(crate) identifier: Identifier<C>,
         /// The public commitment from the participant (C_i)
+        #[zeroize(skip)]
         pub(crate) commitment: VerifiableSecretSharingCommitment<C>,
         /// The participant's own secret share (f_i(i)).
         #[getter(skip)]
@@ -349,15 +342,6 @@ pub mod round2 {
                 .field("min_signers", &self.min_signers)
                 .field("max_signers", &self.max_signers)
                 .finish()
-        }
-    }
-
-    impl<C> Zeroize for SecretPackage<C>
-    where
-        C: Ciphersuite,
-    {
-        fn zeroize(&mut self) {
-            self.secret_share = SerializableScalar(<<C::Group as Group>::Field>::zero());
         }
     }
 }
@@ -542,7 +526,7 @@ pub fn part2<C: Ciphersuite>(
     Ok((
         round2::SecretPackage::new(
             secret_package.identifier,
-            secret_package.commitment,
+            secret_package.commitment.clone(),
             fii,
             secret_package.min_signers,
             secret_package.max_signers,

@@ -295,7 +295,7 @@ pub fn refresh_dkg_part2<C: Ciphersuite>(
     Ok((
         round2::SecretPackage::new(
             secret_package.identifier,
-            secret_package.commitment,
+            secret_package.commitment.clone(),
             fii,
             secret_package.min_signers,
             secret_package.max_signers,
