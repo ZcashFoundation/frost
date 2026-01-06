@@ -14,7 +14,7 @@ use derive_getters::Getters;
 use hex::FromHex;
 
 use rand_core::{CryptoRng, RngCore};
-use zeroize::Zeroize;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     serialization::{SerializableElement, SerializableScalar},
@@ -209,7 +209,7 @@ where
 /// Note that [`SigningNonces`] must be used *only once* for a signing
 /// operation; re-using nonces will result in leakage of a signer's long-lived
 /// signing key.
-#[derive(Clone, Zeroize, PartialEq, Eq, Getters)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
