@@ -38,9 +38,9 @@ where
         let mut R_bytes = Vec::from(<C::Group>::serialize(&generator)?.as_ref());
         let R_bytes_len = R_bytes.len();
 
-        let one = <<C::Group as Group>::Field as Field>::zero();
+        let zero = <<C::Group as Group>::Field as Field>::zero();
         let mut z_bytes =
-            Vec::from(<<C::Group as Group>::Field as Field>::serialize(&one).as_ref());
+            Vec::from(<<C::Group as Group>::Field as Field>::serialize(&zero).as_ref());
         let z_bytes_len = z_bytes.len();
 
         if bytes.len() != R_bytes_len + z_bytes_len {

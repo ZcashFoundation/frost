@@ -256,8 +256,8 @@ where
         signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
     ) -> Result<(Self, Vec<u8>), Error<C>> {
         // Generate a dummy scalar to get its encoded size
-        let one = <<C::Group as Group>::Field as Field>::zero();
-        let ns = <<C::Group as Group>::Field as Field>::serialize(&one)
+        let zero = <<C::Group as Group>::Field as Field>::zero();
+        let ns = <<C::Group as Group>::Field as Field>::serialize(&zero)
             .as_ref()
             .len();
         let mut randomizer_seed = alloc::vec![0; ns];
