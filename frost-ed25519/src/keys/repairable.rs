@@ -21,9 +21,9 @@ pub type Sigma = frost::keys::repairable::Sigma<Ed25519Sha512>;
 
 /// Step 1 of RTS.
 ///
-/// Generates the "delta" values from `helper_i` to help `participant` recover their share
-/// where `helpers` contains the identifiers of all the helpers (including `helper_i`), and `share_i`
-/// is the share of `helper_i`.
+/// Generates the "delta" values from the helper with `key_package_i` to send to
+/// `helpers` (which includes the helper with `key_package_i`), to help
+/// `participant` recover their share.
 ///
 /// Returns a BTreeMap mapping which value should be sent to which participant.
 pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
@@ -37,20 +37,21 @@ pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
 
 /// Step 2 of RTS.
 ///
-/// Generates the `sigma` values from all `deltas` received from `helpers`
-/// to help `participant` recover their share.
-/// `sigma` is the sum of all received `delta` and the `delta_i` generated for `helper_i`.
-///
-/// Returns a scalar
-pub fn repair_share_step_2(deltas_j: &[Delta]) -> Sigma {
-    frost::keys::repairable::repair_share_step_2::<Ed25519Sha512>(deltas_j)
+/// Generates the "sigma" value from all `deltas` received from all helpers.
+/// The "sigma" value must be sent to the participant repairing their share.
+pub fn repair_share_step_2(deltas: &[Delta]) -> Sigma {
+    frost::keys::repairable::repair_share_step_2::<Ed25519Sha512>(deltas)
 }
 
-/// Step 3 of RTS
+/// Step 3 of RTS.
 ///
-/// The `participant` sums all `sigma_j` received to compute the `share`. The `SecretShare`
-/// is made up of the `identifier`and `commitment` of the `participant` as well as the
-/// `value` which is the `SigningShare`.
+/// The participant with the given `identifier` recovers their `KeyPackage`
+/// with the "sigma" values received from all helpers and the `PublicKeyPackage`
+/// of the group (which can be sent by any of the helpers).
+///
+/// Returns an error if the `min_signers` field is not set in the `PublicKeyPackage`.
+/// This happens for `PublicKeyPackage`s created before the 3.0.0 release;
+/// in that case, the user should set the `min_signers` field manually.
 pub fn repair_share_step_3(
     sigmas: &[Sigma],
     identifier: Identifier,
