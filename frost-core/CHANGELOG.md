@@ -4,6 +4,61 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+### Breaking Changes
+
+* The `cheater-detection` feature was removed. If you relied on it (either by
+  using the default features, or by explicitly enabling it), then you don't have
+  to do anything (other than not enabling it explicitly if you were doing so);
+  the default behaviour is now as if `cheater-detection` was enabled. If you
+  explicitly *did not enable* it, you can avoid cheater detection by calling
+  `aggregate_custom()` with `CheaterDetection::Disabled`.
+* The `std` and `nightly` features were removed from all crates
+* Renamed `frost_core::keys::refresh::refresh_dkg_part_1` to `refresh_dkg_part1`.
+* Fixed the crate-specific versions of the `refresh` module to be non-generic.
+
+### Additional changes
+
+* Added DKG refresh functions to the crate-specific `refresh` modules.
+
+## 2.2.0
+
+### Security Fixes
+
+* Added validation for the `min_signers` parameter in the
+  `frost_core::keys::refresh` functions. It was not clear that it is not
+  possible to change `min_signers` with the refresh procedure. Using a smaller
+  value would not decrease the threshold, and attempts to sign using a smaller
+  threshold would fail. Additionally, after refreshing the shares with a smaller
+  threshold, it would still be possible to sign with the original threshold;
+  however, this could cause a security loss to the participant's shares. We have
+  not determined the exact security implications of doing so and judged simpler
+  to just validate `min_signers`. If for some reason you have done a refresh
+  share procedure with a smaller `min_signers` we strongly recommend migrating
+  to a new key. Thank you [BlockSec](https://blocksec.com/) for reporting the
+  finding.
+
+### Other Changes
+
+* MSRV has been bumped to Rust 1.81, making all crates no-std (except
+  `frost-ed448`).
+* Added DKG refresh functions to the crate-specific `refresh` modules.
+* Added `VerifiableSecretSharingCommitment::{serialize,deserialize}_whole()`
+  methods.
+* Added `Ciphersuite::post_generate()` method to allow more ciphersuite
+  customization.
+
+## 2.1.0
+
+* It is now possible to identify the culprit in `frost_core::keys::dkg::part3()`
+  if an invalid secret share was sent by one of the participants (by calling
+  `frost_core::Error<C>::culprit()`) (#728)
+* Added frost-secp256k1-tr crate, allowing to generate Bitcoin Taproot
+  (BIP340/BIP341) compatible signatures (#730).
+* Support refreshing shares using the DKG approach using the
+  `frost_core::keys::refresh::refresh_dkg_{part1,part2,shares}()` functions
+  (#766).
+* `frost_core::keys::dkg::part{1,2}::SecretPackage` are now serializable (#833).
+
 ## 2.0.0
 
 * Updated docs

@@ -1,6 +1,5 @@
 use frost_secp256k1::*;
 use lazy_static::lazy_static;
-use rand::thread_rng;
 use serde_json::Value;
 
 #[test]
@@ -10,14 +9,14 @@ fn check_zero_key_fails() {
 
 #[test]
 fn check_sign_with_dkg() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Secp256K1Sha256, _>(rng);
 }
 
 #[test]
 fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 1;
     let max_signers = 3;
@@ -31,7 +30,7 @@ fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
 
 #[test]
 fn check_dkg_part1_fails_with_min_signers_greater_than_max() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 3;
     let max_signers = 2;
@@ -45,7 +44,7 @@ fn check_dkg_part1_fails_with_min_signers_greater_than_max() {
 
 #[test]
 fn check_dkg_part1_fails_with_invalid_signers_max_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 3;
     let max_signers = 1;
@@ -59,21 +58,21 @@ fn check_dkg_part1_fails_with_invalid_signers_max_signers() {
 
 #[test]
 fn check_rts() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     frost_core::tests::repairable::check_rts::<Secp256K1Sha256, _>(rng);
 }
 
 #[test]
 fn check_refresh_shares_with_dealer() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     frost_core::tests::refresh::check_refresh_shares_with_dealer::<Secp256K1Sha256, _>(rng);
 }
 
 #[test]
 fn check_refresh_shares_with_dealer_serialisation() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     frost_core::tests::refresh::check_refresh_shares_with_dealer_serialisation::<Secp256K1Sha256, _>(
         rng,
@@ -82,7 +81,7 @@ fn check_refresh_shares_with_dealer_serialisation() {
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_public_key_package::<
         Secp256K1Sha256,
@@ -92,7 +91,7 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package() {
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_invalid_min_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     let identifiers = vec![
         Identifier::try_from(1).unwrap(),
         Identifier::try_from(3).unwrap(),
@@ -111,14 +110,14 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_min_signers() {
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_unequal_num_identifiers_and_max_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     let identifiers = vec![
         Identifier::try_from(1).unwrap(),
         Identifier::try_from(3).unwrap(),
         Identifier::try_from(4).unwrap(),
         Identifier::try_from(5).unwrap(),
     ];
-    let min_signers = 3;
+    let min_signers = 2;
     let max_signers = 3;
     let error: frost_core::Error<Secp256K1Sha256> = Error::IncorrectNumberOfIdentifiers;
 
@@ -130,7 +129,7 @@ fn check_refresh_shares_with_dealer_fails_with_unequal_num_identifiers_and_max_s
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_min_signers_greater_than_max() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     let identifiers = vec![
         Identifier::try_from(1).unwrap(),
         Identifier::try_from(3).unwrap(),
@@ -149,9 +148,9 @@ fn check_refresh_shares_with_dealer_fails_with_min_signers_greater_than_max() {
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_invalid_max_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     let identifiers = vec![Identifier::try_from(1).unwrap()];
-    let min_signers = 3;
+    let min_signers = 2;
     let max_signers = 1;
     let error = Error::InvalidMaxSigners;
 
@@ -163,7 +162,7 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_max_signers() {
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     let identifiers = vec![
         Identifier::try_from(8).unwrap(),
         Identifier::try_from(3).unwrap(),
@@ -181,15 +180,41 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
 }
 
 #[test]
+fn check_refresh_shares_with_dealer_fails_with_different_min_signers() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_different_min_signers::<
+        Secp256K1Sha256,
+        _,
+    >(rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dkg() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dkg::<Secp256K1Sha256, _>(rng);
+}
+
+#[test]
+fn check_refresh_shares_with_dkg_smaller_threshold() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::refresh::check_refresh_shares_with_dkg_smaller_threshold::<Secp256K1Sha256, _>(
+        rng,
+    );
+}
+
+#[test]
 fn check_sign_with_dealer() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Secp256K1Sha256, _>(rng);
 }
 
 #[test]
 fn check_sign_with_dealer_fails_with_invalid_min_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 1;
     let max_signers = 3;
@@ -203,7 +228,7 @@ fn check_sign_with_dealer_fails_with_invalid_min_signers() {
 
 #[test]
 fn check_sign_with_dealer_fails_with_min_signers_greater_than_max() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 3;
     let max_signers = 2;
@@ -217,7 +242,7 @@ fn check_sign_with_dealer_fails_with_min_signers_greater_than_max() {
 
 #[test]
 fn check_sign_with_dealer_fails_with_invalid_max_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 3;
     let max_signers = 1;
@@ -233,13 +258,13 @@ fn check_sign_with_dealer_fails_with_invalid_max_signers() {
 /// value is working.
 #[test]
 fn check_share_generation_secp256k1_sha256() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::ciphersuite_generic::check_share_generation::<Secp256K1Sha256, _>(rng);
 }
 
 #[test]
 fn check_share_generation_fails_with_invalid_min_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 0;
     let max_signers = 3;
@@ -253,7 +278,7 @@ fn check_share_generation_fails_with_invalid_min_signers() {
 
 #[test]
 fn check_share_generation_fails_with_min_signers_greater_than_max() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 3;
     let max_signers = 2;
@@ -267,7 +292,7 @@ fn check_share_generation_fails_with_min_signers_greater_than_max() {
 
 #[test]
 fn check_share_generation_fails_with_invalid_max_signers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     let min_signers = 3;
     let max_signers = 0;
@@ -331,7 +356,7 @@ fn check_identifier_generation() -> Result<(), Error> {
 
 #[test]
 fn check_sign_with_dealer_and_identifiers() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<
         Secp256K1Sha256,
@@ -341,7 +366,7 @@ fn check_sign_with_dealer_and_identifiers() {
 
 #[test]
 fn check_sign_with_missing_identifier() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::ciphersuite_generic::check_sign_with_missing_identifier::<Secp256K1Sha256, _>(
         rng,
     );
@@ -349,9 +374,19 @@ fn check_sign_with_missing_identifier() {
 
 #[test]
 fn check_sign_with_incorrect_commitments() {
-    let rng = thread_rng();
+    let rng = rand::rngs::OsRng;
     frost_core::tests::ciphersuite_generic::check_sign_with_incorrect_commitments::<
         Secp256K1Sha256,
         _,
     >(rng);
+}
+
+#[tokio::test]
+async fn check_async_sign_with_dealer() {
+    tokio::spawn(async {
+        let rng = rand::rngs::OsRng;
+        frost_core::tests::ciphersuite_generic::async_check_sign::<Secp256K1Sha256, _>(rng).await;
+    })
+    .await
+    .unwrap();
 }

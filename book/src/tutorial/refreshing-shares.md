@@ -4,7 +4,7 @@ The diagram below shows the refresh share process. Dashed lines
 represent data being sent through an [authenticated and confidential communication
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 
-<!-- ![Diagram of Refreshing shares, illustrating what is explained in the text](refreshing.png) -->
+![Diagram of Refreshing shares, illustrating what is explained in the text](refreshing.png)
 
 The Trusted Dealer needs to first run `compute_refreshing_shares()` which
 returns SecretShares (the "refreshing shares") and a PublicKeyPackage. Each
@@ -30,11 +30,11 @@ The refreshed `KeyPackage` contents must be stored securely and the original
 Applications should first ensure that all participants who refreshed their
 `KeyPackages` were actually able to do so successfully, before deleting their old
 `KeyPackages`. How this is done is up to the application; it might require
-sucessfully generating a signature with all of those participants.
+successfully generating a signature with all of those participants.
 ```
 
 ```admonish danger
 Refreshing Shares may be not enough to address security concerns
-after a share has been compromised. Refer to to the [Understanding
+after a share has been compromised. Refer to the [Understanding
 FROST](../frost.md#refreshing-shares) section.
 ```

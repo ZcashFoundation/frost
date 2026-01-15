@@ -20,8 +20,8 @@ This is a list of production Rust code that is in scope and out of scope for FRO
 
 | Name | Version | Notes
 |------| ------- | -----
-| redjubjub | v0.6.0 | This library is being partially audited as part of the [Zebra audit](https://github.com/ZcashFoundation/zebra-private/blob/d4137908385be7e6df0a935b91bfc83b532261a2/book/src/dev/zebra-dependencies-for-audit.md#zcashzf-dependencies-1). 
-| reddsa | v0.5.0 | This library is being partially audited as part of the [Zebra audit](https://github.com/ZcashFoundation/zebra-private/blob/d4137908385be7e6df0a935b91bfc83b532261a2/book/src/dev/zebra-dependencies-for-audit.md#zcashzf-dependencies-1). 
+| redjubjub | v0.6.0 | This library is being partially audited as part of the [Zebra audit](https://github.com/ZcashFoundation/zebra/blob/main/book/src/dev/zebra-dependencies-for-audit.md#zcashzf-dependencies-1).
+| reddsa | v0.5.0 | This library is being partially audited as part of the [Zebra audit](https://github.com/ZcashFoundation/zebra/blob/main/book/src/dev/zebra-dependencies-for-audit.md#zcashzf-dependencies-1).
 
 ---
 ## Partial Audit
@@ -46,6 +46,7 @@ The following crates and dependencies are out of scope for the audit.
 | Name | Version | Notes
 |------| ------- | -----
 | frost-rerandomized | v0.2.0 | To be audited after the security proof is complete.
+| frost-secp256k1-tr | N/A | frost-secp256k1 with Taproot support, has not been audited yet.
 
 ### `frost-core` Dependencies
 

@@ -12,7 +12,7 @@
 //!   should pass to [`sign_with_randomizer_seed()`] and send the resulting
 //!   [`frost::round2::SignatureShare`] back to the Coordinator;
 //! - The Coordinator should then call [`aggregate`].
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![allow(non_snake_case)]
 
 extern crate alloc;
@@ -115,9 +115,10 @@ impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
             })
             .collect();
 
-        Ok(PublicKeyPackage::new(
+        Ok(PublicKeyPackage::new_internal(
             randomized_verifying_shares,
             randomized_params.randomized_verifying_key,
+            self.min_signers(),
         ))
     }
 }

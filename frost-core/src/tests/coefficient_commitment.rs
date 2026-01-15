@@ -2,7 +2,7 @@
 
 use crate as frost;
 use crate::{keys::CoefficientCommitment, tests::helpers::generate_element, Group};
-use debugless_unwrap::DebuglessUnwrap;
+use debugless_unwrap::DebuglessUnwrapExt;
 use rand_core::{CryptoRng, RngCore};
 use serde_json::Value;
 
@@ -44,7 +44,7 @@ pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(
     let values = &commitment_helpers["elements"];
     let serialized: <C::Group as Group>::Serialization =
         <C::Group as Group>::Serialization::try_from(
-            hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
+            &hex::decode(values["invalid_element"].as_str().unwrap()).unwrap(),
         )
         .debugless_unwrap();
 

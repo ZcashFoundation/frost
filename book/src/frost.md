@@ -112,11 +112,6 @@ shares in a way that maintains the same group public key. Some applications are:
   in signing sessions with the others. (They can also then use the repair share
   functionality to issue a new share and move from 2-of-2 back to 2-of-3.)
 
-```admonish note
-This is also possible via Distributed Key Generation but this has not yet been
-implemented.
-```
-
 ```admonish danger
 It is critically important to keep in mind that the **Refresh Shares
 functionality does not "restore full security" to a group**. While the group
@@ -128,7 +123,7 @@ and Mallory is eventually excluded from the group and replaced with Bob, it is
 not enough to trust 2 out of 3 between Alice, Bob and Eve. **You also need to
 trust that Mallory won't collude with, say, Eve which could have kept her
 original pre-refresh share and they could both together recompute the original
-key and compromise the group.** If that's a unnaceptable risk to your use case,
+key and compromise the group.** If that's an unacceptable risk to your use case,
 you will need to migrate to a new group if that makes sense to your application.
 ```
 
@@ -138,3 +133,78 @@ FROST is a generic protocol that works with any adequate prime-order group,
 which in practice are constructed from elliptic curves. The spec specifies
 five ciphersuites with the Ristretto255, Ed25519, Ed448, P-256 and secp256k1
 groups. It's possible (though not recommended) to use your own ciphersuite.
+
+## Network Topologies
+
+FROST supports different network topologies for both signing and DKG (Distributed Key Generation) processes. Understanding these topologies is crucial for implementing FROST in a way that best suits your application's needs.
+
+### Signing Topologies
+
+#### 1. Centralized Coordinator
+
+```ascii
+           Coordinator
+           /    |    \
+          /     |     \
+         /      |      \
+    Signer1  Signer2  Signer3
+```
+
+This is the default topology where:
+- A single coordinator (which may or may not be a signer) manages the signing process
+- Signers only communicate with the coordinator
+- Pros: Simple to implement, clear communication flow
+- Cons: Single point of failure, potential bottleneck
+
+#### 2. Distributed Coordination
+
+```ascii
+    Signer1 -------- Signer2
+        \           /
+         \         /
+          \       /
+           Signer3
+```
+
+In this topology:
+- Each signer acts as their own coordinator
+- All signers communicate directly with each other
+- Pros: No single point of failure
+- Cons: More complex implementation, requires full mesh networking
+
+### DKG Topologies
+
+#### 1. Full Mesh (Recommended)
+
+```ascii
+    Node1 --------- Node2
+      | \         / |
+      |  \       /  |
+      |   \     /   |
+      |    \   /    |
+      |     \ /     |
+    Node4 --- Node3
+```
+
+For DKG:
+- All participants need to communicate directly with each other
+- Requires authenticated and confidential channels between all pairs
+- Requires a broadcast channel for public values
+- Most secure but requires more complex networking setup
+
+#### 2. Star with Broadcast Hub
+
+```ascii
+           Hub
+         / | \
+        /  |  \
+    Node1  |  Node3
+           |
+         Node2
+```
+
+Alternative DKG setup:
+- A central hub relays messages between participants
+- Simpler networking requirements
+- Hub must be trusted for message delivery (but cannot learn secrets)
+- May be suitable for controlled environments

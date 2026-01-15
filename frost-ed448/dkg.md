@@ -3,7 +3,7 @@
 The DKG module supports generating FROST key shares in a distributed manner,
 without a trusted dealer.
 
-Before starting, each participant needs an unique identifier, which can be built from
+Before starting, each participant needs a unique identifier, which can be built from
 a `u16`. The process in which these identifiers are allocated is up to the application.
 
 The distributed key generation process has 3 parts, with 2 communication rounds
@@ -26,12 +26,11 @@ they can proceed to sign messages with FROST.
 
 ```rust
 # // ANCHOR: dkg_import
-use rand::thread_rng;
 use std::collections::BTreeMap;
 
 use frost_ed448 as frost;
 
-let mut rng = thread_rng();
+let mut rng = rand::rngs::OsRng;
 
 let max_signers = 5;
 let min_signers = 3;

@@ -4,7 +4,7 @@ use core::fmt::{self, Debug};
 
 use crate as frost;
 use crate::{
-    challenge, Challenge, Ciphersuite, Error, Field, Group, {round1, *},
+    Challenge, Ciphersuite, Error, Field, Group, {round1, *},
 };
 
 /// A participant's signature share, which the coordinator will aggregate with all other signer's
@@ -59,7 +59,6 @@ where
     /// This is the final step of [`verify_signature_share`] from the spec.
     ///
     /// [`verify_signature_share`]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-share-aggregation
-    #[cfg(any(feature = "cheater-detection", feature = "internals"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn verify(
@@ -71,10 +70,11 @@ where
         challenge: &Challenge<C>,
     ) -> Result<(), Error<C>> {
         if (<C::Group>::generator() * self.to_scalar())
-            != (group_commitment_share.0 + (verifying_share.to_element() * challenge.0 * lambda_i))
+            != (group_commitment_share.to_element()
+                + (verifying_share.to_element() * challenge.0 * lambda_i))
         {
             return Err(Error::InvalidSignatureShare {
-                culprit: identifier,
+                culprits: vec![identifier],
             });
         }
 
@@ -96,7 +96,7 @@ where
 /// Compute the signature share for a signing operation.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-fn compute_signature_share<C: Ciphersuite>(
+pub(super) fn compute_signature_share<C: Ciphersuite>(
     signer_nonces: &round1::SigningNonces<C>,
     binding_factor: BindingFactor<C>,
     lambda_i: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar,
@@ -142,34 +142,40 @@ pub fn sign<C: Ciphersuite>(
         return Err(Error::IncorrectCommitment);
     }
 
+    let (signing_package, signer_nonces, key_package) =
+        <C>::pre_sign(signing_package, signer_nonces, key_package)?;
+
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &key_package.verifying_key, &[])?;
+        compute_binding_factor_list(&signing_package, &key_package.verifying_key, &[])?;
     let binding_factor: frost::BindingFactor<C> = binding_factor_list
         .get(&key_package.identifier)
         .ok_or(Error::UnknownIdentifier)?
         .clone();
 
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
+    let (signing_package, signer_nonces) =
+        <C>::pre_commitment_sign(&signing_package, &signer_nonces, &binding_factor_list)?;
+    let group_commitment = compute_group_commitment(&signing_package, &binding_factor_list)?;
 
     // Compute Lagrange coefficient.
-    let lambda_i = frost::derive_interpolating_value(key_package.identifier(), signing_package)?;
+    let lambda_i = frost::derive_interpolating_value(key_package.identifier(), &signing_package)?;
 
     // Compute the per-message challenge.
-    let challenge = challenge::<C>(
+    let challenge = <C>::challenge(
         &group_commitment.0,
         &key_package.verifying_key,
-        signing_package.message.as_slice(),
+        signing_package.message(),
     )?;
 
     // Compute the Schnorr signature share.
-    let signature_share = compute_signature_share(
-        signer_nonces,
+    let signature_share = <C>::compute_signature_share(
+        &group_commitment,
+        &signer_nonces,
         binding_factor,
         lambda_i,
-        key_package,
+        &key_package,
         challenge,
     );
 

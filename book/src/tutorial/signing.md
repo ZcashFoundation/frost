@@ -9,7 +9,7 @@ channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 ## Coordinator, Round 1
 
 To sign, the
-[Coordinator](file:///home/conrado/zfnd/frost/book/book/frost.html#signing) must
+[Coordinator](../frost.md#signing) must
 select which participants are going to generate the signature, and must signal
 to start the process. This needs to be implemented by users of the ZF FROST library and will depend on
 the communication channel being used.
@@ -25,8 +25,13 @@ their commitments (a `SigningCommitments`) by calling
 ```
 
 The `SigningNonces` must be kept by the participant to use in Round 2, while the
-`SigningCommitments` must be sent to the Coordinator using an [authenticated
-channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
+`SigningCommitments` must be sent to the Coordinator.
+
+```admonish info
+FROST does not require using an [authenticated nor encrypted
+channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel)
+during the **signing** process.
+```
 
 ## Coordinator, Round 2
 
@@ -38,10 +43,9 @@ message to be signed, and then build a `SigningPackage` by calling
 {{#include ../../../frost-ristretto255/README.md:round2_package}}
 ```
 
-The `SigningPackage` must then be sent to all the participants using an
-[authenticated
-channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel). (Of course,
-if the message is confidential, then the channel must also be confidential.)
+The `SigningPackage` must then be sent to all the participants. (If the message
+is confidential, then the channel must also be confidential, since the message
+is included in the `SigningPackage`.)
 
 ```admonish warning
 In all of the main FROST ciphersuites, the entire message must
@@ -63,9 +67,7 @@ their `SigningNonces` from Round 1, by calling
 {{#include ../../../frost-ristretto255/README.md:round2_sign}}
 ```
 
-The resulting `SignatureShare` must then be sent back to the Coordinator using
-an [authenticated
-channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
+The resulting `SignatureShare` must then be sent back to the Coordinator.
 
 ```admonish important
 In most applications, it is important that the participant must be aware of what
@@ -94,10 +96,24 @@ in the `SigningPackage` in Round 2 for the group verifying key in the `PublicKey
 FROST supports identifiable abort: if a participant misbehaves and produces an
 invalid signature share, then aggregation will fail and the returned error
 will have the identifier of the misbehaving participant. (If multiple participants
-misbehave, only the first one detected will be returned.)
+misbehave, only the first one detected will be returned. If you need to detect
+all cheaters, use [`aggregate_custom()`](https://docs.rs/frost-ristretto255/latest/frost_ristretto255/fn.aggregate_custom.html))
 
 What should be done in that case is up to the application. The misbehaving participant
 could be excluded from future signing sessions, for example.
+```
+
+```admonish danger
+In `aggregate()` you need to provide a map from `Identifier` to
+`SignatureShare`. If you need cheater detection, then it is important that these
+identifiers come from a mapping between authenticated channels and identifiers;
+i.e. you should not simply send the `Identifier` along with the
+`SignatureShare`; otherwise the cheater could simply lie about their identifier.
+
+For example, if you authenticate the communication channels with TLS, then you
+will need to create a public key -> identifier mapping, and use that mapping
+to get the identifier for the connection where the `SignatureShare` was read
+from.
 ```
 
 

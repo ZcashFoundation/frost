@@ -4,7 +4,6 @@ mod helpers;
 
 use frost_ed25519::SigningKey;
 use helpers::samples;
-use rand::thread_rng;
 
 #[allow(clippy::unnecessary_literal_unwrap)]
 fn check_common_traits_for_type<T: Clone + Eq + PartialEq + std::fmt::Debug>(v: T) {
@@ -20,7 +19,7 @@ fn check_common_traits_for_type<T: Clone + Eq + PartialEq + std::fmt::Debug>(v: 
 
 #[test]
 fn check_signing_key_common_traits() {
-    let mut rng = thread_rng();
+    let mut rng = rand::rngs::OsRng;
     let signing_key = SigningKey::new(&mut rng);
     check_common_traits_for_type(signing_key);
 }

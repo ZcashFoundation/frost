@@ -23,16 +23,13 @@ jobs:
       RUST_BACKTRACE: full
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v6.0.0
         with:
           persist-credentials: false
 
-      - uses: actions-rs/toolchain@v1.0.7
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
-          profile: minimal
-          components: llvm-tools-preview
+          components: llvm-tools
 
       - name: Install cargo-llvm-cov cargo command
         run: cargo install cargo-llvm-cov
@@ -44,4 +41,4 @@ jobs:
         run: cargo llvm-cov report --lcov --ignore-filename-regex '.*(tests).*|benches.rs|gencode|helpers.rs|interoperability_tests.rs' --output-path lcov.info
 
       - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v4.5.0
+        uses: codecov/codecov-action@v5.5.1

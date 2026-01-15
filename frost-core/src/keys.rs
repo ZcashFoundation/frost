@@ -1,5 +1,7 @@
 //! FROST keys, keygen, key shares
 #![allow(clippy::type_complexity)]
+// Remove after https://github.com/rust-lang/rust/issues/147648 is fixed
+#![allow(unused_assignments)]
 
 use core::iter;
 
@@ -15,7 +17,7 @@ use derive_getters::Getters;
 use hex::FromHex;
 
 use rand_core::{CryptoRng, RngCore};
-use zeroize::{DefaultIsZeroes, Zeroize};
+use zeroize::{DefaultIsZeroes, Zeroize, ZeroizeOnDrop};
 
 use crate::{
     serialization::{SerializableElement, SerializableScalar},
@@ -319,12 +321,17 @@ where
         Self(coefficients)
     }
 
-    /// Returns serialized coefficent commitments
+    /// Returns serialized coefficient commitments
     pub fn serialize(&self) -> Result<Vec<Vec<u8>>, Error<C>> {
         self.0
             .iter()
             .map(|cc| cc.serialize())
             .collect::<Result<_, Error<C>>>()
+    }
+
+    /// Serialize the whole commitment vector as a single byte vector.
+    pub fn serialize_whole(&self) -> Result<Vec<u8>, Error<C>> {
+        self.serialize().map(|v| v.concat())
     }
 
     /// Returns VerifiableSecretSharingCommitment from an iterator of serialized
@@ -342,6 +349,25 @@ where
         Ok(Self::new(coefficient_commitments))
     }
 
+    /// Deserialize a whole commitment vector from a single byte vector as returned by
+    /// [`VerifiableSecretSharingCommitment::serialize_whole()`].
+    pub fn deserialize_whole(bytes: &[u8]) -> Result<Self, Error<C>> {
+        // Get size from the size of the generator
+        let generator = <C::Group>::generator();
+        let len = <C::Group>::serialize(&generator)
+            .expect("serializing the generator always works")
+            .as_ref()
+            .len();
+
+        let serialized_coefficient_commitments = bytes.chunks_exact(len);
+
+        if !serialized_coefficient_commitments.remainder().is_empty() {
+            return Err(Error::InvalidCoefficient);
+        }
+
+        Self::deserialize(serialized_coefficient_commitments)
+    }
+
     /// Get the VerifyingKey matching this commitment vector (which is the first
     /// element in the vector), or an error if the vector is empty.
     pub(crate) fn verifying_key(&self) -> Result<VerifyingKey<C>, Error<C>> {
@@ -354,6 +380,11 @@ where
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     pub(crate) fn coefficients(&self) -> &[CoefficientCommitment<C>] {
         &self.0
+    }
+
+    /// Return the threshold associated with this commitment.
+    pub(crate) fn min_signers(&self) -> u16 {
+        self.0.len() as u16
     }
 }
 
@@ -368,7 +399,7 @@ where
 ///
 /// To derive a FROST keypair, the receiver of the [`SecretShare`] *must* call
 /// .into(), which under the hood also performs validation.
-#[derive(Clone, Debug, Zeroize, PartialEq, Eq, Getters)]
+#[derive(Clone, Debug, Zeroize, PartialEq, Eq, Getters, ZeroizeOnDrop)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
@@ -423,7 +454,18 @@ where
         let result = evaluate_vss(self.identifier, &self.commitment);
 
         if !(f_result == result) {
-            return Err(Error::InvalidSecretShare);
+            // The culprit needs to be identified by the caller if needed,
+            // because this function is called in two different contexts:
+            // - after trusted dealer key generation, by the participant who
+            //   receives the SecretShare. In that case it does not make sense
+            //   to identify themselves as the culprit, since the issue was with
+            //   the Coordinator or in the communication.
+            // - during DKG, where a "fake" SecretShare is built just to reuse
+            //   the verification logic and it does make sense to identify the
+            //   culprit. Note that in this case, self.identifier is the caller's
+            //   identifier and not the culprit's, so we couldn't identify
+            //   the culprit inside this function anyway.
+            return Err(Error::InvalidSecretShare { culprit: None });
         }
 
         Ok((
@@ -474,11 +516,7 @@ pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     identifiers: IdentifierList<C>,
     rng: &mut R,
 ) -> Result<(BTreeMap<Identifier<C>, SecretShare<C>>, PublicKeyPackage<C>), Error<C>> {
-    let mut bytes = [0; 64];
-    rng.fill_bytes(&mut bytes);
-
     let key = SigningKey::new(rng);
-
     split(&key, max_signers, min_signers, identifiers, rng)
 }
 
@@ -517,7 +555,6 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         }
     };
     let mut verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>> = BTreeMap::new();
-
     let mut secret_shares_by_id: BTreeMap<Identifier<C>, SecretShare<C>> = BTreeMap::new();
 
     for secret_share in secret_shares {
@@ -527,14 +564,18 @@ pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
         secret_shares_by_id.insert(secret_share.identifier, secret_share);
     }
 
-    Ok((
-        secret_shares_by_id,
-        PublicKeyPackage {
-            header: Header::default(),
-            verifying_shares,
-            verifying_key,
-        },
-    ))
+    let public_key_package = PublicKeyPackage {
+        header: Header::default(),
+        verifying_shares,
+        verifying_key,
+        min_signers: Some(min_signers),
+    };
+
+    // Apply post-processing
+    let (processed_secret_shares, processed_public_key_package) =
+        C::post_generate(secret_shares_by_id, public_key_package)?;
+
+    Ok((processed_secret_shares, processed_public_key_package))
 }
 
 /// Evaluate the polynomial with the given coefficients (constant term first)
@@ -587,7 +628,7 @@ fn evaluate_vss<C: Ciphersuite>(
 /// When using a central dealer, [`SecretShare`]s are distributed to
 /// participants, who then perform verification, before deriving
 /// [`KeyPackage`]s, which they store to later use during signing.
-#[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize)]
+#[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize, ZeroizeOnDrop)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
@@ -671,7 +712,7 @@ where
             signing_share: secret_share.signing_share,
             verifying_share,
             verifying_key,
-            min_signers: secret_share.commitment.0.len() as u16,
+            min_signers: secret_share.commitment.min_signers(),
         })
     }
 }
@@ -681,7 +722,7 @@ where
 ///
 /// Used for verification purposes before publishing a signature.
 #[derive(Clone, Debug, PartialEq, Eq, Getters)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct PublicKeyPackage<C: Ciphersuite> {
@@ -693,6 +734,12 @@ pub struct PublicKeyPackage<C: Ciphersuite> {
     pub(crate) verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>>,
     /// The joint public key for the entire group.
     pub(crate) verifying_key: VerifyingKey<C>,
+    /// The minimum number of signers (threshold) required for the group.
+    /// This can be None in packages created with `frost_core` prior to 3.0.0.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(feature = "serde", serde(default))]
+    #[getter(copy)]
+    pub(crate) min_signers: Option<u16>,
 }
 
 impl<C> PublicKeyPackage<C>
@@ -703,11 +750,26 @@ where
     pub fn new(
         verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>>,
         verifying_key: VerifyingKey<C>,
+        min_signers: u16,
+    ) -> Self {
+        Self::new_internal(verifying_shares, verifying_key, Some(min_signers))
+    }
+
+    /// Create a new [`PublicKeyPackage`] instance, allowing not specifying the
+    /// number of signers. This is used internally, in particular for testing
+    /// old [`PublicKeyPackage`]s that do not encode the `min_signers`.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
+    pub(crate) fn new_internal(
+        verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>>,
+        verifying_key: VerifyingKey<C>,
+        min_signers: Option<u16>,
     ) -> Self {
         Self {
             header: Header::default(),
             verifying_shares,
             verifying_key,
+            min_signers,
         }
     }
 
@@ -726,6 +788,7 @@ where
         Ok(PublicKeyPackage::new(
             verifying_keys,
             VerifyingKey::from_commitment(commitment)?,
+            commitment.min_signers(),
         ))
     }
 
@@ -741,6 +804,11 @@ where
         let commitments: Vec<_> = commitments.values().copied().collect();
         let group_commitment = sum_commitments(&commitments)?;
         Self::from_commitment(&identifiers, &group_commitment)
+    }
+
+    /// Return the maximum number of signers.
+    pub fn max_signers(&self) -> u16 {
+        self.verifying_shares.len() as u16
     }
 }
 

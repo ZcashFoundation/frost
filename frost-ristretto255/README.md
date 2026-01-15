@@ -1,6 +1,13 @@
 An implementation of Schnorr signatures on the Ristretto group for both single and threshold numbers
 of signers (FROST).
 
+This crate is a re-export of the ciphersuite-generic
+[frost-core](https://crates.io/crates/frost-core) crate, parametrized with the
+Ristretto group. For more details, refer to [The ZF FROST
+Book](https://frost.zfnd.org/).
+
+<!-- PLACEHOLDER -->
+
 ## Example: key generation with trusted dealer and FROST signing
 
 Creating a key with a trusted dealer and splitting into shares; then signing a message
@@ -11,10 +18,9 @@ scenario in a single thread and it abstracts away any communication between peer
 ```rust
 # // ANCHOR: tkg_gen
 use frost_ristretto255 as frost;
-use rand::thread_rng;
 use std::collections::BTreeMap;
 
-let mut rng = thread_rng();
+let mut rng = rand::rngs::OsRng;
 let max_signers = 5;
 let min_signers = 3;
 let (shares, pubkey_package) = frost::keys::generate_with_dealer(

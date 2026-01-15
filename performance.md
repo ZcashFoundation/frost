@@ -6,7 +6,7 @@
 FROST is a threshold Schnorr signature scheme
 [invented](https://eprint.iacr.org/2020/852) by Chelsea Komlo (researcher at the
 Zcash Foundation) and Ian Goldberg, and in the process of becoming an [IETF
-RFC](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/). Threshold
+RFC](https://datatracker.ietf.org/doc/rfc9591/). Threshold
 signatures allow a private key being split into shares given to multiple
 participants, allowing a subgroup of them (e.g. 3 out of 5, or whatever
 threshold specified at key generation) to generate a signature that can be

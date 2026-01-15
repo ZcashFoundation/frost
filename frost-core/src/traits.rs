@@ -5,10 +5,18 @@ use core::{
     ops::{Add, Mul, Sub},
 };
 
-use alloc::vec::Vec;
+use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{Error, FieldError, GroupError, Signature, VerifyingKey};
+use crate::{
+    challenge,
+    keys::{KeyPackage, PublicKeyPackage, SecretShare, VerifyingShare},
+    random_nonzero,
+    round1::{self, SigningNonces},
+    round2::{self, SignatureShare},
+    BindingFactor, BindingFactorList, Challenge, Error, FieldError, GroupCommitment, GroupError,
+    Identifier, Signature, SigningKey, SigningPackage, VerifyingKey,
+};
 
 /// A prime order finite field GF(q) over which all scalar values for our prime order group can be
 /// multiplied are defined.
@@ -17,7 +25,7 @@ use crate::{Error, FieldError, GroupError, Signature, VerifyingKey};
 /// pass-through, implemented for a type just for the ciphersuite, and calls through to another
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
-pub trait Field: Copy + Clone {
+pub trait Field: Copy {
     /// An element of the scalar field GF(p).
     /// The Eq/PartialEq implementation MUST be constant-time.
     type Scalar: Add<Output = Self::Scalar>
@@ -26,10 +34,12 @@ pub trait Field: Copy + Clone {
         + Eq
         + Mul<Output = Self::Scalar>
         + PartialEq
-        + Sub<Output = Self::Scalar>;
+        + Sub<Output = Self::Scalar>
+        + Send
+        + Sync;
 
     /// A unique byte array buf of fixed length N.
-    type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>>;
+    type Serialization: Clone + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
 
     /// Returns the zero element of the field, the additive identity.
     fn zero() -> Self::Scalar;
@@ -77,7 +87,7 @@ pub type Scalar<C> = <<<C as Ciphersuite>::Group as Group>::Field as Field>::Sca
 /// pass-through, implemented for a type just for the ciphersuite, and calls through to another
 /// implementation underneath, so that this trait does not have to be implemented for types you
 /// don't own.
-pub trait Group: Copy + Clone + PartialEq {
+pub trait Group: Copy + PartialEq {
     /// A prime order finite field GF(q) over which all scalar values for our prime order group can
     /// be multiplied are defined.
     type Field: Field;
@@ -89,12 +99,14 @@ pub trait Group: Copy + Clone + PartialEq {
         + Eq
         + Mul<<Self::Field as Field>::Scalar, Output = Self::Element>
         + PartialEq
-        + Sub<Output = Self::Element>;
+        + Sub<Output = Self::Element>
+        + Send
+        + Sync;
 
     /// A unique byte array buf of fixed length N.
     ///
     /// Little-endian!
-    type Serialization: AsRef<[u8]> + Debug + TryFrom<Vec<u8>>;
+    type Serialization: Clone + AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8]> + Debug;
 
     /// The order of the the quotient group when the prime order subgroup divides the order of the
     /// full curve group.
@@ -139,7 +151,7 @@ pub type Element<C> = <<C as Ciphersuite>::Group as Group>::Element;
 ///
 /// [FROST ciphersuite]: https://datatracker.ietf.org/doc/html/rfc9591#name-ciphersuites
 // See https://github.com/ZcashFoundation/frost/issues/693 for reasoning about the 'static bound.
-pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
+pub trait Ciphersuite: Copy + PartialEq + Debug + 'static + Send + Sync {
     /// The ciphersuite ID string. It should be equal to the contextString in
     /// the spec. For new ciphersuites, this should be a string that identifies
     /// the ciphersuite; it's recommended to use a similar format to the
@@ -154,7 +166,11 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
 
     /// A unique byte array of fixed length that is the `Group::ElementSerialization` +
     /// `Group::ScalarSerialization`
-    type SignatureSerialization: AsRef<[u8]> + TryFrom<Vec<u8>>;
+    type SignatureSerialization: Clone
+        + AsRef<[u8]>
+        + AsMut<[u8]>
+        + for<'a> TryFrom<&'a [u8]>
+        + Debug;
 
     /// [H1] for a FROST ciphersuite.
     ///
@@ -213,22 +229,243 @@ pub trait Ciphersuite: Copy + Clone + PartialEq + Debug + 'static {
         None
     }
 
-    /// Verify a signature for this ciphersuite. The default implementation uses the "cofactored"
-    /// equation (it multiplies by the cofactor returned by [`Group::cofactor()`]).
+    // The following are optional methods that allow customizing steps of the
+    // protocol if required.
+
+    /// Optional. Do regular (non-FROST) signing with a [`SigningKey`]. Called
+    /// by [`SigningKey::sign()`]. This is not used by FROST. Can be overridden
+    /// if required which is useful if FROST signing has been changed by the
+    /// other Ciphersuite trait methods and regular signing should be changed
+    /// accordingly to match.
+    fn single_sign<R: RngCore + CryptoRng>(
+        signing_key: &SigningKey<Self>,
+        rng: R,
+        message: &[u8],
+    ) -> Signature<Self> {
+        signing_key.default_sign(rng, message)
+    }
+
+    /// Optional. Verify a signature for this ciphersuite. Called by
+    /// [`VerifyingKey::verify()`]. The default implementation uses the
+    /// "cofactored" equation (it multiplies by the cofactor returned by
+    /// [`Group::cofactor()`]).
     ///
     /// # Cryptographic Safety
     ///
-    /// You may override this to provide a tailored implementation, but if the ciphersuite defines it,
-    /// it must also multiply by the cofactor to comply with the RFC. Note that batch verification
-    /// (see [`crate::batch::Verifier`]) also uses the default implementation regardless whether a
-    /// tailored implementation was provided.
+    /// You may override this to provide a tailored implementation, but if the
+    /// ciphersuite defines it, it must also multiply by the cofactor to comply
+    /// with the RFC. Note that batch verification (see
+    /// [`crate::batch::Verifier`]) also uses the default implementation
+    /// regardless whether a tailored implementation was provided.
     fn verify_signature(
-        msg: &[u8],
+        message: &[u8],
         signature: &Signature<Self>,
         public_key: &VerifyingKey<Self>,
     ) -> Result<(), Error<Self>> {
-        let c = crate::challenge::<Self>(&signature.R, public_key, msg)?;
+        let (message, signature, public_key) = <Self>::pre_verify(message, signature, public_key)?;
 
-        public_key.verify_prehashed(c, signature)
+        let c = <Self>::challenge(&signature.R, &public_key, &message)?;
+
+        public_key.verify_prehashed(c, &signature)
+    }
+
+    /// Optional. Pre-process [`round2::sign()`] inputs. The default
+    /// implementation returns them as-is. [`Cow`] is used so implementations
+    /// can choose to return the same passed reference or a modified clone.
+    #[allow(clippy::type_complexity)]
+    fn pre_sign<'a>(
+        signing_package: &'a SigningPackage<Self>,
+        signer_nonces: &'a round1::SigningNonces<Self>,
+        key_package: &'a KeyPackage<Self>,
+    ) -> Result<
+        (
+            Cow<'a, SigningPackage<Self>>,
+            Cow<'a, round1::SigningNonces<Self>>,
+            Cow<'a, KeyPackage<Self>>,
+        ),
+        Error<Self>,
+    > {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signer_nonces),
+            Cow::Borrowed(key_package),
+        ))
+    }
+
+    /// Optional. Pre-process [`crate::aggregate()`] and
+    /// [`crate::verify_signature_share()`] inputs. In the latter case, "dummy"
+    /// container BTreeMap and PublicKeyPackage are passed with the relevant
+    /// values (PublicKeyPackage.min_signers will be None). The default
+    /// implementation returns them as-is. [`Cow`] is used so implementations
+    /// can choose to return the same passed reference or a modified clone.
+    #[allow(clippy::type_complexity)]
+    fn pre_aggregate<'a>(
+        signing_package: &'a SigningPackage<Self>,
+        signature_shares: &'a BTreeMap<Identifier<Self>, round2::SignatureShare<Self>>,
+        public_key_package: &'a PublicKeyPackage<Self>,
+    ) -> Result<
+        (
+            Cow<'a, SigningPackage<Self>>,
+            Cow<'a, BTreeMap<Identifier<Self>, round2::SignatureShare<Self>>>,
+            Cow<'a, PublicKeyPackage<Self>>,
+        ),
+        Error<Self>,
+    > {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signature_shares),
+            Cow::Borrowed(public_key_package),
+        ))
+    }
+
+    /// Optional. Pre-process [`VerifyingKey::verify()`] inputs. The default
+    /// implementation returns them as-is. [`Cow`] is used so implementations
+    /// can choose to return the same passed reference or a modified clone.
+    #[allow(clippy::type_complexity)]
+    fn pre_verify<'a>(
+        msg: &'a [u8],
+        signature: &'a Signature<Self>,
+        public_key: &'a VerifyingKey<Self>,
+    ) -> Result<
+        (
+            Cow<'a, [u8]>,
+            Cow<'a, Signature<Self>>,
+            Cow<'a, VerifyingKey<Self>>,
+        ),
+        Error<Self>,
+    > {
+        Ok((
+            Cow::Borrowed(msg),
+            Cow::Borrowed(signature),
+            Cow::Borrowed(public_key),
+        ))
+    }
+
+    /// Optional. Pre-process [`crate::compute_group_commitment()`] inputs in
+    /// [`round2::sign()`].
+    #[allow(clippy::type_complexity)]
+    fn pre_commitment_sign<'a>(
+        signing_package: &'a SigningPackage<Self>,
+        signing_nonces: &'a SigningNonces<Self>,
+        _binding_factor_list: &'a BindingFactorList<Self>,
+    ) -> Result<(Cow<'a, SigningPackage<Self>>, Cow<'a, SigningNonces<Self>>), Error<Self>> {
+        Ok((
+            Cow::Borrowed(signing_package),
+            Cow::Borrowed(signing_nonces),
+        ))
+    }
+
+    /// Optional. Pre-process [`crate::compute_group_commitment()`] inputs in
+    /// [`crate::aggregate()`].
+    fn pre_commitment_aggregate<'a>(
+        signing_package: &'a SigningPackage<Self>,
+        _binding_factor_list: &'a BindingFactorList<Self>,
+    ) -> Result<Cow<'a, SigningPackage<Self>>, Error<Self>> {
+        Ok(Cow::Borrowed(signing_package))
+    }
+
+    /// Optional. Generate a nonce and a commitment to it. Used by
+    /// [`SigningKey`] for regular (non-FROST) signing and internally by the DKG
+    /// to generate proof-of-knowledge signatures.
+    fn generate_nonce<R: RngCore + CryptoRng>(
+        rng: &mut R,
+    ) -> (
+        <<Self::Group as Group>::Field as Field>::Scalar,
+        <Self::Group as Group>::Element,
+    ) {
+        let k = random_nonzero::<Self, R>(rng);
+        let R = <Self::Group>::generator() * k;
+        (k, R)
+    }
+
+    /// Optional. Generates the challenge as is required for Schnorr signatures.
+    /// Called by [`round2::sign()`] and [`crate::aggregate()`].
+    fn challenge(
+        R: &Element<Self>,
+        verifying_key: &VerifyingKey<Self>,
+        message: &[u8],
+    ) -> Result<Challenge<Self>, Error<Self>> {
+        challenge(R, verifying_key, message)
+    }
+
+    /// Optional. Compute the signature share for a particular signer on a given
+    /// challenge. Called by [`round2::sign()`].
+    fn compute_signature_share(
+        _group_commitment: &GroupCommitment<Self>,
+        signer_nonces: &round1::SigningNonces<Self>,
+        binding_factor: BindingFactor<Self>,
+        lambda_i: <<Self::Group as Group>::Field as Field>::Scalar,
+        key_package: &KeyPackage<Self>,
+        challenge: Challenge<Self>,
+    ) -> round2::SignatureShare<Self> {
+        round2::compute_signature_share(
+            signer_nonces,
+            binding_factor,
+            lambda_i,
+            key_package,
+            challenge,
+        )
+    }
+
+    /// Optional. Verify a signing share. Called by [`crate::aggregate()`] if
+    /// cheater detection is enabled.
+    fn verify_share(
+        _group_commitment: &GroupCommitment<Self>,
+        signature_share: &SignatureShare<Self>,
+        identifier: Identifier<Self>,
+        group_commitment_share: &round1::GroupCommitmentShare<Self>,
+        verifying_share: &VerifyingShare<Self>,
+        lambda_i: Scalar<Self>,
+        challenge: &Challenge<Self>,
+    ) -> Result<(), Error<Self>> {
+        signature_share.verify(
+            identifier,
+            group_commitment_share,
+            verifying_share,
+            lambda_i,
+            challenge,
+        )
+    }
+
+    /// Optional. Converts a signature to its
+    /// [`Ciphersuite::SignatureSerialization`] in bytes.
+    ///
+    /// The default implementation serializes a signature by serializing its `R`
+    /// point and `z` component independently, and then concatenating them.
+    fn serialize_signature(signature: &Signature<Self>) -> Result<Vec<u8>, Error<Self>> {
+        signature.default_serialize()
+    }
+
+    /// Optional. Converts bytes as [`Ciphersuite::SignatureSerialization`] into
+    /// a `Signature<C>`.
+    ///
+    /// The default implementation assumes the serialization is a serialized `R`
+    /// point followed by a serialized `z` component with no padding or extra
+    /// fields.
+    fn deserialize_signature(bytes: &[u8]) -> Result<Signature<Self>, Error<Self>> {
+        Signature::<Self>::default_deserialize(bytes)
+    }
+
+    /// Post-process the output of the DKG for a given participant.
+    fn post_dkg(
+        key_package: KeyPackage<Self>,
+        public_key_package: PublicKeyPackage<Self>,
+    ) -> Result<(KeyPackage<Self>, PublicKeyPackage<Self>), Error<Self>> {
+        Ok((key_package, public_key_package))
+    }
+
+    /// Post-process the output of the key generation for a participant.
+    #[allow(clippy::type_complexity)]
+    fn post_generate(
+        secret_shares: BTreeMap<Identifier<Self>, SecretShare<Self>>,
+        public_key_package: PublicKeyPackage<Self>,
+    ) -> Result<
+        (
+            BTreeMap<Identifier<Self>, SecretShare<Self>>,
+            PublicKeyPackage<Self>,
+        ),
+        Error<Self>,
+    > {
+        Ok((secret_shares, public_key_package))
     }
 }

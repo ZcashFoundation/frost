@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![allow(non_snake_case)]
 // It's emitting false positives; see https://github.com/rust-lang/rust-clippy/issues/9413
 #![allow(clippy::derive_partial_eq_without_eq)]
@@ -25,6 +25,7 @@ use alloc::{
 use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
+use keys::PublicKeyPackage;
 use rand_core::{CryptoRng, RngCore};
 use serialization::SerializableScalar;
 use zeroize::Zeroize;
@@ -64,11 +65,7 @@ pub use verifying_key::VerifyingKey;
 ///
 /// [challenge]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-challenge-computa
 #[derive(Copy, Clone)]
-#[cfg_attr(feature = "internals", visibility::make(pub))]
-#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-pub(crate) struct Challenge<C: Ciphersuite>(
-    pub(crate) <<C::Group as Group>::Field as Field>::Scalar,
-);
+pub struct Challenge<C: Ciphersuite>(pub(crate) <<C::Group as Group>::Field as Field>::Scalar);
 
 impl<C> Challenge<C>
 where
@@ -138,6 +135,8 @@ where
 /// Generates a random nonzero scalar.
 ///
 /// It assumes that the Scalar Eq/PartialEq implementation is constant-time.
+#[cfg_attr(feature = "internals", visibility::make(pub))]
+#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
 pub(crate) fn random_nonzero<C: Ciphersuite, R: RngCore + CryptoRng>(rng: &mut R) -> Scalar<C> {
     loop {
         let scalar = <<C::Group as Group>::Field>::random(rng);
@@ -192,9 +191,7 @@ where
 ///
 /// <https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md>
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "internals", visibility::make(pub))]
-#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-pub(crate) struct BindingFactor<C: Ciphersuite>(Scalar<C>);
+pub struct BindingFactor<C: Ciphersuite>(Scalar<C>);
 
 impl<C> BindingFactor<C>
 where
@@ -275,12 +272,13 @@ where
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
 
-        match v.try_into() {
+        let ret = match v.as_slice().try_into() {
             Ok(bytes) => <<C::Group as Group>::Field>::deserialize(&bytes)
                 .map(|scalar| Self(scalar))
                 .map_err(|_| "malformed scalar encoding"),
             Err(_) => Err("malformed scalar encoding"),
-        }
+        };
+        ret
     }
 }
 
@@ -422,7 +420,7 @@ where
     ) -> Result<Vec<(Identifier<C>, Vec<u8>)>, Error<C>> {
         let mut binding_factor_input_prefix = Vec::new();
 
-        // The length of a serialized verifying key of the same cipersuite does
+        // The length of a serialized verifying key of the same ciphersuite does
         // not change between runs of the protocol, so we don't need to hash to
         // get a fixed length.
         binding_factor_input_prefix.extend_from_slice(verifying_key.serialize()?.as_ref());
@@ -469,9 +467,7 @@ where
 /// The product of all signers' individual commitments, published as part of the
 /// final signature.
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "internals", visibility::make(pub))]
-#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-pub(crate) struct GroupCommitment<C: Ciphersuite>(pub(crate) Element<C>);
+pub struct GroupCommitment<C: Ciphersuite>(pub(crate) Element<C>);
 
 impl<C> GroupCommitment<C>
 where
@@ -482,6 +478,12 @@ where
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn to_element(self) -> <C::Group as Group>::Element {
         self.0
+    }
+
+    /// Return the underlying element.
+    #[cfg(feature = "internals")]
+    pub fn from_element(element: Element<C>) -> Self {
+        Self(element)
     }
 }
 
@@ -549,7 +551,8 @@ where
 /// [`round2::SignatureShare`] they sent. These identifiers must come from whatever mapping
 /// the coordinator has between communication channels and participants, i.e.
 /// they must have assurance that the [`round2::SignatureShare`] came from
-/// the participant with that identifier.
+/// the participant with that identifier. (This means that you *MUST NOT* send
+/// the identifier along with the [`round2::SignatureShare`].)
 ///
 /// This operation is performed by a coordinator that can communicate with all
 /// the signing participants before publishing the final signature. The
@@ -560,11 +563,44 @@ where
 /// signature, if the coordinator themselves is a signer and misbehaves, they
 /// can avoid that step. However, at worst, this results in a denial of
 /// service attack due to publishing an invalid signature.
-
 pub fn aggregate<C>(
     signing_package: &SigningPackage<C>,
     signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
     pubkeys: &keys::PublicKeyPackage<C>,
+) -> Result<Signature<C>, Error<C>>
+where
+    C: Ciphersuite,
+{
+    aggregate_custom(
+        signing_package,
+        signature_shares,
+        pubkeys,
+        CheaterDetection::FirstCheater,
+    )
+}
+
+/// The type of cheater detection to use.
+pub enum CheaterDetection {
+    /// Disable cheater detection. Fast in case there are invalid
+    /// shares.
+    Disabled,
+    /// Detect the first cheater and stop. Performance will depend on where
+    /// the cheater's share is in the list.
+    FirstCheater,
+    /// Detect all cheaters. Slower since all shares must be verified.
+    /// Performance will be proportional on the size of participants.
+    AllCheaters,
+}
+
+/// Like [`aggregate()`], but allow specifying a specific cheater detection
+/// strategy. If you are disabling cheater detection, then the identifiers
+/// in `signature_shares` do not need to correspond to the senders (i.e.
+/// you don't need to authenticate the origin of the shares).
+pub fn aggregate_custom<C>(
+    signing_package: &SigningPackage<C>,
+    signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
+    pubkeys: &keys::PublicKeyPackage<C>,
+    cheater_detection: CheaterDetection,
 ) -> Result<Signature<C>, Error<C>>
 where
     C: Ciphersuite,
@@ -575,21 +611,30 @@ where
         return Err(Error::UnknownIdentifier);
     }
 
-    if !signing_package.signing_commitments().keys().all(|id| {
-        #[cfg(feature = "cheater-detection")]
-        return signature_shares.contains_key(id) && pubkeys.verifying_shares().contains_key(id);
-        #[cfg(not(feature = "cheater-detection"))]
-        return signature_shares.contains_key(id);
-    }) {
+    if !signing_package
+        .signing_commitments()
+        .keys()
+        .all(|id| match cheater_detection {
+            CheaterDetection::Disabled => signature_shares.contains_key(id),
+            CheaterDetection::FirstCheater | CheaterDetection::AllCheaters => {
+                signature_shares.contains_key(id) && pubkeys.verifying_shares().contains_key(id)
+            }
+        })
+    {
         return Err(Error::UnknownIdentifier);
     }
+
+    let (signing_package, signature_shares, pubkeys) =
+        <C>::pre_aggregate(signing_package, signature_shares, pubkeys)?;
 
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, &pubkeys.verifying_key, &[])?;
+        compute_binding_factor_list(&signing_package, &pubkeys.verifying_key, &[])?;
+
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
+    let signing_package = <C>::pre_commitment_aggregate(&signing_package, &binding_factor_list)?;
+    let group_commitment = compute_group_commitment(&signing_package, &binding_factor_list)?;
 
     // The aggregation of the signature shares by summing them up, resulting in
     // a plain Schnorr signature.
@@ -616,39 +661,45 @@ where
     // Only if the verification of the aggregate signature failed; verify each share to find the cheater.
     // This approach is more efficient since we don't need to verify all shares
     // if the aggregate signature is valid (which should be the common case).
-    #[cfg(feature = "cheater-detection")]
-    if verification_result.is_err() {
-        detect_cheater(
-            group_commitment,
-            pubkeys,
-            signing_package,
-            signature_shares,
-            &binding_factor_list,
-        )?;
+    match cheater_detection {
+        CheaterDetection::Disabled => {
+            verification_result?;
+        }
+        CheaterDetection::FirstCheater | CheaterDetection::AllCheaters => {
+            if verification_result.is_err() {
+                detect_cheater(
+                    &group_commitment,
+                    &pubkeys,
+                    &signing_package,
+                    &signature_shares,
+                    &binding_factor_list,
+                    cheater_detection,
+                )?;
+            }
+        }
     }
-
-    #[cfg(not(feature = "cheater-detection"))]
-    verification_result?;
 
     Ok(signature)
 }
 
 /// Optional cheater detection feature
 /// Each share is verified to find the cheater
-#[cfg(feature = "cheater-detection")]
 fn detect_cheater<C: Ciphersuite>(
-    group_commitment: GroupCommitment<C>,
+    group_commitment: &GroupCommitment<C>,
     pubkeys: &keys::PublicKeyPackage<C>,
     signing_package: &SigningPackage<C>,
     signature_shares: &BTreeMap<Identifier<C>, round2::SignatureShare<C>>,
     binding_factor_list: &BindingFactorList<C>,
+    cheater_detection: CheaterDetection,
 ) -> Result<(), Error<C>> {
     // Compute the per-message challenge.
-    let challenge = crate::challenge::<C>(
+    let challenge = <C>::challenge(
         &group_commitment.0,
         &pubkeys.verifying_key,
-        signing_package.message().as_slice(),
+        signing_package.message(),
     )?;
+
+    let mut all_culprits = Vec::new();
 
     // Verify the signature shares.
     for (identifier, signature_share) in signature_shares {
@@ -659,14 +710,30 @@ fn detect_cheater<C: Ciphersuite>(
             .get(identifier)
             .ok_or(Error::UnknownIdentifier)?;
 
-        verify_signature_share_precomputed(
+        let r = verify_signature_share_precomputed(
             *identifier,
             signing_package,
             binding_factor_list,
+            group_commitment,
             signature_share,
             verifying_share,
             challenge,
-        )?;
+        );
+        match r {
+            Ok(_) => {}
+            Err(Error::InvalidSignatureShare { culprits }) => {
+                all_culprits.extend(culprits);
+                if let CheaterDetection::FirstCheater = cheater_detection {
+                    break;
+                }
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    if !all_culprits.is_empty() {
+        return Err(Error::InvalidSignatureShare {
+            culprits: all_culprits,
+        });
     }
 
     // We should never reach here; but we return an error to be safe.
@@ -678,7 +745,7 @@ fn detect_cheater<C: Ciphersuite>(
 /// for which the signature share was produced and with the group's
 /// `verifying_key`.
 ///
-/// This is not required for regular FROST usage but might useful in certain
+/// This is not required for regular FROST usage but might be useful in certain
 /// situations where it is desired to verify each individual signature share
 /// before aggregating the signature.
 pub fn verify_signature_share<C: Ciphersuite>(
@@ -688,24 +755,52 @@ pub fn verify_signature_share<C: Ciphersuite>(
     signing_package: &SigningPackage<C>,
     verifying_key: &VerifyingKey<C>,
 ) -> Result<(), Error<C>> {
+    // In order to reuse `pre_aggregate()`, we need to create some "dummy" containers
+    let signature_shares = BTreeMap::from([(identifier, *signature_share)]);
+    let verifying_shares = BTreeMap::from([(identifier, *verifying_share)]);
+    let public_key_package = PublicKeyPackage {
+        verifying_shares,
+        verifying_key: *verifying_key,
+        // Use None since we don't have the min_signers value here. This
+        // can only cause problems if the `pre_aggregate` function relies on it.
+        // This has been documented in `pre_aggregate()`.
+        min_signers: None,
+        header: Header::default(),
+    };
+
+    let (signing_package, signature_shares, pubkeys) =
+        <C>::pre_aggregate(signing_package, &signature_shares, &public_key_package)?;
+
+    // Extract the processed values back from the "dummy" containers
+    let verifying_share = pubkeys
+        .verifying_shares()
+        .get(&identifier)
+        .expect("pre_aggregate() must keep the identifiers");
+    let verifying_key = pubkeys.verifying_key();
+    let signature_share = signature_shares
+        .get(&identifier)
+        .expect("pre_aggregate() must keep the identifiers");
+
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
     let binding_factor_list: BindingFactorList<C> =
-        compute_binding_factor_list(signing_package, verifying_key, &[])?;
+        compute_binding_factor_list(&signing_package, verifying_key, &[])?;
+
     // Compute the group commitment from signing commitments produced in round one.
-    let group_commitment = compute_group_commitment(signing_package, &binding_factor_list)?;
+    let group_commitment = compute_group_commitment(&signing_package, &binding_factor_list)?;
 
     // Compute the per-message challenge.
-    let challenge = crate::challenge::<C>(
-        &group_commitment.to_element(),
+    let challenge = <C>::challenge(
+        &group_commitment.clone().to_element(),
         verifying_key,
         signing_package.message().as_slice(),
     )?;
 
     verify_signature_share_precomputed(
         identifier,
-        signing_package,
+        &signing_package,
         &binding_factor_list,
+        &group_commitment,
         signature_share,
         verifying_share,
         challenge,
@@ -720,6 +815,7 @@ fn verify_signature_share_precomputed<C: Ciphersuite>(
     signature_share_identifier: Identifier<C>,
     signing_package: &SigningPackage<C>,
     binding_factor_list: &BindingFactorList<C>,
+    group_commitment: &GroupCommitment<C>,
     signature_share: &round2::SignatureShare<C>,
     verifying_share: &keys::VerifyingShare<C>,
     challenge: Challenge<C>,
@@ -735,7 +831,10 @@ fn verify_signature_share_precomputed<C: Ciphersuite>(
         .ok_or(Error::UnknownIdentifier)?
         .to_group_commitment_share(binding_factor);
 
-    signature_share.verify(
+    // Compute relation values to verify this signature share.
+    <C>::verify_share(
+        group_commitment,
+        signature_share,
         signature_share_identifier,
         &R_share,
         verifying_share,

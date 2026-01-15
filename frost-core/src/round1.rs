@@ -1,4 +1,6 @@
 //! FROST Round 1 functionality and types
+// Remove after https://github.com/rust-lang/rust/issues/147648 is fixed
+#![allow(unused_assignments)]
 
 use alloc::{
     collections::BTreeMap,
@@ -12,7 +14,7 @@ use derive_getters::Getters;
 use hex::FromHex;
 
 use rand_core::{CryptoRng, RngCore};
-use zeroize::Zeroize;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     serialization::{SerializableElement, SerializableScalar},
@@ -54,10 +56,16 @@ where
         Self::nonce_generate_from_random_bytes(secret, random_bytes)
     }
 
+    /// Create a nonce from a scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     fn from_scalar(scalar: <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar) -> Self {
         Self(SerializableScalar(scalar))
     }
 
+    /// Convert a nonce into a scalar.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn to_scalar(
         self,
     ) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
@@ -125,10 +133,15 @@ where
     C: Ciphersuite,
 {
     /// Create a new [`NonceCommitment`] from an [`Element`]
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn new(value: Element<C>) -> Self {
         Self(SerializableElement(value))
     }
 
+    /// Get the inner [`Element`] of the [`NonceCommitment`]
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn value(&self) -> Element<C> {
         self.0 .0
     }
@@ -196,7 +209,7 @@ where
 /// Note that [`SigningNonces`] must be used *only once* for a signing
 /// operation; re-using nonces will result in leakage of a signer's long-lived
 /// signing key.
-#[derive(Clone, Zeroize, PartialEq, Eq, Getters)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq, Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
@@ -317,7 +330,6 @@ where
     /// Computes the [commitment share] from these round one signing commitments.
     ///
     /// [commitment share]: https://datatracker.ietf.org/doc/html/rfc9591#name-signature-share-aggregation
-    #[cfg(any(feature = "internals", feature = "cheater-detection"))]
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(super) fn to_group_commitment_share(
@@ -357,6 +369,21 @@ where
 /// and the binding factor _rho_.
 #[derive(Clone, Copy, PartialEq)]
 pub struct GroupCommitmentShare<C: Ciphersuite>(pub(super) Element<C>);
+
+impl<C: Ciphersuite> GroupCommitmentShare<C> {
+    /// Create from an element.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    #[allow(unused)]
+    pub(crate) fn from_element(element: Element<C>) -> Self {
+        Self(element)
+    }
+
+    /// Return the underlying element.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn to_element(self) -> Element<C> {
+        self.0
+    }
+}
 
 /// Encode the list of group signing commitments.
 ///

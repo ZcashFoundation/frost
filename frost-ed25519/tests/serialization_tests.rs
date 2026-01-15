@@ -83,6 +83,28 @@ fn check_public_key_package_postcard_serialization() {
 }
 
 #[test]
+fn check_public_key_package_new_postcard_serialization() {
+    let public_key_package = samples::public_key_package_new();
+    let bytes: Vec<_> = public_key_package.serialize().unwrap();
+    assert_snapshot!(hex::encode(&bytes));
+    assert_eq!(
+        public_key_package,
+        PublicKeyPackage::deserialize(&bytes).unwrap()
+    );
+}
+
+#[test]
+fn check_round1_secret_package_postcard_serialization() {
+    let round1_secret_package = samples::round1_secret_package();
+    let bytes: Vec<_> = round1_secret_package.serialize().unwrap();
+    assert_snapshot!(hex::encode(&bytes));
+    assert_eq!(
+        round1_secret_package,
+        round1::SecretPackage::deserialize(&bytes).unwrap()
+    );
+}
+
+#[test]
 fn check_round1_package_postcard_serialization() {
     let round1_package = samples::round1_package();
     let bytes: Vec<_> = round1_package.serialize().unwrap();
@@ -90,6 +112,17 @@ fn check_round1_package_postcard_serialization() {
     assert_eq!(
         round1_package,
         round1::Package::deserialize(&bytes).unwrap()
+    );
+}
+
+#[test]
+fn check_round2_secret_package_postcard_serialization() {
+    let round2_secret_package = samples::round2_secret_package();
+    let bytes: Vec<_> = round2_secret_package.serialize().unwrap();
+    assert_snapshot!(hex::encode(&bytes));
+    assert_eq!(
+        round2_secret_package,
+        round2::SecretPackage::deserialize(&bytes).unwrap()
     );
 }
 

@@ -1,20 +1,25 @@
 //! Test for Refreshing shares
 
-use std::collections::BTreeMap;
-
 use rand_core::{CryptoRng, RngCore};
 
+use crate::keys::dkg::{round1, round2};
 use crate::keys::generate_with_dealer;
-use crate::keys::refresh::{compute_refreshing_shares, refresh_share};
-use crate::{self as frost};
-use crate::{
-    keys::{KeyPackage, PublicKeyPackage, SecretShare},
-    Ciphersuite, Error, Identifier,
+use crate::keys::refresh::{
+    compute_refreshing_shares, refresh_dkg_part1, refresh_dkg_part2, refresh_share,
 };
+#[cfg(feature = "serialization")]
+use crate::keys::{PublicKeyPackage, SecretShare};
+use crate::{self as frost};
+use crate::{keys::KeyPackage, Ciphersuite, Error, Identifier, Signature, VerifyingKey};
+
+use crate::tests::ciphersuite_generic::check_part3_different_participants;
+
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 
 use super::ciphersuite_generic::check_sign;
 
-/// We want to test that recover share matches the original share
+/// We want to test that recovered share matches the original share
 pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     // Compute shares
 
@@ -64,6 +69,10 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
         &mut rng,
     )
     .unwrap();
+    // Simulate serialization / deserialization to ensure it works
+    let new_pub_key_package =
+        frost::keys::PublicKeyPackage::deserialize(&new_pub_key_package.serialize().unwrap())
+            .unwrap();
 
     // Each participant refreshes their share
 
@@ -72,14 +81,18 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
     for i in 0..remaining_ids.len() {
         let identifier = remaining_ids[i];
         let current_share = &old_key_packages[&identifier];
-        let new_share = refresh_share(zero_shares[i].clone(), current_share);
+        // Do a serialization roundtrip to simulate real usage
+        let zero_share = SecretShare::deserialize(&zero_shares[i].serialize().unwrap()).unwrap();
+        let new_share = refresh_share(zero_share, current_share).unwrap();
         new_shares.insert(identifier, new_share);
     }
 
     let mut key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
 
     for (k, v) in new_shares {
-        key_packages.insert(k, v.unwrap());
+        // Simulate serialization / deserialization to ensure it works
+        let v = KeyPackage::<C>::deserialize(&v.serialize().unwrap()).unwrap();
+        key_packages.insert(k, v);
     }
     check_sign(MIN_SIGNERS, key_packages, rng, new_pub_key_package).unwrap();
 }
@@ -170,6 +183,7 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package<
 }
 
 /// Check serialisation
+#[cfg(feature = "serialization")]
 pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) {
@@ -238,4 +252,448 @@ pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore
     let key_package = KeyPackage::<C>::try_from(zero_share.unwrap());
 
     assert!(key_package.is_ok());
+}
+
+/// We want to test that using a different min_signers than original fails.
+pub fn check_refresh_shares_with_dealer_fails_with_different_min_signers<
+    C: Ciphersuite,
+    R: RngCore + CryptoRng,
+>(
+    mut rng: R,
+) {
+    // Compute shares
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Old Key generation
+    ////////////////////////////////////////////////////////////////////////////
+
+    const MAX_SIGNERS: u16 = 5;
+    const MIN_SIGNERS: u16 = 3;
+    let (old_shares, pub_key_package) = generate_with_dealer(
+        MAX_SIGNERS,
+        MIN_SIGNERS,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
+
+    let mut old_key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
+
+    for (k, v) in old_shares {
+        let key_package = KeyPackage::try_from(v).unwrap();
+        old_key_packages.insert(k, key_package);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // New Key generation
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Signer 2 will be removed and Signers 1, 3, 4 & 5 will remain
+
+    let remaining_ids = vec![
+        Identifier::try_from(1).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(5).unwrap(),
+    ];
+
+    const NEW_MAX_SIGNERS: u16 = 4;
+    const NEW_MIN_SIGNERS: u16 = 2;
+
+    // Trusted Dealer generates zero keys and new public key package
+
+    let r = compute_refreshing_shares(
+        pub_key_package,
+        NEW_MAX_SIGNERS,
+        NEW_MIN_SIGNERS,
+        &remaining_ids,
+        &mut rng,
+    );
+
+    assert_eq!(r, Err(Error::InvalidMinSigners));
+}
+
+/// Test FROST signing with DKG with a Ciphersuite.
+pub fn check_refresh_shares_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+    mut rng: R,
+) -> (Vec<u8>, Signature<C>, VerifyingKey<C>)
+where
+    C::Group: core::cmp::PartialEq,
+{
+    ////////////////////////////////////////////////////////////////////////////
+    // Old Key generation
+    ////////////////////////////////////////////////////////////////////////////
+
+    let old_max_signers = 5;
+    let min_signers = 3;
+    let (old_shares, pub_key_package) = generate_with_dealer(
+        old_max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
+
+    let mut old_key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
+
+    for (k, v) in old_shares {
+        let key_package = KeyPackage::try_from(v).unwrap();
+        old_key_packages.insert(k, key_package);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, Round 1
+    ////////////////////////////////////////////////////////////////////////////
+
+    let max_signers = 4;
+    let min_signers = 3;
+
+    let remaining_ids = vec![
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(2).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(1).unwrap(),
+    ];
+
+    // Keep track of each participant's round 1 secret package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut round1_secret_packages: BTreeMap<
+        frost::Identifier<C>,
+        frost::keys::dkg::round1::SecretPackage<C>,
+    > = BTreeMap::new();
+
+    // Keep track of all round 1 packages sent to the given participant.
+    // This is used to simulate the broadcast; in practice the packages
+    // will be sent through some communication channel.
+    let mut received_round1_packages: BTreeMap<
+        frost::Identifier<C>,
+        BTreeMap<frost::Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+    > = BTreeMap::new();
+
+    // For each participant, perform the first part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_identifier in remaining_ids.clone() {
+        let (round1_secret_package, round1_package) =
+            refresh_dkg_part1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
+
+        // Simulate serialization / deserialization to ensure it works
+        let round1_secret_package = frost::keys::dkg::round1::SecretPackage::<C>::deserialize(
+            &round1_secret_package.serialize().unwrap(),
+        )
+        .unwrap();
+        let round1_package = frost::keys::dkg::round1::Package::<C>::deserialize(
+            &round1_package.serialize().unwrap(),
+        )
+        .unwrap();
+
+        // Store the participant's secret package for later use.
+        // In practice each participant will store it in their own environment.
+        round1_secret_packages.insert(
+            participant_identifier,
+            // Serialization roundtrip to simulate storage for later
+            round1::SecretPackage::deserialize(&round1_secret_package.serialize().unwrap())
+                .unwrap(),
+        );
+
+        // "Send" the round 1 package to all other participants. In this
+        // test this is simulated using a BTreeMap; in practice this will be
+        // sent through some communication channel.
+        for receiver_participant_identifier in remaining_ids.clone() {
+            if receiver_participant_identifier == participant_identifier {
+                continue;
+            }
+            received_round1_packages
+                .entry(receiver_participant_identifier)
+                .or_default()
+                .insert(
+                    participant_identifier,
+                    // Serialization roundtrip to simulate communication
+                    round1::Package::deserialize(&round1_package.serialize().unwrap()).unwrap(),
+                );
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, Round 2
+    ////////////////////////////////////////////////////////////////////////////
+    // Keep track of each participant's round 2 secret package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut round2_secret_packages = BTreeMap::new();
+
+    // Keep track of all round 2 packages sent to the given participant.
+    // This is used to simulate the broadcast; in practice the packages
+    // will be sent through some communication channel.
+    let mut received_round2_packages = BTreeMap::new();
+
+    // For each participant, perform the second part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_identifier in remaining_ids.clone() {
+        let round1_secret_package = round1_secret_packages
+            .remove(&participant_identifier)
+            .unwrap();
+        let round1_packages = &received_round1_packages[&participant_identifier];
+        let (round2_secret_package, round2_packages) =
+            refresh_dkg_part2(round1_secret_package, round1_packages).expect("should work");
+
+        // Simulate serialization / deserialization to ensure it works
+        let round2_secret_package = frost::keys::dkg::round2::SecretPackage::<C>::deserialize(
+            &round2_secret_package.serialize().unwrap(),
+        )
+        .unwrap();
+
+        // Store the participant's secret package for later use.
+        // In practice each participant will store it in their own environment.
+        round2_secret_packages.insert(
+            participant_identifier,
+            // Serialization roundtrip to simulate storage for later
+            round2::SecretPackage::deserialize(&round2_secret_package.serialize().unwrap())
+                .unwrap(),
+        );
+
+        // "Send" the round 2 package to all other participants. In this
+        // test this is simulated using a BTreeMap; in practice this will be
+        // sent through some communication channel.
+        // Note that, in contrast to the previous part, here each other participant
+        // gets its own specific package.
+        for (receiver_identifier, round2_package) in round2_packages {
+            // Simulate serialization / deserialization to ensure it works
+            let round2_package = frost::keys::dkg::round2::Package::<C>::deserialize(
+                &round2_package.serialize().unwrap(),
+            )
+            .unwrap();
+            received_round2_packages
+                .entry(receiver_identifier)
+                .or_insert_with(BTreeMap::new)
+                .insert(
+                    participant_identifier,
+                    // Serialization roundtrip to simulate communication
+                    round2::Package::deserialize(&round2_package.serialize().unwrap()).unwrap(),
+                );
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, final computation
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Keep track of each participant's long-lived key package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut key_packages = BTreeMap::new();
+
+    // Map of the verifying share of each participant.
+    // Used by the signing test that follows.
+    let mut verifying_shares = BTreeMap::new();
+    // The group public key, used by the signing test that follows.
+    let mut verifying_key = None;
+    // For each participant, store the set of verifying keys they have computed.
+    // This is used to check if the set is correct (the same) for all participants.
+    // In practice, if there is a Coordinator, only they need to store the set.
+    // If there is not, then all candidates must store their own sets.
+    // The verifying keys are used to verify the signature shares produced
+    // for each signature before being aggregated.
+    let mut pubkey_packages_by_participant = BTreeMap::new();
+
+    check_part3_different_participants(
+        max_signers,
+        round2_secret_packages.clone(),
+        received_round1_packages.clone(),
+        received_round2_packages.clone(),
+    );
+
+    // For each participant, this is where they refresh their shares
+    // In practice, each participant will perform this on their own environments.
+    for participant_identifier in remaining_ids.clone() {
+        let (key_package, pubkey_package_for_participant) =
+            frost::keys::refresh::refresh_dkg_shares(
+                &round2_secret_packages[&participant_identifier],
+                &received_round1_packages[&participant_identifier],
+                &received_round2_packages[&participant_identifier],
+                pub_key_package.clone(),
+                old_key_packages[&participant_identifier].clone(),
+            )
+            .unwrap();
+        // Simulate serialization / deserialization to ensure it works
+        let key_package = KeyPackage::deserialize(&key_package.serialize().unwrap()).unwrap();
+        let pubkey_package_for_participant = frost::keys::PublicKeyPackage::deserialize(
+            &pubkey_package_for_participant.serialize().unwrap(),
+        )
+        .unwrap();
+        verifying_shares.insert(participant_identifier, key_package.verifying_share);
+        // Test if all verifying_key are equal
+        if let Some(previous_verifying_key) = verifying_key {
+            assert_eq!(previous_verifying_key, key_package.verifying_key)
+        }
+        verifying_key = Some(key_package.verifying_key);
+        key_packages.insert(participant_identifier, key_package);
+        pubkey_packages_by_participant
+            .insert(participant_identifier, pubkey_package_for_participant);
+    }
+
+    // Test if the set of verifying keys is correct for all participants.
+    for verifying_keys_for_participant in pubkey_packages_by_participant.values() {
+        assert!(verifying_keys_for_participant.verifying_shares == verifying_shares);
+    }
+
+    let pubkeys = pubkey_packages_by_participant
+        .first_key_value()
+        .unwrap()
+        .1
+        .clone();
+    // Simulate serialization / deserialization to ensure it works
+    let pubkeys =
+        frost::keys::PublicKeyPackage::deserialize(&pubkeys.serialize().unwrap()).unwrap();
+
+    // Proceed with the signing test.
+    check_sign(min_signers, key_packages, rng, pubkeys).unwrap()
+}
+
+/// Test FROST signing with DKG with a Ciphersuite, using a smaller
+/// threshold than the original one.
+pub fn check_refresh_shares_with_dkg_smaller_threshold<
+    C: Ciphersuite + PartialEq,
+    R: RngCore + CryptoRng,
+>(
+    mut rng: R,
+) where
+    C::Group: core::cmp::PartialEq,
+{
+    ////////////////////////////////////////////////////////////////////////////
+    // Old Key generation
+    ////////////////////////////////////////////////////////////////////////////
+
+    let old_max_signers = 5;
+    let min_signers = 3;
+    let (old_shares, pub_key_package) = generate_with_dealer(
+        old_max_signers,
+        min_signers,
+        frost::keys::IdentifierList::Default,
+        &mut rng,
+    )
+    .unwrap();
+
+    let mut old_key_packages: BTreeMap<frost::Identifier<C>, KeyPackage<C>> = BTreeMap::new();
+
+    for (k, v) in old_shares {
+        let key_package = KeyPackage::try_from(v).unwrap();
+        old_key_packages.insert(k, key_package);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, Round 1
+    ////////////////////////////////////////////////////////////////////////////
+
+    let max_signers = 4;
+    // Use a smaller threshold than the original
+    let min_signers = 2;
+
+    let remaining_ids = vec![
+        Identifier::try_from(4).unwrap(),
+        Identifier::try_from(2).unwrap(),
+        Identifier::try_from(3).unwrap(),
+        Identifier::try_from(1).unwrap(),
+    ];
+
+    // Keep track of each participant's round 1 secret package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut round1_secret_packages: BTreeMap<
+        frost::Identifier<C>,
+        frost::keys::dkg::round1::SecretPackage<C>,
+    > = BTreeMap::new();
+
+    // Keep track of all round 1 packages sent to the given participant.
+    // This is used to simulate the broadcast; in practice the packages
+    // will be sent through some communication channel.
+    let mut received_round1_packages: BTreeMap<
+        frost::Identifier<C>,
+        BTreeMap<frost::Identifier<C>, frost::keys::dkg::round1::Package<C>>,
+    > = BTreeMap::new();
+
+    // For each participant, perform the first part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_identifier in remaining_ids.clone() {
+        let (round1_secret_package, round1_package) =
+            refresh_dkg_part1(participant_identifier, max_signers, min_signers, &mut rng).unwrap();
+
+        // Store the participant's secret package for later use.
+        // In practice each participant will store it in their own environment.
+        round1_secret_packages.insert(participant_identifier, round1_secret_package);
+
+        // "Send" the round 1 package to all other participants. In this
+        // test this is simulated using a BTreeMap; in practice this will be
+        // sent through some communication channel.
+        for receiver_participant_identifier in remaining_ids.clone() {
+            if receiver_participant_identifier == participant_identifier {
+                continue;
+            }
+            received_round1_packages
+                .entry(receiver_participant_identifier)
+                .or_default()
+                .insert(participant_identifier, round1_package.clone());
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, Round 2
+    ////////////////////////////////////////////////////////////////////////////
+    // Keep track of each participant's round 2 secret package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut round2_secret_packages = BTreeMap::new();
+
+    // Keep track of all round 2 packages sent to the given participant.
+    // This is used to simulate the broadcast; in practice the packages
+    // will be sent through some communication channel.
+    let mut received_round2_packages = BTreeMap::new();
+
+    // For each participant, perform the second part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_identifier in remaining_ids.clone() {
+        let round1_secret_package = round1_secret_packages
+            .remove(&participant_identifier)
+            .unwrap();
+        let round1_packages = &received_round1_packages[&participant_identifier];
+        let (round2_secret_package, round2_packages) =
+            refresh_dkg_part2(round1_secret_package, round1_packages).expect("should work");
+
+        // Store the participant's secret package for later use.
+        // In practice each participant will store it in their own environment.
+        round2_secret_packages.insert(participant_identifier, round2_secret_package);
+
+        // "Send" the round 2 package to all other participants. In this
+        // test this is simulated using a BTreeMap; in practice this will be
+        // sent through some communication channel.
+        // Note that, in contrast to the previous part, here each other participant
+        // gets its own specific package.
+        for (receiver_identifier, round2_package) in round2_packages {
+            received_round2_packages
+                .entry(receiver_identifier)
+                .or_insert_with(BTreeMap::new)
+                .insert(participant_identifier, round2_package);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Key generation, final computation
+    ////////////////////////////////////////////////////////////////////////////
+
+    // For each participant, this is where they refresh their shares
+    // In practice, each participant will perform this on their own environments.
+    let mut results = Vec::new();
+    for participant_identifier in remaining_ids.clone() {
+        results.push(frost::keys::refresh::refresh_dkg_shares(
+            &round2_secret_packages[&participant_identifier],
+            &received_round1_packages[&participant_identifier],
+            &received_round2_packages[&participant_identifier],
+            pub_key_package.clone(),
+            old_key_packages[&participant_identifier].clone(),
+        ));
+    }
+
+    assert!(results
+        .iter()
+        .all(|r| matches!(r, Err(Error::InvalidMinSigners))));
 }

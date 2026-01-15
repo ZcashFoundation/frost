@@ -1,7 +1,7 @@
 //! Helper function for testing with test vectors.
 use alloc::collections::BTreeMap;
 
-use debugless_unwrap::DebuglessUnwrap;
+use debugless_unwrap::DebuglessUnwrapExt;
 use hex::{self, FromHex};
 use serde_json::Value;
 
@@ -45,7 +45,8 @@ pub fn parse_test_vectors<C: Ciphersuite>(json_vectors: &Value) -> TestVectors<C
         .iter()
         .map(|v| {
             let vec = hex::decode(v.as_str().unwrap()).unwrap();
-            <<C::Group as Group>::Field>::deserialize(&vec.try_into().debugless_unwrap()).unwrap()
+            <<C::Group as Group>::Field>::deserialize(&vec.as_slice().try_into().debugless_unwrap())
+                .unwrap()
         })
         .collect();
 
@@ -292,7 +293,8 @@ pub fn check_sign_with_test_vectors<C: Ciphersuite>(json_vectors: &Value) {
         .map(|(i, key_package)| (i, *key_package.verifying_share()))
         .collect();
 
-    let pubkey_package = frost::keys::PublicKeyPackage::new(verifying_shares, verifying_key);
+    let pubkey_package =
+        frost::keys::PublicKeyPackage::new(verifying_shares, verifying_key, min_signers as u16);
 
     ////////////////////////////////////////////////////////////////////////////
     // Aggregation:  collects the signing shares from all participants,

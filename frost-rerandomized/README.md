@@ -1,22 +1,19 @@
 # FROST (Flexible Round-Optimised Schnorr Threshold signatures) Rerandomized
 
-Base traits and types in Rust that implement ['Two-Round Threshold Schnorr Signatures with
-FROST'](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/) generically for
-`frost-core::Ciphersuite` implementations, with support for Zcash-compatible
-RedDSA re-randomized signatures.
-
-## Status ⚠
-
-The FROST specification is not yet finalized, and this codebase has not yet been audited or
-released. The APIs and types in `frost-rerandomized` are subject to change.
+A ciphersuite-generic implementation of [Re-Randomized
+FROST](https://eprint.iacr.org/2024/436), which allows creating signatures using
+FROST under re-randomized keys.
 
 ## Usage
 
 `frost-rerandomized` is similar to `frost-core`, but provides different
 `sign()` and `aggregate()` functions adding support for re-randomized signatures.
-End-users should not use `frost-rerandomized` if they want to sign and verify signatures, they
-should use the crate specific to their ciphersuite/curve parameters that uses `frost-rerandomized` as a
-dependency, such as [`reddsa`](https://github.com/ZcashFoundation/reddsa/).
+
+Currently, the main ciphersuite crates do not re-expose the rerandomization
+functions; if you want to use this functionality, you will need to use this
+crate parametrized with the chosen ciphersuite. The exceptions are the Zcash
+ciphersuites in [`reddsa`](https://github.com/ZcashFoundation/reddsa/) which
+do expose the randomized functionality.
 
 ## Example
 

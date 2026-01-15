@@ -121,17 +121,14 @@ fn write_docs(
     // To be able to replace the documentation properly, start from the end, which
     // will keep the string positions consistent
     for (old_name, _, old_start, old_end) in old_docs.iter().rev() {
-        let new_doc = docs
-            .get(old_name)
-            .unwrap_or_else(|| {
-                panic!(
-                    "documentation for {} is not available in base file",
-                    old_name
-                )
-            })
-            .1
-            .clone();
-
+        let new_doc = docs.get(old_name).map(|v| v.1.clone());
+        let Some(new_doc) = new_doc else {
+            eprintln!(
+                "WARNING: documentation for {} is not available in base file. This can mean it's a specific type for the ciphersuite, or that there is a bug in gencode",
+                old_name
+            );
+            continue;
+        };
         // Replaces ciphersuite-references in documentation
         let mut new_doc = new_doc.to_string();
         for (old_n, new_n) in zip(original_suite_strings.iter(), new_suite_strings.iter()) {
@@ -170,6 +167,8 @@ fn copy_and_replace(
 
 pub fn rustfmt(source: String) -> String {
     let mut child = Command::new("rustfmt")
+        .arg("--edition")
+        .arg("2021")
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
@@ -184,6 +183,11 @@ pub fn rustfmt(source: String) -> String {
     });
 
     let output = child.wait_with_output().expect("Failed to read stdout");
+    assert!(
+        output.status.success(),
+        "rustfmt failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
@@ -215,6 +219,7 @@ fn main() -> ExitCode {
         "ristretto255_sha512",
         "ristretto255",
         "<R>",
+        "<!-- PLACEHOLDER -->",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -227,7 +232,13 @@ fn main() -> ExitCode {
         &std::fs::read_to_string(format!("{original_folder}/tests/helpers/samples.json")).unwrap(),
     )
     .unwrap();
-    for key in &["identifier", "element1", "element2", "scalar1"] {
+    for key in &[
+        "identifier",
+        "proof_of_knowledge",
+        "element1",
+        "element2",
+        "scalar1",
+    ] {
         original_strings.push(samples[key].as_str().unwrap().to_owned());
     }
     let original_strings: Vec<&str> = original_strings.iter().map(|s| s.as_ref()).collect();
@@ -249,6 +260,7 @@ fn main() -> ExitCode {
                 "p256_sha256",
                 "p256",
                 "<P>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -262,6 +274,7 @@ fn main() -> ExitCode {
                 "ed25519_sha512",
                 "ed25519",
                 "<E>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -275,6 +288,7 @@ fn main() -> ExitCode {
                 "ed448_shake256",
                 "ed448",
                 "<E>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
         (
@@ -288,6 +302,21 @@ fn main() -> ExitCode {
                 "secp256k1_sha256",
                 "secp256k1",
                 "<S>",
+                "*This crate is not compatible with Bitcoin BIP-340 (Taproot) signatures. Use [frost-secp256k1-tr](https://crates.io/crates/frost-secp256k1-tr) instead*",
+            ],
+        ),
+        (
+            "frost-secp256k1-tr",
+            &[
+                "Secp256K1Sha256TR",
+                "secp256k1 curve (Taproot)",
+                "Secp256K1",
+                "FROST(secp256k1, SHA-256)",
+                "FROST-secp256k1-SHA256-TR-v1",
+                "secp256k1_tr_sha256",
+                "secp256k1_tr",
+                "<S>",
+                "<!-- PLACEHOLDER -->",
             ],
         ),
     ] {
@@ -300,7 +329,13 @@ fn main() -> ExitCode {
             &std::fs::read_to_string(format!("{folder}/tests/helpers/samples.json")).unwrap(),
         )
         .unwrap();
-        for key in &["identifier", "element1", "element2", "scalar1"] {
+        for key in &[
+            "identifier",
+            "proof_of_knowledge",
+            "element1",
+            "element2",
+            "scalar1",
+        ] {
             replacement_strings.push(samples[key].as_str().unwrap().to_owned());
         }
         let replacement_strings: Vec<&str> =

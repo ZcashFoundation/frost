@@ -7,7 +7,7 @@
 
 extern crate alloc;
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use ed448_goldilocks::{
     curve::{edwards::CompressedEdwardsY, ExtendedPoint},
@@ -230,7 +230,6 @@ pub type Identifier = frost::Identifier<E>;
 /// FROST(Ed448, SHAKE256) keys, key generation, key shares.
 pub mod keys {
     use super::*;
-    use std::collections::BTreeMap;
 
     /// The identifier list to use when generating key shares.
     pub type IdentifierList<'a> = frost::keys::IdentifierList<'a, E>;
@@ -321,6 +320,7 @@ pub mod keys {
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<E>;
 
     pub mod dkg;
+    pub mod refresh;
     pub mod repairable;
 }
 
@@ -411,6 +411,25 @@ pub fn aggregate(
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, Error> {
     frost::aggregate(signing_package, signature_shares, pubkeys)
+}
+
+/// The type of cheater detection to use.
+pub type CheaterDetection = frost::CheaterDetection;
+
+/// Like [`aggregate()`], but allow specifying a specific cheater detection
+/// strategy.
+pub fn aggregate_custom(
+    signing_package: &SigningPackage,
+    signature_shares: &BTreeMap<Identifier, round2::SignatureShare>,
+    pubkeys: &keys::PublicKeyPackage,
+    cheater_detection: CheaterDetection,
+) -> Result<Signature, Error> {
+    frost::aggregate_custom(
+        signing_package,
+        signature_shares,
+        pubkeys,
+        cheater_detection,
+    )
 }
 
 /// A signing key for a Schnorr signature on FROST(Ed448, SHAKE256).

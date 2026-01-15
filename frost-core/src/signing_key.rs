@@ -5,8 +5,8 @@ use alloc::vec::Vec;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    random_nonzero, serialization::SerializableScalar, Ciphersuite, Error, Field, Group, Scalar,
-    Signature, VerifyingKey,
+    random_nonzero, serialization::SerializableScalar, Challenge, Ciphersuite, Error, Field, Group,
+    Scalar, Signature, VerifyingKey,
 };
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
@@ -40,13 +40,24 @@ where
     }
 
     /// Create a signature `msg` using this `SigningKey`.
-    pub fn sign<R: RngCore + CryptoRng>(&self, mut rng: R, msg: &[u8]) -> Signature<C> {
-        let k = random_nonzero::<C, R>(&mut rng);
+    pub fn sign<R: RngCore + CryptoRng>(&self, rng: R, message: &[u8]) -> Signature<C> {
+        <C>::single_sign(self, rng, message)
+    }
 
-        let R = <C::Group>::generator() * k;
+    /// Create a signature `msg` using this `SigningKey` using the default
+    /// signing.
+    #[cfg_attr(feature = "internals", visibility::make(pub))]
+    pub(crate) fn default_sign<R: RngCore + CryptoRng>(
+        &self,
+        mut rng: R,
+        message: &[u8],
+    ) -> Signature<C> {
+        let public = VerifyingKey::<C>::from(*self);
+
+        let (k, R) = <C>::generate_nonce(&mut rng);
 
         // Generate Schnorr challenge
-        let c = crate::challenge::<C>(&R, &VerifyingKey::<C>::from(*self), msg).expect("should not return error since that happens only if one of the inputs is the identity. R is not since k is nonzero. The verifying_key is not because signing keys are not allowed to be zero.");
+        let c: Challenge<C> = <C>::challenge(&R, &public, message).expect("should not return error since that happens only if one of the inputs is the identity. R is not since k is nonzero. The verifying_key is not because signing keys are not allowed to be zero.");
 
         let z = k + (c.0 * self.scalar);
 

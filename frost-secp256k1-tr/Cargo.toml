@@ -1,0 +1,59 @@
+[package]
+name = "frost-secp256k1-tr"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+authors.workspace = true
+readme = "README.md"
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords = ["cryptography", "crypto", "secp256k1", "threshold", "signature"]
+description = "A Schnorr signature scheme over the secp256k1 curve that supports FROST and Taproot."
+
+[package.metadata.docs.rs]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+document-features.workspace = true
+frost-core.workspace = true
+frost-rerandomized.workspace = true
+k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"], default-features = false }
+rand_core.workspace = true
+sha2 = { version = "0.10.2", default-features = false }
+
+[dev-dependencies]
+criterion.workspace = true
+frost-core = { workspace = true, features = ["test-impl"] }
+frost-rerandomized = { workspace = true, features = ["test-impl"] }
+insta.workspace = true
+hex.workspace = true
+lazy_static.workspace = true
+proptest.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+secp256k1 = "0.31.0"
+serde_json.workspace = true
+tokio.workspace = true
+
+[features]
+default = ["serialization", "std"]
+# No longer needed. Kept for retrocompatibility until 3.0.0
+std = []
+#! ## Features
+## Enable `serde` support for types that need to be communicated. You
+## can use `serde` to serialize structs with any encoder that supports
+## `serde` (e.g. JSON with `serde_json`).
+serde = ["frost-core/serde"]
+## Enable a default serialization format. Enables `serde`.
+serialization = ["serde", "frost-core/serialization", "frost-rerandomized/serialization"]
+
+[lib]
+# Disables non-criterion benchmark which is not used; prevents errors
+# when using criterion-specific flags
+bench = false
+
+[[bench]]
+name = "bench"
+harness = false

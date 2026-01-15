@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
@@ -403,6 +403,25 @@ pub fn aggregate(
     pubkeys: &keys::PublicKeyPackage,
 ) -> Result<Signature, Error> {
     frost::aggregate(signing_package, signature_shares, pubkeys)
+}
+
+/// The type of cheater detection to use.
+pub type CheaterDetection = frost::CheaterDetection;
+
+/// Like [`aggregate()`], but allow specifying a specific cheater detection
+/// strategy.
+pub fn aggregate_custom(
+    signing_package: &SigningPackage,
+    signature_shares: &BTreeMap<Identifier, round2::SignatureShare>,
+    pubkeys: &keys::PublicKeyPackage,
+    cheater_detection: CheaterDetection,
+) -> Result<Signature, Error> {
+    frost::aggregate_custom(
+        signing_package,
+        signature_shares,
+        pubkeys,
+        cheater_detection,
+    )
 }
 
 /// A signing key for a Schnorr signature on FROST(ristretto255, SHA-512).
