@@ -2,7 +2,11 @@
 
 Entries are listed in reverse chronological order.
 
+
 ## Unreleased
+
+
+## 3.0.0
 
 ### Breaking Changes
 
@@ -12,7 +16,10 @@ Entries are listed in reverse chronological order.
   the default behaviour is now as if `cheater-detection` was enabled. If you
   explicitly *did not enable* it, you can avoid cheater detection by calling
   `aggregate_custom()` with `CheaterDetection::Disabled`.
-* The `std` and `nightly` features were removed from all crates
+* Changed `InvalidSignatureShare::culprit` to `culprits`; it is now a `Vec`.
+* Changed `Error::culprit()` to `culprits()`; is is now a `Vec`.
+* * Added a `min_signers` argument to `PublicKeyPackage::new()`.
+* The `std` and `nightly` features were removed from all crates.
 * Renamed `frost_core::keys::refresh::refresh_dkg_part_1` to `refresh_dkg_part1`.
 * Fixed the crate-specific versions of the `refresh` module to be non-generic.
 * Removed the `min_signers` and `max_signers` arguments from
@@ -23,18 +30,30 @@ Entries are listed in reverse chronological order.
   The latter was simply redundant.
 * Refactored the `frost_core::keys::repairable` module:
   * `repair_share_step_1()` now takes a `KeyPackage` and returns a map with
-    a new `Delta` type instead of a raw `Scalar`
+    a new `Delta` type instead of a raw `Scalar`.
   * `repair_share_step_2()` now takes the `Delta` type and returns a new `Sigma`
-    type instead of a raw `Scalar`
+    type instead of a raw `Scalar`.
   * `repair_share_step_3()` now takes the `Sigma` type and a `PublicKeyPackage`
     instead of `VerifiableSecretSharingCommitment`; and returns a `KeyPackage`
     instead of `SecretShare`.
   * These changes provide more type safety and are make it more useful since
-    `SecretPackage`s are not expected to be stored
+    `SecretPackage`s are not expected to be stored.
+* The `Ciphersuite`, `Scalar` and `Element` traits now must implement `Send` and
+  `Sync`. This should be trivial in most cases.
+* The `SignatureSerialization`, `Field::Serialization` and
+  `Element::Serialization` traits do not need to implement `TryFrom<Vec<u8>>`
+  anymore; instead, they must implement `AsMut<[u8]>` and `TryFrom<&[u8]>`. This
+  should be trivial in most cases since they are often implemented by arrays.
 
 ### Additional changes
 
 * Added DKG refresh functions to the crate-specific `refresh` modules.
+* Added the `pre_commitment_aggregate()` and `pre_commitment_sign()` hooks
+  to the `Ciphersuite` trait.
+* Added `aggregate_custom()` function to allow specifying which cheater
+  detection strategy to use. The original `aggregate()` behaviour is to use
+  the `CheaterDetection::FirstCheater` strategy.
+
 
 ## 2.2.0
 

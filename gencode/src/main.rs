@@ -354,6 +354,7 @@ fn main() -> ExitCode {
         // Generate files based on a template with simple search & replace.
         for filename in [
             "README.md",
+            "CHANGELOG.md",
             "dkg.md",
             "src/keys/dkg.rs",
             "src/keys/refresh.rs",
