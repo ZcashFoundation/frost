@@ -3,10 +3,13 @@
 //! To sign with re-randomized FROST:
 //!
 //! - Do Round 1 the same way as regular FROST;
-//! - The Coordinator should call [`RandomizedParams::new()`] and send
-//!   the [`RandomizedParams::randomizer`] to all participants, using a
-//!   confidential channel, along with the regular [`frost::SigningPackage`];
-//! - Each participant should call [`sign`] and send the resulting
+//! - The Coordinator should call [`RandomizedParams::new_from_commitments()`]
+//!   and send the generate randomizer seed (the second returned value) to all
+//!   participants, using a confidential channel, along with the regular
+//!   [`frost::SigningPackage`];
+//! - Each participant should regenerate the RandomizerParams by calling
+//!   [`RandomizedParams::regenerate_from_seed_and_commitments()`], which they
+//!   should pass to [`sign_with_randomizer_seed()`] and send the resulting
 //!   [`frost::round2::SignatureShare`] back to the Coordinator;
 //! - The Coordinator should then call [`aggregate`].
 #![no_std]
@@ -27,8 +30,10 @@ use frost_core::SigningPackage;
 use frost_core::{
     self as frost,
     keys::{KeyPackage, PublicKeyPackage, SigningShare, VerifyingShare},
+    round1::encode_group_commitments,
+    round1::SigningCommitments,
     serialization::SerializableScalar,
-    Ciphersuite, Error, Field, Group, Scalar, VerifyingKey,
+    Ciphersuite, Error, Field, Group, Identifier, Scalar, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]
@@ -36,7 +41,6 @@ use frost_core::serde;
 
 // When pulled into `reddsa`, that has its own sibling `rand_core` import.
 // For the time being, we do not re-export this `rand_core`.
-#[cfg(feature = "serialization")]
 use rand_core::{CryptoRng, RngCore};
 
 /// Randomize the given key type for usage in a FROST signing with re-randomized keys,
@@ -123,6 +127,9 @@ impl<C: Ciphersuite> Randomize<C> for PublicKeyPackage<C> {
 /// be sent from the Coordinator using a confidential channel.
 ///
 /// See [`frost::round2::sign`] for documentation on the other parameters.
+#[deprecated(
+    note = "switch to sign_with_randomizer_seed(), passing a seed generated with RandomizedParams::new_from_commitments()"
+)]
 pub fn sign<C: RandomizedCiphersuite>(
     signing_package: &frost::SigningPackage<C>,
     signer_nonces: &frost::round1::SigningNonces<C>,
@@ -131,6 +138,25 @@ pub fn sign<C: RandomizedCiphersuite>(
 ) -> Result<frost::round2::SignatureShare<C>, Error<C>> {
     let randomized_params =
         RandomizedParams::from_randomizer(key_package.verifying_key(), randomizer);
+    let randomized_key_package = key_package.randomize(&randomized_params)?;
+    frost::round2::sign(signing_package, signer_nonces, &randomized_key_package)
+}
+
+/// Re-randomized FROST signing using the given `randomizer_seed`, which should
+/// be sent from the Coordinator using a confidential channel.
+///
+/// See [`frost::round2::sign`] for documentation on the other parameters.
+pub fn sign_with_randomizer_seed<C: RandomizedCiphersuite>(
+    signing_package: &frost::SigningPackage<C>,
+    signer_nonces: &frost::round1::SigningNonces<C>,
+    key_package: &frost::keys::KeyPackage<C>,
+    randomizer_seed: &[u8],
+) -> Result<frost::round2::SignatureShare<C>, Error<C>> {
+    let randomized_params = RandomizedParams::regenerate_from_seed_and_commitments(
+        key_package.verifying_key(),
+        randomizer_seed,
+        signing_package.signing_commitments(),
+    )?;
     let randomized_key_package = key_package.randomize(&randomized_params)?;
     frost::round2::sign(signing_package, signer_nonces, &randomized_key_package)
 }
@@ -178,12 +204,15 @@ impl<C> Randomizer<C>
 where
     C: RandomizedCiphersuite,
 {
-    /// Create a new random Randomizer.
+    /// Create a new random Randomizer using a SigningPackage for randomness.
     ///
     /// The [`SigningPackage`] must be the signing package being used in the
     /// current FROST signing run. It is hashed into the randomizer calculation,
     /// which binds it to that specific package.
     #[cfg(feature = "serialization")]
+    #[deprecated(
+        note = "switch to new_from_commitments(), passing the commitments from SigningPackage"
+    )]
     pub fn new<R: RngCore + CryptoRng>(
         mut rng: R,
         signing_package: &SigningPackage<C>,
@@ -206,6 +235,65 @@ where
             &[
                 <<C::Group as Group>::Field>::serialize(&rng_randomizer).as_ref(),
                 &signing_package.serialize()?,
+            ]
+            .concat(),
+        )
+        .ok_or(Error::SerializationError)?;
+        Ok(Self(SerializableScalar(randomizer)))
+    }
+
+    /// Create a new random Randomizer using SigningCommitments for randomness.
+    ///
+    /// The [`SigningCommitments`] map must be the one being used in the current
+    /// FROST signing run (built by the Coordinator after receiving from
+    /// Participants). It is hashed into the randomizer calculation, which binds
+    /// it to that specific commitments.
+    ///
+    /// Returns the Randomizer and the generate randomizer seed. Both can be
+    /// used to regenerate the Randomizer with
+    /// [`Self::regenerate_from_seed_and_commitments()`].
+    pub fn new_from_commitments<R: RngCore + CryptoRng>(
+        mut rng: R,
+        signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
+    ) -> Result<(Self, Vec<u8>), Error<C>> {
+        // Generate a dummy scalar to get its encoded size
+        let zero = <<C::Group as Group>::Field as Field>::zero();
+        let ns = <<C::Group as Group>::Field as Field>::serialize(&zero)
+            .as_ref()
+            .len();
+        let mut randomizer_seed = alloc::vec![0; ns];
+        rng.fill_bytes(&mut randomizer_seed);
+        Ok((
+            Self::regenerate_from_seed_and_commitments(&randomizer_seed, signing_commitments)?,
+            randomizer_seed,
+        ))
+    }
+
+    /// Regenerates a Randomizer generated with
+    /// [`Self::new_from_commitments()`]. This can be used by Participants after
+    /// receiving the randomizer seed and commitments in Round 2. This is better
+    /// than the Coordinator simply generating a Randomizer and sending it to
+    /// Participants, because in this approach the participants don't need to
+    /// fully trust the Coordinator's random number generator (i.e. even if the
+    /// randomizer seed was not randomly generated the randomizer will still
+    /// be).
+    ///
+    /// This should be used exclusively with the output of
+    /// [`Self::new_from_commitments()`]; it is strongly suggested to not
+    /// attempt generating the randomizer seed yourself (even if the point of
+    /// this approach is to hedge against issues in the randomizer seed
+    /// generation).
+    pub fn regenerate_from_seed_and_commitments(
+        randomizer_seed: &[u8],
+        signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
+    ) -> Result<Randomizer<C>, Error<C>>
+    where
+        C: RandomizedCiphersuite,
+    {
+        let randomizer = C::hash_randomizer(
+            &[
+                randomizer_seed,
+                &encode_group_commitments(signing_commitments)?,
             ]
             .concat(),
         )
@@ -267,17 +355,75 @@ where
     C: RandomizedCiphersuite,
 {
     /// Create a new [`RandomizedParams`] for the given [`VerifyingKey`] and
-    /// the given `participants`.
+    /// the given [`SigningPackage`].
     #[cfg(feature = "serialization")]
+    #[deprecated(
+        note = "switch to new_from_commitments(), passing the commitments from SigningPackage"
+    )]
     pub fn new<R: RngCore + CryptoRng>(
         group_verifying_key: &VerifyingKey<C>,
         signing_package: &SigningPackage<C>,
         rng: R,
     ) -> Result<Self, Error<C>> {
+        #[allow(deprecated)]
         Ok(Self::from_randomizer(
             group_verifying_key,
             Randomizer::new(rng, signing_package)?,
         ))
+    }
+
+    /// Create a new [`RandomizedParams`] for the given [`VerifyingKey`] and the
+    /// given signing commitments.
+    ///
+    /// The [`SigningCommitments`] map must be the one being used in the current
+    /// FROST signing run (built by the Coordinator after receiving from
+    /// Participants). It is hashed into the randomizer calculation, which binds
+    /// it to that specific commitments.
+    ///
+    /// Returns the generated [`RandomizedParams`] and a randomizer seed. Both
+    /// can be used to regenerate the [`RandomizedParams`] with
+    /// [`Self::regenerate_from_seed_and_commitments()`].
+    pub fn new_from_commitments<R: RngCore + CryptoRng>(
+        group_verifying_key: &VerifyingKey<C>,
+        signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
+        rng: R,
+    ) -> Result<(Self, Vec<u8>), Error<C>> {
+        let (randomizer, randomizer_seed) =
+            Randomizer::new_from_commitments(rng, signing_commitments)?;
+        Ok((
+            Self::from_randomizer(group_verifying_key, randomizer),
+            randomizer_seed,
+        ))
+    }
+
+    /// Regenerate a [`RandomizedParams`] with the given [`VerifyingKey`] from
+    /// the given given signing commitments.
+    ///
+    /// Returns the generated [`RandomizedParams`] and a randomizer seed, which
+    /// can be used to regenerate the [`RandomizedParams`].
+    ///
+    /// Regenerates a [`RandomizedParams`] generated with
+    /// [`Self::new_from_commitments()`]. This can be used by Participants after
+    /// receiving the randomizer seed and commitments in Round 2. This is better
+    /// than the Coordinator simply generating a [`Randomizer`] and sending it
+    /// to Participants, because in this approach the participants don't need to
+    /// fully trust the Coordinator's random number generator (i.e. even if the
+    /// randomizer seed was not randomly generated the randomizer will still
+    /// be).
+    ///
+    /// This should be used exclusively with the output of
+    /// [`Self::new_from_commitments()`]; it is strongly suggested to not
+    /// attempt generating the randomizer seed yourself (even if the point of
+    /// this approach is to hedge against issues in the randomizer seed
+    /// generation).
+    pub fn regenerate_from_seed_and_commitments(
+        group_verifying_key: &VerifyingKey<C>,
+        randomizer_seed: &[u8],
+        signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
+    ) -> Result<Self, Error<C>> {
+        let randomizer =
+            Randomizer::regenerate_from_seed_and_commitments(randomizer_seed, signing_commitments)?;
+        Ok(Self::from_randomizer(group_verifying_key, randomizer))
     }
 }
 
