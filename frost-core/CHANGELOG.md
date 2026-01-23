@@ -15,6 +15,12 @@ Entries are listed in reverse chronological order.
 * The `std` and `nightly` features were removed from all crates
 * Renamed `frost_core::keys::refresh::refresh_dkg_part_1` to `refresh_dkg_part1`.
 * Fixed the crate-specific versions of the `refresh` module to be non-generic.
+* Removed the `min_signers` and `max_signers` arguments from
+  `frost_core::keys::refresh::compute_refreshing_shares()`. The former is now
+  read from the `pub_key_package`; if you pass a pre-3.0.0 generate package,
+  you will need to fills its `min_signers` field with the original threshold
+  before calling the function (recreate it with `PublicKeyPackage::new()`).
+  The latter was simply redundant.
 * Refactored the `frost_core::keys::repairable` module:
   * `repair_share_step_1()` now takes a `KeyPackage` and returns a map with
     a new `Delta` type instead of a raw `Scalar`
