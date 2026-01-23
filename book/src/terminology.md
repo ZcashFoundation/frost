@@ -3,14 +3,14 @@
 ### _Broadcast channel_
 
 A secure broadcast channel in the context of multi-party computation protocols
-such as FROST must have set of theoretical properties which can be a bit subtle
+such as FROST must have a set of theoretical properties which can be a bit subtle
 and depend on the specific protocol being implemented. However, most real
 deployments use the protocol from the [Secure Computation Without
 Agreement](https://eprint.iacr.org/2002/040) paper, which we describe below, and
 which is also referred to as "echo broadcast". It has the following properties:
-agreement (if an honest party outputs x, then all honest parteis output x or
+agreement (if an honest party outputs x, then all honest parties output x or
 abort), validity (if the broadcaster is honest, then all honest parties output
-the broadcast value) and non-triviality (if all parties are honet, they all
+the broadcast value) and non-triviality (if all parties are honest, they all
 output the broadcast value).
 
 The echo broadcast works as follows, for a party `P[1]` which wants to broadcast
@@ -18,7 +18,7 @@ a value `x` to the other `P[i]` parties for `1 < i <= n` where `n` is the number
 of participants:
 
 1. `P[1]` sends `x` to all other `n-1` parties.
-2. For each `P[i]` other than `P[0]`:
+2. For each `P[i]` other than `P[1]`:
    1. Set `x1` to the value received from `P[1]` in step 1, or to `null` if no
       value was received.
    2. Send `x1` to the other `n-2` parties (excluding `1` and `i` themselves).
