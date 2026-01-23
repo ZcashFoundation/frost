@@ -35,6 +35,8 @@ Entries are listed in reverse chronological order.
 ### Additional changes
 
 * Added DKG refresh functions to the crate-specific `refresh` modules.
+* Re-exported the `frost-rerandomized` crate in the ciphersuite functions, e.g.
+  you can call `frost_ristretto255::rerandomized::sign_with_randomizer_seed()`.
 
 ## 2.2.0
 
