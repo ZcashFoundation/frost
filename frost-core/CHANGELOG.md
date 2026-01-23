@@ -15,6 +15,16 @@ Entries are listed in reverse chronological order.
 * The `std` and `nightly` features were removed from all crates
 * Renamed `frost_core::keys::refresh::refresh_dkg_part_1` to `refresh_dkg_part1`.
 * Fixed the crate-specific versions of the `refresh` module to be non-generic.
+* Refactored the `frost_core::keys::repairable` module:
+  * `repair_share_step_1()` now takes a `KeyPackage` and returns a map with
+    a new `Delta` type instead of a raw `Scalar`
+  * `repair_share_step_2()` now takes the `Delta` type and returns a new `Sigma`
+    type instead of a raw `Scalar`
+  * `repair_share_step_3()` now takes the `Sigma` type and a `PublicKeyPackage`
+    instead of `VerifiableSecretSharingCommitment`; and returns a `KeyPackage`
+    instead of `SecretShare`.
+  * These changes provide more type safety and are make it more useful since
+    `SecretPackage`s are not expected to be stored
 
 ### Additional changes
 
