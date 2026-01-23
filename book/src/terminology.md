@@ -34,8 +34,9 @@ in parallel!
 
 As an alternative to using echo-broadcast, other mechanisms are possible
 depending on the application. For example, posting commitments (round 1
-packages) to an authenticated centralized server that is trusted to provide a
-single view to all participants (also known as 'public bulletin board')
+packages) to an authenticated centralized server. This server needs to be
+trusted to provide a single view to all participants (also known as "public
+bulletin board").
 
 ### _Identifier_
 
@@ -53,16 +54,27 @@ This allows deriving identifiers from usernames or emails, for example.
 
 ### _Peer to peer channel_
 
-Peer-to-peer channels might need to be authenticated (DKG messages, and FROST
-signing messages if cheater detection is required), meaning there is assurance
-on who is the sender of a message, and might be confidential (DKG messages, and
-FROST signing messages if the messages being signed are confidential), meaning
-no other party listening to the communication can have access to the message.
+Peer-to-peer channels are required to send data back and forth between
+participants (during DKG) and between coordinator and participants (during
+signing) in order to use FROST. These channels have different requirements
+in different scenarios:
 
-In practice there are multiple possible deployment options:
+- They need to be authenticated when sending DKG messages, and when sending
+  signing messages if cheater detection is required. In this context,
+  "authenticated" means that the recipient must have assurance on who is the
+  sender of a message, using e.g. digital signatures.
+- They need to be confidential when sending DKG messages, and when sending
+  signing messages if the messages being signed are confidential. In this
+  context, "confidential" means that no other party listening to the
+  communication can have access to the contents, using e.g. encryption.
+
+In practice there are multiple possible deployment options to achieve
+authentication and confidentiality:
+
 - Mutually authenticated TLS
 - Noise protocol
 - Wireguard
+
 
 ### _Threshold secret sharing_
 
