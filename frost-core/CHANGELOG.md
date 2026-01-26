@@ -22,13 +22,15 @@ Entries are listed in reverse chronological order.
   before calling the function (recreate it with `PublicKeyPackage::new()`).
   The latter was simply redundant.
 * Refactored the `frost_core::keys::repairable` module:
-  * `repair_share_step_1()` now takes a `KeyPackage` and returns a map with
-    a new `Delta` type instead of a raw `Scalar`
-  * `repair_share_step_2()` now takes the `Delta` type and returns a new `Sigma`
-    type instead of a raw `Scalar`
-  * `repair_share_step_3()` now takes the `Sigma` type and a `PublicKeyPackage`
-    instead of `VerifiableSecretSharingCommitment`; and returns a `KeyPackage`
-    instead of `SecretShare`.
+  * `repair_share_step_1()` was renamed to `repair_share_part1()` and now takes
+    a `KeyPackage` and returns a map with a new `Delta` type instead of a raw
+    `Scalar`
+  * `repair_share_step_2()` was renamed to `repair_share_part2()` and now takes
+    the `Delta` type and returns a new `Sigma` type instead of a raw `Scalar`
+  * `repair_share_step_3()` was renamed to `repair_share_part3()` and now takes
+    the `Sigma` type and a `PublicKeyPackage` instead of
+    `VerifiableSecretSharingCommitment`; and returns a `KeyPackage` instead of
+    `SecretShare`.
   * These changes provide more type safety and are make it more useful since
     `SecretPackage`s are not expected to be stored
 

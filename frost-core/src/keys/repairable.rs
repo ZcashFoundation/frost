@@ -9,12 +9,12 @@
 //!
 //! - Participants need to agree somehow on who are going to be the `helpers`
 //!   for the repair, and which participant is going to repair their share.
-//! - Each helper runs `repair_share_step_1`, generating a set of `delta` values
+//! - Each helper runs `repair_share_part1`, generating a set of `delta` values
 //!   to be sent to each helper (including themselves).
-//! - Each helper runs `repair_share_step_2`, passing the received `delta`
+//! - Each helper runs `repair_share_part2`, passing the received `delta`
 //!   values, generating a `sigma` value to be sent to the participant repairing
 //!   their share.
-//! - The participant repairing their share runs `repair_share_step_3`, passing
+//! - The participant repairing their share runs `repair_share_part3`, passing
 //!   all the received `sigma` values, recovering their lost `KeyPackage`. (They
 //!   will also need the `PublicKeyPackage` for this step which could be
 //!   provided by any of the helpers).
@@ -32,7 +32,7 @@ use crate::{
 
 use super::{generate_coefficients, SigningShare};
 
-/// A delta value which is the output of step 1 of RTS.
+/// A delta value which is the output of part 1 of RTS.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
@@ -68,7 +68,7 @@ where
     }
 }
 
-/// A sigma value which is the output of step 2 of RTS.
+/// A sigma value which is the output of part 2 of RTS.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
@@ -104,14 +104,14 @@ where
     }
 }
 
-/// Step 1 of RTS.
+/// Part 1 of RTS.
 ///
 /// Generates the "delta" values from the helper with `key_package_i` to send to
 /// `helpers` (which includes the helper with `key_package_i`), to help
 /// `participant` recover their share.
 ///
 /// Returns a BTreeMap mapping which value should be sent to which participant.
-pub fn repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn repair_share_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     helpers: &[Identifier<C>],
     key_package_i: &KeyPackage<C>,
     rng: &mut R,
@@ -169,11 +169,11 @@ fn compute_last_random_value<C: Ciphersuite>(
     Ok(out)
 }
 
-/// Step 2 of RTS.
+/// Part 2 of RTS.
 ///
 /// Generates the "sigma" value from all `deltas` received from all helpers.
 /// The "sigma" value must be sent to the participant repairing their share.
-pub fn repair_share_step_2<C: Ciphersuite>(deltas: &[Delta<C>]) -> Sigma<C> {
+pub fn repair_share_part2<C: Ciphersuite>(deltas: &[Delta<C>]) -> Sigma<C> {
     let mut sigma_j = <<C::Group as Group>::Field>::zero();
 
     for d in deltas {
@@ -183,7 +183,7 @@ pub fn repair_share_step_2<C: Ciphersuite>(deltas: &[Delta<C>]) -> Sigma<C> {
     Sigma::new(sigma_j)
 }
 
-/// Step 3 of RTS.
+/// Part 3 of RTS.
 ///
 /// The participant with the given `identifier` recovers their `KeyPackage`
 /// with the "sigma" values received from all helpers and the `PublicKeyPackage`
@@ -192,7 +192,7 @@ pub fn repair_share_step_2<C: Ciphersuite>(deltas: &[Delta<C>]) -> Sigma<C> {
 /// Returns an error if the `min_signers` field is not set in the `PublicKeyPackage`.
 /// This happens for `PublicKeyPackage`s created before the 3.0.0 release;
 /// in that case, the user should set the `min_signers` field manually.
-pub fn repair_share_step_3<C: Ciphersuite>(
+pub fn repair_share_part3<C: Ciphersuite>(
     sigmas: &[Sigma<C>],
     identifier: Identifier<C>,
     public_key_package: &PublicKeyPackage<C>,
