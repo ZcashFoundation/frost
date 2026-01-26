@@ -18,7 +18,7 @@ Entries are listed in reverse chronological order.
   `aggregate_custom()` with `CheaterDetection::Disabled`.
 * Changed `InvalidSignatureShare::culprit` to `culprits`; it is now a `Vec`.
 * Changed `Error::culprit()` to `culprits()`; is is now a `Vec`.
-* * Added a `min_signers` argument to `PublicKeyPackage::new()`.
+* Added a `min_signers` argument to `PublicKeyPackage::new()`.
 * The `std` and `nightly` features were removed from all crates.
 * Renamed `frost_core::keys::refresh::refresh_dkg_part_1` to `refresh_dkg_part1`.
 * Fixed the crate-specific versions of the `refresh` module to be non-generic.
