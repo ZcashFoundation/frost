@@ -42,7 +42,7 @@ let mut round1_secret_packages = BTreeMap::new();
 // This is used to simulate the broadcast; in practice the packages
 // will be sent through a [**broadcast
 // channel**](https://frost.zfnd.org/terminology.html#broadcast-channel)
-// on top of a [authenticated and confidential communication
+// on top of an [authenticated and confidential communication
 // channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 let mut received_round1_packages = BTreeMap::new();
 
@@ -67,7 +67,7 @@ for participant_index in 1..=max_signers {
     // test this is simulated using a BTreeMap; in practice this will be
     // sent through a [**broadcast
     // channel**](https://frost.zfnd.org/terminology.html#broadcast-channel)
-    // on top of a [authenticated and confidential communication
+    // on top of an [authenticated and confidential communication
     // channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
     for receiver_participant_index in 1..=max_signers {
         if receiver_participant_index == participant_index {
