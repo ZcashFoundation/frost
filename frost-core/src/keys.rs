@@ -747,12 +747,15 @@ where
     C: Ciphersuite,
 {
     /// Create a new [`PublicKeyPackage`] instance.
+    ///
+    /// `min_signers` is an `Option` for compatibility with pre-3.0.0 packages.
+    /// In normal usage, it should always be `Some(value)`.
     pub fn new(
         verifying_shares: BTreeMap<Identifier<C>, VerifyingShare<C>>,
         verifying_key: VerifyingKey<C>,
-        min_signers: u16,
+        min_signers: Option<u16>,
     ) -> Self {
-        Self::new_internal(verifying_shares, verifying_key, Some(min_signers))
+        Self::new_internal(verifying_shares, verifying_key, min_signers)
     }
 
     /// Create a new [`PublicKeyPackage`] instance, allowing not specifying the
@@ -788,7 +791,7 @@ where
         Ok(PublicKeyPackage::new(
             verifying_keys,
             VerifyingKey::from_commitment(commitment)?,
-            commitment.min_signers(),
+            Some(commitment.min_signers()),
         ))
     }
 
