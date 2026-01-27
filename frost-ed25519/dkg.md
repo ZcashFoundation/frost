@@ -8,7 +8,7 @@ Book](https://frost.zfnd.org/tutorial/dkg.html).
 
 ## Example
 
-This examples shows the whole procedure in a single program. Of course, in
+This example shows the whole procedure in a single program. Of course, in
 practice, each participant will run their own part in their own devices and
 packages will need to be sent between them, respecting the DKG requirements of
 using [authenticated and confidential communication
