@@ -116,7 +116,7 @@ fn check_public_key_package_new_recreation() {
 
     let verifying_shares = public_key_package.verifying_shares();
     let verifying_key = public_key_package.verifying_key();
-    let min_signers = public_key_package.min_signers().unwrap();
+    let min_signers = public_key_package.min_signers();
 
     let new_public_key_package =
         PublicKeyPackage::new(verifying_shares.clone(), *verifying_key, min_signers);
