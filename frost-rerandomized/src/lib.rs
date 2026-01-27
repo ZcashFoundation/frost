@@ -30,10 +30,9 @@ use frost_core::SigningPackage;
 use frost_core::{
     self as frost,
     keys::{KeyPackage, PublicKeyPackage, SigningShare, VerifyingShare},
-    round1::encode_group_commitments,
-    round1::SigningCommitments,
+    round1::{encode_group_commitments, SigningCommitments},
     serialization::SerializableScalar,
-    Ciphersuite, Error, Field, Group, Identifier, Scalar, VerifyingKey,
+    CheaterDetection, Ciphersuite, Error, Field, Group, Identifier, Scalar, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]
@@ -161,9 +160,8 @@ pub fn sign_with_randomizer_seed<C: RandomizedCiphersuite>(
     frost::round2::sign(signing_package, signer_nonces, &randomized_key_package)
 }
 
-/// Re-randomized FROST signature share aggregation with the given [`RandomizedParams`],
-/// which can be computed from the previously generated randomizer using
-/// [`RandomizedParams::from_randomizer`].
+/// Re-randomized FROST signature share aggregation with the given
+/// [`RandomizedParams`].
 ///
 /// See [`frost::aggregate`] for documentation on the other parameters.
 pub fn aggregate<C>(
@@ -180,6 +178,29 @@ where
         signing_package,
         signature_shares,
         &randomized_public_key_package,
+    )
+}
+
+/// Re-randomized FROST signature share aggregation with the given
+/// [`RandomizedParams`] using the given cheater detection strategy.
+///
+/// See [`frost::aggregate_custom`] for documentation on the other parameters.
+pub fn aggregate_custom<C>(
+    signing_package: &frost::SigningPackage<C>,
+    signature_shares: &BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
+    pubkeys: &frost::keys::PublicKeyPackage<C>,
+    cheater_detection: CheaterDetection,
+    randomized_params: &RandomizedParams<C>,
+) -> Result<frost_core::Signature<C>, Error<C>>
+where
+    C: Ciphersuite,
+{
+    let randomized_public_key_package = pubkeys.randomize(randomized_params)?;
+    frost::aggregate_custom(
+        signing_package,
+        signature_shares,
+        &randomized_public_key_package,
+        cheater_detection,
     )
 }
 

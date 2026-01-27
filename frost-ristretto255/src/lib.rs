@@ -22,6 +22,8 @@ use frost_core as frost;
 #[cfg(test)]
 mod tests;
 
+pub mod rerandomized;
+
 // Re-exports in our public API
 #[cfg(feature = "serde")]
 pub use frost_core::serde;

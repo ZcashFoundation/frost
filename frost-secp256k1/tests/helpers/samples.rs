@@ -116,7 +116,7 @@ pub fn public_key_package_new() -> PublicKeyPackage {
     let verifying_key = VerifyingKey::deserialize(serialized_element.as_ref()).unwrap();
     let verifying_shares = BTreeMap::from([(identifier, verifying_share)]);
 
-    PublicKeyPackage::new(verifying_shares, verifying_key, 2)
+    PublicKeyPackage::new(verifying_shares, verifying_key, Some(2))
 }
 
 /// Generate a sample round1::SecretPackage.
