@@ -12,7 +12,7 @@ use crate::keys::KeyPackage;
 use crate::{
     compute_lagrange_coefficient,
     keys::{
-        repairable::{repair_share_step_1, repair_share_step_2, repair_share_step_3},
+        repairable::{repair_share_part1, repair_share_part2, repair_share_part3},
         PublicKeyPackage, SecretShare,
     },
     Ciphersuite, Error, Field, Group, Identifier,
@@ -62,25 +62,25 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     // Each helper generates random values for each helper
 
     let helper_1_deltas =
-        repair_share_step_1(&helpers, helper_1, &mut rng, participant.identifier).unwrap();
+        repair_share_part1(&helpers, helper_1, &mut rng, participant.identifier).unwrap();
     let helper_4_deltas =
-        repair_share_step_1(&helpers, helper_4, &mut rng, participant.identifier).unwrap();
+        repair_share_part1(&helpers, helper_4, &mut rng, participant.identifier).unwrap();
     let helper_5_deltas =
-        repair_share_step_1(&helpers, helper_5, &mut rng, participant.identifier).unwrap();
+        repair_share_part1(&helpers, helper_5, &mut rng, participant.identifier).unwrap();
 
     // Each helper calculates their sigma from the random values received from the other helpers
 
-    let helper_1_sigma: Sigma<C> = repair_share_step_2::<C>(&[
+    let helper_1_sigma: Sigma<C> = repair_share_part2::<C>(&[
         helper_1_deltas[&helpers[0]],
         helper_4_deltas[&helpers[0]],
         helper_5_deltas[&helpers[0]],
     ]);
-    let helper_4_sigma: Sigma<C> = repair_share_step_2::<C>(&[
+    let helper_4_sigma: Sigma<C> = repair_share_part2::<C>(&[
         helper_1_deltas[&helpers[1]],
         helper_4_deltas[&helpers[1]],
         helper_5_deltas[&helpers[1]],
     ]);
-    let helper_5_sigma: Sigma<C> = repair_share_step_2::<C>(&[
+    let helper_5_sigma: Sigma<C> = repair_share_part2::<C>(&[
         helper_1_deltas[&helpers[2]],
         helper_4_deltas[&helpers[2]],
         helper_5_deltas[&helpers[2]],
@@ -88,7 +88,7 @@ pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
     // The participant wishing to recover their share sums the sigmas sent from all helpers
 
-    let participant_recovered_share = repair_share_step_3(
+    let participant_recovered_share = repair_share_part3(
         &[helper_1_sigma, helper_4_sigma, helper_5_sigma],
         participant.identifier,
         &public_key_package,
@@ -108,8 +108,8 @@ fn generate_scalar_from_byte_string<C: Ciphersuite>(
     out.unwrap()
 }
 
-/// Test repair_share_step_1
-pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+/// Test repair_share_part1
+pub fn check_repair_share_part1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
     // Compute shares
 
     let max_signers = 5;
@@ -142,7 +142,7 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
     ];
 
     // Generate deltas for helper 4
-    let deltas = repair_share_step_1(&helpers, helper_4, &mut rng, participant.identifier).unwrap();
+    let deltas = repair_share_part1(&helpers, helper_4, &mut rng, participant.identifier).unwrap();
 
     let lagrange_coefficient = compute_lagrange_coefficient(
         &helpers.iter().cloned().collect(),
@@ -161,8 +161,8 @@ pub fn check_repair_share_step_1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng
     assert!(lhs == rhs)
 }
 
-/// Test repair_share_step_2
-pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helpers: &Value) {
+/// Test repair_share_part2
+pub fn check_repair_share_part2<C: Ciphersuite>(repair_share_helpers: &Value) {
     let values = &repair_share_helpers["scalar_generation"];
 
     let value_1 = Delta::new(generate_scalar_from_byte_string::<C>(
@@ -174,7 +174,7 @@ pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helpers: &Value) {
     let value_3 = Delta::new(generate_scalar_from_byte_string::<C>(
         values["random_scalar_3"].as_str().unwrap(),
     ));
-    let expected = repair_share_step_2::<C>(&[value_1, value_2, value_3]);
+    let expected = repair_share_part2::<C>(&[value_1, value_2, value_3]);
 
     let actual = Sigma::new(generate_scalar_from_byte_string::<C>(
         values["random_scalar_sum"].as_str().unwrap(),
@@ -183,8 +183,8 @@ pub fn check_repair_share_step_2<C: Ciphersuite>(repair_share_helpers: &Value) {
     assert!(actual == expected);
 }
 
-/// Test repair_share
-pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
+/// Test repair_share_part3
+pub fn check_repair_share_part3<C: Ciphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
     repair_share_helpers: &Value,
 ) {
@@ -217,7 +217,7 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
         sigmas["sigma_4"].as_str().unwrap(),
     ));
 
-    let actual = repair_share_step_3::<C>(
+    let actual = repair_share_part3::<C>(
         &[sigma_1, sigma_2, sigma_3, sigma_4],
         Identifier::try_from(2).unwrap(),
         &public_key_package,
@@ -230,8 +230,8 @@ pub fn check_repair_share_step_3<C: Ciphersuite, R: RngCore + CryptoRng>(
     assert!(expected == actual.signing_share().to_scalar());
 }
 
-/// Test repair share step 1 fails with invalid numbers of signers.
-pub fn check_repair_share_step_1_fails_with_invalid_min_signers<
+/// Test repair share part 1 fails with invalid numbers of signers.
+pub fn check_repair_share_part1_fails_with_invalid_min_signers<
     C: Ciphersuite,
     R: RngCore + CryptoRng,
 >(
@@ -255,7 +255,7 @@ pub fn check_repair_share_step_1_fails_with_invalid_min_signers<
 
     let helper = Identifier::try_from(3).unwrap();
 
-    let out = repair_share_step_1(
+    let out = repair_share_part1(
         &[helper],
         &key_packages[&helper],
         &mut rng,
