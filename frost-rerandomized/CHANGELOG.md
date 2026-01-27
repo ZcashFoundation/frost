@@ -6,7 +6,7 @@ Entries are listed in reverse chronological order.
 ## Unreleased
 
 
-## 3.0.0
+## 3.0.0-rc.0
 
 ### Breaking Changes
 
