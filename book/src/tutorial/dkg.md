@@ -1,5 +1,9 @@
 # Distributed Key Generation
 
+ZF FROST supports a variant of the DKG described in the [original FROST
+paper](https://eprint.iacr.org/2020/852.pdf) (the only difference is the absence
+of the context string which was deemed unnecessary after further analysis).
+
 The diagram below shows the distributed key generation process. Dashed lines
 represent data being sent through an [authenticated and confidential
 communication
@@ -46,6 +50,11 @@ running a protocol to ensure that all participants have the same value or that
 the protocol is aborted. Check the linked [Terminology
 section](https://frost.zfnd.org/terminology.html#broadcast-channel) for more
 details.
+
+In the context of the DKG, `n` broadcast channels will need to be set up; one
+for each participant. So each participant will broadcast their round 1 package
+to the other participants, and each participant needs to handle the broadcast
+from the other `n-1` participants.
 
 **Failure in using a proper broadcast channel will make the key generation
 insecure.**

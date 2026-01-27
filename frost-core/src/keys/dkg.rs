@@ -2,7 +2,11 @@
 //!
 //! The DKG module supports generating FROST key shares in a distributed manner,
 //! without a trusted dealer, via two rounds of communication between all
-//! participants.
+//! participants (with one round requiring a broadcast channel, so totalling
+//! three rounds of communication if using echo broadcast).
+//!
+//! For a higher level tutorial on how to use it, refer to the [ZF FROST
+//! Book](https://frost.zfnd.org/tutorial/dkg.html).
 //!
 //! This implements FROST KeyGen from the original [FROST paper], specifically
 //! Figure 1. This protocol is a variant of [Pedersen's DKG] that additionally

@@ -3,26 +3,19 @@
 The DKG module supports generating FROST key shares in a distributed manner,
 without a trusted dealer.
 
-Before starting, each participant needs a unique identifier, which can be built from
-a `u16`. The process in which these identifiers are allocated is up to the application.
-
-The distributed key generation process has 3 parts, with 2 communication rounds
-between them, in which each participant needs to send a "package" to every other
-participant. In the first round, each participant sends the same package
-(a [`round1::Package`]) to every other. In the second round, each receiver gets
-their own package (a [`round2::Package`]).
-
-Between part 1 and 2, each participant needs to hold onto a [`round1::SecretPackage`]
-that MUST be kept secret. Between part 2 and 3, each participant needs to hold
-onto a [`round2::SecretPackage`].
-
-After the third part, each participant will get a [`KeyPackage`] with their
-long-term secret share that must be kept secret, and a [`PublicKeyPackage`]
-that is public (and will be the same between all participants). With those
-they can proceed to sign messages with FROST.
-
+For a higher level tutorial on how to use it, refer to the [ZF FROST
+Book](https://frost.zfnd.org/tutorial/dkg.html).
 
 ## Example
+
+This example shows the whole procedure in a single program. Of course, in
+practice, each participant will run their own part in their own devices and
+packages will need to be sent between them, respecting the DKG requirements of
+using [authenticated and confidential communication
+channels](https://frost.zfnd.org/terminology.html#peer-to-peer-channel),
+additionally with a [**broadcast
+channel**](https://frost.zfnd.org/terminology.html#broadcast-channel) for the
+first round of communication to ensure all participants have the same value.
 
 ```rust
 # // ANCHOR: dkg_import
@@ -47,7 +40,10 @@ let mut round1_secret_packages = BTreeMap::new();
 
 // Keep track of all round 1 packages sent to the given participant.
 // This is used to simulate the broadcast; in practice the packages
-// will be sent through some communication channel.
+// will be sent through a [**broadcast
+// channel**](https://frost.zfnd.org/terminology.html#broadcast-channel)
+// on top of an [authenticated and confidential communication
+// channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 let mut received_round1_packages = BTreeMap::new();
 
 // For each participant, perform the first part of the DKG protocol.
@@ -69,7 +65,10 @@ for participant_index in 1..=max_signers {
 
     // "Send" the round 1 package to all other participants. In this
     // test this is simulated using a BTreeMap; in practice this will be
-    // sent through some communication channel.
+    // sent through a [**broadcast
+    // channel**](https://frost.zfnd.org/terminology.html#broadcast-channel)
+    // on top of an [authenticated and confidential communication
+    // channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
     for receiver_participant_index in 1..=max_signers {
         if receiver_participant_index == participant_index {
             continue;
@@ -95,7 +94,8 @@ let mut round2_secret_packages = BTreeMap::new();
 
 // Keep track of all round 2 packages sent to the given participant.
 // This is used to simulate the broadcast; in practice the packages
-// will be sent through some communication channel.
+// will be sent through an [authenticated and confidential communication
+// channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 let mut received_round2_packages = BTreeMap::new();
 
 // For each participant, perform the second part of the DKG protocol.
@@ -117,7 +117,8 @@ for participant_index in 1..=max_signers {
 
     // "Send" the round 2 package to all other participants. In this
     // test this is simulated using a BTreeMap; in practice this will be
-    // sent through some communication channel.
+    // sent through an [authenticated and confidential communication
+    // channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
     // Note that, in contrast to the previous part, here each other participant
     // gets its own specific package.
     for (receiver_identifier, round2_package) in round2_packages {

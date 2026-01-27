@@ -6,7 +6,6 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::indexing_slicing)]
 #![deny(clippy::unwrap_used)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
