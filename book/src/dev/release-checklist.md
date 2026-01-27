@@ -24,7 +24,11 @@ releases easier.
    versions, update those separately as required.)
 
 - Decide which version to tag the release with (e.g. v0.3.0), considering
-   [SemVer](https://doc.rust-lang.org/cargo/reference/semver.html).
+   [SemVer](https://doc.rust-lang.org/cargo/reference/semver.html). Run `cargo
+   semver-checks` to check if there are no API changes that break SemVer
+   compatibility. ([Installation
+   instructions](https://crates.io/crates/cargo-semver-checks)) Fix issues if
+   any (i.e. change the version, or revert/adapt the API change).
 
 - Create new issue. E.g. [Release v0.4.0](https://github.com/ZcashFoundation/frost/issues/377)
 
@@ -33,11 +37,6 @@ releases easier.
 
 - Bump the version of the crates in the root Cargo.toml file. (If they ever
    get out of sync, you will need to bump in each crate Cargo.toml file.)
-
-- Run `cargo semver-checks` to check if there are no API changes that break
-   SemVer compatibility. ([Installation
-   instructions](https://crates.io/crates/cargo-semver-checks)) Fix issues if
-   any (i.e. change the version, or revert/adapt the API change).
 
 - Bump the version used in the tutorial (importing.md)
 

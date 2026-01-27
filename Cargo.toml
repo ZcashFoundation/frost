@@ -17,7 +17,7 @@ members = [
 # in gencode/src/main.rs.
 edition = "2021"
 rust-version = "1.81"
-version = "2.2.0"
+version = "3.0.0-rc.0"
 authors = [
     "Deirdre Connolly <durumcrustulum@gmail.com>",
     "Chelsea Komlo <me@chelseakomlo.com>",
@@ -43,8 +43,8 @@ rand_core = "0.6"
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["rt", "time", "macros"] }
 
-frost-core = { path = "frost-core", version = "2.2.0", default-features = false }
-frost-rerandomized = { path = "frost-rerandomized", version = "2.2.0", default-features = false }
+frost-core = { path = "frost-core", version = "3.0.0-rc.0", default-features = false }
+frost-rerandomized = { path = "frost-rerandomized", version = "3.0.0-rc.0", default-features = false }
 
 [profile.test.package."*"]
 opt-level = 3

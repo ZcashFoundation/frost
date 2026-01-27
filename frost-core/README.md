@@ -8,4 +8,4 @@ For more details, refer to [The ZF FROST Book](https://frost.zfnd.org/).
 
 ## Example
 
-See ciphersuite-specific crates, e.g. [`frost_ristretto255`]([../frost_ristretto255](https://crates.io/crates/frost-ristretto255)).
+See ciphersuite-specific crates, e.g. [`frost_ristretto255`](https://crates.io/crates/frost-ristretto255).
