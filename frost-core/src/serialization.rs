@@ -2,7 +2,6 @@
 
 #[cfg(feature = "serde")]
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 #[cfg(feature = "serde")]
 use core::fmt::Formatter;
@@ -326,7 +325,7 @@ where
                     b"verifying_key" => Ok(Field::Field2),
                     b"min_signers" => Ok(Field::Field3),
                     _ => {
-                        let __value = &String::from_utf8_lossy(__value);
+                        let __value = &alloc::string::String::from_utf8_lossy(__value);
                         Err(serde::de::Error::unknown_field(__value, FIELDS))
                     }
                 }
