@@ -215,9 +215,7 @@ where
 
 /// A list of binding factors and their associated identifiers.
 #[derive(Clone)]
-#[cfg_attr(feature = "internals", visibility::make(pub))]
-#[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-pub(crate) struct BindingFactorList<C: Ciphersuite>(BTreeMap<Identifier<C>, BindingFactor<C>>);
+pub struct BindingFactorList<C: Ciphersuite>(BTreeMap<Identifier<C>, BindingFactor<C>>);
 
 impl<C> BindingFactorList<C>
 where

@@ -133,7 +133,7 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 64] {
         h.update(i);
     }
     let mut output = [0u8; 64];
-    output.copy_from_slice(h.finalize().as_slice());
+    output.copy_from_slice(h.finalize().as_ref());
     output
 }
 
