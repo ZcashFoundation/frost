@@ -1,5 +1,6 @@
 //! Ciphersuite-generic test functions.
 #![allow(clippy::type_complexity)]
+#![cfg(feature = "serialization")]
 
 use alloc::{borrow::ToOwned, collections::BTreeMap, vec::Vec};
 use rand_core::{CryptoRng, RngCore};
