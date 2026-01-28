@@ -51,9 +51,7 @@ serde_json.workspace = true
 
 
 [features]
-default = ["serialization", "std"]
-# No longer needed. Kept for retrocompatibility until 3.0.0
-std = []
+default = ["serialization"]
 #! ## Features
 ## Expose internal types, which do not have SemVer guarantees. This is an advanced
 ## feature which can be useful if you need to build a modified version of FROST.
