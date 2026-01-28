@@ -399,7 +399,7 @@ impl<C: Ciphersuite> GroupCommitmentShare<C> {
 #[cfg(feature = "internals")]
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-pub(super) fn encode_group_commitments<C: Ciphersuite>(
+pub fn encode_group_commitments<C: Ciphersuite>(
     signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
 ) -> Result<Vec<u8>, Error<C>> {
     let mut bytes = vec![];
