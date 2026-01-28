@@ -25,9 +25,7 @@ rand_core.workspace = true
 [dev-dependencies]
 
 [features]
-default = ["serialization", "std"]
-# No longer needed. Kept for retrocompatibility until 3.0.0
-std = []
+default = ["serialization"]
 #! ## Features
 ## Enable `serde` support for types that need to be communicated. You
 ## can use `serde` to serialize structs with any encoder that supports
