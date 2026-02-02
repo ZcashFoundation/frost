@@ -783,6 +783,8 @@ pub fn verify_signature_share<C: Ciphersuite>(
     let binding_factor_list: BindingFactorList<C> =
         compute_binding_factor_list(&signing_package, verifying_key, &[])?;
 
+    let signing_package = <C>::pre_commitment_aggregate(&signing_package, &binding_factor_list)?;
+
     // Compute the group commitment from signing commitments produced in round one.
     let group_commitment = compute_group_commitment(&signing_package, &binding_factor_list)?;
 
