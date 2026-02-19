@@ -65,11 +65,10 @@ frost-client init -c eve.toml
 
 This will create a config file for three users; Alice, Bob and Eve.
 
-```admonish note
-If you really want to run the demo in separate machines, then you can omit the
-`-c alice.toml` part of the command (i.e. run `frost-client init`); it will
-save to a default location in the user's home directory.
-```
+> [!NOTE]
+> If you really want to run the demo in separate machines, then you can omit the
+> `-c alice.toml` part of the command (i.e. run `frost-client init`); it will
+> save to a default location in the user's home directory.
 
 
 ## Generating FROST key shares
@@ -97,11 +96,10 @@ Generation. If you did the previous section, skip to "Generating the Full
 Viewing Key for the wallet".
 
 
-```admonish note
-This section assumes each participant is running the commands in their own
-machine. If you want to simulate all of them in a single machine,
-specify the config file for the user (e.g. `-c alice.toml`) accordingly.
-```
+> [!NOTE]
+> This section assumes each participant is running the commands in their own
+> machine. If you want to simulate all of them in a single machine,
+> specify the config file for the user (e.g. `-c alice.toml`) accordingly.
 
 
 ### Initializing config files
@@ -166,9 +164,8 @@ and the threshold number with the one given by the first participant.
 frost-client dkg -d "Alice, Bob and Eve's group" -s localhost:2744 -t 2 -C redpallas
 ```
 
-```admonish note
-A future version might not require specifying the threshold and group name.
-```
+> [!NOTE]
+> A future version might not require specifying the threshold and group name.
 
 
 ## Generating the Full Viewing Key for the wallet
@@ -210,15 +207,14 @@ Now you will need to fund this wallet with some ZEC. Use the Orchard address
 printed by the signer (see warning below). Send ZEC to that address using
 another account (or try [ZecFaucet](https://zecfaucet.com/)).
 
-```admonish danger
-The address being show by Ywallet is a unified address that includes both an
-Orchard and Sapling address. For the demo to work, you need to receive funds in
-your Orchard address. Whether that will happen depends on multiple factors so
-it's probably easier to use just the Orchard-only address printed by the signer.
-In Ywallet, you can also swipe right on the QR Code until it shows the "Orchard
-Address". **IF YOU SEND IT TO THE SAPLING ADDRESS, THE FUNDS WILL BECOME
-UNSPENDABLE AND WILL BE LOST!**
-```
+> [!CAUTION]
+> The address being show by Ywallet is a unified address that includes both an
+> Orchard and Sapling address. For the demo to work, you need to receive funds in
+> your Orchard address. Whether that will happen depends on multiple factors so
+> it's probably easier to use just the Orchard-only address printed by the signer.
+> In Ywallet, you can also swipe right on the QR Code until it shows the "Orchard
+> Address". **IF YOU SEND IT TO THE SAPLING ADDRESS, THE FUNDS WILL BECOME
+> UNSPENDABLE AND WILL BE LOST!**
 
 
 ## Creating the transaction
@@ -280,10 +276,9 @@ the one generated with the `zcash-sign` tool and press enter.
 
 The tool will connect to the server and wait for the other participants.
 
-```admonish warning
-If you prefer to pass the message (SIGHASH) or randomizer as files by using
-the `-m` and `-r` arguments, you will need to convert them to binary format.
-```
+> [!WARNING]
+> If you prefer to pass the message (SIGHASH) or randomizer as files by using
+> the `-m` and `-r` arguments, you will need to convert them to binary format.
 
 
 ### Participant 1 (Alice)

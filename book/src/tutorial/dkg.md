@@ -32,33 +32,31 @@ the application.) It returns a `round1::SecretPackage` and a `round1::Package`:
 {{#include ../../../frost-ristretto255/dkg.md:dkg_part1}}
 ```
 
-```admonish info
-Check the crate documentation for a [full working example](https://docs.rs/frost-ristretto255/latest/frost_ristretto255/keys/dkg/index.html#example); keep in mind it's an artificial
-one since everything runs in the same program.
-```
+> [!TIP]
+> Check the crate documentation for a [full working example](https://docs.rs/frost-ristretto255/latest/frost_ristretto255/keys/dkg/index.html#example); keep in mind it's an artificial
+> one since everything runs in the same program.
 
 The `round1::SecretPackage` must be kept in memory to use in the next round. The
 `round1::Package` must be sent to all other participants using a [**broadcast
 channel**](https://frost.zfnd.org/terminology.html#broadcast-channel) to ensure
 that all participants receive the same value.
 
-```admonish danger
-A [**broadcast
-channel**](https://frost.zfnd.org/terminology.html#broadcast-channel) in this
-context is not simply broadcasting the value to all participants. It requires
-running a protocol to ensure that all participants have the same value or that
-the protocol is aborted. Check the linked [Terminology
-section](https://frost.zfnd.org/terminology.html#broadcast-channel) for more
-details.
-
-In the context of the DKG, `n` broadcast channels will need to be set up; one
-for each participant. So each participant will broadcast their round 1 package
-to the other participants, and each participant needs to handle the broadcast
-from the other `n-1` participants.
-
-**Failure in using a proper broadcast channel will make the key generation
-insecure.**
-```
+> [!CAUTION]
+> A [**broadcast
+> channel**](https://frost.zfnd.org/terminology.html#broadcast-channel) in this
+> context is not simply broadcasting the value to all participants. It requires
+> running a protocol to ensure that all participants have the same value or that
+> the protocol is aborted. Check the linked [Terminology
+> section](https://frost.zfnd.org/terminology.html#broadcast-channel) for more
+> details.
+>
+> In the context of the DKG, `n` broadcast channels will need to be set up; one
+> for each participant. So each participant will broadcast their round 1 package
+> to the other participants, and each participant needs to handle the broadcast
+> from the other `n-1` participants.
+>
+> **Failure in using a proper broadcast channel will make the key generation
+> insecure.**
 
 ## Part 2
 
@@ -84,11 +82,10 @@ The `round2::Package`s must be sent to their respective participants with the
 given `Identifier`s, using an [authenticated and confidential communication
 channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 
-```admonish danger
-The `round2::Package`s MUST be encrypted, otherwise an attacker who can read
-the content of the packages will be able to recreate the secret being
-generated.
-```
+> [!CAUTION]
+> The `round2::Package`s MUST be encrypted, otherwise an attacker who can read
+> the content of the packages will be able to recreate the secret being
+> generated.
 
 ## Part 3
 
@@ -105,6 +102,5 @@ a `PublicKeyPackage` containing the group verifying key:
 {{#include ../../../frost-ristretto255/dkg.md:dkg_part3}}
 ```
 
-```admonish note
-All participants will generate the same `PublicKeyPackage`.
-```
+> [!NOTE]
+> All participants will generate the same `PublicKeyPackage`.
