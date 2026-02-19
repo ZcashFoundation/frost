@@ -15,13 +15,19 @@ on:
     paths:
       # doc source files
       - 'book/**'
-      - '**/firebase.json'
-      - 'katex-header.html'
+      # source files; some md files include code snippets that we want to keep up to date
+      - 'frost-*/**'
       # workflow definitions
       - '.github/workflows/docs.yml'
   push:
     branches:
       - main
+
+# Sets permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 env:
   RUST_LOG: info
@@ -31,7 +37,7 @@ env:
 
 jobs:
   build:
-    name: Build and Deploy Docs (+beta)
+    name: Build Docs (+beta)
     timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
@@ -60,23 +66,23 @@ jobs:
         run: |
           mdbook build book/
 
-      - name: Deploy FROST book to Firebase preview channel
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        if: ${{ github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' }}
-        with:
-          entrypoint: "book/"
-          expires: 14d
-          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
-
-      - name: Deploy FROST book to Firebase live channel
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
         with:
-          channelId: live
-          entrypoint: "book/"
-          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          path: 'book/book'
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+    needs: build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
