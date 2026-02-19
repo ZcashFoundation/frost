@@ -74,17 +74,15 @@ not catastrophic. Users can recover their key share with the help of other
 participants, and would only need to remember their identifier (and other
 participants can probably help with that).
 
-```admonish note
-Orchard is simpler to handle, so it may be a good idea to just
-support it with FROST.
-```
+> [!NOTE]
+> Orchard is simpler to handle, so it may be a good idea to just
+> support it with FROST.
 
-```admonish note
-The only secret information is the key share. So another possibility
-is to just ask the user to backup it (using a seed phrase format, or other
-string encoding) and get the remaining information from the other participants
-when recovering a wallet.
-```
+> [!NOTE]
+> The only secret information is the key share. So another possibility
+> is to just ask the user to backup it (using a seed phrase format, or other
+> string encoding) and get the remaining information from the other participants
+> when recovering a wallet.
 
 ## Communications
 

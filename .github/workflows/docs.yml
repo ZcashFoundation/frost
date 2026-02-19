@@ -48,13 +48,12 @@ jobs:
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v2.0.0
         with:
-          mdbook-version: '0.4.18'
+          mdbook-version: '0.5.2'
 
       # TODO: actions-mdbook does not yet have an option to install mdbook-mermaid https://github.com/peaceiris/actions-mdbook/issues/426
       - name: Install plugins
         run: |
           cargo install mdbook-mermaid
-          cargo install mdbook-admonish
 
       - name: Build FROST book
         run: |
