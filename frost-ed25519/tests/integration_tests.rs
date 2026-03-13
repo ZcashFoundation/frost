@@ -15,6 +15,13 @@ fn check_sign_with_dkg() {
 }
 
 #[test]
+fn check_sign_with_cocktail_dkg() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_cocktail_dkg::<Ed25519Sha512, _>(rng);
+}
+
+#[test]
 fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
     let rng = rand::rngs::OsRng;
 

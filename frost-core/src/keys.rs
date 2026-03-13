@@ -30,6 +30,7 @@ use crate::serialization::{Deserialize, Serialize};
 
 use super::compute_lagrange_coefficient;
 
+pub mod cocktail_dkg;
 pub mod dkg;
 pub mod refresh;
 pub mod repairable;

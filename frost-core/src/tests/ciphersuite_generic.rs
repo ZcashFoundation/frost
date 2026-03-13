@@ -6,6 +6,7 @@ use alloc::{borrow::ToOwned, collections::BTreeMap, vec::Vec};
 use rand_core::{CryptoRng, RngCore};
 
 use crate as frost;
+use crate::keys::cocktail_dkg::CocktailCiphersuite;
 use crate::keys::dkg::{round1, round2};
 use crate::keys::{SecretShare, SigningShare};
 use crate::round1::SigningNonces;
@@ -1172,4 +1173,124 @@ pub async fn async_check_sign<C: Ciphersuite, R: RngCore + CryptoRng + 'static +
     })
     .await
     .unwrap();
+}
+
+/// Test FROST signing using COCKTAIL-DKG for key generation with a Ciphersuite.
+pub fn check_sign_with_cocktail_dkg<C: CocktailCiphersuite + PartialEq, R: RngCore + CryptoRng>(
+    mut rng: R,
+) -> (Vec<u8>, Signature<C>, VerifyingKey<C>)
+where
+    C::Group: core::cmp::PartialEq,
+{
+    let max_signers: u16 = 3;
+    let min_signers: u16 = 2;
+
+    // Generate static signing keys for all participants.
+    let mut static_keys: BTreeMap<Identifier<C>, SigningKey<C>> = BTreeMap::new();
+    let mut participants: BTreeMap<Identifier<C>, VerifyingKey<C>> = BTreeMap::new();
+    for i in 1..=max_signers {
+        let id = Identifier::<C>::try_from(i).expect("should be nonzero");
+        let sk = SigningKey::<C>::new(&mut rng);
+        let vk = VerifyingKey::from(&sk);
+        static_keys.insert(id, sk);
+        participants.insert(id, vk);
+    }
+
+    let context = b"test-cocktail-dkg";
+    let extension = b"";
+
+    ////////////////////////////////////////////////////////////////////////////
+    // COCKTAIL-DKG Round 1
+    ////////////////////////////////////////////////////////////////////////////
+
+    let mut round1_secret_packages: BTreeMap<
+        Identifier<C>,
+        frost::keys::cocktail_dkg::round1::SecretPackage<C>,
+    > = BTreeMap::new();
+    let mut received_round1_packages: BTreeMap<
+        Identifier<C>,
+        BTreeMap<Identifier<C>, frost::keys::cocktail_dkg::round1::Package<C>>,
+    > = BTreeMap::new();
+
+    for (&id, sk) in &static_keys {
+        let (secret_pkg, pkg) = frost::keys::cocktail_dkg::part1(
+            id,
+            max_signers,
+            min_signers,
+            sk,
+            &participants,
+            context,
+            &mut rng,
+        )
+        .unwrap();
+        round1_secret_packages.insert(id, secret_pkg);
+        for (&receiver_id, _) in &participants {
+            if receiver_id != id {
+                received_round1_packages
+                    .entry(receiver_id)
+                    .or_default()
+                    .insert(id, pkg.clone());
+            }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // COCKTAIL-DKG Round 2
+    ////////////////////////////////////////////////////////////////////////////
+
+    let mut round2_secret_packages: BTreeMap<
+        Identifier<C>,
+        frost::keys::cocktail_dkg::round2::SecretPackage<C>,
+    > = BTreeMap::new();
+    let mut received_round2_packages: BTreeMap<
+        Identifier<C>,
+        BTreeMap<Identifier<C>, frost::keys::cocktail_dkg::round2::Package<C>>,
+    > = BTreeMap::new();
+
+    for (&id, sk) in &static_keys {
+        let secret_pkg = round1_secret_packages.remove(&id).unwrap();
+        let round1_packages = &received_round1_packages[&id];
+        let (r2_secret, r2_pkg) = frost::keys::cocktail_dkg::part2(
+            secret_pkg,
+            round1_packages,
+            sk,
+            &participants,
+            context,
+            extension,
+            &mut rng,
+        )
+        .unwrap();
+        round2_secret_packages.insert(id, r2_secret);
+        for (&receiver_id, _) in &participants {
+            received_round2_packages
+                .entry(receiver_id)
+                .or_default()
+                .insert(id, r2_pkg.clone());
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // COCKTAIL-DKG Round 3 (CertEq)
+    ////////////////////////////////////////////////////////////////////////////
+
+    let mut key_packages = BTreeMap::new();
+    let mut pubkey_packages = BTreeMap::new();
+
+    for (&id, _) in &static_keys {
+        let r2_secret = &round2_secret_packages[&id];
+        let round2_packages = &received_round2_packages[&id];
+        let (key_pkg, pubkey_pkg) =
+            frost::keys::cocktail_dkg::part3(r2_secret, round2_packages).unwrap();
+        key_packages.insert(id, key_pkg);
+        pubkey_packages.insert(id, pubkey_pkg);
+    }
+
+    // All participants must agree on the same group public key.
+    let first_pubkey = pubkey_packages.values().next().unwrap().clone();
+    for pubkey_pkg in pubkey_packages.values() {
+        assert_eq!(first_pubkey.verifying_key(), pubkey_pkg.verifying_key());
+    }
+
+    // Use the DKG-derived key packages to run a FROST signing session.
+    check_sign(min_signers, key_packages, rng, first_pubkey).unwrap()
 }
