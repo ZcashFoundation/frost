@@ -98,6 +98,29 @@ pub trait CocktailCiphersuite: Ciphersuite {
         nonce: &[u8; 24],
         ciphertext: &[u8],
     ) -> Result<Vec<u8>, Error<Self>>;
+
+    /// Optionally derive or update the extension from the payloads received in Round 2.
+    ///
+    /// Called in [`part2`] after all shares have been decrypted, before the transcript
+    /// is built. The `extension` argument is the value originally passed to [`part2`].
+    /// `received_payloads` maps each sender's [`Identifier`] to their decrypted payload
+    /// (empty `Vec` if the sender sent no payload).
+    ///
+    /// The return value replaces `extension` when building the transcript.
+    ///
+    /// The default implementation returns `extension` unchanged. Override this to
+    /// derive the extension from the payloads, for example by computing a
+    /// commitment over all payloads as recommended in the COCKTAIL-DKG spec:
+    ///
+    /// ```text
+    /// ext = H(n || len(payload_1) || payload_1 || ... || len(payload_n) || payload_n)
+    /// ```
+    fn derive_extension(
+        extension: &[u8],
+        _received_payloads: &BTreeMap<Identifier<Self>, Vec<u8>>,
+    ) -> Vec<u8> {
+        extension.to_vec()
+    }
 }
 
 /// Derives a 256-bit key and 192-bit nonce from an H6 output, following the
@@ -772,6 +795,9 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         return Err(Error::InvalidSecretShare { culprit: None });
     }
 
+    // Allow the ciphersuite to derive or update the extension from received payloads
+    let effective_extension = C::derive_extension(extension, &received_payloads);
+
     // Build transcript and sign it with d_i
     let transcript = build_transcript::<C>(
         context,
@@ -781,7 +807,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         &all_commitments,
         &all_pops,
         &all_ephemeral_pubs,
-        extension,
+        &effective_extension,
     )?;
     let transcript_signature = static_signing_key.sign(&mut rng, &transcript);
 
