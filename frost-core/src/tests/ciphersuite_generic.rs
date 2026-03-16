@@ -1220,6 +1220,7 @@ where
             sk,
             &participants,
             context,
+            &BTreeMap::new(),
             &mut rng,
         )
         .unwrap();
@@ -1250,7 +1251,7 @@ where
     for (&id, sk) in &static_keys {
         let secret_pkg = round1_secret_packages.remove(&id).unwrap();
         let round1_packages = &received_round1_packages[&id];
-        let (r2_secret, r2_pkg) = frost::keys::cocktail_dkg::part2(
+        let (r2_secret, r2_pkg, _received_payloads) = frost::keys::cocktail_dkg::part2(
             secret_pkg,
             round1_packages,
             sk,

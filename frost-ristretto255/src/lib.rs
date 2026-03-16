@@ -238,6 +238,12 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ristretto255Sha512 
         h.finalize().to_vec()
     }
 
+    fn H_kdf(data: &[u8]) -> alloc::vec::Vec<u8> {
+        let mut h = Sha512::new();
+        h.update(data);
+        h.finalize().to_vec()
+    }
+
     fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {
         use chacha20poly1305::{aead::Aead, KeyInit, XChaCha20Poly1305, XNonce};
         let cipher = XChaCha20Poly1305::new(key.into());

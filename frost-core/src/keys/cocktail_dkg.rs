@@ -61,9 +61,10 @@ pub trait CocktailCiphersuite: Ciphersuite {
     /// Defined in the COCKTAIL-DKG specification as:
     /// `H6(Se, Sd, E, Pi, Pj, context) = Hash(domain || Se || Sd || E || Pi || Pj || len(context) || context)`
     ///
-    /// The output must be at least 56 bytes. The caller extracts:
-    /// - `key  = output[..32]`
-    /// - `nonce = output[32..56]`
+    /// When the output is at least 56 bytes (e.g. SHA-512, BLAKE2b-512, SHAKE256),
+    /// the caller uses `output[..32]` as the key and `output[32..56]` as the nonce.
+    /// When the output is shorter than 56 bytes (e.g. SHA-256), the output is used
+    /// as IKM and [`Self::H_kdf`] is called separately to derive the key and nonce.
     fn H6(
         shared_secret_ephem: &[u8],
         shared_secret_static: &[u8],
@@ -72,6 +73,14 @@ pub trait CocktailCiphersuite: Ciphersuite {
         recipient_pub: &[u8],
         context: &[u8],
     ) -> Vec<u8>;
+
+    /// The ciphersuite's base hash function, used for KDF purposes when the H6
+    /// output is shorter than 56 bytes.
+    ///
+    /// Called as `H_kdf(label || ikm)` where label is either
+    /// `"COCKTAIL-derive-key"` or `"COCKTAIL-derive-nonce"` and ikm is the
+    /// H6 output.
+    fn H_kdf(data: &[u8]) -> Vec<u8>;
 
     /// Encrypt a plaintext using an AEAD scheme.
     ///
@@ -89,6 +98,37 @@ pub trait CocktailCiphersuite: Ciphersuite {
         nonce: &[u8; 24],
         ciphertext: &[u8],
     ) -> Result<Vec<u8>, Error<Self>>;
+}
+
+/// Derives a 256-bit key and 192-bit nonce from an H6 output, following the
+/// `DeriveKeyAndNonce` helper in the COCKTAIL-DKG specification.
+///
+/// - If the H6 output is at least 56 bytes: `key = output[..32]`, `nonce = output[32..56]`.
+/// - Otherwise: `key = H_kdf("COCKTAIL-derive-key" || ikm)`, `nonce = H_kdf("COCKTAIL-derive-nonce" || ikm)[..24]`.
+fn derive_key_and_nonce<C: CocktailCiphersuite>(h6: &[u8]) -> Result<([u8; 32], [u8; 24]), Error<C>> {
+    let mut key = [0u8; 32];
+    let mut nonce = [0u8; 24];
+    if h6.len() >= 56 {
+        key.copy_from_slice(&h6[..32]);
+        nonce.copy_from_slice(&h6[32..56]);
+    } else {
+        let mut key_input = b"COCKTAIL-derive-key".to_vec();
+        key_input.extend_from_slice(h6);
+        let key_hash = C::H_kdf(&key_input);
+        if key_hash.len() < 32 {
+            return Err(Error::InvalidSignature);
+        }
+        key.copy_from_slice(&key_hash[..32]);
+
+        let mut nonce_input = b"COCKTAIL-derive-nonce".to_vec();
+        nonce_input.extend_from_slice(h6);
+        let nonce_hash = C::H_kdf(&nonce_input);
+        if nonce_hash.len() < 24 {
+            return Err(Error::InvalidSignature);
+        }
+        nonce.copy_from_slice(&nonce_hash[..24]);
+    }
+    Ok((key, nonce))
 }
 
 /// Serialize a group element to a `Vec<u8>`.
@@ -440,6 +480,9 @@ pub mod round2 {
 ///   Must include the calling participant's own key and have exactly `max_signers` entries.
 /// - `context`: A session-unique context string. It is **RECOMMENDED** to construct this as
 ///   `H("COCKTAIL-DKG-CONTEXT" || session_id || P_1 || ... || P_n)`.
+/// - `payloads`: Optional application-defined payloads to encrypt alongside each share.
+///   `payloads[j]` is encrypted together with the share for participant `j` as
+///   `plaintext = s_{i,j} || payload_{i,j}`. Missing entries are treated as empty.
 /// - `rng`: A cryptographically secure random number generator.
 ///
 /// # Returns
@@ -454,6 +497,7 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     static_privkey: &SigningKey<C>,
     participants: &BTreeMap<Identifier<C>, VerifyingKey<C>>,
     context: &[u8],
+    payloads: &BTreeMap<Identifier<C>, Vec<u8>>,
     mut rng: R,
 ) -> Result<(round1::SecretPackage<C>, round1::Package<C>), Error<C>> {
     validate_num_of_signers::<C>(min_signers, max_signers)?;
@@ -507,14 +551,15 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
             &recipient_pubkey.serialize()?,
             context,
         );
-        let mut key = [0u8; 32];
-        let mut nonce = [0u8; 24];
-        key.copy_from_slice(&h6[..32]);
-        nonce.copy_from_slice(&h6[32..56]);
+        let (key, nonce) = derive_key_and_nonce::<C>(&h6)?;
 
-        // Plaintext = scalar bytes of the share
-        let plaintext = <<C::Group as Group>::Field>::serialize(&share);
-        let ciphertext = C::aead_encrypt(&key, &nonce, plaintext.as_ref());
+        // Plaintext = share bytes || optional application payload
+        let share_bytes = <<C::Group as Group>::Field>::serialize(&share);
+        let mut plaintext = share_bytes.as_ref().to_vec();
+        if let Some(payload) = payloads.get(recipient_id) {
+            plaintext.extend_from_slice(payload);
+        }
+        let ciphertext = C::aead_encrypt(&key, &nonce, &plaintext);
         encrypted_shares.insert(*recipient_id, ciphertext);
     }
 
@@ -574,7 +619,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     context: &[u8],
     extension: &[u8],
     mut rng: R,
-) -> Result<(round2::SecretPackage<C>, round2::Package<C>), Error<C>> {
+) -> Result<(round2::SecretPackage<C>, round2::Package<C>, BTreeMap<Identifier<C>, Vec<u8>>), Error<C>> {
     if round1_packages.len() != (secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
     }
@@ -619,6 +664,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
 
     // Step 3: Decrypt, verify, and accumulate all shares
     let mut signing_share_scalar = <<C::Group as Group>::Field>::zero();
+    let mut received_payloads: BTreeMap<Identifier<C>, Vec<u8>> = BTreeMap::new();
 
     // Self-share: s_{i,i} = f_i(i)
     let self_share_val = evaluate_polynomial(my_id, &my_coefficients);
@@ -655,10 +701,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
             &my_pub_bytes,
             context,
         );
-        let mut key = [0u8; 32];
-        let mut nonce = [0u8; 24];
-        key.copy_from_slice(&h6[..32]);
-        nonce.copy_from_slice(&h6[32..56]);
+        let (key, nonce) = derive_key_and_nonce::<C>(&h6)?;
 
         let ciphertext = package
             .encrypted_shares
@@ -696,6 +739,10 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
                 culprit: *sender_id,
             }
         })?;
+
+        // Collect optional payload (remainder after the share bytes)
+        let payload = plaintext[scalar_len..].to_vec();
+        received_payloads.insert(*sender_id, payload);
 
         // Verify share against sender's VSS commitment
         SecretShare::new(my_id, SigningShare::new(s_j_i), package.commitment.clone())
@@ -750,7 +797,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     );
     let round2_package = round2::Package::new(transcript_signature);
 
-    Ok((round2_secret, round2_package))
+    Ok((round2_secret, round2_package, received_payloads))
 }
 
 /// Performs Round 3 (CertEq) of the COCKTAIL-DKG protocol.

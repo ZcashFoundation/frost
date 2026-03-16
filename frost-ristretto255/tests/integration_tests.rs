@@ -421,6 +421,7 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
             sk,
             &participants,
             context,
+            &BTreeMap::new(),
             &mut rng,
         )
         .unwrap();
@@ -446,7 +447,7 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
     for (&id, sk) in &static_keys {
         let secret_pkg = round1_secret_packages.remove(&id).unwrap();
         let round1_packages = &received_round1_packages[&id];
-        let (r2_secret, r2_pkg) = keys::cocktail_dkg::part2(
+        let (r2_secret, r2_pkg, _received_payloads) = keys::cocktail_dkg::part2(
             secret_pkg,
             round1_packages,
             sk,

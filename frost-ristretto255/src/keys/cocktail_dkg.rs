@@ -1,3 +1,4 @@
+use alloc::{collections::BTreeMap, vec::Vec};
 use super::*;
 
 pub use frost::keys::cocktail_dkg::CocktailCiphersuite;
@@ -44,6 +45,7 @@ pub fn part1<RNG: RngCore + CryptoRng>(
     static_signing_key: &SigningKey,
     participants: &BTreeMap<Identifier, VerifyingKey>,
     context: &[u8],
+    payloads: &BTreeMap<Identifier, Vec<u8>>,
     rng: RNG,
 ) -> Result<(round1::SecretPackage, round1::Package), Error> {
     frost::keys::cocktail_dkg::part1(
@@ -53,6 +55,7 @@ pub fn part1<RNG: RngCore + CryptoRng>(
         static_signing_key,
         participants,
         context,
+        payloads,
         rng,
     )
 }
@@ -66,7 +69,7 @@ pub fn part2<RNG: RngCore + CryptoRng>(
     context: &[u8],
     extension: &[u8],
     rng: RNG,
-) -> Result<(round2::SecretPackage, round2::Package), Error> {
+) -> Result<(round2::SecretPackage, round2::Package, BTreeMap<Identifier, Vec<u8>>), Error> {
     frost::keys::cocktail_dkg::part2(
         secret_package,
         round1_packages,
