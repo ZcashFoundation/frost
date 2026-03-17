@@ -211,7 +211,7 @@ fn pop_verify<C: CocktailCiphersuite>(
 }
 
 /// Parsed representation of a COCKTAIL-DKG transcript.
-struct ParsedTranscript<C: CocktailCiphersuite> {
+struct Transcript<C: CocktailCiphersuite> {
     context: Vec<u8>,
     n: u16,
     t: u16,
@@ -220,155 +220,151 @@ struct ParsedTranscript<C: CocktailCiphersuite> {
     ephemeral_pubs: BTreeMap<Identifier<C>, Element<C>>,
 }
 
-/// Parse a canonical transcript byte string into its constituent fields.
-///
-/// Identifiers are reconstructed as the standard 1-based sequence `1..=n`.
-/// Returns `Err(Error::InvalidSignature)` if the bytes are malformed or truncated.
-fn parse_transcript<C: CocktailCiphersuite>(bytes: &[u8]) -> Result<ParsedTranscript<C>, Error<C>> {
-    let elem_size = <C::Group>::serialize(&<C::Group>::generator())
-        .expect("generator serialization always succeeds")
-        .as_ref()
-        .len();
-    let scalar_size =
-        <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
+impl<C: CocktailCiphersuite> Transcript<C> {
+    /// Parse a canonical transcript byte string into its constituent fields.
+    ///
+    /// Identifiers are reconstructed as the standard 1-based sequence `1..=n`.
+    /// Returns `Err(Error::InvalidSignature)` if the bytes are malformed or truncated.
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
+        let elem_size = <C::Group>::serialize(&<C::Group>::generator())
+            .expect("generator serialization always succeeds")
             .as_ref()
             .len();
-    let sig_size = elem_size + scalar_size;
+        let scalar_size =
+            <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
+                .as_ref()
+                .len();
+        let sig_size = elem_size + scalar_size;
 
-    let mut pos = 0usize;
+        let mut pos = 0usize;
 
-    // Returns `bytes[pos..pos+n]` and advances `pos`, or errors if out of bounds.
-    let mut take = |n: usize| -> Option<&[u8]> {
-        let end = pos.checked_add(n)?;
-        let slice = bytes.get(pos..end)?;
-        pos = end;
-        Some(slice)
-    };
+        // Returns `bytes[pos..pos+n]` and advances `pos`, or errors if out of bounds.
+        let mut take = |n: usize| -> Option<&[u8]> {
+            let end = pos.checked_add(n)?;
+            let slice = bytes.get(pos..end)?;
+            pos = end;
+            Some(slice)
+        };
 
-    let ctx_len = u64::from_le_bytes(
-        take(8)
-            .ok_or(Error::InvalidSignature)?
-            .try_into()
-            .expect("slice is 8 bytes"),
-    ) as usize;
-    let context = take(ctx_len).ok_or(Error::InvalidSignature)?.to_vec();
+        let ctx_len = u64::from_le_bytes(
+            take(8)
+                .ok_or(Error::InvalidSignature)?
+                .try_into()
+                .expect("slice is 8 bytes"),
+        ) as usize;
+        let context = take(ctx_len).ok_or(Error::InvalidSignature)?.to_vec();
 
-    let n = u32::from_le_bytes(
-        take(4)
-            .ok_or(Error::InvalidSignature)?
-            .try_into()
-            .expect("slice is 4 bytes"),
-    ) as u16;
-    let t = u32::from_le_bytes(
-        take(4)
-            .ok_or(Error::InvalidSignature)?
-            .try_into()
-            .expect("slice is 4 bytes"),
-    ) as u16;
+        let n = u32::from_le_bytes(
+            take(4)
+                .ok_or(Error::InvalidSignature)?
+                .try_into()
+                .expect("slice is 4 bytes"),
+        ) as u16;
+        let t = u32::from_le_bytes(
+            take(4)
+                .ok_or(Error::InvalidSignature)?
+                .try_into()
+                .expect("slice is 4 bytes"),
+        ) as u16;
 
-    let identifiers: Vec<Identifier<C>> = (1..=n)
-        .map(Identifier::try_from)
-        .collect::<Result<Vec<_>, _>>()?;
+        let identifiers: Vec<Identifier<C>> = (1..=n)
+            .map(Identifier::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
 
-    let mut participants = BTreeMap::new();
-    for &id in &identifiers {
-        let pk = VerifyingKey::deserialize(take(elem_size).ok_or(Error::InvalidSignature)?)?;
-        participants.insert(id, pk);
+        let mut participants = BTreeMap::new();
+        for &id in &identifiers {
+            let pk = VerifyingKey::deserialize(take(elem_size).ok_or(Error::InvalidSignature)?)?;
+            participants.insert(id, pk);
+        }
+
+        let commitment_size = t as usize * elem_size;
+        let mut commitments = BTreeMap::new();
+        for &id in &identifiers {
+            let c = VerifiableSecretSharingCommitment::deserialize_whole(
+                take(commitment_size).ok_or(Error::InvalidSignature)?,
+            )?;
+            commitments.insert(id, c);
+        }
+
+        // Parse PoPs to advance pos; they are not needed for recovery.
+        for _ in 0..n {
+            let _ = Signature::default_deserialize(take(sig_size).ok_or(Error::InvalidSignature)?)?;
+        }
+
+        let mut ephemeral_pubs = BTreeMap::new();
+        for &id in &identifiers {
+            let pk = VerifyingKey::deserialize(take(elem_size).ok_or(Error::InvalidSignature)?)?;
+            ephemeral_pubs.insert(id, pk.to_element());
+        }
+
+        let ext_len = u64::from_le_bytes(
+            take(8)
+                .ok_or(Error::InvalidSignature)?
+                .try_into()
+                .expect("slice is 8 bytes"),
+        ) as usize;
+        take(ext_len).ok_or(Error::InvalidSignature)?; // extension (not needed for recovery)
+
+        if pos != bytes.len() {
+            return Err(Error::InvalidSignature);
+        }
+
+        Ok(Self {
+            context,
+            n,
+            t,
+            participants,
+            commitments,
+            ephemeral_pubs,
+        })
     }
 
-    let commitment_size = t as usize * elem_size;
-    let mut commitments = BTreeMap::new();
-    for &id in &identifiers {
-        let c = VerifiableSecretSharingCommitment::deserialize_whole(
-            take(commitment_size).ok_or(Error::InvalidSignature)?,
-        )?;
-        commitments.insert(id, c);
+    /// Build the canonical public transcript `T` for Round 3 certification.
+    ///
+    /// Structure (exact order from the specification):
+    /// 1. `len(context)` as little-endian u64
+    /// 2. `context`
+    /// 3. `n` as little-endian u32
+    /// 4. `t` as little-endian u32
+    /// 5. `P_j` for each participant in identifier-sorted order
+    /// 6. `C_j` (full VSS commitment) for each participant in identifier-sorted order
+    /// 7. `PoP_j` for each participant in identifier-sorted order
+    /// 8. `E_j` for each participant in identifier-sorted order
+    /// 9. `len(ext)` as little-endian u64
+    /// 10. `ext`
+    fn serialize(
+        &self,
+        pops: &BTreeMap<Identifier<C>, Signature<C>>,
+        extension: &[u8],
+    ) -> Result<Vec<u8>, Error<C>> {
+        let mut t_bytes = Vec::new();
+
+        t_bytes.extend_from_slice(&(self.context.len() as u64).to_le_bytes());
+        t_bytes.extend_from_slice(&self.context);
+        t_bytes.extend_from_slice(&(self.n as u32).to_le_bytes());
+        t_bytes.extend_from_slice(&(self.t as u32).to_le_bytes());
+
+        for pk in self.participants.values() {
+            t_bytes.extend_from_slice(&pk.serialize()?);
+        }
+        for id in self.participants.keys() {
+            let c = self.commitments.get(id).ok_or(Error::PackageNotFound)?;
+            t_bytes.extend_from_slice(&c.serialize_whole()?);
+        }
+        for id in self.participants.keys() {
+            let pop = pops.get(id).ok_or(Error::PackageNotFound)?;
+            t_bytes.extend_from_slice(&pop.default_serialize()?);
+        }
+        for id in self.participants.keys() {
+            let e = self.ephemeral_pubs.get(id).ok_or(Error::PackageNotFound)?;
+            t_bytes.extend_from_slice(&<C::Group>::serialize(e)?.as_ref().to_vec());
+        }
+
+        t_bytes.extend_from_slice(&(extension.len() as u64).to_le_bytes());
+        t_bytes.extend_from_slice(extension);
+
+        Ok(t_bytes)
     }
-
-    // Parse PoPs to advance pos; they are not needed for recovery.
-    for _ in 0..n {
-        let _ = Signature::default_deserialize(take(sig_size).ok_or(Error::InvalidSignature)?)?;
-    }
-
-    let mut ephemeral_pubs = BTreeMap::new();
-    for &id in &identifiers {
-        let pk = VerifyingKey::deserialize(take(elem_size).ok_or(Error::InvalidSignature)?)?;
-        ephemeral_pubs.insert(id, pk.to_element());
-    }
-
-    let ext_len = u64::from_le_bytes(
-        take(8)
-            .ok_or(Error::InvalidSignature)?
-            .try_into()
-            .expect("slice is 8 bytes"),
-    ) as usize;
-    take(ext_len).ok_or(Error::InvalidSignature)?; // extension (not needed for recovery)
-
-    if pos != bytes.len() {
-        return Err(Error::InvalidSignature);
-    }
-
-    Ok(ParsedTranscript {
-        context,
-        n,
-        t,
-        participants,
-        commitments,
-        ephemeral_pubs,
-    })
-}
-
-/// Build the canonical public transcript `T` for Round 3 certification.
-///
-/// Structure (exact order from the specification):
-/// 1. `len(context)` as little-endian u64
-/// 2. `context`
-/// 3. `n` as little-endian u32
-/// 4. `t` as little-endian u32
-/// 5. `P_j` for each participant in identifier-sorted order
-/// 6. `C_j` (full VSS commitment) for each participant in identifier-sorted order
-/// 7. `PoP_j` for each participant in identifier-sorted order
-/// 8. `E_j` for each participant in identifier-sorted order
-/// 9. `len(ext)` as little-endian u64
-/// 10. `ext`
-#[allow(clippy::too_many_arguments)]
-fn build_transcript<C: CocktailCiphersuite>(
-    context: &[u8],
-    n: u16,
-    t: u16,
-    participants: &BTreeMap<Identifier<C>, VerifyingKey<C>>,
-    commitments: &BTreeMap<Identifier<C>, VerifiableSecretSharingCommitment<C>>,
-    pops: &BTreeMap<Identifier<C>, Signature<C>>,
-    ephemeral_pubs: &BTreeMap<Identifier<C>, Element<C>>,
-    extension: &[u8],
-) -> Result<Vec<u8>, Error<C>> {
-    let mut t_bytes = Vec::new();
-
-    t_bytes.extend_from_slice(&(context.len() as u64).to_le_bytes());
-    t_bytes.extend_from_slice(context);
-    t_bytes.extend_from_slice(&(n as u32).to_le_bytes());
-    t_bytes.extend_from_slice(&(t as u32).to_le_bytes());
-
-    for pk in participants.values() {
-        t_bytes.extend_from_slice(&pk.serialize()?);
-    }
-    for id in participants.keys() {
-        let c = commitments.get(id).ok_or(Error::PackageNotFound)?;
-        t_bytes.extend_from_slice(&c.serialize_whole()?);
-    }
-    for id in participants.keys() {
-        let pop = pops.get(id).ok_or(Error::PackageNotFound)?;
-        t_bytes.extend_from_slice(&pop.default_serialize()?);
-    }
-    for id in participants.keys() {
-        let e = ephemeral_pubs.get(id).ok_or(Error::PackageNotFound)?;
-        t_bytes.extend_from_slice(&<C::Group>::serialize(e)?.as_ref().to_vec());
-    }
-
-    t_bytes.extend_from_slice(&(extension.len() as u64).to_le_bytes());
-    t_bytes.extend_from_slice(extension);
-
-    Ok(t_bytes)
 }
 
 /// DKG Round 1 structures.
@@ -959,16 +955,15 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     let effective_extension = C::derive_extension(extension, &received_payloads);
 
     // Build transcript and sign it with d_i
-    let transcript = build_transcript::<C>(
-        context,
-        secret_package.max_signers,
-        secret_package.min_signers,
-        participants,
-        &all_commitments,
-        &all_pops,
-        &all_ephemeral_pubs,
-        &effective_extension,
-    )?;
+    let transcript_data = Transcript {
+        context: context.to_vec(),
+        n: secret_package.max_signers,
+        t: secret_package.min_signers,
+        participants: participants.clone(),
+        commitments: all_commitments,
+        ephemeral_pubs: all_ephemeral_pubs,
+    };
+    let transcript = transcript_data.serialize(&all_pops, &effective_extension)?;
     let transcript_signature = static_signing_key.sign(&mut rng, &transcript);
 
     let round2_secret = round2::SecretPackage::new(
@@ -1107,7 +1102,7 @@ pub fn recover<C: CocktailCiphersuite>(
     success_certificate: &BTreeMap<Identifier<C>, Signature<C>>,
     ciphertexts: &BTreeMap<Identifier<C>, Vec<u8>>,
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
-    let parsed = parse_transcript::<C>(transcript)?;
+    let parsed = Transcript::<C>::deserialize(transcript)?;
 
     // Step 1: Validate the success certificate.
     if success_certificate.len() != parsed.n as usize {
