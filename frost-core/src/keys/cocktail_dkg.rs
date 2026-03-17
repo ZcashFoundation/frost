@@ -256,27 +256,21 @@ fn parse_transcript<C: CocktailCiphersuite>(bytes: &[u8]) -> Result<ParsedTransc
         .len();
     let sig_size = elem_size + scalar_size;
 
-    let mut pos = 0;
+    let mut pos = 0usize;
 
-    macro_rules! read_bytes {
-        ($n:expr) => {{
-            let n = $n;
-            if pos + n > bytes.len() {
-                return Err(Error::InvalidSignature);
-            }
-            let s = &bytes[pos..pos + n];
-            pos += n;
-            s
-        }};
-    }
+    // Returns `bytes[pos..pos+n]` and advances `pos`, or errors if out of bounds.
+    let mut take = |n: usize| -> Option<&[u8]> {
+        let end = pos.checked_add(n)?;
+        let slice = bytes.get(pos..end)?;
+        pos = end;
+        Some(slice)
+    };
 
-    let ctx_len = u64::from_le_bytes(
-        read_bytes!(8).try_into().map_err(|_| Error::InvalidSignature)?,
-    ) as usize;
-    let context = read_bytes!(ctx_len).to_vec();
+    let ctx_len = u64::from_le_bytes(take(8).ok_or(Error::InvalidSignature)?.try_into().expect("slice is 8 bytes")) as usize;
+    let context = take(ctx_len).ok_or(Error::InvalidSignature)?.to_vec();
 
-    let n = u32::from_le_bytes(read_bytes!(4).try_into().map_err(|_| Error::InvalidSignature)?) as u16;
-    let t = u32::from_le_bytes(read_bytes!(4).try_into().map_err(|_| Error::InvalidSignature)?) as u16;
+    let n = u32::from_le_bytes(take(4).ok_or(Error::InvalidSignature)?.try_into().expect("slice is 4 bytes")) as u16;
+    let t = u32::from_le_bytes(take(4).ok_or(Error::InvalidSignature)?.try_into().expect("slice is 4 bytes")) as u16;
 
     let identifiers: Vec<Identifier<C>> = (1..=n)
         .map(|j| Identifier::try_from(j))
@@ -284,32 +278,30 @@ fn parse_transcript<C: CocktailCiphersuite>(bytes: &[u8]) -> Result<ParsedTransc
 
     let mut participants = BTreeMap::new();
     for &id in &identifiers {
-        let pk = VerifyingKey::deserialize(read_bytes!(elem_size))?;
+        let pk = VerifyingKey::deserialize(take(elem_size).ok_or(Error::InvalidSignature)?)?;
         participants.insert(id, pk);
     }
 
     let commitment_size = t as usize * elem_size;
     let mut commitments = BTreeMap::new();
     for &id in &identifiers {
-        let c = VerifiableSecretSharingCommitment::deserialize_whole(read_bytes!(commitment_size))?;
+        let c = VerifiableSecretSharingCommitment::deserialize_whole(take(commitment_size).ok_or(Error::InvalidSignature)?)?;
         commitments.insert(id, c);
     }
 
-    // Parse PoPs to advance the cursor; they are not needed for recovery.
-    for &_id in &identifiers {
-        let _ = Signature::default_deserialize(read_bytes!(sig_size))?;
+    // Parse PoPs to advance pos; they are not needed for recovery.
+    for _ in 0..n {
+        let _ = Signature::default_deserialize(take(sig_size).ok_or(Error::InvalidSignature)?)?;
     }
 
     let mut ephemeral_pubs = BTreeMap::new();
     for &id in &identifiers {
-        let pk = VerifyingKey::deserialize(read_bytes!(elem_size))?;
+        let pk = VerifyingKey::deserialize(take(elem_size).ok_or(Error::InvalidSignature)?)?;
         ephemeral_pubs.insert(id, pk.to_element());
     }
 
-    let ext_len = u64::from_le_bytes(
-        read_bytes!(8).try_into().map_err(|_| Error::InvalidSignature)?,
-    ) as usize;
-    let _ = read_bytes!(ext_len); // extension (not needed for recovery)
+    let ext_len = u64::from_le_bytes(take(8).ok_or(Error::InvalidSignature)?.try_into().expect("slice is 8 bytes")) as usize;
+    take(ext_len).ok_or(Error::InvalidSignature)?; // extension (not needed for recovery)
 
     if pos != bytes.len() {
         return Err(Error::InvalidSignature);

@@ -330,7 +330,7 @@ async fn check_async_sign_with_dealer() {
 ///   )
 /// Scalars are generated in order: a_0 (j=0), a_1 (j=1), …, a_{t-1} (j=t-1), e_i (j=t).
 #[test]
-fn check_cocktail_dkg_test_vectors_2_of_3() {
+fn check_cocktail_dkg_test_vectors() {
     use rand_core::{CryptoRng, RngCore};
     use sha2::{Digest, Sha512};
     use std::collections::BTreeMap;
@@ -425,13 +425,7 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
     let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
     let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
 
-    // Run each vector with n=3, t=2.
-    for vector in file["vectors"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|v| v["n"].as_u64() == Some(3) && v["t"].as_u64() == Some(2))
-    {
+    for vector in file["vectors"].as_array().unwrap().iter() {
         let n = vector["n"].as_u64().unwrap() as u32;
         let t = vector["t"].as_u64().unwrap() as u32;
         let context = hex::decode(vector["context"].as_str().unwrap()).unwrap();
