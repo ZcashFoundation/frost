@@ -417,139 +417,176 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
 
     impl CryptoRng for CounterDrng {}
 
-    // Seed from the spec: SHA-256("Daniel Bourdrez,Soatok Dreamseeker,Tjaden Hess")
-    let seed =
-        hex::decode("b171b6992cc6db1f40b18dd8b1361d642f013e4b1208a735259a516af60dcb68").unwrap();
-    let cs_id = b"COCKTAIL(Ristretto255, SHA-512)";
-    let t: u32 = 2;
-    let n: u32 = 3;
+    let file: serde_json::Value = serde_json::from_str(
+        include_str!("helpers/cocktail-dkg-ristretto255-sha512.json").trim(),
+    )
+    .unwrap();
 
-    // Static secret keys (from CCTV JSON / spec Appendix B).
-    let static_secret_key_bytes = [
-        hex::decode("8232337dffa583f214e2ead7f19c37b482f77171194ed6984a715353e086d20e").unwrap(),
-        hex::decode("f7b358f26668f0733363b309c435bc16f7670ec5850e4860c5d25e049e7d060d").unwrap(),
-        hex::decode("fc2df6b164cac912a8c2d294b528f5e3261f1724d510f9fd1c2bae5e76308d0b").unwrap(),
-    ];
+    let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
+    let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
 
-    // Expected Round 1 outputs (ephemeral public keys from CCTV JSON).
-    let expected_ephemeral_pubs = [
-        hex::decode("a6841269b357caa2d0655664961704b06875255a7b6ca1af8004560314384447").unwrap(),
-        hex::decode("a0c9a49c4882ec32590160681791b157a39ff7b7401fef9268c8efb5e48be43f").unwrap(),
-        hex::decode("2293b1d8ed98f109998a243aa949a55605d0ca0e50897e059b658e0c63dfda25").unwrap(),
-    ];
+    // Run each vector with n=3, t=2.
+    for vector in file["vectors"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|v| v["n"].as_u64() == Some(3) && v["t"].as_u64() == Some(2))
+    {
+        let n = vector["n"].as_u64().unwrap() as u32;
+        let t = vector["t"].as_u64().unwrap() as u32;
+        let context = hex::decode(vector["context"].as_str().unwrap()).unwrap();
 
-    // Expected final outputs.
-    let expected_group_public_key =
-        hex::decode("0a1592f555f20d3a3b3c7bc032ebe4b46cb2870da141404873e5fc8d4136120f").unwrap();
-    let expected_shares = [
-        hex::decode("09b8de601c1d28161f3b18410245595d791de5e54372f19628760125fa263304").unwrap(),
-        hex::decode("7db7ccef4df8fb157766082728cd2f072c0ec3af6d352a3d0af49919daf9950b").unwrap(),
-        hex::decode("04e3c4216570bdbdf8f4006a6f5b279cdefea07997f862e3eb71320ebaccf802").unwrap(),
-    ];
+        let static_secret_key_bytes: Vec<Vec<u8>> = vector["config"]["static_secret_keys"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
+            .collect();
 
-    let identifiers: Vec<Identifier> = (1..=3u16).map(|i| i.try_into().unwrap()).collect();
+        let expected_ephemeral_pubs: Vec<Vec<u8>> = vector["round1"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| hex::decode(p["ephemeral_public_key"].as_str().unwrap()).unwrap())
+            .collect();
 
-    let mut static_keys: BTreeMap<Identifier, SigningKey> = BTreeMap::new();
-    let mut participants: BTreeMap<Identifier, VerifyingKey> = BTreeMap::new();
-    for (id, key_bytes) in identifiers.iter().zip(static_secret_key_bytes.iter()) {
-        let sk = SigningKey::deserialize(key_bytes).unwrap();
-        let vk = VerifyingKey::from(&sk);
-        static_keys.insert(*id, sk);
-        participants.insert(*id, vk);
-    }
+        let expected_group_public_key =
+            hex::decode(vector["group_public_key"].as_str().unwrap()).unwrap();
 
-    let context = b"COCKTAIL-DKG-TEST-VECTOR-2-OF-3";
-    let extension = b"";
+        let expected_shares: Vec<Vec<u8>> = vector["round2"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| hex::decode(p["secret_share"].as_str().unwrap()).unwrap())
+            .collect();
 
-    // Round 1
-    let mut round1_secret_packages: BTreeMap<Identifier, keys::cocktail_dkg::round1::SecretPackage> =
-        BTreeMap::new();
-    let mut received_round1_packages: BTreeMap<
-        Identifier,
-        BTreeMap<Identifier, keys::cocktail_dkg::round1::Package>,
-    > = BTreeMap::new();
+        let expected_verification_shares: Vec<Vec<u8>> = vector["round2"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| hex::decode(p["verification_share"].as_str().unwrap()).unwrap())
+            .collect();
 
-    for (idx, (&id, sk)) in static_keys.iter().enumerate() {
-        let mut rng = CounterDrng::new(&seed, cs_id, t, n, (idx + 1) as u32);
-        let (secret_pkg, pkg) = keys::cocktail_dkg::part1(
-            id,
-            n as u16,
-            t as u16,
-            sk,
-            &participants,
-            context,
-            &BTreeMap::new(),
-            &mut rng,
-        )
-        .unwrap();
+        let identifiers: Vec<Identifier> = (1..=n as u16).map(|i| i.try_into().unwrap()).collect();
 
-        // Verify ephemeral public key matches the CCTV JSON.
-        assert_eq!(
-            <<Ristretto255Sha512 as Ciphersuite>::Group>::serialize(pkg.ephemeral_pub()).unwrap().as_ref(),
-            expected_ephemeral_pubs[idx].as_slice(),
-            "participant {} ephemeral public key mismatch",
-            idx + 1
-        );
+        let mut static_keys: BTreeMap<Identifier, SigningKey> = BTreeMap::new();
+        let mut participants: BTreeMap<Identifier, VerifyingKey> = BTreeMap::new();
+        for (id, key_bytes) in identifiers.iter().zip(static_secret_key_bytes.iter()) {
+            let sk = SigningKey::deserialize(key_bytes).unwrap();
+            let vk = VerifyingKey::from(&sk);
+            static_keys.insert(*id, sk);
+            participants.insert(*id, vk);
+        }
 
-        round1_secret_packages.insert(id, secret_pkg);
-        for (&receiver_id, _) in &participants {
-            if receiver_id != id {
-                received_round1_packages
-                    .entry(receiver_id)
-                    .or_default()
-                    .insert(id, pkg.clone());
+        let extension = b"";
+
+        // Round 1
+        let mut round1_secret_packages: BTreeMap<
+            Identifier,
+            keys::cocktail_dkg::round1::SecretPackage,
+        > = BTreeMap::new();
+        let mut received_round1_packages: BTreeMap<
+            Identifier,
+            BTreeMap<Identifier, keys::cocktail_dkg::round1::Package>,
+        > = BTreeMap::new();
+
+        for (idx, (&id, sk)) in static_keys.iter().enumerate() {
+            let mut rng = CounterDrng::new(&seed, &cs_id, t, n, (idx + 1) as u32);
+            let (secret_pkg, pkg) = keys::cocktail_dkg::part1(
+                id,
+                n as u16,
+                t as u16,
+                sk,
+                &participants,
+                &context,
+                &BTreeMap::new(),
+                &mut rng,
+            )
+            .unwrap();
+
+            assert_eq!(
+                <<Ristretto255Sha512 as Ciphersuite>::Group>::serialize(pkg.ephemeral_pub())
+                    .unwrap()
+                    .as_ref(),
+                expected_ephemeral_pubs[idx].as_slice(),
+                "participant {} ephemeral public key mismatch",
+                idx + 1
+            );
+
+            round1_secret_packages.insert(id, secret_pkg);
+            for (&receiver_id, _) in &participants {
+                if receiver_id != id {
+                    received_round1_packages
+                        .entry(receiver_id)
+                        .or_default()
+                        .insert(id, pkg.clone());
+                }
             }
         }
-    }
 
-    // Round 2
-    let mut round2_secret_packages: BTreeMap<Identifier, keys::cocktail_dkg::round2::SecretPackage> =
-        BTreeMap::new();
-    let mut received_round2_packages: BTreeMap<
-        Identifier,
-        BTreeMap<Identifier, keys::cocktail_dkg::round2::Package>,
-    > = BTreeMap::new();
+        // Round 2
+        let mut round2_secret_packages: BTreeMap<
+            Identifier,
+            keys::cocktail_dkg::round2::SecretPackage,
+        > = BTreeMap::new();
+        let mut received_round2_packages: BTreeMap<
+            Identifier,
+            BTreeMap<Identifier, keys::cocktail_dkg::round2::Package>,
+        > = BTreeMap::new();
 
-    for (&id, sk) in &static_keys {
-        let secret_pkg = round1_secret_packages.remove(&id).unwrap();
-        let round1_packages = &received_round1_packages[&id];
-        let (r2_secret, r2_pkg, _received_payloads) = keys::cocktail_dkg::part2(
-            secret_pkg,
-            round1_packages,
-            sk,
-            &participants,
-            context,
-            extension,
-            rand::rngs::OsRng,
-        )
-        .unwrap();
-        round2_secret_packages.insert(id, r2_secret);
-        for (&receiver_id, _) in &participants {
-            received_round2_packages
-                .entry(receiver_id)
-                .or_default()
-                .insert(id, r2_pkg.clone());
+        for (&id, sk) in &static_keys {
+            let secret_pkg = round1_secret_packages.remove(&id).unwrap();
+            let round1_packages = &received_round1_packages[&id];
+            let (r2_secret, r2_pkg, _received_payloads) = keys::cocktail_dkg::part2(
+                secret_pkg,
+                round1_packages,
+                sk,
+                &participants,
+                &context,
+                extension,
+                rand::rngs::OsRng,
+            )
+            .unwrap();
+            round2_secret_packages.insert(id, r2_secret);
+            for (&receiver_id, _) in &participants {
+                received_round2_packages
+                    .entry(receiver_id)
+                    .or_default()
+                    .insert(id, r2_pkg.clone());
+            }
         }
-    }
 
-    // Round 3
-    for (idx, (&id, _)) in static_keys.iter().enumerate() {
-        let r2_secret = &round2_secret_packages[&id];
-        let round2_packages = &received_round2_packages[&id];
-        let (key_pkg, pubkey_pkg) =
-            keys::cocktail_dkg::part3(r2_secret, round2_packages).unwrap();
+        // Round 3
+        for (idx, (&id, _)) in static_keys.iter().enumerate() {
+            let r2_secret = &round2_secret_packages[&id];
+            let round2_packages = &received_round2_packages[&id];
+            let (key_pkg, pubkey_pkg) =
+                keys::cocktail_dkg::part3(r2_secret, round2_packages).unwrap();
 
-        assert_eq!(
-            pubkey_pkg.verifying_key().serialize().unwrap().as_slice(),
-            expected_group_public_key.as_slice(),
-            "participant {} group public key mismatch",
-            idx + 1
-        );
-        assert_eq!(
-            key_pkg.signing_share().serialize().as_slice(),
-            expected_shares[idx].as_slice(),
-            "participant {} secret share mismatch",
-            idx + 1
-        );
+            assert_eq!(
+                pubkey_pkg.verifying_key().serialize().unwrap().as_slice(),
+                expected_group_public_key.as_slice(),
+                "participant {} group public key mismatch",
+                idx + 1
+            );
+            assert_eq!(
+                key_pkg.signing_share().serialize().as_slice(),
+                expected_shares[idx].as_slice(),
+                "participant {} secret share mismatch",
+                idx + 1
+            );
+            assert_eq!(
+                pubkey_pkg
+                    .verifying_shares()
+                    .get(&id)
+                    .unwrap()
+                    .serialize()
+                    .unwrap()
+                    .as_slice(),
+                expected_verification_shares[idx].as_slice(),
+                "participant {} verification share mismatch",
+                idx + 1
+            );
+        }
     }
 }
