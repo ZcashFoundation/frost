@@ -596,12 +596,21 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
             }
         }
 
-        // Round 3
+        // Round 3 — save the transcript and certificate from participant 1 for recovery.
+        let mut transcript_for_recovery: Vec<u8> = Vec::new();
+        let mut cert_for_recovery: BTreeMap<Identifier, Signature> = BTreeMap::new();
+
         for (idx, (&id, _)) in static_keys.iter().enumerate() {
             let r2_secret = &round2_secret_packages[&id];
             let round2_packages = &received_round2_packages[&id];
-            let (key_pkg, pubkey_pkg) =
+            let (key_pkg, pubkey_pkg, transcript, cert) =
                 keys::cocktail_dkg::part3(r2_secret, round2_packages).unwrap();
+
+            // All participants must produce the same transcript.
+            if idx == 0 {
+                transcript_for_recovery = transcript;
+                cert_for_recovery = cert;
+            }
 
             assert_eq!(
                 pubkey_pkg.verifying_key().serialize().unwrap().as_slice(),
@@ -626,6 +635,54 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
                 expected_verification_shares[idx].as_slice(),
                 "participant {} verification share mismatch",
                 idx + 1
+            );
+        }
+
+        // Recovery: only for vectors that include recovery test data.
+        if let Some(recovery) = vector.get("recovery") {
+            let recovery_id = recovery["participant_id"].as_u64().unwrap() as u16;
+            let recovery_identifier = Identifier::try_from(recovery_id).unwrap();
+            let recovery_sk = static_keys.get(&recovery_identifier).unwrap();
+
+            // Build ciphertexts map: sender_id -> c_{sender, recovery_participant}
+            let ciphertexts_json = recovery["ciphertexts"].as_array().unwrap();
+            let mut recovery_ciphertexts: BTreeMap<Identifier, Vec<u8>> = BTreeMap::new();
+            for (j_idx, ct) in ciphertexts_json.iter().enumerate() {
+                let sender_id = Identifier::try_from((j_idx + 1) as u16).unwrap();
+                recovery_ciphertexts.insert(
+                    sender_id,
+                    hex::decode(ct.as_str().unwrap()).unwrap(),
+                );
+            }
+
+            let expected_recovered_share =
+                hex::decode(recovery["recovered_secret_share"].as_str().unwrap()).unwrap();
+            let expected_recovered_vshare =
+                hex::decode(recovery["recovered_verification_share"].as_str().unwrap()).unwrap();
+
+            let (recovered_key_pkg, recovered_pubkey_pkg) = keys::cocktail_dkg::recover(
+                recovery_sk,
+                &transcript_for_recovery,
+                &cert_for_recovery,
+                &recovery_ciphertexts,
+            )
+            .unwrap();
+
+            assert_eq!(
+                recovered_key_pkg.signing_share().serialize().as_slice(),
+                expected_recovered_share.as_slice(),
+                "recovered secret share mismatch"
+            );
+            assert_eq!(
+                recovered_pubkey_pkg
+                    .verifying_shares()
+                    .get(&recovery_identifier)
+                    .unwrap()
+                    .serialize()
+                    .unwrap()
+                    .as_slice(),
+                expected_recovered_vshare.as_slice(),
+                "recovered verification share mismatch"
             );
         }
     }

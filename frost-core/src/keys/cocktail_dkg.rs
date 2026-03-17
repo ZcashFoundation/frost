@@ -232,6 +232,92 @@ fn pop_verify<C: CocktailCiphersuite>(
     }
 }
 
+/// Parsed representation of a COCKTAIL-DKG transcript.
+struct ParsedTranscript<C: CocktailCiphersuite> {
+    context: Vec<u8>,
+    n: u16,
+    t: u16,
+    participants: BTreeMap<Identifier<C>, VerifyingKey<C>>,
+    commitments: BTreeMap<Identifier<C>, VerifiableSecretSharingCommitment<C>>,
+    ephemeral_pubs: BTreeMap<Identifier<C>, Element<C>>,
+}
+
+/// Parse a canonical transcript byte string into its constituent fields.
+///
+/// Identifiers are reconstructed as the standard 1-based sequence `1..=n`.
+/// Returns `Err(Error::InvalidSignature)` if the bytes are malformed or truncated.
+fn parse_transcript<C: CocktailCiphersuite>(bytes: &[u8]) -> Result<ParsedTranscript<C>, Error<C>> {
+    let elem_size = <C::Group>::serialize(&<C::Group>::generator())
+        .expect("generator serialization always succeeds")
+        .as_ref()
+        .len();
+    let scalar_size = <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
+        .as_ref()
+        .len();
+    let sig_size = elem_size + scalar_size;
+
+    let mut pos = 0;
+
+    macro_rules! read_bytes {
+        ($n:expr) => {{
+            let n = $n;
+            if pos + n > bytes.len() {
+                return Err(Error::InvalidSignature);
+            }
+            let s = &bytes[pos..pos + n];
+            pos += n;
+            s
+        }};
+    }
+
+    let ctx_len = u64::from_le_bytes(
+        read_bytes!(8).try_into().map_err(|_| Error::InvalidSignature)?,
+    ) as usize;
+    let context = read_bytes!(ctx_len).to_vec();
+
+    let n = u32::from_le_bytes(read_bytes!(4).try_into().map_err(|_| Error::InvalidSignature)?) as u16;
+    let t = u32::from_le_bytes(read_bytes!(4).try_into().map_err(|_| Error::InvalidSignature)?) as u16;
+
+    let identifiers: Vec<Identifier<C>> = (1..=n)
+        .map(|j| Identifier::try_from(j))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut participants = BTreeMap::new();
+    for &id in &identifiers {
+        let pk = VerifyingKey::deserialize(read_bytes!(elem_size))?;
+        participants.insert(id, pk);
+    }
+
+    let commitment_size = t as usize * elem_size;
+    let mut commitments = BTreeMap::new();
+    for &id in &identifiers {
+        let c = VerifiableSecretSharingCommitment::deserialize_whole(read_bytes!(commitment_size))?;
+        commitments.insert(id, c);
+    }
+
+    // Parse PoPs to advance the cursor; they are not needed for recovery.
+    for &_id in &identifiers {
+        let _ = Signature::default_deserialize(read_bytes!(sig_size))?;
+    }
+
+    let mut ephemeral_pubs = BTreeMap::new();
+    for &id in &identifiers {
+        let pk = VerifyingKey::deserialize(read_bytes!(elem_size))?;
+        ephemeral_pubs.insert(id, pk.to_element());
+    }
+
+    let ext_len = u64::from_le_bytes(
+        read_bytes!(8).try_into().map_err(|_| Error::InvalidSignature)?,
+    ) as usize;
+    let _ = read_bytes!(ext_len); // extension (not needed for recovery)
+
+    if pos != bytes.len() {
+        return Err(Error::InvalidSignature);
+    }
+
+    Ok(ParsedTranscript { context, n, t, participants, commitments, ephemeral_pubs })
+}
+
 /// Build the canonical public transcript `T` for Round 3 certification.
 ///
 /// Structure (exact order from the specification):
@@ -908,10 +994,23 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
 /// A tuple of:
 /// - [`KeyPackage`]: the participant's long-lived signing key share.
 /// - [`PublicKeyPackage`]: the group public key and all participants' verifying shares.
+/// - `Vec<u8>`: the canonical transcript bytes `T`.  Together with the success certificate
+///   this forms the recovery data that any participant can use to call [`recover`].
+/// - [`BTreeMap`]`<`[`Identifier`]`, `[`Signature`]`>`: the success certificate — all `n`
+///   participants' signatures on `T`, keyed by signer identifier.
+#[allow(clippy::type_complexity)]
 pub fn part3<C: CocktailCiphersuite>(
     secret_package: &round2::SecretPackage<C>,
     round2_packages: &BTreeMap<Identifier<C>, round2::Package<C>>,
-) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
+) -> Result<
+    (
+        KeyPackage<C>,
+        PublicKeyPackage<C>,
+        Vec<u8>,
+        BTreeMap<Identifier<C>, Signature<C>>,
+    ),
+    Error<C>,
+> {
     if round2_packages.len() != secret_package.max_signers as usize {
         return Err(Error::IncorrectNumberOfPackages);
     }
@@ -930,6 +1029,12 @@ pub fn part3<C: CocktailCiphersuite>(
             })?;
     }
 
+    // Collect the success certificate
+    let success_certificate: BTreeMap<Identifier<C>, Signature<C>> = round2_packages
+        .iter()
+        .map(|(&id, pkg)| (id, pkg.transcript_signature))
+        .collect();
+
     // All signatures verified — output final keys
     let signing_share = SigningShare::new(secret_package.secret_share());
     let verifying_share = *secret_package
@@ -947,5 +1052,148 @@ pub fn part3<C: CocktailCiphersuite>(
         secret_package.min_signers,
     );
 
-    C::post_dkg(key_package, secret_package.public_key_package.clone())
+    let (key_package, public_key_package) =
+        C::post_dkg(key_package, secret_package.public_key_package.clone())?;
+
+    Ok((
+        key_package,
+        public_key_package,
+        secret_package.transcript.clone(),
+        success_certificate,
+    ))
+}
+
+/// Recovers a participant's DKG outputs from the static secret key, transcript,
+/// success certificate, and ciphertexts.
+///
+/// This implements the COCKTAIL-DKG share recovery algorithm from the specification.
+/// It allows a participant to reconstruct their secret share and the group public key
+/// after a successful DKG session, given only their static secret key and the
+/// publicly-available recovery data.
+///
+/// # Parameters
+///
+/// - `static_signing_key`: The participant's long-term static private key $d_i$.
+/// - `transcript`: The canonical transcript bytes $T$ from a successful DKG session,
+///   as returned by [`part3`].
+/// - `success_certificate`: All $n$ participants' signatures on $T$, as returned by
+///   [`part3`].
+/// - `ciphertexts`: The encrypted shares $c_{j,i}$ from each sender $j$ to the recovering
+///   participant $i$. Keys are sender identifiers. These are the per-recipient ciphertexts
+///   from each sender's [`round1::Package`].
+///
+/// # Returns
+///
+/// A tuple of:
+/// - [`KeyPackage`]: the participant's long-lived signing key share.
+/// - [`PublicKeyPackage`]: the group public key and all participants' verifying shares.
+pub fn recover<C: CocktailCiphersuite>(
+    static_signing_key: &SigningKey<C>,
+    transcript: &[u8],
+    success_certificate: &BTreeMap<Identifier<C>, Signature<C>>,
+    ciphertexts: &BTreeMap<Identifier<C>, Vec<u8>>,
+) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
+    let parsed = parse_transcript::<C>(transcript)?;
+
+    // Step 1: Validate the success certificate.
+    if success_certificate.len() != parsed.n as usize {
+        return Err(Error::IncorrectNumberOfPackages);
+    }
+    for (signer_id, sig) in success_certificate {
+        let pk = parsed
+            .participants
+            .get(signer_id)
+            .ok_or(Error::UnknownIdentifier)?;
+        pk.verify(transcript, sig)
+            .map_err(|_| Error::InvalidTranscriptSignature { culprit: *signer_id })?;
+    }
+
+    // Step 3: Find our identifier by matching d_i * B against the participant list.
+    let my_pub = VerifyingKey::from(static_signing_key);
+    let my_id = parsed
+        .participants
+        .iter()
+        .find(|(_, pk)| **pk == my_pub)
+        .map(|(id, _)| *id)
+        .ok_or(Error::UnknownIdentifier)?;
+
+    let my_pub_bytes = my_pub.serialize()?;
+    let d_i = static_signing_key.to_scalar();
+
+    let scalar_len =
+        <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
+            .as_ref()
+            .len();
+
+    // Steps 4–7: For each sender j, derive decryption key, decrypt, verify, and accumulate.
+    let mut signing_share_scalar = <<C::Group as Group>::Field>::zero();
+
+    for (&sender_id, sender_pub) in &parsed.participants {
+        let ephemeral_pub = parsed
+            .ephemeral_pubs
+            .get(&sender_id)
+            .ok_or(Error::PackageNotFound)?;
+        let ciphertext = ciphertexts.get(&sender_id).ok_or(Error::PackageNotFound)?;
+
+        // S^(e)_{j,i} = d_i * E_j  and  S^(d)_{j,i} = d_i * P_j
+        let s_ephem = *ephemeral_pub * d_i;
+        let s_static = sender_pub.to_element() * d_i;
+
+        let h6 = C::H6(
+            &element_to_bytes::<C>(&s_ephem)?,
+            &element_to_bytes::<C>(&s_static)?,
+            &element_to_bytes::<C>(ephemeral_pub)?,
+            &sender_pub.serialize()?,
+            &my_pub_bytes,
+            &parsed.context,
+        );
+        let (key, nonce) = derive_key_and_nonce::<C>(&h6)?;
+
+        let plaintext =
+            C::aead_decrypt(&key, &nonce, ciphertext).map_err(|_| Error::DecryptionFailed {
+                culprit: sender_id,
+            })?;
+
+        if plaintext.len() < scalar_len {
+            return Err(Error::DecryptionFailed { culprit: sender_id });
+        }
+
+        let share_ser =
+            <<<C::Group as Group>::Field as Field>::Serialization>::try_from(&plaintext[..scalar_len])
+                .map_err(|_| Error::DecryptionFailed { culprit: sender_id })?;
+        let s_j_i = <<C::Group as Group>::Field>::deserialize(&share_ser)
+            .map_err(|_| Error::DecryptionFailed { culprit: sender_id })?;
+
+        // Verify the decrypted share against the sender's VSS commitment.
+        let commitment = parsed
+            .commitments
+            .get(&sender_id)
+            .ok_or(Error::PackageNotFound)?;
+        SecretShare::new(my_id, SigningShare::new(s_j_i), commitment.clone())
+            .verify()
+            .map_err(|e| match e {
+                Error::InvalidSecretShare { .. } => Error::InvalidSecretShare {
+                    culprit: Some(sender_id),
+                },
+                other => other,
+            })?;
+
+        signing_share_scalar = signing_share_scalar + s_j_i;
+    }
+
+    // Step 8: Compute public outputs from all VSS commitments.
+    let commitments_refs: BTreeMap<Identifier<C>, &VerifiableSecretSharingCommitment<C>> =
+        parsed.commitments.iter().map(|(id, c)| (*id, c)).collect();
+    let public_key_package = PublicKeyPackage::from_dkg_commitments(&commitments_refs)?;
+
+    let signing_share = SigningShare::new(signing_share_scalar);
+    let verifying_share = *public_key_package
+        .verifying_shares()
+        .get(&my_id)
+        .ok_or(Error::UnknownIdentifier)?;
+    let verifying_key = *public_key_package.verifying_key();
+
+    let key_package = KeyPackage::new(my_id, signing_share, verifying_share, verifying_key, parsed.t);
+
+    C::post_dkg(key_package, public_key_package)
 }

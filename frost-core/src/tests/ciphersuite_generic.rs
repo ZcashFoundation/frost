@@ -1280,7 +1280,7 @@ where
     for (&id, _) in &static_keys {
         let r2_secret = &round2_secret_packages[&id];
         let round2_packages = &received_round2_packages[&id];
-        let (key_pkg, pubkey_pkg) =
+        let (key_pkg, pubkey_pkg, _transcript, _cert) =
             frost::keys::cocktail_dkg::part3(r2_secret, round2_packages).unwrap();
         key_packages.insert(id, key_pkg);
         pubkey_packages.insert(id, pubkey_pkg);

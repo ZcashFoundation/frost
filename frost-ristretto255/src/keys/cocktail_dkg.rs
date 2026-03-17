@@ -85,6 +85,22 @@ pub fn part2<RNG: RngCore + CryptoRng>(
 pub fn part3(
     secret_package: &round2::SecretPackage,
     round2_packages: &BTreeMap<Identifier, round2::Package>,
-) -> Result<(KeyPackage, PublicKeyPackage), Error> {
+) -> Result<(KeyPackage, PublicKeyPackage, Vec<u8>, BTreeMap<Identifier, Signature>), Error> {
     frost::keys::cocktail_dkg::part3(secret_package, round2_packages)
+}
+
+/// Recovers a participant's DKG outputs from the static secret key, transcript,
+/// success certificate, and ciphertexts.
+pub fn recover(
+    static_signing_key: &SigningKey,
+    transcript: &[u8],
+    success_certificate: &BTreeMap<Identifier, Signature>,
+    ciphertexts: &BTreeMap<Identifier, Vec<u8>>,
+) -> Result<(KeyPackage, PublicKeyPackage), Error> {
+    frost::keys::cocktail_dkg::recover(
+        static_signing_key,
+        transcript,
+        success_certificate,
+        ciphertexts,
+    )
 }
