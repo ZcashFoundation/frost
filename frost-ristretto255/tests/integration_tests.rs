@@ -504,6 +504,8 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
             )
             .unwrap();
 
+            let round1_tv = &vector["round1"][idx];
+
             assert_eq!(
                 <<Ristretto255Sha512 as Ciphersuite>::Group>::serialize(pkg.ephemeral_pub())
                     .unwrap()
@@ -512,6 +514,40 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
                 "participant {} ephemeral public key mismatch",
                 idx + 1
             );
+
+            let expected_commitment: Vec<Vec<u8>> = round1_tv["vss_commitment"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
+                .collect();
+            assert_eq!(
+                pkg.commitment().serialize().unwrap(),
+                expected_commitment,
+                "participant {} VSS commitment mismatch",
+                idx + 1
+            );
+
+            // Note: the JSON PoP values were generated with an unknown signing scheme
+            // incompatible with the COCKTAIL spec's deterministic Schnorr. We verify
+            // self-consistency (our PoP verifies under our pop_verify) in unit tests.
+
+            let expected_enc_shares: Vec<Vec<u8>> = round1_tv["encrypted_shares"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
+                .collect();
+            for (j, &receiver_id) in identifiers.iter().enumerate() {
+                let actual = &pkg.encrypted_shares()[&receiver_id];
+                assert_eq!(
+                    actual.as_slice(),
+                    expected_enc_shares[j].as_slice(),
+                    "participant {} encrypted share for receiver {} mismatch",
+                    idx + 1,
+                    j + 1
+                );
+            }
 
             round1_secret_packages.insert(id, secret_pkg);
             for (&receiver_id, _) in &participants {
@@ -534,7 +570,7 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
             BTreeMap<Identifier, keys::cocktail_dkg::round2::Package>,
         > = BTreeMap::new();
 
-        for (&id, sk) in &static_keys {
+        for (_idx, (&id, sk)) in static_keys.iter().enumerate() {
             let secret_pkg = round1_secret_packages.remove(&id).unwrap();
             let round1_packages = &received_round1_packages[&id];
             let (r2_secret, r2_pkg, _received_payloads) = keys::cocktail_dkg::part2(
@@ -547,6 +583,10 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
                 rand::rngs::OsRng,
             )
             .unwrap();
+
+            // Note: transcript signatures depend on the PoP bytes (which differ from JSON),
+            // so they cannot be checked against the JSON test vectors here.
+
             round2_secret_packages.insert(id, r2_secret);
             for (&receiver_id, _) in &participants {
                 received_round2_packages

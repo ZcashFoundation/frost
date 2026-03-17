@@ -218,6 +218,10 @@ impl RandomizedCiphersuite for Ristretto255Sha512 {
 
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ristretto255Sha512 {
+    fn cocktail_hash_to_scalar(data: &[u8]) -> Scalar {
+        hash_to_scalar(&[data])
+    }
+
     fn H6(
         shared_secret_ephem: &[u8],
         shared_secret_static: &[u8],

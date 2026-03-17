@@ -56,6 +56,15 @@ use super::{
 ///
 /// See the [COCKTAIL-DKG specification](https://c2sp.org/cocktail-dkg) for details.
 pub trait CocktailCiphersuite: Ciphersuite {
+    /// Hash-to-scalar function for the COCKTAIL Schnorr PoP scheme.
+    ///
+    /// Computes `H(data)` using the ciphersuite's base hash function and reduces
+    /// the output to a scalar using wide reduction. No domain separation is applied.
+    ///
+    /// - For SHA-512 ciphersuites: `SHA-512(data)` → `from_bytes_mod_order_wide`
+    /// - For SHA-256 ciphersuites: `SHA-256(data)` → reduction mod q
+    fn cocktail_hash_to_scalar(data: &[u8]) -> Scalar<Self>;
+
     /// Hash function H6 for AEAD key/nonce derivation.
     ///
     /// Defined in the COCKTAIL-DKG specification as:
@@ -170,6 +179,57 @@ fn pop_message<C: Ciphersuite>(
     msg.extend_from_slice(&commitment.serialize_whole()?);
     msg.extend_from_slice(&element_to_bytes::<C>(ephemeral_pub)?);
     Ok(msg)
+}
+
+/// COCKTAIL deterministic Schnorr sign for Proof of Possession.
+///
+/// `k = H(sk || m)`, `R = k·B`, `c = H(R || pk || m)`, `z = k + c·sk`
+fn pop_sign<C: CocktailCiphersuite>(
+    sk: Scalar<C>,
+    message: &[u8],
+) -> Result<Signature<C>, Error<C>> {
+    let sk_bytes = <<C::Group as Group>::Field as Field>::serialize(&sk);
+    let mut nonce_input = sk_bytes.as_ref().to_vec();
+    nonce_input.extend_from_slice(message);
+    let k = C::cocktail_hash_to_scalar(&nonce_input);
+
+    let R = <C::Group>::generator() * k;
+    let pk = <C::Group>::generator() * sk;
+
+    let R_bytes = element_to_bytes::<C>(&R)?;
+    let pk_bytes = element_to_bytes::<C>(&pk)?;
+    let mut challenge_input = R_bytes;
+    challenge_input.extend_from_slice(&pk_bytes);
+    challenge_input.extend_from_slice(message);
+    let c = C::cocktail_hash_to_scalar(&challenge_input);
+
+    let z = k + c * sk;
+    Ok(Signature { R, z })
+}
+
+/// COCKTAIL deterministic Schnorr verify for Proof of Possession.
+///
+/// `c = H(R || pk || m)`, check `z·B == R + c·pk`
+fn pop_verify<C: CocktailCiphersuite>(
+    pk: Element<C>,
+    sig: &Signature<C>,
+    message: &[u8],
+) -> Result<(), Error<C>> {
+    let R_bytes = element_to_bytes::<C>(&sig.R)?;
+    let pk_bytes = element_to_bytes::<C>(&pk)?;
+    let mut challenge_input = R_bytes;
+    challenge_input.extend_from_slice(&pk_bytes);
+    challenge_input.extend_from_slice(message);
+    let c = C::cocktail_hash_to_scalar(&challenge_input);
+
+    let lhs = <C::Group>::generator() * sig.z;
+    let rhs = sig.R + pk * c;
+
+    if lhs != rhs {
+        Err(Error::InvalidSignature)
+    } else {
+        Ok(())
+    }
 }
 
 /// Build the canonical public transcript `T` for Round 3 certification.
@@ -542,13 +602,14 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     let ephemeral_privkey = <<C::Group as Group>::Field>::random(&mut rng);
     let ephemeral_pubkey = <C::Group>::generator() * ephemeral_privkey;
 
-    // Step 4: Compute proof of possession
-    // Sign `context || C_i || E_i` using a_{i,0} as the signing key
+    // Step 4: Compute proof of possession using COCKTAIL deterministic Schnorr.
+    // Sign `context || C_i || E_i` using a_{i,0} as the signing key.
+    // The nonce is derived deterministically as k = H(a_{i,0} || message).
     let a_i0 = *coefficients
         .first()
         .expect("coefficients has at least one element");
     let pop_msg = pop_message::<C>(&commitment, &ephemeral_pubkey, context)?;
-    let proof_of_possession = SigningKey::from_scalar(a_i0)?.sign(&mut rng, &pop_msg);
+    let proof_of_possession = pop_sign::<C>(a_i0, &pop_msg)?;
 
     // Step 5: Compute and encrypt shares for each participant (including self)
     let static_pubkey = VerifyingKey::from(static_privkey);
@@ -662,8 +723,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         }
         let pop_msg = pop_message::<C>(&package.commitment, &package.ephemeral_pub, context)?;
         let pop_pubkey = package.commitment.verifying_key()?;
-        pop_pubkey
-            .verify(&pop_msg, &package.proof_of_possession)
+        pop_verify::<C>(pop_pubkey.to_element(), &package.proof_of_possession, &pop_msg)
             .map_err(|_| Error::InvalidProofOfKnowledge {
                 culprit: *sender_id,
             })?;
