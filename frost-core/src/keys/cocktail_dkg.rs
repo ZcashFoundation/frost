@@ -145,10 +145,6 @@ fn derive_key_and_nonce<C: CocktailCiphersuite>(
     Ok((key, nonce))
 }
 
-/// Serialize a group element to a `Vec<u8>`.
-fn element_to_bytes<C: Ciphersuite>(element: &Element<C>) -> Result<Vec<u8>, Error<C>> {
-    Ok(<C::Group>::serialize(element)?.as_ref().to_vec())
-}
 
 /// Build the PoP message: `context || serialize(C_i) || serialize(E_i)`.
 fn pop_message<C: Ciphersuite>(
@@ -159,7 +155,7 @@ fn pop_message<C: Ciphersuite>(
     let mut msg = Vec::new();
     msg.extend_from_slice(context);
     msg.extend_from_slice(&commitment.serialize_whole()?);
-    msg.extend_from_slice(&element_to_bytes::<C>(ephemeral_pub)?);
+    msg.extend_from_slice(&<C::Group>::serialize(ephemeral_pub)?.as_ref().to_vec());
     Ok(msg)
 }
 
@@ -178,8 +174,8 @@ fn pop_sign<C: CocktailCiphersuite>(
     let R = <C::Group>::generator() * k;
     let pk = <C::Group>::generator() * sk;
 
-    let R_bytes = element_to_bytes::<C>(&R)?;
-    let pk_bytes = element_to_bytes::<C>(&pk)?;
+    let R_bytes = <C::Group>::serialize(&R)?.as_ref().to_vec();
+    let pk_bytes = <C::Group>::serialize(&pk)?.as_ref().to_vec();
     let mut challenge_input = R_bytes;
     challenge_input.extend_from_slice(&pk_bytes);
     challenge_input.extend_from_slice(message);
@@ -197,8 +193,8 @@ fn pop_verify<C: CocktailCiphersuite>(
     sig: &Signature<C>,
     message: &[u8],
 ) -> Result<(), Error<C>> {
-    let R_bytes = element_to_bytes::<C>(&sig.R)?;
-    let pk_bytes = element_to_bytes::<C>(&pk)?;
+    let R_bytes = <C::Group>::serialize(&sig.R)?.as_ref().to_vec();
+    let pk_bytes = <C::Group>::serialize(&pk)?.as_ref().to_vec();
     let mut challenge_input = R_bytes;
     challenge_input.extend_from_slice(&pk_bytes);
     challenge_input.extend_from_slice(message);
@@ -366,7 +362,7 @@ fn build_transcript<C: CocktailCiphersuite>(
     }
     for id in participants.keys() {
         let e = ephemeral_pubs.get(id).ok_or(Error::PackageNotFound)?;
-        t_bytes.extend_from_slice(&element_to_bytes::<C>(e)?);
+        t_bytes.extend_from_slice(&<C::Group>::serialize(e)?.as_ref().to_vec());
     }
 
     t_bytes.extend_from_slice(&(extension.len() as u64).to_le_bytes());
@@ -707,7 +703,7 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     // Step 5: Compute and encrypt shares for each participant (including self)
     let static_pubkey = VerifyingKey::from(static_privkey);
     let sender_pubkey_bytes = static_pubkey.serialize()?;
-    let ephemeral_pubkey_bytes = element_to_bytes::<C>(&ephemeral_pubkey)?;
+    let ephemeral_pubkey_bytes = <C::Group>::serialize(&ephemeral_pubkey)?.as_ref().to_vec();
     let d_i = static_privkey.to_scalar();
 
     let mut encrypted_shares = BTreeMap::new();
@@ -721,8 +717,8 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         let s_static = recipient_element * d_i;
 
         let h6 = C::H6(
-            &element_to_bytes::<C>(&s_ephem)?,
-            &element_to_bytes::<C>(&s_static)?,
+            &<C::Group>::serialize(&s_ephem)?.as_ref().to_vec(),
+            &<C::Group>::serialize(&s_static)?.as_ref().to_vec(),
             &ephemeral_pubkey_bytes,
             &sender_pubkey_bytes,
             &recipient_pubkey.serialize()?,
@@ -881,9 +877,9 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         let s_static = sender_pubkey.to_element() * d_i;
 
         let h6 = C::H6(
-            &element_to_bytes::<C>(&s_ephemeral)?,
-            &element_to_bytes::<C>(&s_static)?,
-            &element_to_bytes::<C>(&package.ephemeral_pub)?,
+            &<C::Group>::serialize(&s_ephemeral)?.as_ref().to_vec(),
+            &<C::Group>::serialize(&s_static)?.as_ref().to_vec(),
+            &<C::Group>::serialize(&package.ephemeral_pub)?.as_ref().to_vec(),
             &sender_pubkey.serialize()?,
             &my_pub_bytes,
             context,
@@ -1159,9 +1155,9 @@ pub fn recover<C: CocktailCiphersuite>(
         let s_static = sender_pub.to_element() * d_i;
 
         let h6 = C::H6(
-            &element_to_bytes::<C>(&s_ephem)?,
-            &element_to_bytes::<C>(&s_static)?,
-            &element_to_bytes::<C>(ephemeral_pub)?,
+            &<C::Group>::serialize(&s_ephem)?.as_ref().to_vec(),
+            &<C::Group>::serialize(&s_static)?.as_ref().to_vec(),
+            &<C::Group>::serialize(ephemeral_pub)?.as_ref().to_vec(),
             &sender_pub.serialize()?,
             &my_pub_bytes,
             &parsed.context,
