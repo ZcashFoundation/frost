@@ -321,76 +321,133 @@ async fn check_async_sign_with_dealer() {
     .unwrap();
 }
 
-/// Test COCKTAIL-DKG with the 2-of-3 test vectors from the cocktail-dkg.md spec.
+/// Test COCKTAIL-DKG with the 2-of-3 test vectors from the CCTV JSON file.
 ///
-/// The static secret keys and expected outputs are from Appendix B of the spec:
-/// <https://c2sp.org/cocktail-dkg>
-///
-/// NOTE: This test is currently ignored because the spec's "Round 1 RNG stream"
-/// derivation uses an exact DRNG that is only fully specified in the CCTV JSON
-/// test vectors (<https://github.com/C2SP/CCTV/tree/main/cocktail-dkg>). Once
-/// those vectors are integrated, this test can be updated to use the correct
-/// DRNG seeding and the `#[ignore]` attribute removed.
+/// The derivation scheme (from the CCTV JSON) is counter-based SHA-512:
+///   scalar(participant_i, counter_j) = wide_reduce(
+///       SHA-512(seed || cs_id || uint32_le(t) || uint32_le(n)
+///               || "round1_participant_i" || uint64_le(j))
+///   )
+/// Scalars are generated in order: a_0 (j=0), a_1 (j=1), …, a_{t-1} (j=t-1), e_i (j=t).
 #[test]
-#[ignore]
 fn check_cocktail_dkg_test_vectors_2_of_3() {
-    use rand_chacha::ChaCha20Rng;
-    use rand_core::SeedableRng;
+    use rand_core::{CryptoRng, RngCore};
     use sha2::{Digest, Sha512};
     use std::collections::BTreeMap;
 
-    // Seed from the spec: SHA256("Daniel Bourdrez,Soatok Dreamseeker,Tjaden Hess")
+    /// Counter-based deterministic RNG for COCKTAIL-DKG test vectors.
+    ///
+    /// Each 64-byte block is:
+    ///   SHA-512(seed || cs_id || uint32_le(t) || uint32_le(n) || label || uint64_le(counter))
+    struct CounterDrng {
+        seed: Vec<u8>,
+        cs_id: Vec<u8>,
+        t: u32,
+        n: u32,
+        label: Vec<u8>,
+        counter: u64,
+        buf: [u8; 64],
+        buf_pos: usize, // 64 means buffer is empty and needs refill
+    }
+
+    impl CounterDrng {
+        fn new(seed: &[u8], cs_id: &[u8], t: u32, n: u32, participant: u32) -> Self {
+            Self {
+                seed: seed.to_vec(),
+                cs_id: cs_id.to_vec(),
+                t,
+                n,
+                label: format!("round1_participant_{}", participant).into_bytes(),
+                counter: 0,
+                buf: [0u8; 64],
+                buf_pos: 64, // empty; first fill_bytes triggers refill
+            }
+        }
+
+        fn refill(&mut self) {
+            let hash: [u8; 64] = Sha512::new()
+                .chain_update(&self.seed)
+                .chain_update(&self.cs_id)
+                .chain_update(self.t.to_le_bytes())
+                .chain_update(self.n.to_le_bytes())
+                .chain_update(&self.label)
+                .chain_update(self.counter.to_le_bytes())
+                .finalize()
+                .into();
+            self.buf = hash;
+            self.buf_pos = 0;
+            self.counter += 1;
+        }
+    }
+
+    impl RngCore for CounterDrng {
+        fn fill_bytes(&mut self, dest: &mut [u8]) {
+            let mut pos = 0;
+            while pos < dest.len() {
+                if self.buf_pos == 64 {
+                    self.refill();
+                }
+                let available = 64 - self.buf_pos;
+                let needed = dest.len() - pos;
+                let to_copy = available.min(needed);
+                dest[pos..pos + to_copy]
+                    .copy_from_slice(&self.buf[self.buf_pos..self.buf_pos + to_copy]);
+                self.buf_pos += to_copy;
+                pos += to_copy;
+            }
+        }
+
+        fn next_u32(&mut self) -> u32 {
+            let mut buf = [0u8; 4];
+            self.fill_bytes(&mut buf);
+            u32::from_le_bytes(buf)
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            let mut buf = [0u8; 8];
+            self.fill_bytes(&mut buf);
+            u64::from_le_bytes(buf)
+        }
+
+        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+            self.fill_bytes(dest);
+            Ok(())
+        }
+    }
+
+    impl CryptoRng for CounterDrng {}
+
+    // Seed from the spec: SHA-256("Daniel Bourdrez,Soatok Dreamseeker,Tjaden Hess")
     let seed =
         hex::decode("b171b6992cc6db1f40b18dd8b1361d642f013e4b1208a735259a516af60dcb68").unwrap();
     let cs_id = b"COCKTAIL(Ristretto255, SHA-512)";
     let t: u32 = 2;
     let n: u32 = 3;
 
-    // Derive a 32-byte RNG seed for each participant's Round 1.
-    // The spec labels are "round1_participant_{i}".
-    let rng_seeds: Vec<[u8; 32]> = (1..=n)
-        .map(|i| {
-            let label = format!("round1_participant_{}", i);
-            let hash = Sha512::new()
-                .chain_update(&seed)
-                .chain_update(cs_id)
-                .chain_update(t.to_le_bytes())
-                .chain_update(n.to_le_bytes())
-                .chain_update(label.as_bytes())
-                .finalize();
-            let mut rng_seed = [0u8; 32];
-            rng_seed.copy_from_slice(&hash[..32]);
-            rng_seed
-        })
-        .collect();
-
-    // Static secret keys from the spec (little-endian scalar bytes, Ristretto255).
+    // Static secret keys (from CCTV JSON / spec Appendix B).
     let static_secret_key_bytes = [
-        hex::decode("8232337dffa583f214e2ead7f19c37b482f77171194ed6984a715353e086d20e")
-            .unwrap(),
-        hex::decode("f7b358f26668f0733363b309c435bc16f7670ec5850e4860c5d25e049e7d060d")
-            .unwrap(),
-        hex::decode("fc2df6b164cac912a8c2d294b528f5e3261f1724d510f9fd1c2bae5e76308d0b")
-            .unwrap(),
+        hex::decode("8232337dffa583f214e2ead7f19c37b482f77171194ed6984a715353e086d20e").unwrap(),
+        hex::decode("f7b358f26668f0733363b309c435bc16f7670ec5850e4860c5d25e049e7d060d").unwrap(),
+        hex::decode("fc2df6b164cac912a8c2d294b528f5e3261f1724d510f9fd1c2bae5e76308d0b").unwrap(),
     ];
 
-    // Expected outputs from the spec.
+    // Expected Round 1 outputs (ephemeral public keys from CCTV JSON).
+    let expected_ephemeral_pubs = [
+        hex::decode("a6841269b357caa2d0655664961704b06875255a7b6ca1af8004560314384447").unwrap(),
+        hex::decode("a0c9a49c4882ec32590160681791b157a39ff7b7401fef9268c8efb5e48be43f").unwrap(),
+        hex::decode("2293b1d8ed98f109998a243aa949a55605d0ca0e50897e059b658e0c63dfda25").unwrap(),
+    ];
+
+    // Expected final outputs.
     let expected_group_public_key =
-        hex::decode("0a1592f555f20d3a3b3c7bc032ebe4b46cb2870da141404873e5fc8d4136120f")
-            .unwrap();
+        hex::decode("0a1592f555f20d3a3b3c7bc032ebe4b46cb2870da141404873e5fc8d4136120f").unwrap();
     let expected_shares = [
-        hex::decode("09b8de601c1d28161f3b18410245595d791de5e54372f19628760125fa263304")
-            .unwrap(),
-        hex::decode("7db7ccef4df8fb157766082728cd2f072c0ec3af6d352a3d0af49919daf9950b")
-            .unwrap(),
-        hex::decode("04e3c4216570bdbdf8f4006a6f5b279cdefea07997f862e3eb71320ebaccf802")
-            .unwrap(),
+        hex::decode("09b8de601c1d28161f3b18410245595d791de5e54372f19628760125fa263304").unwrap(),
+        hex::decode("7db7ccef4df8fb157766082728cd2f072c0ec3af6d352a3d0af49919daf9950b").unwrap(),
+        hex::decode("04e3c4216570bdbdf8f4006a6f5b279cdefea07997f862e3eb71320ebaccf802").unwrap(),
     ];
 
-    // Parse static keys and build participants map.
-    let identifiers: Vec<Identifier> = (1..=3u16)
-        .map(|i| i.try_into().unwrap())
-        .collect();
+    let identifiers: Vec<Identifier> = (1..=3u16).map(|i| i.try_into().unwrap()).collect();
 
     let mut static_keys: BTreeMap<Identifier, SigningKey> = BTreeMap::new();
     let mut participants: BTreeMap<Identifier, VerifyingKey> = BTreeMap::new();
@@ -404,7 +461,7 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
     let context = b"COCKTAIL-DKG-TEST-VECTOR-2-OF-3";
     let extension = b"";
 
-    // Round 1: each participant generates their packages using their deterministic RNG.
+    // Round 1
     let mut round1_secret_packages: BTreeMap<Identifier, keys::cocktail_dkg::round1::SecretPackage> =
         BTreeMap::new();
     let mut received_round1_packages: BTreeMap<
@@ -413,7 +470,7 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
     > = BTreeMap::new();
 
     for (idx, (&id, sk)) in static_keys.iter().enumerate() {
-        let mut rng = ChaCha20Rng::from_seed(rng_seeds[idx]);
+        let mut rng = CounterDrng::new(&seed, cs_id, t, n, (idx + 1) as u32);
         let (secret_pkg, pkg) = keys::cocktail_dkg::part1(
             id,
             n as u16,
@@ -425,6 +482,15 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
             &mut rng,
         )
         .unwrap();
+
+        // Verify ephemeral public key matches the CCTV JSON.
+        assert_eq!(
+            <<Ristretto255Sha512 as Ciphersuite>::Group>::serialize(pkg.ephemeral_pub()).unwrap().as_ref(),
+            expected_ephemeral_pubs[idx].as_slice(),
+            "participant {} ephemeral public key mismatch",
+            idx + 1
+        );
+
         round1_secret_packages.insert(id, secret_pkg);
         for (&receiver_id, _) in &participants {
             if receiver_id != id {
@@ -436,7 +502,7 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
         }
     }
 
-    // Round 2: each participant decrypts and verifies shares.
+    // Round 2
     let mut round2_secret_packages: BTreeMap<Identifier, keys::cocktail_dkg::round2::SecretPackage> =
         BTreeMap::new();
     let mut received_round2_packages: BTreeMap<
@@ -466,22 +532,19 @@ fn check_cocktail_dkg_test_vectors_2_of_3() {
         }
     }
 
-    // Round 3: verify transcript signatures and output final keys.
+    // Round 3
     for (idx, (&id, _)) in static_keys.iter().enumerate() {
         let r2_secret = &round2_secret_packages[&id];
         let round2_packages = &received_round2_packages[&id];
         let (key_pkg, pubkey_pkg) =
             keys::cocktail_dkg::part3(r2_secret, round2_packages).unwrap();
 
-        // Verify group public key.
         assert_eq!(
             pubkey_pkg.verifying_key().serialize().unwrap().as_slice(),
             expected_group_public_key.as_slice(),
             "participant {} group public key mismatch",
             idx + 1
         );
-
-        // Verify secret share.
         assert_eq!(
             key_pkg.signing_share().serialize().as_slice(),
             expected_shares[idx].as_slice(),
