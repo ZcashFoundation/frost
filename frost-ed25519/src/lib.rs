@@ -229,7 +229,7 @@ impl RandomizedCiphersuite for Ed25519Sha512 {
 
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed25519Sha512 {
-    fn cocktail_hash_to_scalar(data: &[u8]) -> Scalar {
+    fn HPOP(data: &[u8]) -> Scalar {
         hash_to_scalar(&[data])
     }
 
@@ -254,7 +254,7 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed25519Sha512 {
         .to_vec()
     }
 
-    fn H_kdf(data: &[u8]) -> alloc::vec::Vec<u8> {
+    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
         hash_to_array(&[data]).to_vec()
     }
 
