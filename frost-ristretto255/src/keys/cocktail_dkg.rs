@@ -1,5 +1,5 @@
-use alloc::{collections::BTreeMap, vec::Vec};
 use super::*;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 pub use frost::keys::cocktail_dkg::CocktailCiphersuite;
 
@@ -38,6 +38,7 @@ pub mod round2 {
 }
 
 /// Performs Round 1 of the COCKTAIL-DKG protocol for the given participant.
+#[allow(clippy::too_many_arguments)]
 pub fn part1<RNG: RngCore + CryptoRng>(
     identifier: Identifier,
     max_signers: u16,
@@ -61,6 +62,7 @@ pub fn part1<RNG: RngCore + CryptoRng>(
 }
 
 /// Performs Round 2 of the COCKTAIL-DKG protocol.
+#[allow(clippy::type_complexity)]
 pub fn part2<RNG: RngCore + CryptoRng>(
     secret_package: round1::SecretPackage,
     round1_packages: &BTreeMap<Identifier, round1::Package>,
@@ -69,7 +71,14 @@ pub fn part2<RNG: RngCore + CryptoRng>(
     context: &[u8],
     extension: &[u8],
     rng: RNG,
-) -> Result<(round2::SecretPackage, round2::Package, BTreeMap<Identifier, Vec<u8>>), Error> {
+) -> Result<
+    (
+        round2::SecretPackage,
+        round2::Package,
+        BTreeMap<Identifier, Vec<u8>>,
+    ),
+    Error,
+> {
     frost::keys::cocktail_dkg::part2(
         secret_package,
         round1_packages,
@@ -82,10 +91,19 @@ pub fn part2<RNG: RngCore + CryptoRng>(
 }
 
 /// Performs Round 3 (CertEq) of the COCKTAIL-DKG protocol.
+#[allow(clippy::type_complexity)]
 pub fn part3(
     secret_package: &round2::SecretPackage,
     round2_packages: &BTreeMap<Identifier, round2::Package>,
-) -> Result<(KeyPackage, PublicKeyPackage, Vec<u8>, BTreeMap<Identifier, Signature>), Error> {
+) -> Result<
+    (
+        KeyPackage,
+        PublicKeyPackage,
+        Vec<u8>,
+        BTreeMap<Identifier, Signature>,
+    ),
+    Error,
+> {
     frost::keys::cocktail_dkg::part3(secret_package, round2_packages)
 }
 

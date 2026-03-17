@@ -417,10 +417,9 @@ fn check_cocktail_dkg_test_vectors() {
 
     impl CryptoRng for CounterDrng {}
 
-    let file: serde_json::Value = serde_json::from_str(
-        include_str!("helpers/cocktail-dkg-ristretto255-sha512.json").trim(),
-    )
-    .unwrap();
+    let file: serde_json::Value =
+        serde_json::from_str(include_str!("helpers/cocktail-dkg-ristretto255-sha512.json").trim())
+            .unwrap();
 
     let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
     let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
@@ -544,7 +543,7 @@ fn check_cocktail_dkg_test_vectors() {
             }
 
             round1_secret_packages.insert(id, secret_pkg);
-            for (&receiver_id, _) in &participants {
+            for &receiver_id in participants.keys() {
                 if receiver_id != id {
                     received_round1_packages
                         .entry(receiver_id)
@@ -564,7 +563,7 @@ fn check_cocktail_dkg_test_vectors() {
             BTreeMap<Identifier, keys::cocktail_dkg::round2::Package>,
         > = BTreeMap::new();
 
-        for (_idx, (&id, sk)) in static_keys.iter().enumerate() {
+        for (&id, sk) in static_keys.iter() {
             let secret_pkg = round1_secret_packages.remove(&id).unwrap();
             let round1_packages = &received_round1_packages[&id];
             let (r2_secret, r2_pkg, _received_payloads) = keys::cocktail_dkg::part2(
@@ -582,7 +581,7 @@ fn check_cocktail_dkg_test_vectors() {
             // so they cannot be checked against the JSON test vectors here.
 
             round2_secret_packages.insert(id, r2_secret);
-            for (&receiver_id, _) in &participants {
+            for &receiver_id in participants.keys() {
                 received_round2_packages
                     .entry(receiver_id)
                     .or_default()
@@ -643,10 +642,7 @@ fn check_cocktail_dkg_test_vectors() {
             let mut recovery_ciphertexts: BTreeMap<Identifier, Vec<u8>> = BTreeMap::new();
             for (j_idx, ct) in ciphertexts_json.iter().enumerate() {
                 let sender_id = Identifier::try_from((j_idx + 1) as u16).unwrap();
-                recovery_ciphertexts.insert(
-                    sender_id,
-                    hex::decode(ct.as_str().unwrap()).unwrap(),
-                );
+                recovery_ciphertexts.insert(sender_id, hex::decode(ct.as_str().unwrap()).unwrap());
             }
 
             let expected_recovered_share =

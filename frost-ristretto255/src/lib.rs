@@ -237,7 +237,7 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ristretto255Sha512 
         h.update(ephemeral_pub);
         h.update(sender_pub);
         h.update(recipient_pub);
-        h.update(&(context.len() as u64).to_le_bytes());
+        h.update((context.len() as u64).to_le_bytes());
         h.update(context);
         h.finalize().to_vec()
     }

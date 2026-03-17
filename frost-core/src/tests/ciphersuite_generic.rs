@@ -1225,7 +1225,7 @@ where
         )
         .unwrap();
         round1_secret_packages.insert(id, secret_pkg);
-        for (&receiver_id, _) in &participants {
+        for &receiver_id in participants.keys() {
             if receiver_id != id {
                 received_round1_packages
                     .entry(receiver_id)
@@ -1262,7 +1262,7 @@ where
         )
         .unwrap();
         round2_secret_packages.insert(id, r2_secret);
-        for (&receiver_id, _) in &participants {
+        for &receiver_id in participants.keys() {
             received_round2_packages
                 .entry(receiver_id)
                 .or_default()
@@ -1277,7 +1277,7 @@ where
     let mut key_packages = BTreeMap::new();
     let mut pubkey_packages = BTreeMap::new();
 
-    for (&id, _) in &static_keys {
+    for &id in static_keys.keys() {
         let r2_secret = &round2_secret_packages[&id];
         let round2_packages = &received_round2_packages[&id];
         let (key_pkg, pubkey_pkg, _transcript, _cert) =
