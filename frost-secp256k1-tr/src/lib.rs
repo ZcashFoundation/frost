@@ -500,6 +500,58 @@ impl RandomizedCiphersuite for Secp256K1Sha256TR {
     }
 }
 
+#[allow(deprecated)]
+impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Secp256K1Sha256TR {
+    fn HPOP(data: &[u8]) -> Scalar {
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"pop"], data)
+    }
+
+    fn H6(
+        shared_secret_ephem: &[u8],
+        shared_secret_static: &[u8],
+        ephemeral_pub: &[u8],
+        sender_pub: &[u8],
+        recipient_pub: &[u8],
+        context: &[u8],
+    ) -> alloc::vec::Vec<u8> {
+        hash_to_array(&[
+            b"COCKTAIL-DKG-secp256k1-SHA256-TR-H6",
+            shared_secret_ephem,
+            shared_secret_static,
+            ephemeral_pub,
+            sender_pub,
+            recipient_pub,
+            &(context.len() as u64).to_le_bytes(),
+            context,
+        ])
+        .to_vec()
+    }
+
+    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
+        hash_to_array(&[data]).to_vec()
+    }
+
+    fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {
+        use chacha20poly1305::{aead::Aead, KeyInit, XChaCha20Poly1305, XNonce};
+        let cipher = XChaCha20Poly1305::new(key.into());
+        cipher
+            .encrypt(XNonce::from_slice(nonce), plaintext)
+            .expect("XChaCha20Poly1305 encryption never fails")
+    }
+
+    fn aead_decrypt(
+        key: &[u8; 32],
+        nonce: &[u8; 24],
+        ciphertext: &[u8],
+    ) -> Result<alloc::vec::Vec<u8>, frost_core::Error<Self>> {
+        use chacha20poly1305::{aead::Aead, KeyInit, XChaCha20Poly1305, XNonce};
+        let cipher = XChaCha20Poly1305::new(key.into());
+        cipher
+            .decrypt(XNonce::from_slice(nonce), ciphertext)
+            .map_err(|_| frost_core::Error::InvalidSignature)
+    }
+}
+
 type S = Secp256K1Sha256TR;
 
 /// A FROST(secp256k1, SHA-256) participant identifier.
@@ -792,6 +844,8 @@ pub mod keys {
         }
     }
 
+    /// COCKTAIL-DKG key generation protocol.
+    pub mod cocktail_dkg;
     pub mod dkg;
     pub mod refresh;
     pub mod repairable;

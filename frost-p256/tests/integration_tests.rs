@@ -15,6 +15,13 @@ fn check_sign_with_dkg() {
 }
 
 #[test]
+fn check_sign_with_cocktail_dkg() {
+    let rng = rand::rngs::OsRng;
+
+    frost_core::tests::ciphersuite_generic::check_sign_with_cocktail_dkg::<P256Sha256, _>(rng);
+}
+
+#[test]
 fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
     let rng = rand::rngs::OsRng;
 
@@ -302,4 +309,278 @@ async fn check_async_sign_with_dealer() {
     })
     .await
     .unwrap();
+}
+
+#[test]
+fn check_cocktail_dkg_test_vectors() {
+    use rand_core::{CryptoRng, RngCore};
+    use sha2::{Digest, Sha256};
+    use std::collections::BTreeMap;
+
+    struct CounterDrng {
+        seed: Vec<u8>,
+        cs_id: Vec<u8>,
+        t: u32,
+        n: u32,
+        label: Vec<u8>,
+        counter: u64,
+        buf: [u8; 32],
+        buf_pos: usize,
+    }
+
+    impl CounterDrng {
+        fn new(seed: &[u8], cs_id: &[u8], t: u32, n: u32, participant: u32) -> Self {
+            Self {
+                seed: seed.to_vec(),
+                cs_id: cs_id.to_vec(),
+                t,
+                n,
+                label: format!("round1_participant_{}", participant).into_bytes(),
+                counter: 0,
+                buf: [0u8; 32],
+                buf_pos: 32,
+            }
+        }
+
+        fn refill(&mut self) {
+            let hash: [u8; 32] = Sha256::new()
+                .chain_update(&self.seed)
+                .chain_update(&self.cs_id)
+                .chain_update(self.t.to_le_bytes())
+                .chain_update(self.n.to_le_bytes())
+                .chain_update(&self.label)
+                .chain_update(self.counter.to_le_bytes())
+                .finalize()
+                .into();
+            self.buf = hash;
+            self.buf_pos = 0;
+            self.counter += 1;
+        }
+    }
+
+    impl RngCore for CounterDrng {
+        fn fill_bytes(&mut self, dest: &mut [u8]) {
+            let mut pos = 0;
+            while pos < dest.len() {
+                if self.buf_pos == 32 {
+                    self.refill();
+                }
+                let available = 32 - self.buf_pos;
+                let needed = dest.len() - pos;
+                let to_copy = available.min(needed);
+                dest[pos..pos + to_copy]
+                    .copy_from_slice(&self.buf[self.buf_pos..self.buf_pos + to_copy]);
+                self.buf_pos += to_copy;
+                pos += to_copy;
+            }
+        }
+
+        fn next_u32(&mut self) -> u32 {
+            let mut buf = [0u8; 4];
+            self.fill_bytes(&mut buf);
+            u32::from_le_bytes(buf)
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            let mut buf = [0u8; 8];
+            self.fill_bytes(&mut buf);
+            u64::from_le_bytes(buf)
+        }
+
+        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+            self.fill_bytes(dest);
+            Ok(())
+        }
+    }
+
+    impl CryptoRng for CounterDrng {}
+
+    let file: serde_json::Value =
+        serde_json::from_str(include_str!("helpers/cocktail-dkg-p256-sha256.json").trim())
+            .unwrap();
+
+    let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
+    let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
+
+    for vector in file["vectors"].as_array().unwrap().iter() {
+        let n = vector["n"].as_u64().unwrap() as u32;
+        let t = vector["t"].as_u64().unwrap() as u32;
+        let context = hex::decode(vector["context"].as_str().unwrap()).unwrap();
+
+        let static_secret_key_bytes: Vec<Vec<u8>> = vector["config"]["static_secret_keys"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
+            .collect();
+
+        let expected_ephemeral_pubs: Vec<Vec<u8>> = vector["round1"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| hex::decode(p["ephemeral_public_key"].as_str().unwrap()).unwrap())
+            .collect();
+
+        let expected_group_public_key =
+            hex::decode(vector["group_public_key"].as_str().unwrap()).unwrap();
+
+        let expected_shares: Vec<Vec<u8>> = vector["round2"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| hex::decode(p["secret_share"].as_str().unwrap()).unwrap())
+            .collect();
+
+        let expected_verification_shares: Vec<Vec<u8>> = vector["round2"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| hex::decode(p["verification_share"].as_str().unwrap()).unwrap())
+            .collect();
+
+        let identifiers: Vec<Identifier> = (1..=n as u16).map(|i| i.try_into().unwrap()).collect();
+
+        let mut static_keys: BTreeMap<Identifier, SigningKey> = BTreeMap::new();
+        let mut participants: BTreeMap<Identifier, VerifyingKey> = BTreeMap::new();
+        for (id, key_bytes) in identifiers.iter().zip(static_secret_key_bytes.iter()) {
+            let sk = SigningKey::deserialize(key_bytes).unwrap();
+            let vk = VerifyingKey::from(&sk);
+            static_keys.insert(*id, sk);
+            participants.insert(*id, vk);
+        }
+
+        let extension = b"";
+
+        // Round 1
+        let mut round1_secret_packages: BTreeMap<
+            Identifier,
+            keys::cocktail_dkg::round1::SecretPackage,
+        > = BTreeMap::new();
+        let mut received_round1_packages: BTreeMap<
+            Identifier,
+            BTreeMap<Identifier, keys::cocktail_dkg::round1::Package>,
+        > = BTreeMap::new();
+
+        for (idx, (&id, sk)) in static_keys.iter().enumerate() {
+            let mut rng = CounterDrng::new(&seed, &cs_id, t, n, (idx + 1) as u32);
+            let (secret_pkg, pkg) = keys::cocktail_dkg::part1(
+                id,
+                n as u16,
+                t as u16,
+                sk,
+                &participants,
+                &context,
+                &BTreeMap::new(),
+                &mut rng,
+            )
+            .unwrap();
+
+            let round1_tv = &vector["round1"][idx];
+
+            assert_eq!(
+                <<P256Sha256 as Ciphersuite>::Group>::serialize(pkg.ephemeral_pub())
+                    .unwrap()
+                    .as_ref(),
+                expected_ephemeral_pubs[idx].as_slice(),
+                "participant {} ephemeral public key mismatch",
+                idx + 1
+            );
+
+            let expected_commitment: Vec<Vec<u8>> = round1_tv["vss_commitment"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
+                .collect();
+            assert_eq!(
+                pkg.commitment().serialize().unwrap(),
+                expected_commitment,
+                "participant {} VSS commitment mismatch",
+                idx + 1
+            );
+
+            // Note: encrypted shares are not compared because P-256 ciphersuite
+            // uses XAES-256-GCM (per spec), but our implementation uses XChaCha20Poly1305.
+            // The final key material is still verified below.
+
+            round1_secret_packages.insert(id, secret_pkg);
+            for &receiver_id in participants.keys() {
+                if receiver_id != id {
+                    received_round1_packages
+                        .entry(receiver_id)
+                        .or_default()
+                        .insert(id, pkg.clone());
+                }
+            }
+        }
+
+        // Round 2
+        let mut round2_secret_packages: BTreeMap<
+            Identifier,
+            keys::cocktail_dkg::round2::SecretPackage,
+        > = BTreeMap::new();
+        let mut received_round2_packages: BTreeMap<
+            Identifier,
+            BTreeMap<Identifier, keys::cocktail_dkg::round2::Package>,
+        > = BTreeMap::new();
+
+        for (&id, sk) in static_keys.iter() {
+            let secret_pkg = round1_secret_packages.remove(&id).unwrap();
+            let round1_packages = &received_round1_packages[&id];
+            let (r2_secret, r2_pkg, _received_payloads) = keys::cocktail_dkg::part2(
+                secret_pkg,
+                round1_packages,
+                sk,
+                &participants,
+                &context,
+                extension,
+                rand::rngs::OsRng,
+            )
+            .unwrap();
+
+            round2_secret_packages.insert(id, r2_secret);
+            for &receiver_id in participants.keys() {
+                received_round2_packages
+                    .entry(receiver_id)
+                    .or_default()
+                    .insert(id, r2_pkg.clone());
+            }
+        }
+
+        // Round 3
+        for (idx, (&id, _)) in static_keys.iter().enumerate() {
+            let r2_secret = &round2_secret_packages[&id];
+            let round2_packages = &received_round2_packages[&id];
+            let (key_pkg, pubkey_pkg, _transcript, _cert) =
+                keys::cocktail_dkg::part3(r2_secret, round2_packages).unwrap();
+
+            assert_eq!(
+                pubkey_pkg.verifying_key().serialize().unwrap().as_slice(),
+                expected_group_public_key.as_slice(),
+                "participant {} group public key mismatch",
+                idx + 1
+            );
+            assert_eq!(
+                key_pkg.signing_share().serialize().as_slice(),
+                expected_shares[idx].as_slice(),
+                "participant {} secret share mismatch",
+                idx + 1
+            );
+            assert_eq!(
+                pubkey_pkg
+                    .verifying_shares()
+                    .get(&id)
+                    .unwrap()
+                    .serialize()
+                    .unwrap()
+                    .as_slice(),
+                expected_verification_shares[idx].as_slice(),
+                "participant {} verification share mismatch",
+                idx + 1
+            );
+        }
+
+        // Recovery: skipped because recovery uses the JSON's encrypted shares (XAES-256-GCM),
+        // which our implementation cannot decrypt (we use XChaCha20Poly1305).
+    }
 }
