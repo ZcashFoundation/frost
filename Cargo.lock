@@ -842,7 +842,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "tokio",
- "xaes-256-gcm",
 ]
 
 [[package]]

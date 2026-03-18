@@ -518,17 +518,14 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Secp256K1Sha256TR {
         recipient_pub: &[u8],
         context: &[u8],
     ) -> alloc::vec::Vec<u8> {
-        hash_to_array(&[
-            b"COCKTAIL-DKG-secp256k1-SHA256-TR-H6",
-            shared_secret_ephem,
-            shared_secret_static,
-            ephemeral_pub,
-            sender_pub,
-            recipient_pub,
-            &(context.len() as u64).to_le_bytes(),
-            context,
-        ])
-        .to_vec()
+        let mut hasher = tagged_hash("COCKTAIL-DKG/H6");
+        hasher.update(shared_secret_ephem);
+        hasher.update(shared_secret_static);
+        hasher.update(ephemeral_pub);
+        hasher.update(sender_pub);
+        hasher.update(recipient_pub);
+        hasher.update(context);
+        hasher.finalize().to_vec()
     }
 
     fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {

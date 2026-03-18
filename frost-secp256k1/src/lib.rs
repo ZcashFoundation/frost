@@ -21,10 +21,6 @@ use k256::{
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
-use xaes_256_gcm::{
-    aead::{Aead, Key, KeyInit},
-    Nonce, Xaes256Gcm,
-};
 
 use frost_core as frost;
 
@@ -241,60 +237,6 @@ impl RandomizedCiphersuite for Secp256K1Sha256 {
     }
 }
 
-#[allow(deprecated)]
-impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Secp256K1Sha256 {
-    fn HPOP(data: &[u8]) -> Scalar {
-        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"pop"], data)
-    }
-
-    fn H6(
-        shared_secret_ephem: &[u8],
-        shared_secret_static: &[u8],
-        ephemeral_pub: &[u8],
-        sender_pub: &[u8],
-        recipient_pub: &[u8],
-        context: &[u8],
-    ) -> alloc::vec::Vec<u8> {
-        hash_to_array(&[
-            b"COCKTAIL-DKG-secp256k1-SHA256-H6",
-            shared_secret_ephem,
-            shared_secret_static,
-            ephemeral_pub,
-            sender_pub,
-            recipient_pub,
-            &(context.len() as u64).to_le_bytes(),
-            context,
-        ])
-        .to_vec()
-    }
-
-    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
-        hash_to_array(&[data]).to_vec()
-    }
-
-    fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {
-        let key = Key::<Xaes256Gcm>::from_slice(key);
-        let cipher = Xaes256Gcm::new(key);
-        let nonce = Nonce::from_slice(nonce);
-        cipher
-            .encrypt(nonce, plaintext)
-            .expect("encryption should never fail")
-    }
-
-    fn aead_decrypt(
-        key: &[u8; 32],
-        nonce: &[u8; 24],
-        ciphertext: &[u8],
-    ) -> Result<alloc::vec::Vec<u8>, frost_core::Error<Self>> {
-        let key = Key::<Xaes256Gcm>::from_slice(key);
-        let cipher = Xaes256Gcm::new(key);
-        let nonce = Nonce::from_slice(nonce);
-        cipher
-            .decrypt(nonce, ciphertext)
-            .map_err(|_| frost_core::Error::InvalidSignature)
-    }
-}
-
 type S = Secp256K1Sha256;
 
 /// A FROST(secp256k1, SHA-256) participant identifier.
@@ -392,8 +334,6 @@ pub mod keys {
     /// ensure that they received the correct (and same) value.
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<S>;
 
-    /// COCKTAIL-DKG key generation protocol.
-    pub mod cocktail_dkg;
     pub mod dkg;
     pub mod refresh;
     pub mod repairable;
