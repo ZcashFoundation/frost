@@ -16,7 +16,7 @@ members = [
 # If you update the edition, make sure to also update the argument to rustfmt
 # in gencode/src/main.rs.
 edition = "2021"
-rust-version = "1.81"
+rust-version = "1.85"
 version = "3.0.0-rc.0"
 authors = [
     "Deirdre Connolly <durumcrustulum@gmail.com>",
@@ -32,6 +32,7 @@ categories = ["cryptography"]
 # Currently holding back from updating due to MSRV 1.86 of criterion 0.8
 # (we don't want to raise our MSRV just for this)
 chacha20poly1305 = { version = "0.10", default-features = false, features = ["alloc"] }
+xaes-256-gcm = { version = "0.1.0-rc.3", default-features = false, features = ["alloc"] }
 criterion = "0.6"
 document-features = "0.2.7"
 hex = { version  = "0.4.3", default-features = false, features = ["alloc"] }

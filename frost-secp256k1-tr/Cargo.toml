@@ -23,6 +23,7 @@ frost-rerandomized.workspace = true
 k256 = { version = "0.13.0", features = ["arithmetic", "expose-field", "hash2curve"], default-features = false }
 rand_core.workspace = true
 sha2 = { version = "0.10.2", default-features = false }
+xaes-256-gcm.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

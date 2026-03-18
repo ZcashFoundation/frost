@@ -1315,11 +1315,9 @@ pub fn check_cocktail_dkg_test_vectors<C, R, F>(
 ) where
     C: CocktailCiphersuite,
     R: RngCore + CryptoRng,
-    F: Fn(&[u8], &[u8], u32, u32, u32) -> R,
+    F: Fn(u32, u32, u32) -> R,
 {
     let file: serde_json::Value = serde_json::from_str(json.trim()).unwrap();
-    let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
-    let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
 
     for vector in file["vectors"].as_array().unwrap().iter() {
         let n = vector["n"].as_u64().unwrap() as u32;
@@ -1390,7 +1388,7 @@ pub fn check_cocktail_dkg_test_vectors<C, R, F>(
         > = BTreeMap::new();
 
         for (idx, (&id, sk)) in static_keys.iter().enumerate() {
-            let mut rng = make_rng(&seed, &cs_id, t, n, (idx + 1) as u32);
+            let mut rng = make_rng(t, n, (idx + 1) as u32);
             let (secret_pkg, pkg) = frost::keys::cocktail_dkg::part1(
                 id,
                 n as u16,
@@ -1472,7 +1470,7 @@ pub fn check_cocktail_dkg_test_vectors<C, R, F>(
             let round1_packages = &received_round1_packages[&id];
             // Use participant 0 as a sentinel RNG for part2 (transcript Schnorr signing).
             // This randomness is not verified against test vectors.
-            let mut rng2 = make_rng(&seed, &cs_id, t, n, 0);
+            let mut rng2 = make_rng(t, n, 0);
             let (r2_secret, r2_pkg, _received_payloads) = frost::keys::cocktail_dkg::part2(
                 secret_pkg,
                 round1_packages,

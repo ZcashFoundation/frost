@@ -16,7 +16,7 @@ features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-chacha20poly1305.workspace = true
+xaes-256-gcm.workspace = true
 document-features.workspace = true
 frost-core.workspace = true
 frost-rerandomized.workspace = true

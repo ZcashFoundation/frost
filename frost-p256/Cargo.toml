@@ -16,13 +16,13 @@ features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-chacha20poly1305.workspace = true
 document-features.workspace = true
 p256 = { version = "0.13.0", features = ["hash2curve"], default-features = false }
 frost-core.workspace = true
 frost-rerandomized.workspace = true
 rand_core.workspace = true
 sha2 = { version = "0.10.2", default-features = false }
+xaes-256-gcm.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

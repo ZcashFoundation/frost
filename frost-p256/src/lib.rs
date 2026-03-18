@@ -9,7 +9,9 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 
+use frost_core as frost;
 use frost_rerandomized::RandomizedCiphersuite;
+
 use p256::{
     elliptic_curve::{
         hash2curve::{hash_to_field, ExpandMsgXmd},
@@ -20,8 +22,10 @@ use p256::{
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
-
-use frost_core as frost;
+use xaes_256_gcm::{
+    aead::{Aead, Key, KeyInit},
+    Nonce, Xaes256Gcm,
+};
 
 #[cfg(test)]
 mod tests;
@@ -269,11 +273,12 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for P256Sha256 {
     }
 
     fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {
-        use chacha20poly1305::{aead::Aead, KeyInit, XChaCha20Poly1305, XNonce};
-        let cipher = XChaCha20Poly1305::new(key.into());
+        let key = Key::<Xaes256Gcm>::from_slice(key);
+        let cipher = Xaes256Gcm::new(key);
+        let nonce = Nonce::from_slice(nonce);
         cipher
-            .encrypt(XNonce::from_slice(nonce), plaintext)
-            .expect("XChaCha20Poly1305 encryption never fails")
+            .encrypt(nonce, plaintext)
+            .expect("encryption should never fail")
     }
 
     fn aead_decrypt(
@@ -281,10 +286,11 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for P256Sha256 {
         nonce: &[u8; 24],
         ciphertext: &[u8],
     ) -> Result<alloc::vec::Vec<u8>, frost_core::Error<Self>> {
-        use chacha20poly1305::{aead::Aead, KeyInit, XChaCha20Poly1305, XNonce};
-        let cipher = XChaCha20Poly1305::new(key.into());
+        let key = Key::<Xaes256Gcm>::from_slice(key);
+        let cipher = Xaes256Gcm::new(key);
+        let nonce = Nonce::from_slice(nonce);
         cipher
-            .decrypt(XNonce::from_slice(nonce), ciphertext)
+            .decrypt(nonce, ciphertext)
             .map_err(|_| frost_core::Error::InvalidSignature)
     }
 }

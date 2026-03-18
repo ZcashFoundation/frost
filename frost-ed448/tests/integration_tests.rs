@@ -399,13 +399,18 @@ fn check_cocktail_dkg_test_vectors() {
 
     impl CryptoRng for CounterDrng {}
 
+    let json_str = include_str!("helpers/cocktail-dkg-ed448-shake256.json");
+    let file: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
+    let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
+
     frost_core::tests::ciphersuite_generic::check_cocktail_dkg_test_vectors::<
         Ed448Shake256,
         _,
         _,
     >(
-        include_str!("helpers/cocktail-dkg-ed448-shake256.json"),
-        |seed, cs_id, t, n, p| CounterDrng::new(seed, cs_id, t, n, p),
+        json_str,
+        |t, n, p| CounterDrng::new(&seed, &cs_id, t, n, p),
         false, // encrypted shares: 73 vs 72 byte format mismatch
         false, // recovery: ciphertext format incompatible
     );

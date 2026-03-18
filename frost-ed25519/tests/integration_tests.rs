@@ -397,13 +397,18 @@ fn check_cocktail_dkg_test_vectors() {
 
     impl CryptoRng for CounterDrng {}
 
+    let json_str = include_str!("helpers/cocktail-dkg-ed25519-sha512.json");
+    let file: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
+    let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
+
     frost_core::tests::ciphersuite_generic::check_cocktail_dkg_test_vectors::<
         Ed25519Sha512,
         _,
         _,
     >(
-        include_str!("helpers/cocktail-dkg-ed25519-sha512.json"),
-        |seed, cs_id, t, n, p| CounterDrng::new(seed, cs_id, t, n, p),
+        json_str,
+        |t, n, p| CounterDrng::new(&seed, &cs_id, t, n, p),
         true, // encrypted shares match (XChaCha20Poly1305)
         true, // recovery is tested
     );
