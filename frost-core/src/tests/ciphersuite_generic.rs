@@ -8,7 +8,7 @@ use rand_core::{CryptoRng, RngCore};
 use crate as frost;
 use crate::keys::cocktail_dkg::CocktailCiphersuite;
 use crate::keys::dkg::{round1, round2};
-use crate::keys::{SecretShare, SigningShare};
+use crate::keys::{KeyPackage, SecretShare, SigningShare, VerifyingShare};
 use crate::round1::SigningNonces;
 use crate::round2::SignatureShare;
 use crate::{
@@ -1584,6 +1584,65 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
         let mut transcript_for_recovery: Vec<u8> = Vec::new();
         let mut cert_for_recovery: BTreeMap<Identifier<C>, Signature<C>> = BTreeMap::new();
 
+        // Build expected packages from test vector data and apply post_dkg.
+        // Some ciphersuites (e.g. secp256k1-tr) apply transformations in post_dkg
+        // (like a taproot tweak) that are not reflected in the test vectors.
+        let expected_vk = VerifyingKey::<C>::deserialize(&expected_group_public_key).unwrap();
+        let expected_vshares_map: BTreeMap<Identifier<C>, VerifyingShare<C>> = identifiers
+            .iter()
+            .zip(expected_verification_shares.iter())
+            .map(|(id, bytes)| (*id, VerifyingShare::<C>::deserialize(bytes).unwrap()))
+            .collect();
+        let expected_signing_shares_parsed: Vec<SigningShare<C>> = expected_shares
+            .iter()
+            .map(|bytes| {
+                SigningShare::<C>::deserialize(bytes).unwrap_or_else(|_| {
+                    let mut padded = bytes.clone();
+                    padded.push(0);
+                    SigningShare::<C>::deserialize(&padded).unwrap()
+                })
+            })
+            .collect();
+        // Compute the tweaked pubkey package (same for all participants).
+        let expected_tweaked_pubkey_pkg = {
+            let pkp_raw = PublicKeyPackage::<C>::new(
+                expected_vshares_map.clone(),
+                expected_vk,
+                Some(t as u16),
+            );
+            let id0 = identifiers[0];
+            let kp0 = KeyPackage::<C>::new(
+                id0,
+                expected_signing_shares_parsed[0],
+                *expected_vshares_map.get(&id0).unwrap(),
+                expected_vk,
+                t as u16,
+            );
+            let (_, tweaked_pkp) = C::post_dkg(kp0, pkp_raw).unwrap();
+            tweaked_pkp
+        };
+        // Compute per-participant tweaked key packages.
+        let expected_tweaked_key_pkgs: Vec<KeyPackage<C>> = identifiers
+            .iter()
+            .zip(expected_signing_shares_parsed.iter())
+            .map(|(id, ss)| {
+                let pkp = PublicKeyPackage::<C>::new(
+                    expected_vshares_map.clone(),
+                    expected_vk,
+                    Some(t as u16),
+                );
+                let kp = KeyPackage::<C>::new(
+                    *id,
+                    *ss,
+                    *expected_vshares_map.get(id).unwrap(),
+                    expected_vk,
+                    t as u16,
+                );
+                let (tweaked_kp, _) = C::post_dkg(kp, pkp).unwrap();
+                tweaked_kp
+            })
+            .collect();
+
         for (idx, (&id, _)) in static_keys.iter().enumerate() {
             let r2_secret = &round2_secret_packages[&id];
             let round2_packages = &received_round2_packages[&id];
@@ -1597,7 +1656,11 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
 
             assert_eq!(
                 pubkey_pkg.verifying_key().serialize().unwrap().as_slice(),
-                expected_group_public_key.as_slice(),
+                expected_tweaked_pubkey_pkg
+                    .verifying_key()
+                    .serialize()
+                    .unwrap()
+                    .as_slice(),
                 "participant {} group public key mismatch",
                 idx + 1
             );
@@ -1605,7 +1668,7 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
             // Compare only the prefix when JSON bytes are fewer than the serialized length.
             // Handles ed448 (56-byte JSON raw scalar vs 57-byte RFC 8032 format).
             let serialized_share = key_pkg.signing_share().serialize();
-            let expected = expected_shares[idx].as_slice();
+            let expected = expected_tweaked_key_pkgs[idx].signing_share().serialize();
             let cmp_len = expected.len().min(serialized_share.len());
             assert_eq!(
                 &serialized_share[..cmp_len],
@@ -1622,7 +1685,13 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
                     .serialize()
                     .unwrap()
                     .as_slice(),
-                expected_verification_shares[idx].as_slice(),
+                expected_tweaked_pubkey_pkg
+                    .verifying_shares()
+                    .get(&id)
+                    .unwrap()
+                    .serialize()
+                    .unwrap()
+                    .as_slice(),
                 "participant {} verification share mismatch",
                 idx + 1
             );
@@ -1650,6 +1719,28 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
                 )
                 .unwrap();
 
+                // Apply post_dkg to the expected recovered key package.
+                let expected_tweaked_recovery_kp = {
+                    let recovered_ss =
+                        SigningShare::<C>::deserialize(&expected_recovered_share).unwrap();
+                    let recovered_vs =
+                        VerifyingShare::<C>::deserialize(&expected_recovered_vshare).unwrap();
+                    let kp = KeyPackage::<C>::new(
+                        recovery_identifier,
+                        recovered_ss,
+                        recovered_vs,
+                        expected_vk,
+                        t as u16,
+                    );
+                    let pkp = PublicKeyPackage::<C>::new(
+                        expected_vshares_map.clone(),
+                        expected_vk,
+                        Some(t as u16),
+                    );
+                    let (tweaked_kp, _) = C::post_dkg(kp, pkp).unwrap();
+                    tweaked_kp
+                };
+
                 let (recovered_key_pkg, recovered_pubkey_pkg) =
                     frost::keys::cocktail_dkg::recover(
                         recovery_sk,
@@ -1661,7 +1752,7 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
 
                 assert_eq!(
                     recovered_key_pkg.signing_share().serialize().as_slice(),
-                    expected_recovered_share.as_slice(),
+                    expected_tweaked_recovery_kp.signing_share().serialize().as_slice(),
                     "recovered secret share mismatch"
                 );
                 assert_eq!(
@@ -1672,7 +1763,13 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
                         .serialize()
                         .unwrap()
                         .as_slice(),
-                    expected_recovered_vshare.as_slice(),
+                    expected_tweaked_pubkey_pkg
+                        .verifying_shares()
+                        .get(&recovery_identifier)
+                        .unwrap()
+                        .serialize()
+                        .unwrap()
+                        .as_slice(),
                     "recovered verification share mismatch"
                 );
             }
