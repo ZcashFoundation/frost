@@ -1296,28 +1296,117 @@ where
     check_sign(min_signers, key_packages, rng, first_pubkey).unwrap()
 }
 
+/// Counter-based deterministic RNG for COCKTAIL-DKG test vectors.
+///
+/// Each block is: `hash_fn(seed || cs_id || uint32_le(t) || uint32_le(n) || label || uint64_le(counter))`
+struct CounterDrng<'a> {
+    seed: Vec<u8>,
+    cs_id: Vec<u8>,
+    t: u32,
+    n: u32,
+    label: Vec<u8>,
+    counter: u64,
+    hash_fn: &'a dyn Fn(&[u8]) -> Vec<u8>,
+    buf: Vec<u8>,
+    buf_pos: usize,
+}
+
+impl<'a> CounterDrng<'a> {
+    fn new(
+        seed: &[u8],
+        cs_id: &[u8],
+        t: u32,
+        n: u32,
+        participant: u32,
+        hash_fn: &'a dyn Fn(&[u8]) -> Vec<u8>,
+    ) -> Self {
+        Self {
+            seed: seed.to_vec(),
+            cs_id: cs_id.to_vec(),
+            t,
+            n,
+            label: format!("round1_participant_{}", participant).into_bytes(),
+            counter: 0,
+            hash_fn,
+            buf: Vec::new(),
+            buf_pos: 0,
+        }
+    }
+
+    fn refill(&mut self) {
+        let mut input = Vec::new();
+        input.extend_from_slice(&self.seed);
+        input.extend_from_slice(&self.cs_id);
+        input.extend_from_slice(&self.t.to_le_bytes());
+        input.extend_from_slice(&self.n.to_le_bytes());
+        input.extend_from_slice(&self.label);
+        input.extend_from_slice(&self.counter.to_le_bytes());
+        self.buf = (self.hash_fn)(&input);
+        self.buf_pos = 0;
+        self.counter += 1;
+    }
+}
+
+impl RngCore for CounterDrng<'_> {
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        let mut pos = 0;
+        while pos < dest.len() {
+            if self.buf_pos == self.buf.len() {
+                self.refill();
+            }
+            let available = self.buf.len() - self.buf_pos;
+            let needed = dest.len() - pos;
+            let to_copy = available.min(needed);
+            dest[pos..pos + to_copy]
+                .copy_from_slice(&self.buf[self.buf_pos..self.buf_pos + to_copy]);
+            self.buf_pos += to_copy;
+            pos += to_copy;
+        }
+    }
+
+    fn next_u32(&mut self) -> u32 {
+        let mut buf = [0u8; 4];
+        self.fill_bytes(&mut buf);
+        u32::from_le_bytes(buf)
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        let mut buf = [0u8; 8];
+        self.fill_bytes(&mut buf);
+        u64::from_le_bytes(buf)
+    }
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+        self.fill_bytes(dest);
+        Ok(())
+    }
+}
+
+impl CryptoRng for CounterDrng<'_> {}
+
 /// Test COCKTAIL-DKG protocol against JSON test vectors.
 ///
 /// - `json`: JSON test vector content (use `include_str!` in the caller).
-/// - `make_rng`: Factory for a per-participant deterministic RNG.
-///   Arguments: `(seed, cs_id, t, n, participant_index)`.
-///   `participant_index = 0` is a sentinel used for the coordinator's RNG in Round 2.
+/// - `hash_fn`: Hash/XOF function used as a counter-based RNG for test vectors.
+///   E.g. `|data| Sha256::digest(data).to_vec()`.
 /// - `compare_encrypted_shares`: Whether to compare encrypted shares against the vectors.
 ///   Set `false` when the ciphersuite AEAD differs from the reference
 ///   (e.g. P-256/secp256k1 spec requires XAES-256-GCM, not XChaCha20Poly1305).
 /// - `check_recovery`: Whether to test the `recovery` section of the vector.
 ///   Set `false` when the encrypted share format is incompatible with the reference.
-pub fn check_cocktail_dkg_test_vectors<C, R, F>(
+pub fn check_cocktail_dkg_test_vectors<C, H>(
     json: &str,
-    make_rng: F,
+    hash_fn: H,
     compare_encrypted_shares: bool,
     check_recovery: bool,
 ) where
     C: CocktailCiphersuite,
-    R: RngCore + CryptoRng,
-    F: Fn(u32, u32, u32) -> R,
+    H: Fn(&[u8]) -> Vec<u8>,
 {
     let file: serde_json::Value = serde_json::from_str(json.trim()).unwrap();
+    let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
+    let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
+    let hash_fn_ref: &dyn Fn(&[u8]) -> Vec<u8> = &hash_fn;
 
     for vector in file["vectors"].as_array().unwrap().iter() {
         let n = vector["n"].as_u64().unwrap() as u32;
@@ -1388,7 +1477,7 @@ pub fn check_cocktail_dkg_test_vectors<C, R, F>(
         > = BTreeMap::new();
 
         for (idx, (&id, sk)) in static_keys.iter().enumerate() {
-            let mut rng = make_rng(t, n, (idx + 1) as u32);
+            let mut rng = CounterDrng::new(&seed, &cs_id, t, n, (idx + 1) as u32, hash_fn_ref);
             let (secret_pkg, pkg) = frost::keys::cocktail_dkg::part1(
                 id,
                 n as u16,
@@ -1470,7 +1559,7 @@ pub fn check_cocktail_dkg_test_vectors<C, R, F>(
             let round1_packages = &received_round1_packages[&id];
             // Use participant 0 as a sentinel RNG for part2 (transcript Schnorr signing).
             // This randomness is not verified against test vectors.
-            let mut rng2 = make_rng(t, n, 0);
+            let mut rng2 = CounterDrng::new(&seed, &cs_id, t, n, 0, hash_fn_ref);
             let (r2_secret, r2_pkg, _received_payloads) = frost::keys::cocktail_dkg::part2(
                 secret_pkg,
                 round1_packages,

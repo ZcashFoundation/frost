@@ -316,99 +316,13 @@ async fn check_async_sign_with_dealer() {
 
 #[test]
 fn check_cocktail_dkg_test_vectors() {
-    use rand_core::{CryptoRng, RngCore};
     use sha2::{Digest, Sha512};
 
-    struct CounterDrng {
-        seed: Vec<u8>,
-        cs_id: Vec<u8>,
-        t: u32,
-        n: u32,
-        label: Vec<u8>,
-        counter: u64,
-        buf: [u8; 64],
-        buf_pos: usize,
-    }
-
-    impl CounterDrng {
-        fn new(seed: &[u8], cs_id: &[u8], t: u32, n: u32, participant: u32) -> Self {
-            Self {
-                seed: seed.to_vec(),
-                cs_id: cs_id.to_vec(),
-                t,
-                n,
-                label: format!("round1_participant_{}", participant).into_bytes(),
-                counter: 0,
-                buf: [0u8; 64],
-                buf_pos: 64,
-            }
-        }
-
-        fn refill(&mut self) {
-            let hash: [u8; 64] = Sha512::new()
-                .chain_update(&self.seed)
-                .chain_update(&self.cs_id)
-                .chain_update(self.t.to_le_bytes())
-                .chain_update(self.n.to_le_bytes())
-                .chain_update(&self.label)
-                .chain_update(self.counter.to_le_bytes())
-                .finalize()
-                .into();
-            self.buf = hash;
-            self.buf_pos = 0;
-            self.counter += 1;
-        }
-    }
-
-    impl RngCore for CounterDrng {
-        fn fill_bytes(&mut self, dest: &mut [u8]) {
-            let mut pos = 0;
-            while pos < dest.len() {
-                if self.buf_pos == 64 {
-                    self.refill();
-                }
-                let available = 64 - self.buf_pos;
-                let needed = dest.len() - pos;
-                let to_copy = available.min(needed);
-                dest[pos..pos + to_copy]
-                    .copy_from_slice(&self.buf[self.buf_pos..self.buf_pos + to_copy]);
-                self.buf_pos += to_copy;
-                pos += to_copy;
-            }
-        }
-
-        fn next_u32(&mut self) -> u32 {
-            let mut buf = [0u8; 4];
-            self.fill_bytes(&mut buf);
-            u32::from_le_bytes(buf)
-        }
-
-        fn next_u64(&mut self) -> u64 {
-            let mut buf = [0u8; 8];
-            self.fill_bytes(&mut buf);
-            u64::from_le_bytes(buf)
-        }
-
-        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-            self.fill_bytes(dest);
-            Ok(())
-        }
-    }
-
-    impl CryptoRng for CounterDrng {}
-
     let json_str = include_str!("helpers/cocktail-dkg-ed25519-sha512.json");
-    let file: serde_json::Value = serde_json::from_str(json_str).unwrap();
-    let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
-    let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
 
-    frost_core::tests::ciphersuite_generic::check_cocktail_dkg_test_vectors::<
-        Ed25519Sha512,
-        _,
-        _,
-    >(
+    frost_core::tests::ciphersuite_generic::check_cocktail_dkg_test_vectors::<Ed25519Sha512, _>(
         json_str,
-        |t, n, p| CounterDrng::new(&seed, &cs_id, t, n, p),
+        |data| Sha512::digest(data).to_vec(),
         true, // encrypted shares match (XChaCha20Poly1305)
         true, // recovery is tested
     );
