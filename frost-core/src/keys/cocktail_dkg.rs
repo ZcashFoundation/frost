@@ -155,7 +155,7 @@ fn pop_message<C: Ciphersuite>(
     let mut msg = Vec::new();
     msg.extend_from_slice(context);
     msg.extend_from_slice(&commitment.serialize_whole()?);
-    msg.extend_from_slice(&<C::Group>::serialize(ephemeral_pub)?.as_ref().to_vec());
+    msg.extend_from_slice(<C::Group>::serialize(ephemeral_pub)?.as_ref());
     Ok(msg)
 }
 
@@ -357,7 +357,7 @@ impl<C: CocktailCiphersuite> Transcript<C> {
         }
         for id in self.participants.keys() {
             let e = self.ephemeral_pubs.get(id).ok_or(Error::PackageNotFound)?;
-            t_bytes.extend_from_slice(&<C::Group>::serialize(e)?.as_ref().to_vec());
+            t_bytes.extend_from_slice(<C::Group>::serialize(e)?.as_ref());
         }
 
         t_bytes.extend_from_slice(&(extension.len() as u64).to_le_bytes());
@@ -713,8 +713,8 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         let s_static = recipient_element * d_i;
 
         let h6 = C::H6(
-            &<C::Group>::serialize(&s_ephem)?.as_ref().to_vec(),
-            &<C::Group>::serialize(&s_static)?.as_ref().to_vec(),
+            <C::Group>::serialize(&s_ephem)?.as_ref(),
+            <C::Group>::serialize(&s_static)?.as_ref(),
             &ephemeral_pubkey_bytes,
             &sender_pubkey_bytes,
             &recipient_pubkey.serialize()?,
@@ -873,9 +873,9 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         let s_static = sender_pubkey.to_element() * d_i;
 
         let h6 = C::H6(
-            &<C::Group>::serialize(&s_ephemeral)?.as_ref().to_vec(),
-            &<C::Group>::serialize(&s_static)?.as_ref().to_vec(),
-            &<C::Group>::serialize(&package.ephemeral_pub)?.as_ref().to_vec(),
+            <C::Group>::serialize(&s_ephemeral)?.as_ref(),
+            <C::Group>::serialize(&s_static)?.as_ref(),
+            <C::Group>::serialize(&package.ephemeral_pub)?.as_ref(),
             &sender_pubkey.serialize()?,
             &my_pub_bytes,
             context,
@@ -1150,9 +1150,9 @@ pub fn recover<C: CocktailCiphersuite>(
         let s_static = sender_pub.to_element() * d_i;
 
         let h6 = C::H6(
-            &<C::Group>::serialize(&s_ephem)?.as_ref().to_vec(),
-            &<C::Group>::serialize(&s_static)?.as_ref().to_vec(),
-            &<C::Group>::serialize(ephemeral_pub)?.as_ref().to_vec(),
+            <C::Group>::serialize(&s_ephem)?.as_ref(),
+            <C::Group>::serialize(&s_static)?.as_ref(),
+            <C::Group>::serialize(ephemeral_pub)?.as_ref(),
             &sender_pub.serialize()?,
             &my_pub_bytes,
             &parsed.context,
