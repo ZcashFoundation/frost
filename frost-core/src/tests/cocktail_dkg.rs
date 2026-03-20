@@ -283,9 +283,8 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
             .map(|p| hex::decode(p["verification_share"].as_str().unwrap()).unwrap())
             .collect();
 
-        let identifiers: Vec<Identifier<C>> = (1..=n as u16)
-            .map(|i| i.try_into().unwrap())
-            .collect();
+        let identifiers: Vec<Identifier<C>> =
+            (1..=n as u16).map(|i| i.try_into().unwrap()).collect();
 
         let mut static_keys: BTreeMap<Identifier<C>, SigningKey<C>> = BTreeMap::new();
         let mut participants: BTreeMap<Identifier<C>, VerifyingKey<C>> = BTreeMap::new();
@@ -553,10 +552,9 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
 
                 let expected_recovered_share =
                     hex::decode(recovery["recovered_secret_share"].as_str().unwrap()).unwrap();
-                let expected_recovered_vshare = hex::decode(
-                    recovery["recovered_verification_share"].as_str().unwrap(),
-                )
-                .unwrap();
+                let expected_recovered_vshare =
+                    hex::decode(recovery["recovered_verification_share"].as_str().unwrap())
+                        .unwrap();
 
                 // Apply post_dkg to the expected recovered key package.
                 let expected_tweaked_recovery_kp = {
@@ -580,18 +578,20 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
                     tweaked_kp
                 };
 
-                let (recovered_key_pkg, recovered_pubkey_pkg) =
-                    frost::keys::cocktail_dkg::recover(
-                        recovery_sk,
-                        &transcript_for_recovery,
-                        &cert_for_recovery,
-                        &recovery_ciphertexts,
-                    )
-                    .unwrap();
+                let (recovered_key_pkg, recovered_pubkey_pkg) = frost::keys::cocktail_dkg::recover(
+                    recovery_sk,
+                    &transcript_for_recovery,
+                    &cert_for_recovery,
+                    &recovery_ciphertexts,
+                )
+                .unwrap();
 
                 assert_eq!(
                     recovered_key_pkg.signing_share().serialize().as_slice(),
-                    expected_tweaked_recovery_kp.signing_share().serialize().as_slice(),
+                    expected_tweaked_recovery_kp
+                        .signing_share()
+                        .serialize()
+                        .as_slice(),
                     "recovered secret share mismatch"
                 );
                 assert_eq!(

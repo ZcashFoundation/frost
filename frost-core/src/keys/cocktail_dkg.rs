@@ -145,7 +145,6 @@ fn derive_key_and_nonce<C: CocktailCiphersuite>(
     Ok((key, nonce))
 }
 
-
 /// Build the PoP message: `context || serialize(C_i) || serialize(E_i)`.
 fn pop_message<C: Ciphersuite>(
     commitment: &VerifiableSecretSharingCommitment<C>,
@@ -920,7 +919,12 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         })?;
 
         // Collect optional payload (remainder after the share bytes)
-        let payload = plaintext.get(scalar_len..).ok_or(Error::DecryptionFailed { culprit: *sender_id })?.to_vec();
+        let payload = plaintext
+            .get(scalar_len..)
+            .ok_or(Error::DecryptionFailed {
+                culprit: *sender_id,
+            })?
+            .to_vec();
         received_payloads.insert(*sender_id, payload);
 
         // Verify share against sender's VSS commitment
@@ -1167,7 +1171,9 @@ pub fn recover<C: CocktailCiphersuite>(
         }
 
         let share_ser = <<<C::Group as Group>::Field as Field>::Serialization>::try_from(
-            plaintext.get(..scalar_len).ok_or(Error::DecryptionFailed { culprit: sender_id })?,
+            plaintext
+                .get(..scalar_len)
+                .ok_or(Error::DecryptionFailed { culprit: sender_id })?,
         )
         .map_err(|_| Error::DecryptionFailed { culprit: sender_id })?;
         let s_j_i = <<C::Group as Group>::Field>::deserialize(&share_ser)

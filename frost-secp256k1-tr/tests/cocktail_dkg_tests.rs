@@ -5,9 +5,7 @@ use frost_secp256k1_tr::*;
 fn check_sign_with_cocktail_dkg() {
     let rng = rand::rngs::OsRng;
 
-    frost_core::tests::cocktail_dkg::check_sign_with_cocktail_dkg::<Secp256K1Sha256TR, _>(
-        rng,
-    );
+    frost_core::tests::cocktail_dkg::check_sign_with_cocktail_dkg::<Secp256K1Sha256TR, _>(rng);
 }
 
 #[cfg(feature = "cocktail-dkg")]
