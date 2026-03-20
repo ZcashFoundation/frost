@@ -14,7 +14,6 @@ fn check_sign_with_dkg() {
     frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<P256Sha256, _>(rng);
 }
 
-
 #[test]
 fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
     let rng = rand::rngs::OsRng;
@@ -304,4 +303,3 @@ async fn check_async_sign_with_dealer() {
     .await
     .unwrap();
 }
-

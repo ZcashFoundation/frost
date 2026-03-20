@@ -14,8 +14,6 @@ fn check_sign_with_dkg() {
     frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Secp256K1Sha256TR, _>(rng);
 }
 
-
-
 #[test]
 fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
     let rng = rand::rngs::OsRng;

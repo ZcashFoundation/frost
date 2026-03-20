@@ -849,7 +849,7 @@ pub mod keys {
         }
     }
 
-    /// COCKTAIL-DKG key generation protocol.
+    /// COCKTAIL-DKG protocol for distributed key generation.
     #[cfg(feature = "cocktail-dkg")]
     #[cfg_attr(docsrs, doc(cfg(feature = "cocktail-dkg")))]
     pub mod cocktail_dkg;

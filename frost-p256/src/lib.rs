@@ -394,7 +394,7 @@ pub mod keys {
     /// ensure that they received the correct (and same) value.
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<P>;
 
-    /// COCKTAIL-DKG key generation protocol.
+    /// COCKTAIL-DKG protocol for distributed key generation.
     #[cfg(feature = "cocktail-dkg")]
     #[cfg_attr(docsrs, doc(cfg(feature = "cocktail-dkg")))]
     pub mod cocktail_dkg;
