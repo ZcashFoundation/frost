@@ -18,7 +18,7 @@ fn check_sign_with_dkg() {
 fn check_sign_with_cocktail_dkg() {
     let rng = rand::rngs::OsRng;
 
-    frost_core::tests::ciphersuite_generic::check_sign_with_cocktail_dkg::<Ristretto255Sha512, _>(
+    frost_core::tests::cocktail_dkg::check_sign_with_cocktail_dkg::<Ristretto255Sha512, _>(
         rng,
     );
 }
@@ -327,7 +327,7 @@ fn check_cocktail_dkg_test_vectors() {
 
     let json_str = include_str!("helpers/cocktail-dkg-ristretto255-sha512.json");
 
-    frost_core::tests::ciphersuite_generic::check_cocktail_dkg_test_vectors::<
+    frost_core::tests::cocktail_dkg::check_cocktail_dkg_test_vectors::<
         Ristretto255Sha512,
         _,
     >(

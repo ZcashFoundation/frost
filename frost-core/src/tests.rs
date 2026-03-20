@@ -4,6 +4,7 @@
 
 pub mod batch;
 pub mod ciphersuite_generic;
+pub mod cocktail_dkg;
 pub mod coefficient_commitment;
 pub mod helpers;
 pub mod proptests;
