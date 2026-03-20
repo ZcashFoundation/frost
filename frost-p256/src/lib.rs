@@ -22,6 +22,7 @@ use p256::{
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
+#[cfg(feature = "cocktail-dkg")]
 use xaes_256_gcm::{
     aead::{Aead, Key, KeyInit},
     Nonce, Xaes256Gcm,
@@ -241,6 +242,7 @@ impl RandomizedCiphersuite for P256Sha256 {
     }
 }
 
+#[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for P256Sha256 {
     fn HPOP(data: &[u8]) -> Scalar {
@@ -393,6 +395,8 @@ pub mod keys {
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<P>;
 
     /// COCKTAIL-DKG key generation protocol.
+    #[cfg(feature = "cocktail-dkg")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cocktail-dkg")))]
     pub mod cocktail_dkg;
     pub mod dkg;
     pub mod refresh;

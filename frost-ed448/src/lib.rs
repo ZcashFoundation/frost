@@ -221,6 +221,7 @@ impl RandomizedCiphersuite for Ed448Shake256 {
     }
 }
 
+#[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed448Shake256 {
     fn HPOP(data: &[u8]) -> Scalar {
@@ -371,6 +372,8 @@ pub mod keys {
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<E>;
 
     /// COCKTAIL-DKG key generation protocol.
+    #[cfg(feature = "cocktail-dkg")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cocktail-dkg")))]
     pub mod cocktail_dkg;
     pub mod dkg;
     pub mod refresh;

@@ -22,7 +22,7 @@ frost-core.workspace = true
 frost-rerandomized.workspace = true
 rand_core.workspace = true
 sha2 = { version = "0.10.2", default-features = false }
-xaes-256-gcm.workspace = true
+xaes-256-gcm = { workspace = true, optional = true }
 
 [dev-dependencies]
 criterion.workspace = true
@@ -46,6 +46,8 @@ default = ["serialization"]
 serde = ["frost-core/serde"]
 ## Enable a default serialization format. Enables `serde`.
 serialization = ["serde", "frost-core/serialization", "frost-rerandomized/serialization"]
+## Enable the COCKTAIL-DKG distributed key generation protocol.
+cocktail-dkg = ["dep:xaes-256-gcm", "frost-core/cocktail-dkg"]
 
 [lib]
 # Disables non-criterion benchmark which is not used; prevents errors

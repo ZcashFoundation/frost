@@ -64,6 +64,8 @@ internals = []
 ## `serde` (e.g. JSON with `serde_json`).
 serde = ["dep:serde", "dep:serdect"]
 serialization = ["serde", "dep:postcard"]
+## Enable the COCKTAIL-DKG distributed key generation protocol.
+cocktail-dkg = []
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["dep:proptest", "dep:serde_json", "dep:criterion", "dep:tokio", "dep:debugless-unwrap"]
 

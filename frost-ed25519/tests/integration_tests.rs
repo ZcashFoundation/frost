@@ -14,6 +14,7 @@ fn check_sign_with_dkg() {
     frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Ed25519Sha512, _>(rng);
 }
 
+#[cfg(feature = "cocktail-dkg")]
 #[test]
 fn check_sign_with_cocktail_dkg() {
     let rng = rand::rngs::OsRng;
@@ -314,6 +315,7 @@ async fn check_async_sign_with_dealer() {
     .unwrap();
 }
 
+#[cfg(feature = "cocktail-dkg")]
 #[test]
 fn check_cocktail_dkg_test_vectors() {
     use sha2::{Digest, Sha512};

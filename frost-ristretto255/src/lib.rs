@@ -216,6 +216,7 @@ impl RandomizedCiphersuite for Ristretto255Sha512 {
     }
 }
 
+#[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ristretto255Sha512 {
     fn HPOP(data: &[u8]) -> Scalar {
@@ -367,6 +368,8 @@ pub mod keys {
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<R>;
 
     /// COCKTAIL-DKG protocol for distributed key generation.
+    #[cfg(feature = "cocktail-dkg")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cocktail-dkg")))]
     pub mod cocktail_dkg;
     pub mod dkg;
     pub mod refresh;

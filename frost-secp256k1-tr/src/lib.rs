@@ -25,6 +25,7 @@ use k256::{
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
+#[cfg(feature = "cocktail-dkg")]
 use xaes_256_gcm::{
     aead::{Aead, Key, KeyInit},
     Nonce, Xaes256Gcm,
@@ -504,6 +505,7 @@ impl RandomizedCiphersuite for Secp256K1Sha256TR {
     }
 }
 
+#[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Secp256K1Sha256TR {
     fn HPOP(data: &[u8]) -> Scalar {
@@ -848,6 +850,8 @@ pub mod keys {
     }
 
     /// COCKTAIL-DKG key generation protocol.
+    #[cfg(feature = "cocktail-dkg")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cocktail-dkg")))]
     pub mod cocktail_dkg;
     pub mod dkg;
     pub mod refresh;
