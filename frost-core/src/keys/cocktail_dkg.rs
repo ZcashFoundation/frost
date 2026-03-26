@@ -16,27 +16,24 @@
 //!
 //! ## Protocol Overview
 //!
-//! 1. **Round 1 ([`part1`])**: Each participant generates their polynomial,
+//! 1. **Part 1 ([`part1`])**: Each participant generates their polynomial,
 //!    ephemeral key, proof of possession, and encrypts shares for all other
-//!    participants.
+//!    participants. Participants can send the generate packages to the other
+//!    participants directly, or via a "coordinator" which aggregates messages.
 //!
-//! 2. **Round 2 ([`part2`])**: The coordinator aggregates Round 1 messages and
-//!    sends them to all participants. Each participant decrypts and verifies
-//!    received shares, computes their final key share and signs the public
-//!    transcript.
+//! 2. **Part 2 ([`part2`])**: Each participant decrypts and verifies received
+//!    shares, computes their final key share and signs the public transcript.
+//!    Again, participants can send their transcript signatures directly to each
+//!    other, or via the coordinator.
 //!
-//! 3. **Round 3 ([`part3`])**: The coordinator broadcasts all transcript
-//!    signatures. Each participant verifies them and, if all are valid, outputs
+//! 3. **Part 3 ([`part3`])**: Each participant verifies the transcript
+//!    signatures from all other participants and, if all are valid, outputs
 //!    their [`KeyPackage`] and [`PublicKeyPackage`].
 //!
 //! ## Trait Requirement
 //!
 //! Ciphersuites must implement [`CocktailCiphersuite`] in addition to
-//! [`Ciphersuite`] to use this module. The additional methods provide:
-//! - A hash-to-scalar function for the COCKTAIL Schnorr signature scheme
-//! - A combined H6 key derivation + AEAD key/nonce derivation function
-//! - AEAD encrypt/decrypt operations
-
+//! [`Ciphersuite`] to use this module.
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use rand_core::{CryptoRng, RngCore};
@@ -53,12 +50,6 @@ use super::{
 };
 
 /// Extension trait for ciphersuites that support the COCKTAIL-DKG protocol.
-///
-/// Implementors must provide:
-/// - The H6 hash function for AEAD key/nonce derivation
-/// - AEAD encrypt/decrypt operations
-///
-/// See the [COCKTAIL-DKG specification](https://c2sp.org/cocktail-dkg) for details.
 pub trait CocktailCiphersuite: Ciphersuite {
     /// Hash-to-scalar function for the COCKTAIL Schnorr PoP scheme.
     fn HPOP(data: &[u8]) -> Scalar<Self>;
@@ -158,7 +149,7 @@ fn pop_message<C: Ciphersuite>(
     Ok(msg)
 }
 
-/// COCKTAIL deterministic Schnorr sign for Proof of Possession.
+/// Deterministic Schnorr sign for Proof of Possession.
 ///
 /// `k = H(sk || m)`, `R = k·B`, `c = H(R || pk || m)`, `z = k + c·sk`
 fn pop_sign<C: CocktailCiphersuite>(
@@ -184,7 +175,7 @@ fn pop_sign<C: CocktailCiphersuite>(
     Ok(Signature { R, z })
 }
 
-/// COCKTAIL deterministic Schnorr verify for Proof of Possession.
+/// Deterministic Schnorr verify for Proof of Possession.
 ///
 /// `c = H(R || pk || m)`, check `z·B == R + c·pk`
 fn pop_verify<C: CocktailCiphersuite>(
