@@ -223,7 +223,7 @@ pub mod round2 {
     /// # Security
     ///
     /// The package must be sent on an *confidential* and *authenticated* channel.
-    #[derive(Clone, Debug, PartialEq, Eq, Getters)]
+    #[derive(Clone, Debug, PartialEq, Eq, Getters, Zeroize, ZeroizeOnDrop)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(bound = "C: Ciphersuite"))]
     #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
