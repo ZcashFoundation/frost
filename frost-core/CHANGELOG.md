@@ -13,7 +13,7 @@ from `2.x`.
 ### Fixed
 
 * Fixed `verify_signature_share()` so that it calls the
-  `Ciphersuite::pre_commitment_aggreagate()` hook
+  `Ciphersuite::pre_commitment_aggregate()` hook
 
 
 ## 3.0.0-rc.0
@@ -29,7 +29,9 @@ from `2.x`.
 * Changed `InvalidSignatureShare::culprit` to `culprits`; it is now a `Vec`.
 * Changed `Error::culprit()` to `culprits()`; is is now a `Vec`.
 * Added a `min_signers` argument to `PublicKeyPackage::new()`.
-* The `std` and `nightly` features were removed from all crates.
+* The `std` and `nightly` features were removed from all crates since the crates
+  are all `no-std`. If you enabled them, just remove the feature from the
+  import.
 * Renamed `frost_core::keys::refresh::refresh_dkg_part_1` to `refresh_dkg_part1`.
 * Fixed the crate-specific versions of the `refresh` module to be non-generic.
 * Removed the `min_signers` and `max_signers` arguments from
@@ -57,7 +59,7 @@ from `2.x`.
   anymore; instead, they must implement `AsMut<[u8]>` and `TryFrom<&[u8]>`. This
   should be trivial in most cases since they are often implemented by arrays.
 
-### Additional changes
+### Added
 
 * Added DKG refresh functions to the crate-specific `refresh` modules.
 * Re-exported the `frost-rerandomized` crate in the ciphersuite functions, e.g.
@@ -67,6 +69,17 @@ from `2.x`.
 * Added `aggregate_custom()` function to allow specifying which cheater
   detection strategy to use. The original `aggregate()` behaviour is to use
   the `CheaterDetection::FirstCheater` strategy.
+* Added `ZeroizeOnDrop` for more types.
+* Added `NonceCommitment` getters and `new()` under `internals` feature.
+
+### Fixed
+
+* Fixed `dkg::round2::SecretPackage` serialization (it would previously return
+  an error when deserialized). Technically this is a breaking change; if somehow
+  your application has serialized round 2 SecretPackages in long-term storage
+  and you need to deserialize then, you will need to manually parse them
+  and discard the first element of the `commitment` field.
+* Fixed the build for some specific feature combinations.
 
 
 ## 2.2.0

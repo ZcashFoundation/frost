@@ -5,6 +5,9 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 3.0.0
+
+* No changes.
 
 ## 3.0.0-rc.0
 
