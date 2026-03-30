@@ -67,7 +67,7 @@ jobs:
           mdbook build book/
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
         with:
           path: 'book/book'
