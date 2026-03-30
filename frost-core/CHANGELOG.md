@@ -5,6 +5,16 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+## 3.0.0
+
+Refer to the `3.0.0-rc.0` entry below for the main changes if you are upgrading
+from `2.x`.
+
+### Fixed
+
+* Fixed `verify_signature_share()` so that it calls the
+  `Ciphersuite::pre_commitment_aggreagate()` hook
+
 
 ## 3.0.0-rc.0
 
