@@ -434,9 +434,7 @@ pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>
     // > a context string to prevent replay attacks.
     let (k, R_i) = <C>::generate_nonce(&mut rng);
     let c_i = challenge::<C>(identifier, &commitment.verifying_key()?, &R_i)?;
-    let a_i0 = *coefficients
-        .first()
-        .ok_or(Error::InvalidCoefficients)?;
+    let a_i0 = *coefficients.first().ok_or(Error::InvalidCoefficients)?;
     let mu_i = k + a_i0 * c_i.0;
     Ok(Signature { R: R_i, z: mu_i })
 }
