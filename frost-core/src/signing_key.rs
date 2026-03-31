@@ -3,6 +3,7 @@
 use alloc::vec::Vec;
 
 use rand_core::{CryptoRng, RngCore};
+use zeroize::ZeroizeOnDrop;
 
 use crate::{
     random_nonzero, serialization::SerializableScalar, Challenge, Ciphersuite, Error, Field, Group,
@@ -10,7 +11,7 @@ use crate::{
 };
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct SigningKey<C>
 where
     C: Ciphersuite,
@@ -52,7 +53,7 @@ where
         mut rng: R,
         message: &[u8],
     ) -> Signature<C> {
-        let public = VerifyingKey::<C>::from(*self);
+        let public = VerifyingKey::<C>::from(self.clone());
 
         let (k, R) = <C>::generate_nonce(&mut rng);
 
@@ -77,6 +78,17 @@ where
     /// Return the underlying scalar.
     pub fn to_scalar(self) -> <<<C as Ciphersuite>::Group as Group>::Field as Field>::Scalar {
         self.scalar
+    }
+}
+
+impl<C> ZeroizeOnDrop for SigningKey<C> where C: Ciphersuite {}
+
+impl<C> Drop for SigningKey<C>
+where
+    C: Ciphersuite,
+{
+    fn drop(&mut self) {
+        self.scalar = <<C::Group as Group>::Field as Field>::zero();
     }
 }
 
