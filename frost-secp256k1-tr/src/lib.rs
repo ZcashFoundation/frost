@@ -25,6 +25,11 @@ use k256::{
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
+#[cfg(feature = "cocktail-dkg")]
+use xaes_256_gcm::{
+    aead::{Aead, Key, KeyInit},
+    Nonce, Xaes256Gcm,
+};
 
 use frost_core::{self as frost, random_nonzero};
 
@@ -500,6 +505,58 @@ impl RandomizedCiphersuite for Secp256K1Sha256TR {
     }
 }
 
+#[cfg(feature = "cocktail-dkg")]
+#[allow(deprecated)]
+impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Secp256K1Sha256TR {
+    fn HPOP(data: &[u8]) -> Scalar {
+        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"pop"], data)
+    }
+
+    fn H6(
+        shared_secret_ephem: &[u8],
+        shared_secret_static: &[u8],
+        ephemeral_pub: &[u8],
+        sender_pub: &[u8],
+        recipient_pub: &[u8],
+        context: &[u8],
+    ) -> alloc::vec::Vec<u8> {
+        let mut hasher = tagged_hash("COCKTAIL-DKG/H6");
+        hasher.update(shared_secret_ephem);
+        hasher.update(shared_secret_static);
+        hasher.update(ephemeral_pub);
+        hasher.update(sender_pub);
+        hasher.update(recipient_pub);
+        hasher.update(context);
+        hasher.finalize().to_vec()
+    }
+
+    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
+        hash_to_array(&[data]).to_vec()
+    }
+
+    fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {
+        let key = Key::<Xaes256Gcm>::from_slice(key);
+        let cipher = Xaes256Gcm::new(key);
+        let nonce = Nonce::from_slice(nonce);
+        cipher
+            .encrypt(nonce, plaintext)
+            .expect("encryption should never fail")
+    }
+
+    fn aead_decrypt(
+        key: &[u8; 32],
+        nonce: &[u8; 24],
+        ciphertext: &[u8],
+    ) -> Result<alloc::vec::Vec<u8>, frost_core::Error<Self>> {
+        let key = Key::<Xaes256Gcm>::from_slice(key);
+        let cipher = Xaes256Gcm::new(key);
+        let nonce = Nonce::from_slice(nonce);
+        cipher
+            .decrypt(nonce, ciphertext)
+            .map_err(|_| frost_core::Error::InvalidSignature)
+    }
+}
+
 type S = Secp256K1Sha256TR;
 
 /// A FROST(secp256k1, SHA-256) participant identifier.
@@ -792,6 +849,10 @@ pub mod keys {
         }
     }
 
+    /// COCKTAIL-DKG protocol for distributed key generation.
+    #[cfg(feature = "cocktail-dkg")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cocktail-dkg")))]
+    pub mod cocktail_dkg;
     pub mod dkg;
     pub mod refresh;
     pub mod repairable;
