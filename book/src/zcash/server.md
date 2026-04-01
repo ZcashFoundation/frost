@@ -159,29 +159,26 @@ For Participants:
 - Wait for round 2 message by repeatedly polling `/receive` each 2 seconds or longer
 - Send round 2 message by using `/send`
 
-```admonish info
-**Polling** is not optimal. The server will support a better mechanism in the
-future.
-```
+> [!NOTE]
+> **Polling** is not optimal. The server will support a better mechanism in the
+> future.
 
-```admonish info
-Selecting sessions is tricky. Ideally, the user should select what session
-to proceed by checking the message being signed; however, that is usually
-sent in Round 2. There are multiple ways to handle this:
+> [!NOTE]
+> Selecting sessions is tricky. Ideally, the user should select what session
+> to proceed by checking the message being signed; however, that is usually
+> sent in Round 2. There are multiple ways to handle this:
+>
+> - Simply show the users who are participants, hoping that is enough to
+>   disambiguate (we assume that concurrent signing sessions won't be that common)
+> - Quietly proceed with all sessions, and only prompt the user after the message
+>   is received. (It's harmless to do round 1 of FROST even if the user might
+>   not have agreed to sign the message yet.)
+> - Change the application so that the message is sent to the participants first
+>   (the server does not really care how the protocol is run).
 
-- Simply show the users who are participants, hoping that is enough to
-  disambiguate (we assume that concurrent signing sessions won't be that common)
-- Quietly proceed with all sessions, and only prompt the user after the message
-  is received. (It's harmless to do round 1 of FROST even if the user might
-  not have agreed to sign the message yet.)
-- Change the application so that the message is sent to the participants first
-  (the server does not really care how the protocol is run).
-```
-
-```admonish critical
-Always gather consent from the user by showing them the message before
-signing it.
-```
+> [!CAUTION]
+> Always gather consent from the user by showing them the message before
+> signing it.
 
 ### `/challenge`
 
@@ -314,11 +311,10 @@ Coordinator, pass an empty list in `recipients` (**do not** use the
 Coordinator's public key, because that might be ambiguous if they're also a
 Participant).
 
-```admonish critical
-Messages **MUST** be end-to-end encrypted between recipients. The server can't
-enforce this and if you fail to encrypt them then the server could read
-all the messages.
-```
+> [!CAUTION]
+> Messages **MUST** be end-to-end encrypted between recipients. The server can't
+> enforce this and if you fail to encrypt them then the server could read
+> all the messages.
 
 ### `/receive`
 
