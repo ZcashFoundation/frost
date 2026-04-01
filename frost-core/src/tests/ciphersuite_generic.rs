@@ -138,13 +138,12 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
             frost::keys::KeyPackage::deserialize(&key_package.serialize().unwrap()).unwrap();
         key_packages.insert(k, key_package);
     }
-    // Check if it fails with not enough signers. Usually this would return an
-    // error before even running the signing procedure, because `KeyPackage`
-    // contains the correct `min_signers` value and the signing procedure checks
-    // if the number of shares is at least `min_signers`. To bypass the check
-    // and test if the protocol itself fails with not enough signers, we modify
-    // the `KeyPackages`s, decrementing their saved `min_signers` value before
-    // running the signing procedure.
+    // Check if it fails with not enough signers. Both the KeyPackages and
+    // the PublicKeyPackage have their min_signers decremented so that the
+    // early validation check in aggregate() passes, and we can verify that
+    // the cryptographic aggregation itself fails when too few shares are used.
+    let mut pub_key_package_insufficient = pub_key_package.clone();
+    pub_key_package_insufficient.min_signers = Some(min_signers - 1);
     let r = check_sign(
         min_signers - 1,
         key_packages
@@ -158,7 +157,7 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
             })
             .collect(),
         &mut rng,
-        pub_key_package.clone(),
+        pub_key_package_insufficient,
     );
     assert_eq!(r, Err(Error::InvalidSignature));
 

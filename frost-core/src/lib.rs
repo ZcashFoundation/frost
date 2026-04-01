@@ -608,6 +608,12 @@ where
         return Err(Error::UnknownIdentifier);
     }
 
+    if let Some(min) = pubkeys.min_signers() {
+        if signature_shares.len() < min as usize {
+            return Err(Error::IncorrectNumberOfShares);
+        }
+    }
+
     if !signing_package
         .signing_commitments()
         .keys()
@@ -772,11 +778,11 @@ pub fn verify_signature_share<C: Ciphersuite>(
     let verifying_share = pubkeys
         .verifying_shares()
         .get(&identifier)
-        .expect("pre_aggregate() must keep the identifiers");
+        .ok_or(Error::UnknownIdentifier)?;
     let verifying_key = pubkeys.verifying_key();
     let signature_share = signature_shares
         .get(&identifier)
-        .expect("pre_aggregate() must keep the identifiers");
+        .ok_or(Error::UnknownIdentifier)?;
 
     // Encodes the signing commitment list produced in round one as part of generating [`BindingFactor`], the
     // binding factor.
