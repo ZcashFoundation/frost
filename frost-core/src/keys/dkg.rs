@@ -434,9 +434,7 @@ pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>
     // > a context string to prevent replay attacks.
     let (k, R_i) = <C>::generate_nonce(&mut rng);
     let c_i = challenge::<C>(identifier, &commitment.verifying_key()?, &R_i)?;
-    let a_i0 = *coefficients
-        .first()
-        .expect("coefficients must have at least one element");
+    let a_i0 = *coefficients.first().ok_or(Error::InvalidCoefficients)?;
     let mu_i = k + a_i0 * c_i.0;
     Ok(Signature { R: R_i, z: mu_i })
 }
@@ -492,6 +490,10 @@ pub fn part2<C: Ciphersuite>(
 > {
     if round1_packages.len() != (secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
+    }
+
+    if round1_packages.contains_key(&secret_package.identifier) {
+        return Err(Error::UnknownIdentifier);
     }
 
     for package in round1_packages.values() {
@@ -563,6 +565,12 @@ pub fn part3<C: Ciphersuite>(
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
     if round1_packages.len() != (round2_secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
+    }
+    if round1_packages.contains_key(&round2_secret_package.identifier) {
+        return Err(Error::UnknownIdentifier);
+    }
+    if round2_packages.contains_key(&round2_secret_package.identifier) {
+        return Err(Error::UnknownIdentifier);
     }
     if round1_packages.len() != round2_packages.len() {
         return Err(Error::IncorrectNumberOfPackages);

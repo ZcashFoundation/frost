@@ -299,7 +299,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
         rng: R,
         message: &[u8],
     ) -> Signature {
-        let signing_key = signing_key.into_even_y(None);
+        let signing_key = signing_key.clone().into_even_y(None);
         signing_key.default_sign(rng, message)
     }
 
