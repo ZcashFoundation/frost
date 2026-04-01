@@ -10,7 +10,7 @@ fn check_interoperability_in_regular_sign() {
 
     for _ in 0..256 {
         let signing_key = SigningKey::new(&mut rng);
-        let verifying_key = signing_key.into();
+        let verifying_key = (&signing_key).into();
         let signature = signing_key.sign(rng, b"message");
         helpers::verify_signature(b"message", &signature, &verifying_key);
     }

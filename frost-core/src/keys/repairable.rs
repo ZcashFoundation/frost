@@ -117,7 +117,7 @@ pub fn repair_share_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     rng: &mut R,
     participant: Identifier<C>,
 ) -> Result<BTreeMap<Identifier<C>, Delta<C>>, Error<C>> {
-    if helpers.len() < 2 {
+    if helpers.len() < *key_package_i.min_signers() as usize {
         return Err(Error::IncorrectNumberOfIdentifiers);
     }
     if !helpers.contains(&key_package_i.identifier) {

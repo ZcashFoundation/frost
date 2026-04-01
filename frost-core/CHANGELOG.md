@@ -28,6 +28,7 @@ Entries are listed in reverse chronological order.
   you will need to fills its `min_signers` field with the original threshold
   before calling the function (recreate it with `PublicKeyPackage::new()`).
   The latter was simply redundant.
+* `SigningKey` is no longer `Copy`; and now it implements `ZeroizeOnDrop`.
 * Refactored the `frost_core::keys::repairable` module:
   * `repair_share_step_1()` was renamed to `repair_share_part1()` and now takes
     a `KeyPackage` and returns a map with a new `Delta` type instead of a raw
