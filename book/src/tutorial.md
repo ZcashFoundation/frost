@@ -16,7 +16,7 @@ This tutorial will use the `frost-ristretto255` crate, but changing
 to another ciphersuite should be a matter of simply changing the import.
 
 > [!NOTE]
-> "The `frost-secp256k1` crate is not compatible with Bitcoin BIP-340 (Taproot)
+> The `frost-secp256k1` crate is not compatible with Bitcoin BIP-340 (Taproot)
 > signatures. Use
 > [frost-secp256k1-tr](https://crates.io/crates/frost-secp256k1-tr) instead
 > if you want to support it.
