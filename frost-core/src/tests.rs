@@ -4,6 +4,8 @@
 
 pub mod batch;
 pub mod ciphersuite_generic;
+#[cfg(feature = "cocktail-dkg")]
+pub mod cocktail_dkg;
 pub mod coefficient_commitment;
 pub mod helpers;
 pub mod proptests;

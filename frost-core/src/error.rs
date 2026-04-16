@@ -90,6 +90,20 @@ pub enum Error<C: Ciphersuite> {
         /// The identifier of the signer whose share validation failed.
         culprit: Identifier<C>,
     },
+    /// Decryption of an encrypted share failed.
+    #[cfg(feature = "cocktail-dkg")]
+    #[error("Decryption of an encrypted share failed.")]
+    DecryptionFailed {
+        /// The identifier of the participant who sent the invalid ciphertext.
+        culprit: Identifier<C>,
+    },
+    /// A transcript signature is not valid.
+    #[cfg(feature = "cocktail-dkg")]
+    #[error("Invalid transcript signature.")]
+    InvalidTranscriptSignature {
+        /// The identifier of the participant whose transcript signature was invalid.
+        culprit: Identifier<C>,
+    },
     /// Error in scalar Field.
     #[error("Error in scalar Field.")]
     FieldError(#[from] FieldError),
@@ -126,6 +140,10 @@ where
             Error::InvalidSignatureShare { culprits } => culprits.clone(),
             Error::InvalidProofOfKnowledge { culprit } => vec![*culprit],
             Error::InvalidSecretShare { culprit } => culprit.map(|i| vec![i]).unwrap_or_default(),
+            #[cfg(feature = "cocktail-dkg")]
+            Error::DecryptionFailed { culprit } => vec![*culprit],
+            #[cfg(feature = "cocktail-dkg")]
+            Error::InvalidTranscriptSignature { culprit } => vec![*culprit],
             Error::InvalidMinSigners
             | Error::InvalidMaxSigners
             | Error::InvalidCoefficients

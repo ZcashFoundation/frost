@@ -358,6 +358,7 @@ fn main() -> ExitCode {
             "dkg.md",
             "src/rerandomized.rs",
             "src/keys/dkg.rs",
+            "src/keys/cocktail_dkg.rs",
             "src/keys/refresh.rs",
             "src/keys/repairable.rs",
             "src/tests/batch.rs",

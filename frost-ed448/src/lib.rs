@@ -221,6 +221,59 @@ impl RandomizedCiphersuite for Ed448Shake256 {
     }
 }
 
+#[cfg(feature = "cocktail-dkg")]
+#[allow(deprecated)]
+impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed448Shake256 {
+    fn HPOP(data: &[u8]) -> Scalar {
+        hash_to_scalar(&[data])
+    }
+
+    fn H6(
+        shared_secret_ephem: &[u8],
+        shared_secret_static: &[u8],
+        ephemeral_pub: &[u8],
+        sender_pub: &[u8],
+        recipient_pub: &[u8],
+        context: &[u8],
+    ) -> alloc::vec::Vec<u8> {
+        hash_to_array(&[
+            b"COCKTAIL-DKG-Ed448-SHAKE256-H6",
+            shared_secret_ephem,
+            shared_secret_static,
+            ephemeral_pub,
+            sender_pub,
+            recipient_pub,
+            &(context.len() as u64).to_le_bytes(),
+            context,
+        ])
+        .to_vec()
+    }
+
+    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
+        hash_to_array(&[data]).to_vec()
+    }
+
+    fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {
+        use chacha20poly1305::{aead::Aead, KeyInit, XChaCha20Poly1305, XNonce};
+        let cipher = XChaCha20Poly1305::new(key.into());
+        cipher
+            .encrypt(XNonce::from_slice(nonce), plaintext)
+            .expect("XChaCha20Poly1305 encryption never fails")
+    }
+
+    fn aead_decrypt(
+        key: &[u8; 32],
+        nonce: &[u8; 24],
+        ciphertext: &[u8],
+    ) -> Result<alloc::vec::Vec<u8>, frost_core::Error<Self>> {
+        use chacha20poly1305::{aead::Aead, KeyInit, XChaCha20Poly1305, XNonce};
+        let cipher = XChaCha20Poly1305::new(key.into());
+        cipher
+            .decrypt(XNonce::from_slice(nonce), ciphertext)
+            .map_err(|_| frost_core::Error::InvalidSignature)
+    }
+}
+
 type E = Ed448Shake256;
 
 /// A FROST(Ed448, SHAKE256) participant identifier.
@@ -318,6 +371,10 @@ pub mod keys {
     /// ensure that they received the correct (and same) value.
     pub type VerifiableSecretSharingCommitment = frost::keys::VerifiableSecretSharingCommitment<E>;
 
+    /// COCKTAIL-DKG protocol for distributed key generation.
+    #[cfg(feature = "cocktail-dkg")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cocktail-dkg")))]
+    pub mod cocktail_dkg;
     pub mod dkg;
     pub mod refresh;
     pub mod repairable;
