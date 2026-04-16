@@ -56,11 +56,10 @@ Is encoded as
 - `0b`: the length of the message
 - `68656c6c6f20776f726c64`: the message
 
-```admonish note
-The ciphersuite ID is encoded multiple times in this case because `SigningPackage` includes
-`SigningCommitments`, which also need to be communicated in Round 1 and thus also encodes
-its ciphersuite ID. This is the only instance where this happens.
-```
+> [!NOTE]
+> The ciphersuite ID is encoded multiple times in this case because `SigningPackage` includes
+> `SigningCommitments`, which also need to be communicated in Round 1 and thus also encodes
+> its ciphersuite ID. This is the only instance where this happens.
 
 ## Test Vectors
 

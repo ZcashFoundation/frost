@@ -10,10 +10,9 @@ together generate a signature that can be validated by the corresponding verifyi
 key. One important aspect is that the resulting signature is indistinguishable from a
 non-threshold signature from the point of view of signature verifiers.
 
-```admonish note
-FROST only supports Schnorr signatures. Therefore it can't produce
-ECDSA signatures.
-```
+> [!NOTE]
+> FROST only supports Schnorr signatures. Therefore it can't produce
+> ECDSA signatures.
 
 ## Key Generation
 
@@ -62,21 +61,19 @@ consolidates them and sends them to each participant. Each one will then produce
 a signature share, which is sent to the Coordinator who finally aggregates them
 and produces the final signature.
 
-```admonish note
-If having a single coordinator is not desired, then all participants
-can act as coordinators. Refer to the
-[spec](https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#removing-the-coordinator-role-no-coordinator)
-for more information.
-```
+> [!NOTE]
+> If having a single coordinator is not desired, then all participants
+> can act as coordinators. Refer to the
+> [spec](https://github.com/cfrg/draft-irtf-cfrg-frost/blob/master/draft-irtf-cfrg-frost.md#removing-the-coordinator-role-no-coordinator)
+> for more information.
 
-```admonish warning
-ALL participants who are selected for generating the signature need
-to produce their share, even if there are more than `t` of them.
-For example, in 2-of-3 signing, if 3 participants are selected,
-them all 3 must produce signature shares in order for the Coordinator
-be able to produce the final signature. Of course, the Coordinator
-is still free to start the process with only 2 participants if they wish.
-```
+> [!WARNING]
+> ALL participants who are selected for generating the signature need
+> to produce their share, even if there are more than `t` of them.
+> For example, in 2-of-3 signing, if 3 participants are selected,
+> them all 3 must produce signature shares in order for the Coordinator
+> be able to produce the final signature. Of course, the Coordinator
+> is still free to start the process with only 2 participants if they wish.
 
 ## Verifying Signatures
 
@@ -112,20 +109,19 @@ shares in a way that maintains the same group public key. Some applications are:
   in signing sessions with the others. (They can also then use the repair share
   functionality to issue a new share and move from 2-of-2 back to 2-of-3.)
 
-```admonish danger
-It is critically important to keep in mind that the **Refresh Shares
-functionality does not "restore full security" to a group**. While the group
-evolves and participants are removed and new participants are added, the
-security of the group does not depend only on the threshold of the current
-participants being honest, but also **on the threshold of all previous set of
-participants being honest**! For example, if Alice, Mallory and Eve form a group
-and Mallory is eventually excluded from the group and replaced with Bob, it is
-not enough to trust 2 out of 3 between Alice, Bob and Eve. **You also need to
-trust that Mallory won't collude with, say, Eve which could have kept her
-original pre-refresh share and they could both together recompute the original
-key and compromise the group.** If that's an unacceptable risk to your use case,
-you will need to migrate to a new group if that makes sense to your application.
-```
+> [!CAUTION]
+> It is critically important to keep in mind that the **Refresh Shares
+> functionality does not "restore full security" to a group**. While the group
+> evolves and participants are removed and new participants are added, the
+> security of the group does not depend only on the threshold of the current
+> participants being honest, but also **on the threshold of all previous set of
+> participants being honest**! For example, if Alice, Mallory and Eve form a group
+> and Mallory is eventually excluded from the group and replaced with Bob, it is
+> not enough to trust 2 out of 3 between Alice, Bob and Eve. **You also need to
+> trust that Mallory won't collude with, say, Eve which could have kept her
+> original pre-refresh share and they could both together recompute the original
+> key and compromise the group.** If that's an unacceptable risk to your use case,
+> you will need to migrate to a new group if that makes sense to your application.
 
 ## Ciphersuites
 
