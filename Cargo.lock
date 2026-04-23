@@ -526,7 +526,7 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "frost-core"
-version = "3.0.0-rc.0"
+version = "3.0.0"
 dependencies = [
  "byteorder",
  "const-crc32-nostd",
@@ -554,7 +554,7 @@ dependencies = [
 
 [[package]]
 name = "frost-ed25519"
-version = "3.0.0-rc.0"
+version = "3.0.0"
 dependencies = [
  "criterion",
  "curve25519-dalek",
@@ -576,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "frost-ed448"
-version = "3.0.0-rc.0"
+version = "3.0.0"
 dependencies = [
  "criterion",
  "document-features",
@@ -597,7 +597,7 @@ dependencies = [
 
 [[package]]
 name = "frost-p256"
-version = "3.0.0-rc.0"
+version = "3.0.0"
 dependencies = [
  "criterion",
  "document-features",
@@ -618,7 +618,7 @@ dependencies = [
 
 [[package]]
 name = "frost-rerandomized"
-version = "3.0.0-rc.0"
+version = "3.0.0"
 dependencies = [
  "derive-getters",
  "document-features",
@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "frost-ristretto255"
-version = "3.0.0-rc.0"
+version = "3.0.0"
 dependencies = [
  "criterion",
  "curve25519-dalek",
@@ -651,7 +651,7 @@ dependencies = [
 
 [[package]]
 name = "frost-secp256k1"
-version = "3.0.0-rc.0"
+version = "3.0.0"
 dependencies = [
  "criterion",
  "document-features",
@@ -672,7 +672,7 @@ dependencies = [
 
 [[package]]
 name = "frost-secp256k1-tr"
-version = "3.0.0-rc.0"
+version = "3.0.0"
 dependencies = [
  "criterion",
  "document-features",
