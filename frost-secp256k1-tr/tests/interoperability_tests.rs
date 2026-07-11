@@ -6,7 +6,7 @@ mod helpers;
 
 #[test]
 fn check_interoperability_in_regular_sign() {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     for _ in 0..256 {
         let signing_key = SigningKey::new(&mut rng);
@@ -18,7 +18,7 @@ fn check_interoperability_in_regular_sign() {
 
 #[test]
 fn check_interoperability_in_sign_with_dkg() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     // Test with multiple keys/signatures to better exercise the key generation
     // and the interoperability check. A smaller number of iterations is used
@@ -35,7 +35,7 @@ fn check_interoperability_in_sign_with_dkg() {
 
 #[test]
 fn check_interoperability_in_sign_with_dealer() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     // Test with multiple keys/signatures to better exercise the key generation
     // and the interoperability check.

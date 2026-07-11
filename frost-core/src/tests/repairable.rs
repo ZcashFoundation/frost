@@ -3,7 +3,7 @@
 use alloc::collections::BTreeMap;
 
 use debugless_unwrap::DebuglessUnwrapExt;
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use serde_json::Value;
 
 use crate as frost;
@@ -19,7 +19,7 @@ use crate::{
 };
 
 /// We want to test that recovered share matches the original share
-pub fn check_rts<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_rts<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     // Compute shares
 
     ////////////////////////////////////////////////////////////////////////////
@@ -109,7 +109,7 @@ fn generate_scalar_from_byte_string<C: Ciphersuite>(
 }
 
 /// Test repair_share_part1
-pub fn check_repair_share_part1<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_repair_share_part1<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     // Compute shares
 
     let max_signers = 5;
@@ -184,7 +184,7 @@ pub fn check_repair_share_part2<C: Ciphersuite>(repair_share_helpers: &Value) {
 }
 
 /// Test repair_share_part3
-pub fn check_repair_share_part3<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_repair_share_part3<C: Ciphersuite, R: CryptoRng>(
     mut rng: R,
     repair_share_helpers: &Value,
 ) {
@@ -231,10 +231,7 @@ pub fn check_repair_share_part3<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// Test repair share part 1 fails with invalid numbers of signers.
-pub fn check_repair_share_part1_fails_with_invalid_min_signers<
-    C: Ciphersuite,
-    R: RngCore + CryptoRng,
->(
+pub fn check_repair_share_part1_fails_with_invalid_min_signers<C: Ciphersuite, R: CryptoRng>(
     mut rng: R,
 ) {
     // Generate shares

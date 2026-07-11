@@ -1,23 +1,22 @@
+#![no_std]
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
+#[cfg(test)]
+extern crate std;
+
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
 
-use ed448_goldilocks::{
-    curve::{edwards::CompressedEdwardsY, ExtendedPoint},
-    Scalar,
-};
+use ed448_goldilocks::{CompressedEdwardsY, EdwardsPoint, EdwardsScalar};
 use frost_rerandomized::RandomizedCiphersuite;
-use rand_core::{CryptoRng, RngCore};
-use sha3::{
-    digest::{ExtendableOutput, Update, XofReader},
-    Shake256,
-};
+use rand_core::CryptoRng;
+use sha3::digest::{ExtendableOutput, Update, XofReader};
+use shake::Shake256;
 
 use frost_core as frost;
 
@@ -38,16 +37,16 @@ pub type Error = frost_core::Error<Ed448Shake256>;
 pub struct Ed448ScalarField;
 
 impl Field for Ed448ScalarField {
-    type Scalar = Scalar;
+    type Scalar = EdwardsScalar;
 
     type Serialization = [u8; 57];
 
     fn zero() -> Self::Scalar {
-        Scalar::zero()
+        EdwardsScalar::ZERO
     }
 
     fn one() -> Self::Scalar {
-        Scalar::one()
+        EdwardsScalar::ONE
     }
 
     fn invert(scalar: &Self::Scalar) -> Result<Self::Scalar, FieldError> {
@@ -58,16 +57,16 @@ impl Field for Ed448ScalarField {
         }
     }
 
-    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
-        Scalar::random(rng)
+    fn random<R: CryptoRng>(rng: &mut R) -> Self::Scalar {
+        EdwardsScalar::random(rng)
     }
 
     fn serialize(scalar: &Self::Scalar) -> Self::Serialization {
-        scalar.to_bytes_rfc_8032()
+        scalar.to_bytes_rfc_8032().into()
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Scalar, FieldError> {
-        match Scalar::from_canonical_bytes(*buf) {
+        match EdwardsScalar::from_canonical_bytes(buf.into()).into() {
             Some(s) => Ok(s),
             None => Err(FieldError::MalformedScalar),
         }
@@ -85,42 +84,42 @@ pub struct Ed448Group;
 impl Group for Ed448Group {
     type Field = Ed448ScalarField;
 
-    type Element = ExtendedPoint;
+    type Element = EdwardsPoint;
 
     type Serialization = [u8; 57];
 
     fn cofactor() -> <Self::Field as Field>::Scalar {
-        Scalar::one()
+        EdwardsScalar::ONE
     }
 
     fn identity() -> Self::Element {
-        Self::Element::identity()
+        Self::Element::IDENTITY
     }
 
     fn generator() -> Self::Element {
-        Self::Element::generator()
+        Self::Element::GENERATOR
     }
 
     fn serialize(element: &Self::Element) -> Result<Self::Serialization, GroupError> {
         if *element == Self::identity() {
             return Err(GroupError::InvalidIdentityElement);
         }
-        Ok(element.compress().0)
+        Ok(element.to_affine().compress().0)
     }
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let compressed = CompressedEdwardsY(*buf);
-        match compressed.decompress() {
+        match compressed.decompress_unchecked().into_option() {
             Some(point) => {
-                if point == Self::identity() {
+                if point == Self::identity().to_affine() {
                     Err(GroupError::InvalidIdentityElement)
-                } else if point.is_torsion_free() {
+                } else if point.to_edwards().is_torsion_free().into() {
                     // decompress() does not check for canonicality, so we
                     // check by recompressing and comparing
                     if point.compress().0 != compressed.0 {
                         Err(GroupError::MalformedElement)
                     } else {
-                        Ok(point)
+                        Ok(point.to_edwards())
                     }
                 } else {
                     Err(GroupError::InvalidNonPrimeOrderElement)
@@ -142,9 +141,9 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 114] {
     output
 }
 
-fn hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
-    let output = hash_to_array(inputs);
-    Scalar::from_bytes_mod_order_wide(&output)
+fn hash_to_scalar(inputs: &[&[u8]]) -> EdwardsScalar {
+    let temp = hash_to_array(inputs);
+    EdwardsScalar::from_bytes_mod_order_wide(&temp.into())
 }
 
 /// Context string from the ciphersuite in the [spec]
@@ -235,7 +234,7 @@ pub mod keys {
 
     /// Allows all participants' keys to be generated using a central, trusted
     /// dealer.
-    pub fn generate_with_dealer<RNG: RngCore + CryptoRng>(
+    pub fn generate_with_dealer<RNG: CryptoRng>(
         max_signers: u16,
         min_signers: u16,
         identifiers: IdentifierList,
@@ -250,7 +249,7 @@ pub mod keys {
     /// instead of generating a fresh one. This is useful in scenarios where
     /// the key needs to be generated externally or must be derived from e.g. a
     /// seed phrase.
-    pub fn split<R: RngCore + CryptoRng>(
+    pub fn split<R: CryptoRng>(
         secret: &SigningKey,
         max_signers: u16,
         min_signers: u16,
@@ -351,7 +350,7 @@ pub mod round1 {
     /// operation.
     pub fn commit<RNG>(secret: &SigningShare, rng: &mut RNG) -> (SigningNonces, SigningCommitments)
     where
-        RNG: CryptoRng + RngCore,
+        RNG: CryptoRng,
     {
         frost::round1::commit::<E, RNG>(secret, rng)
     }

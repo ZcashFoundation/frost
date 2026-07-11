@@ -2,7 +2,7 @@
 use crate::*;
 
 /// Test batch verification with a Ciphersuite.
-pub fn batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn batch_verify<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     let mut batch = batch::Verifier::<C>::new();
     for _ in 0..1 {
         let sk = SigningKey::new(&mut rng);
@@ -16,7 +16,7 @@ pub fn batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 }
 
 /// Test failure case of batch verification with a Ciphersuite.
-pub fn bad_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn bad_batch_verify<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     let bad_index = 4; // must be even
     let mut batch = batch::Verifier::<C>::new();
     let mut items = Vec::new();
@@ -57,7 +57,7 @@ pub fn bad_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
 
 /// Test if the empty batch fails to validate.
 /// Test case from NCC audit.
-pub fn empty_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng>(rng: R) {
+pub fn empty_batch_verify<C: Ciphersuite, R: CryptoRng>(rng: R) {
     let batch = batch::Verifier::<C>::new();
     assert!(batch.verify(rng).is_err());
 }

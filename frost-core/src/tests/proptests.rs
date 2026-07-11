@@ -2,7 +2,7 @@
 
 use crate::*;
 use proptest::prelude::*;
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 /// A signature test-case, containing signature data and expected validity.
 #[derive(Clone, Debug)]
@@ -40,7 +40,7 @@ where
     C: Ciphersuite,
 {
     /// Create a new SignatureCase.
-    pub fn new<R: RngCore + CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
+    pub fn new<R: CryptoRng>(mut rng: R, msg: Vec<u8>) -> Self {
         let sk = SigningKey::<C>::new(&mut rng);
         let sig = sk.sign(&mut rng, &msg);
         let vk = VerifyingKey::<C>::from(&sk);

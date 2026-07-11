@@ -1,28 +1,28 @@
 [package]
 name = "frost-rerandomized"
-edition.workspace = true
-rust-version.workspace = true
 version.workspace = true
 authors.workspace = true
-readme = "README.md"
-license.workspace = true
-repository.workspace = true
-categories.workspace = true
-keywords = ["cryptography", "threshold", "signature", "schnorr", "randomized"]
+edition.workspace = true
+rust-version.workspace = true
 description = "Types and traits to support implementing a re-randomized variant of Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
+documentation = "https://docs.rs/frost-rerandomized"
+readme = "README.md"
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords = ["cryptography", "threshold", "signature", "schnorr", "randomized"]
+categories.workspace = true
 
 [package.metadata.docs.rs]
 features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-derive-getters = "0.5.0"
+derive-getters.workspace = true
 document-features.workspace = true
 frost-core = { workspace = true, features = ["internals"] }
 hex.workspace = true
 rand_core.workspace = true
-
-[dev-dependencies]
 
 [features]
 default = ["serialization"]

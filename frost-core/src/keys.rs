@@ -16,7 +16,7 @@ use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use zeroize::{DefaultIsZeroes, Zeroize, ZeroizeOnDrop};
 
 use crate::{
@@ -64,7 +64,7 @@ pub(crate) fn sum_commitments<C: Ciphersuite>(
 }
 
 /// Return a vector of randomly generated polynomial coefficients ([`Scalar`]s).
-pub(crate) fn generate_coefficients<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub(crate) fn generate_coefficients<C: Ciphersuite, R: CryptoRng>(
     size: usize,
     rng: &mut R,
 ) -> Vec<Scalar<C>> {
@@ -510,7 +510,7 @@ pub enum IdentifierList<'a, C: Ciphersuite> {
 /// Implements [`trusted_dealer_keygen`] from the spec.
 ///
 /// [`trusted_dealer_keygen`]: https://datatracker.ietf.org/doc/html/rfc9591#appendix-C
-pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn generate_with_dealer<C: Ciphersuite, R: CryptoRng>(
     max_signers: u16,
     min_signers: u16,
     identifiers: IdentifierList<C>,
@@ -526,7 +526,7 @@ pub fn generate_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 /// instead of generating a fresh one. This is useful in scenarios where
 /// the key needs to be generated externally or must be derived from e.g. a
 /// seed phrase.
-pub fn split<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn split<C: Ciphersuite, R: CryptoRng>(
     key: &SigningKey<C>,
     max_signers: u16,
     min_signers: u16,

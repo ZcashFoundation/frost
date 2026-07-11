@@ -3,7 +3,7 @@
 #![cfg(feature = "serialization")]
 
 use alloc::{borrow::ToOwned, collections::BTreeMap, vec::Vec};
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 use crate as frost;
 use crate::keys::dkg::{round1, round2};
@@ -26,7 +26,7 @@ pub fn check_zero_key_fails<C: Ciphersuite>() {
 }
 
 /// Test share generation with a Ciphersuite
-pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_share_generation<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     let secret = crate::SigningKey::<C>::new(&mut rng);
     // Simulate serialization / deserialization to ensure it works
     let secret = SigningKey::deserialize(&secret.serialize()).unwrap();
@@ -81,7 +81,7 @@ pub fn check_share_generation<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R
 }
 
 /// Test share generation with a Ciphersuite
-pub fn check_share_generation_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_share_generation_fails_with_invalid_signers<C: Ciphersuite, R: CryptoRng>(
     min_signers: u16,
     max_signers: u16,
     error: Error<C>,
@@ -105,7 +105,7 @@ pub fn check_share_generation_fails_with_invalid_signers<C: Ciphersuite, R: RngC
 }
 
 /// Test FROST signing with trusted dealer with a Ciphersuite.
-pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_sign_with_dealer<C: Ciphersuite, R: CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
     ////////////////////////////////////////////////////////////////////////////
@@ -165,7 +165,7 @@ pub fn check_sign_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// Test FROST signing with trusted dealer fails with invalid numbers of signers.
-pub fn check_sign_with_dealer_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_sign_with_dealer_fails_with_invalid_signers<C: Ciphersuite, R: CryptoRng>(
     min_signers: u16,
     max_signers: u16,
     error: Error<C>,
@@ -183,7 +183,7 @@ pub fn check_sign_with_dealer_fails_with_invalid_signers<C: Ciphersuite, R: RngC
 }
 
 /// Test DKG part1 fails with invalid numbers of signers.
-pub fn check_dkg_part1_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_dkg_part1_fails_with_invalid_signers<C: Ciphersuite, R: CryptoRng>(
     min_signers: u16,
     max_signers: u16,
     error: Error<C>,
@@ -201,7 +201,7 @@ pub fn check_dkg_part1_fails_with_invalid_signers<C: Ciphersuite, R: RngCore + C
 }
 
 /// Test FROST signing with the given shares.
-pub fn check_sign<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+pub fn check_sign<C: Ciphersuite + PartialEq, R: CryptoRng>(
     min_signers: u16,
     key_packages: BTreeMap<frost::Identifier<C>, frost::keys::KeyPackage<C>>,
     mut rng: R,
@@ -442,7 +442,7 @@ fn check_aggregate_invalid_share_identifier_for_verifying_shares<C: Ciphersuite 
 }
 
 /// Test FROST signing with DKG with a Ciphersuite.
-pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+pub fn check_sign_with_dkg<C: Ciphersuite + PartialEq, R: CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>)
 where
@@ -766,7 +766,7 @@ fn check_part3_corrupted_share<C: Ciphersuite>(
 
 /// Test FROST signing with trusted dealer with a Ciphersuite, using specified
 /// Identifiers.
-pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_sign_with_dealer_and_identifiers<C: Ciphersuite, R: CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
     // Check error cases first
@@ -882,7 +882,7 @@ pub fn check_identifier_derivation<C: Ciphersuite>() {
 }
 
 /// Checks the signer's identifier is included in the package
-pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     ////////////////////////////////////////////////////////////////////////////
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
@@ -963,7 +963,7 @@ pub fn check_sign_with_missing_identifier<C: Ciphersuite, R: RngCore + CryptoRng
 }
 
 /// Checks the signer's commitment is valid
-pub fn check_sign_with_incorrect_commitments<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_sign_with_incorrect_commitments<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     ////////////////////////////////////////////////////////////////////////////
     // Key generation
     ////////////////////////////////////////////////////////////////////////////
@@ -1089,9 +1089,7 @@ fn check_verify_signature_share<C: Ciphersuite>(
 
 /// Test FROST signing in an async context.
 /// The ultimate goal of the test is to ensure that types are Send + Sync.
-pub async fn async_check_sign<C: Ciphersuite, R: RngCore + CryptoRng + 'static + Send + Sync>(
-    mut rng: R,
-) {
+pub async fn async_check_sign<C: Ciphersuite, R: CryptoRng + 'static + Send + Sync>(mut rng: R) {
     tokio::spawn(async move {
         let max_signers = 5;
         let min_signers = 3;
