@@ -97,7 +97,6 @@ where
             &participants,
             context,
             extension,
-            &mut rng,
         )
         .unwrap();
         round2_secret_packages.insert(id, r2_secret);
@@ -226,31 +225,29 @@ impl CryptoRng for CounterDrng<'_> {}
 /// Test COCKTAIL-DKG protocol against JSON test vectors.
 ///
 /// - `json`: JSON test vector content (use `include_str!` in the caller).
-/// - `hash_fn`: Hash/XOF function used as a counter-based RNG for test vectors.
-///   E.g. `|data| Sha256::digest(data).to_vec()`.
-/// - `compare_encrypted_shares`: Whether to compare encrypted shares against the vectors.
-///   Set `false` when the ciphersuite AEAD differs from the reference
-///   (e.g. P-256/secp256k1 spec requires XAES-256-GCM, not XChaCha20Poly1305).
-/// - `check_recovery`: Whether to test the `recovery` section of the vector.
-///   Set `false` when the encrypted share format is incompatible with the reference.
-pub fn check_cocktail_dkg_test_vectors<C, H>(
-    json: &str,
-    hash_fn: H,
-    compare_encrypted_shares: bool,
-    check_recovery: bool,
-) where
+/// - `hash_fn`: The ciphersuite's hash function `H`, also used as a
+///   counter-based RNG for test vectors. E.g. `|data| Sha256::digest(data).to_vec()`.
+pub fn check_cocktail_dkg_test_vectors<C, H>(json: &str, hash_fn: H)
+where
     C: CocktailCiphersuite,
     H: Fn(&[u8]) -> Vec<u8>,
 {
     let file: serde_json::Value = serde_json::from_str(json.trim()).unwrap();
     let seed = hex::decode(file["seed"].as_str().unwrap()).unwrap();
     let cs_id = file["ciphersuite"].as_str().unwrap().as_bytes().to_vec();
+    assert_eq!(
+        cs_id,
+        C::COCKTAIL_ID.as_bytes(),
+        "test vector ciphersuite mismatch"
+    );
     let hash_fn_ref: &dyn Fn(&[u8]) -> Vec<u8> = &hash_fn;
 
     for vector in file["vectors"].as_array().unwrap().iter() {
         let n = vector["n"].as_u64().unwrap() as u32;
         let t = vector["t"].as_u64().unwrap() as u32;
         let context = hex::decode(vector["context"].as_str().unwrap()).unwrap();
+        let session_tag = hex::decode(vector["session_tag"].as_str().unwrap()).unwrap();
+        let extension = hex::decode(vector["extension"].as_str().unwrap()).unwrap();
 
         let static_secret_key_bytes: Vec<Vec<u8>> = vector["config"]["static_secret_keys"]
             .as_array()
@@ -258,6 +255,25 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
             .iter()
             .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
             .collect();
+
+        let static_public_key_bytes: Vec<Vec<u8>> = vector["config"]["static_public_keys"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
+            .collect();
+
+        // Per-participant broadcast payloads (present in the payload-extension
+        // vector variant only).
+        let payloads: Vec<Vec<u8>> = vector
+            .get("payloads")
+            .and_then(|p| p.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
+                    .collect()
+            })
+            .unwrap_or_default();
 
         let expected_ephemeral_pubs: Vec<Vec<u8>> = vector["round1"]
             .as_array()
@@ -288,7 +304,11 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
 
         let mut static_keys: BTreeMap<Identifier<C>, SigningKey<C>> = BTreeMap::new();
         let mut participants: BTreeMap<Identifier<C>, VerifyingKey<C>> = BTreeMap::new();
-        for (id, key_bytes) in identifiers.iter().zip(static_secret_key_bytes.iter()) {
+        for (idx, (id, key_bytes)) in identifiers
+            .iter()
+            .zip(static_secret_key_bytes.iter())
+            .enumerate()
+        {
             // Try direct deserialization first; if it fails (wrong length), append one zero
             // byte and retry. This handles ed448 where JSON stores 56-byte raw scalars but
             // the ciphersuite uses 57-byte RFC 8032 format (trailing 0x00).
@@ -298,11 +318,42 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
                 SigningKey::<C>::deserialize(&padded).unwrap()
             });
             let vk = VerifyingKey::from(&sk);
+            assert_eq!(
+                vk.serialize().unwrap(),
+                static_public_key_bytes[idx],
+                "participant {} static public key mismatch",
+                idx + 1
+            );
             static_keys.insert(*id, sk);
             participants.insert(*id, vk);
         }
 
-        let extension = b"";
+        // Check that the vector's context follows the recommended construction:
+        // H("COCKTAIL-DKG-CONTEXT" || uint64_be(len(session_tag)) || session_tag
+        //   || uint64_be(len(ciphersuite_id)) || ciphersuite_id || uint32_le(n)
+        //   || P_1 || ... || P_n)
+        let mut context_preimage = b"COCKTAIL-DKG-CONTEXT".to_vec();
+        context_preimage.extend_from_slice(&(session_tag.len() as u64).to_be_bytes());
+        context_preimage.extend_from_slice(&session_tag);
+        context_preimage.extend_from_slice(&(cs_id.len() as u64).to_be_bytes());
+        context_preimage.extend_from_slice(&cs_id);
+        context_preimage.extend_from_slice(&n.to_le_bytes());
+        for pk in participants.values() {
+            context_preimage.extend_from_slice(&pk.serialize().unwrap());
+        }
+        assert_eq!(hash_fn(&context_preimage), context, "context mismatch");
+
+        // Check that the vector's extension follows the recommended payload
+        // commitment construction when payloads are present:
+        // H(uint64_le(n) || uint64_le(len(payload_1)) || payload_1 || ...)
+        if !payloads.is_empty() {
+            let mut ext_preimage = (n as u64).to_le_bytes().to_vec();
+            for payload in &payloads {
+                ext_preimage.extend_from_slice(&(payload.len() as u64).to_le_bytes());
+                ext_preimage.extend_from_slice(payload);
+            }
+            assert_eq!(hash_fn(&ext_preimage), extension, "extension mismatch");
+        }
 
         // Round 1
         let mut round1_secret_packages: BTreeMap<
@@ -316,6 +367,15 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
 
         for (idx, (&id, sk)) in static_keys.iter().enumerate() {
             let mut rng = CounterDrng::new(&seed, &cs_id, t, n, (idx + 1) as u32, hash_fn_ref);
+            // Each participant broadcasts the same payload to every recipient.
+            let sender_payloads: BTreeMap<Identifier<C>, Vec<u8>> = if payloads.is_empty() {
+                BTreeMap::new()
+            } else {
+                identifiers
+                    .iter()
+                    .map(|&receiver_id| (receiver_id, payloads[idx].clone()))
+                    .collect()
+            };
             let (secret_pkg, pkg) = frost::keys::cocktail_dkg::part1(
                 id,
                 n as u16,
@@ -323,7 +383,7 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
                 sk,
                 &participants,
                 &context,
-                &BTreeMap::new(),
+                &sender_payloads,
                 &mut rng,
             )
             .unwrap();
@@ -352,23 +412,29 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
                 idx + 1
             );
 
-            if compare_encrypted_shares {
-                let expected_enc_shares: Vec<Vec<u8>> = round1_tv["encrypted_shares"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
-                    .collect();
-                for (j, &receiver_id) in identifiers.iter().enumerate() {
-                    let actual = &pkg.encrypted_shares()[&receiver_id];
-                    assert_eq!(
-                        actual.as_slice(),
-                        expected_enc_shares[j].as_slice(),
-                        "participant {} encrypted share for receiver {} mismatch",
-                        idx + 1,
-                        j + 1
-                    );
-                }
+            let expected_pop = hex::decode(round1_tv["pop"].as_str().unwrap()).unwrap();
+            assert_eq!(
+                frost::keys::cocktail_dkg::serialize_signature(pkg.proof_of_possession()).unwrap(),
+                expected_pop,
+                "participant {} PoP mismatch",
+                idx + 1
+            );
+
+            let expected_enc_shares: Vec<Vec<u8>> = round1_tv["encrypted_shares"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| hex::decode(v.as_str().unwrap()).unwrap())
+                .collect();
+            for (j, &receiver_id) in identifiers.iter().enumerate() {
+                let actual = &pkg.encrypted_shares()[&receiver_id];
+                assert_eq!(
+                    actual.as_slice(),
+                    expected_enc_shares[j].as_slice(),
+                    "participant {} encrypted share for receiver {} mismatch",
+                    idx + 1,
+                    j + 1
+                );
             }
 
             round1_secret_packages.insert(id, secret_pkg);
@@ -395,19 +461,25 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
         for (&id, sk) in static_keys.iter() {
             let secret_pkg = round1_secret_packages.remove(&id).unwrap();
             let round1_packages = &received_round1_packages[&id];
-            // Use participant 0 as a sentinel RNG for part2 (transcript Schnorr signing).
-            // This randomness is not verified against test vectors.
-            let mut rng2 = CounterDrng::new(&seed, &cs_id, t, n, 0, hash_fn_ref);
-            let (r2_secret, r2_pkg, _received_payloads) = frost::keys::cocktail_dkg::part2(
+            let (r2_secret, r2_pkg, received_payloads) = frost::keys::cocktail_dkg::part2(
                 secret_pkg,
                 round1_packages,
                 sk,
                 &participants,
                 &context,
-                extension,
-                &mut rng2,
+                &extension,
             )
             .unwrap();
+
+            // Each decrypted payload must round-trip to the sender's payload.
+            for (sender_id, payload) in &received_payloads {
+                let sender_idx = identifiers.iter().position(|i| i == sender_id).unwrap();
+                let expected: &[u8] = payloads
+                    .get(sender_idx)
+                    .map(|p| p.as_slice())
+                    .unwrap_or(&[]);
+                assert_eq!(payload.as_slice(), expected, "payload mismatch");
+            }
 
             round2_secret_packages.insert(id, r2_secret);
             for &receiver_id in participants.keys() {
@@ -487,7 +559,28 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
             let (key_pkg, pubkey_pkg, transcript, cert) =
                 frost::keys::cocktail_dkg::part3(r2_secret, round2_packages).unwrap();
 
-            if idx == 0 && check_recovery {
+            if idx == 0 {
+                // The canonical transcript and the success certificate are
+                // identical for all participants; compare them against the
+                // vector once.
+                assert_eq!(
+                    hash_fn(&transcript),
+                    hex::decode(vector["round3"]["transcript_hash"].as_str().unwrap()).unwrap(),
+                    "transcript hash mismatch"
+                );
+                for sig_tv in vector["round3"]["signatures"].as_array().unwrap() {
+                    let signer_id =
+                        Identifier::<C>::try_from(sig_tv["signer_id"].as_u64().unwrap() as u16)
+                            .unwrap();
+                    let expected_sig = hex::decode(sig_tv["signature"].as_str().unwrap()).unwrap();
+                    assert_eq!(
+                        frost::keys::cocktail_dkg::serialize_signature(&cert[&signer_id]).unwrap(),
+                        expected_sig,
+                        "round 3 signature mismatch for signer {:?}",
+                        sig_tv["signer_id"]
+                    );
+                }
+
                 transcript_for_recovery = transcript;
                 cert_for_recovery = cert;
             }
@@ -503,14 +596,9 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
                 idx + 1
             );
 
-            // Compare only the prefix when JSON bytes are fewer than the serialized length.
-            // Handles ed448 (56-byte JSON raw scalar vs 57-byte RFC 8032 format).
-            let serialized_share = key_pkg.signing_share().serialize();
-            let expected = expected_tweaked_key_pkgs[idx].signing_share().serialize();
-            let cmp_len = expected.len().min(serialized_share.len());
             assert_eq!(
-                &serialized_share[..cmp_len],
-                &expected[..cmp_len],
+                key_pkg.signing_share().serialize(),
+                expected_tweaked_key_pkgs[idx].signing_share().serialize(),
                 "participant {} secret share mismatch",
                 idx + 1
             );
@@ -536,7 +624,7 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
         }
 
         // Recovery
-        if check_recovery {
+        {
             if let Some(recovery) = vector.get("recovery") {
                 let recovery_id = recovery["participant_id"].as_u64().unwrap() as u16;
                 let recovery_identifier = Identifier::<C>::try_from(recovery_id).unwrap();
@@ -558,8 +646,13 @@ pub fn check_cocktail_dkg_test_vectors<C, H>(
 
                 // Apply post_dkg to the expected recovered key package.
                 let expected_tweaked_recovery_kp = {
-                    let recovered_ss =
-                        SigningShare::<C>::deserialize(&expected_recovered_share).unwrap();
+                    let recovered_ss = SigningShare::<C>::deserialize(&expected_recovered_share)
+                        .unwrap_or_else(|_| {
+                            // ed448: 56-byte JSON scalar vs 57-byte RFC 8032 format.
+                            let mut padded = expected_recovered_share.clone();
+                            padded.push(0);
+                            SigningShare::<C>::deserialize(&padded).unwrap()
+                        });
                     let recovered_vs =
                         VerifyingShare::<C>::deserialize(&expected_recovered_vshare).unwrap();
                     let kp = KeyPackage::<C>::new(

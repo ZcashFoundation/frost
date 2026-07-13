@@ -34,46 +34,76 @@
 //!
 //! Ciphersuites must implement [`CocktailCiphersuite`] in addition to
 //! [`Ciphersuite`] to use this module.
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
 
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    Ciphersuite, Element, Error, Field, Group, Identifier, Scalar, Signature, SigningKey,
-    VerifyingKey,
+    random_nonzero, Ciphersuite, Element, Error, Field, Group, Identifier, Scalar, Signature,
+    SigningKey, VerifyingKey,
 };
 
 use super::{
-    evaluate_polynomial, generate_coefficients, generate_secret_polynomial,
-    validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
-    VerifiableSecretSharingCommitment,
+    evaluate_polynomial, generate_secret_polynomial, validate_num_of_signers, KeyPackage,
+    PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
 };
 
 /// Extension trait for ciphersuites that support the COCKTAIL-DKG protocol.
 pub trait CocktailCiphersuite: Ciphersuite {
-    /// Hash-to-scalar function for the COCKTAIL Schnorr PoP scheme.
-    fn HPOP(data: &[u8]) -> Scalar<Self>;
+    /// The canonical `ciphersuite_id` string from the COCKTAIL-DKG
+    /// specification, e.g. `COCKTAIL(Ristretto255, SHA-512)`.
+    ///
+    /// It is bound into the canonical transcript and (under the recommended
+    /// construction) into the session `context`.
+    const COCKTAIL_ID: &'static str;
+
+    /// The output size of the [`H6`](Self::H6) hash function in bytes.
+    ///
+    /// If this is at least 56, the AEAD key and nonce are derived from a
+    /// single `H6` output; otherwise two domain-separated `H6` invocations
+    /// (with `derive_extra(context, "key")` and `derive_extra(context, "nonce")`
+    /// as the `extra` input) are used.
+    const H6_OUTPUT_SIZE: usize;
+
+    /// The AEAD authentication tag size in bytes.
+    const AEAD_TAG_SIZE: usize = 16;
+
+    /// Nonce derivation for the COCKTAIL Schnorr scheme:
+    /// `k = HashToScalar(prefix_nonce || secret_key || message)`, where
+    /// `prefix_nonce` is the ciphersuite-specific nonce prefix (e.g.
+    /// `COCKTAIL-DKG-Ristretto255-SHA512-NONCE`) and `HashToScalar` is the
+    /// ciphersuite's Schnorr hash-to-scalar reduction.
+    ///
+    /// For secp256k1, this is the BIP-340 tagged hash with tag
+    /// `COCKTAIL-DKG/NONCE` instead.
+    fn HNONCE(secret_key: &[u8], message: &[u8]) -> Scalar<Self>;
+
+    /// Challenge derivation for the COCKTAIL Schnorr scheme:
+    /// `c = HashToScalar(prefix_H7 || R || pk || message)`, where `prefix_H7`
+    /// is the ciphersuite-specific challenge prefix (e.g.
+    /// `COCKTAIL-DKG-Ristretto255-SHA512-H7`).
+    ///
+    /// For secp256k1, this is the BIP-340 tagged hash with tag
+    /// `COCKTAIL-DKG/H7` instead.
+    fn H7(commitment: &[u8], public_key: &[u8], message: &[u8]) -> Scalar<Self>;
 
     /// Hash function H6 for AEAD key/nonce derivation.
     ///
     /// Defined in the COCKTAIL-DKG specification as:
-    /// `H6(Se, Sd, E, Pi, Pj, context) = Hash(domain || Se || Sd || E || Pi || Pj || len(context) || context)`
+    /// `H6(Se || Sd, E, Ps, Pr, extra) = Hash(prefix || Se || Sd || E || Ps || Pr || len(extra) || extra)`
+    /// where `len(extra)` is a little-endian 64-bit integer. (The secp256k1
+    /// ciphersuite instead uses a BIP-340 tagged hash and omits `len(extra)`.)
     fn H6(
         shared_secret_ephem: &[u8],
         shared_secret_static: &[u8],
         ephemeral_pub: &[u8],
         sender_pub: &[u8],
         recipient_pub: &[u8],
-        context: &[u8],
+        extra: &[u8],
     ) -> Vec<u8>;
-
-    /// The ciphersuite's base hash function, used for KDF purposes when the H6
-    /// output is shorter than 56 bytes.
-    ///
-    /// Called as `HKDF(label || ikm)` where label is either
-    /// `"COCKTAIL-derive-key"` or `"COCKTAIL-derive-nonce"` and ikm is the
-    /// H6 output.
-    fn HKDF(data: &[u8]) -> Vec<u8>;
 
     /// Encrypt a plaintext using an AEAD scheme.
     fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> Vec<u8>;
@@ -84,6 +114,43 @@ pub trait CocktailCiphersuite: Ciphersuite {
         nonce: &[u8; 24],
         ciphertext: &[u8],
     ) -> Result<Vec<u8>, Error<Self>>;
+
+    /// The size in bytes of the COCKTAIL scalar encoding for this ciphersuite.
+    ///
+    /// Defaults to the size of the ciphersuite's scalar field encoding.
+    /// Ed448 overrides this to 56 (bare little-endian scalars without the
+    /// trailing zero byte of the 57-byte RFC 8032 encoding), matching the
+    /// COCKTAIL-DKG test vectors.
+    fn scalar_size() -> usize {
+        <<Self::Group as Group>::Field as Field>::serialize(
+            &<<Self::Group as Group>::Field as Field>::zero(),
+        )
+        .as_ref()
+        .len()
+    }
+
+    /// Serialize a scalar in the COCKTAIL wire encoding.
+    ///
+    /// This encoding is used for the secret shares inside AEAD plaintexts,
+    /// the signing key input of [`HNONCE`](Self::HNONCE), and the `z`
+    /// component of COCKTAIL Schnorr signatures.
+    fn serialize_scalar(scalar: &Scalar<Self>) -> Vec<u8> {
+        <<Self::Group as Group>::Field as Field>::serialize(scalar)
+            .as_ref()
+            .to_vec()
+    }
+
+    /// Deserialize a scalar from the COCKTAIL wire encoding, rejecting
+    /// non-canonical encodings (values greater than or equal to the group
+    /// order).
+    fn deserialize_scalar(bytes: &[u8]) -> Result<Scalar<Self>, Error<Self>> {
+        let serialization =
+            <<<Self::Group as Group>::Field as Field>::Serialization>::try_from(bytes)
+                .map_err(|_| Error::<Self>::from(crate::FieldError::MalformedScalar))?;
+        Ok(<<Self::Group as Group>::Field as Field>::deserialize(
+            &serialization,
+        )?)
+    }
 
     /// Optionally derive or update the extension from the payloads received in Round 2.
     ///
@@ -109,29 +176,80 @@ pub trait CocktailCiphersuite: Ciphersuite {
     }
 }
 
-/// Derives a 256-bit key and 192-bit nonce from an H6 output, following the
-/// `DeriveKeyAndNonce` helper in the COCKTAIL-DKG specification.
+/// The maximum accepted size in bytes of a single encrypted share ciphertext.
 ///
-/// - If the H6 output is at least 56 bytes: `key = output[..32]`, `nonce = output[32..56]`.
-/// - Otherwise: `key = H_kdf("COCKTAIL-derive-key" || ikm)`, `nonce = H_kdf("COCKTAIL-derive-nonce" || ikm)[..24]`.
+/// The COCKTAIL-DKG specification requires implementations to enforce an
+/// upper bound on individual ciphertexts as a resource-exhaustion mitigation,
+/// and recommends a bound of at least 64 KiB for general-purpose
+/// implementations.
+pub const MAX_CIPHERTEXT_SIZE: usize = 65536;
+
+/// Builds the `extra` input for the domain-separated H6 invocations used to
+/// derive the AEAD key and nonce when the H6 output is smaller than 56 bytes:
+///
+/// `derive_extra(context, label) = len(context) || context || len(label) || label`
+///
+/// where both lengths are little-endian 64-bit integers and `label` is `"key"`
+/// or `"nonce"`.
+fn derive_extra(context: &[u8], label: &[u8]) -> Vec<u8> {
+    let mut extra = Vec::with_capacity(16 + context.len() + label.len());
+    extra.extend_from_slice(&(context.len() as u64).to_le_bytes());
+    extra.extend_from_slice(context);
+    extra.extend_from_slice(&(label.len() as u64).to_le_bytes());
+    extra.extend_from_slice(label);
+    extra
+}
+
+/// Derives a 256-bit key and 192-bit nonce from the pairwise ECDH shared
+/// secrets, following the `DeriveKeyAndNonce` helper in the COCKTAIL-DKG
+/// specification.
+///
+/// - If the H6 output is at least 56 bytes: a single `H6` call with
+///   `extra = context`; `key = output[..32]`, `nonce = output[32..56]`.
+/// - Otherwise: two domain-separated `H6` calls;
+///   `key = H6(x, E, Ps, Pr, derive_extra(context, "key"))` and
+///   `nonce = H6(x, E, Ps, Pr, derive_extra(context, "nonce"))[..24]`.
+#[allow(clippy::too_many_arguments)]
 fn derive_key_and_nonce<C: CocktailCiphersuite>(
-    h6: &[u8],
+    shared_secret_ephem: &[u8],
+    shared_secret_static: &[u8],
+    ephemeral_pub: &[u8],
+    sender_pub: &[u8],
+    recipient_pub: &[u8],
+    context: &[u8],
 ) -> Result<([u8; 32], [u8; 24]), Error<C>> {
     let mut key = [0u8; 32];
     let mut nonce = [0u8; 24];
-    if let (Some(k), Some(n)) = (h6.get(..32), h6.get(32..56)) {
-        key.copy_from_slice(k);
-        nonce.copy_from_slice(n);
+    if C::H6_OUTPUT_SIZE >= 56 {
+        let h6 = C::H6(
+            shared_secret_ephem,
+            shared_secret_static,
+            ephemeral_pub,
+            sender_pub,
+            recipient_pub,
+            context,
+        );
+        key.copy_from_slice(h6.get(..32).ok_or(Error::SerializationError)?);
+        nonce.copy_from_slice(h6.get(32..56).ok_or(Error::SerializationError)?);
     } else {
-        let mut key_input = b"COCKTAIL-derive-key".to_vec();
-        key_input.extend_from_slice(h6);
-        let key_hash = C::HKDF(&key_input);
-        key.copy_from_slice(key_hash.get(..32).ok_or(Error::InvalidSignature)?);
-
-        let mut nonce_input = b"COCKTAIL-derive-nonce".to_vec();
-        nonce_input.extend_from_slice(h6);
-        let nonce_hash = C::HKDF(&nonce_input);
-        nonce.copy_from_slice(nonce_hash.get(..24).ok_or(Error::InvalidSignature)?);
+        let key_h6 = C::H6(
+            shared_secret_ephem,
+            shared_secret_static,
+            ephemeral_pub,
+            sender_pub,
+            recipient_pub,
+            &derive_extra(context, b"key"),
+        );
+        key.copy_from_slice(key_h6.get(..32).ok_or(Error::SerializationError)?);
+        let nonce_h6 = C::H6(
+            shared_secret_ephem,
+            shared_secret_static,
+            ephemeral_pub,
+            sender_pub,
+            recipient_pub,
+            &derive_extra(context, b"nonce"),
+        );
+        nonce.copy_from_slice(nonce_h6.get(..24).ok_or(Error::SerializationError)?);
     }
     Ok((key, nonce))
 }
@@ -149,46 +267,51 @@ fn pop_message<C: Ciphersuite>(
     Ok(msg)
 }
 
-/// Deterministic Schnorr sign for Proof of Possession.
+/// Deterministic COCKTAIL Schnorr sign, used for both the Proof of Possession
+/// and the Round 3 (CertEq) transcript certification.
 ///
-/// `k = H(sk || m)`, `R = k·B`, `c = H(R || pk || m)`, `z = k + c·sk`
-fn pop_sign<C: CocktailCiphersuite>(
+/// `k = HNONCE(encode(sk), m)`, `R = k·B`, `c = H7(R, pk, m)`, `z = k + c·sk`
+///
+/// Per the specification, signing aborts if the deterministic nonce `k` is
+/// zero (negligible probability); retrying with the same inputs would derive
+/// the same `k`, so this is an unrecoverable signing failure for this
+/// `(sk, m)` pair.
+fn cocktail_sign<C: CocktailCiphersuite>(
     sk: Scalar<C>,
     message: &[u8],
 ) -> Result<Signature<C>, Error<C>> {
-    let sk_bytes = <<C::Group as Group>::Field as Field>::serialize(&sk);
-    let mut nonce_input = sk_bytes.as_ref().to_vec();
-    nonce_input.extend_from_slice(message);
-    let k = C::HPOP(&nonce_input);
+    let sk_bytes = C::serialize_scalar(&sk);
+    let k = C::HNONCE(&sk_bytes, message);
+    if k == <<C::Group as Group>::Field as Field>::zero() {
+        return Err(crate::FieldError::InvalidZeroScalar.into());
+    }
 
     let R = <C::Group>::generator() * k;
     let pk = <C::Group>::generator() * sk;
 
-    let R_bytes = <C::Group>::serialize(&R)?.as_ref().to_vec();
-    let pk_bytes = <C::Group>::serialize(&pk)?.as_ref().to_vec();
-    let mut challenge_input = R_bytes;
-    challenge_input.extend_from_slice(&pk_bytes);
-    challenge_input.extend_from_slice(message);
-    let c = C::HPOP(&challenge_input);
+    let R_bytes = <C::Group>::serialize(&R)?;
+    let pk_bytes = <C::Group>::serialize(&pk)?;
+    let c = C::H7(R_bytes.as_ref(), pk_bytes.as_ref(), message);
 
     let z = k + c * sk;
     Ok(Signature { R, z })
 }
 
-/// Deterministic Schnorr verify for Proof of Possession.
+/// Deterministic COCKTAIL Schnorr verify.
 ///
-/// `c = H(R || pk || m)`, check `z·B == R + c·pk`
-fn pop_verify<C: CocktailCiphersuite>(
+/// `c = H7(R, pk, m)`, check `z·B == R + c·pk`
+fn cocktail_verify<C: CocktailCiphersuite>(
     pk: Element<C>,
     sig: &Signature<C>,
     message: &[u8],
 ) -> Result<(), Error<C>> {
-    let R_bytes = <C::Group>::serialize(&sig.R)?.as_ref().to_vec();
-    let pk_bytes = <C::Group>::serialize(&pk)?.as_ref().to_vec();
-    let mut challenge_input = R_bytes;
-    challenge_input.extend_from_slice(&pk_bytes);
-    challenge_input.extend_from_slice(message);
-    let c = C::HPOP(&challenge_input);
+    if sig.R == <C::Group>::identity() {
+        return Err(Error::InvalidSignature);
+    }
+
+    let R_bytes = <C::Group>::serialize(&sig.R)?;
+    let pk_bytes = <C::Group>::serialize(&pk)?;
+    let c = C::H7(R_bytes.as_ref(), pk_bytes.as_ref(), message);
 
     let lhs = <C::Group>::generator() * sig.z;
     let rhs = sig.R + pk * c;
@@ -198,6 +321,42 @@ fn pop_verify<C: CocktailCiphersuite>(
     } else {
         Ok(())
     }
+}
+
+/// Serialize a COCKTAIL Schnorr signature (a Proof of Possession or a
+/// transcript signature) as `R || z`, with `z` in the COCKTAIL scalar
+/// encoding of the ciphersuite.
+///
+/// Note that for most ciphersuites this matches the ciphersuite's default
+/// signature serialization, but e.g. Ed448 uses 56-byte scalars (113-byte
+/// signatures) in COCKTAIL-DKG.
+pub fn serialize_signature<C: CocktailCiphersuite>(
+    sig: &Signature<C>,
+) -> Result<Vec<u8>, Error<C>> {
+    let mut bytes = <C::Group>::serialize(&sig.R)?.as_ref().to_vec();
+    bytes.extend_from_slice(&C::serialize_scalar(&sig.z));
+    Ok(bytes)
+}
+
+/// Deserialize a COCKTAIL Schnorr signature serialized with
+/// [`serialize_signature`].
+pub fn deserialize_signature<C: CocktailCiphersuite>(
+    bytes: &[u8],
+) -> Result<Signature<C>, Error<C>> {
+    let elem_size = <C::Group>::serialize(&<C::Group>::generator())
+        .expect("generator serialization always succeeds")
+        .as_ref()
+        .len();
+    if bytes.len() != elem_size + C::scalar_size() {
+        return Err(Error::MalformedSignature);
+    }
+    let R_serialization = <<C::Group as Group>::Serialization>::try_from(
+        bytes.get(..elem_size).ok_or(Error::MalformedSignature)?,
+    )
+    .map_err(|_| Error::MalformedSignature)?;
+    let R = <C::Group>::deserialize(&R_serialization)?;
+    let z = C::deserialize_scalar(bytes.get(elem_size..).ok_or(Error::MalformedSignature)?)?;
+    Ok(Signature { R, z })
 }
 
 /// Parsed representation of a COCKTAIL-DKG transcript.
@@ -213,18 +372,19 @@ struct Transcript<C: CocktailCiphersuite> {
 impl<C: CocktailCiphersuite> Transcript<C> {
     /// Parse a canonical transcript byte string into its constituent fields.
     ///
+    /// The `ciphersuite_id` at the head of the transcript is validated
+    /// against [`CocktailCiphersuite::COCKTAIL_ID`] before anything else is
+    /// interpreted; a mismatch indicates the wrong recovery codepath and is
+    /// rejected.
+    ///
     /// Identifiers are reconstructed as the standard 1-based sequence `1..=n`.
-    /// Returns `Err(Error::InvalidSignature)` if the bytes are malformed or truncated.
+    /// Returns `Err(Error::DeserializationError)` if the bytes are malformed or truncated.
     fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
         let elem_size = <C::Group>::serialize(&<C::Group>::generator())
             .expect("generator serialization always succeeds")
             .as_ref()
             .len();
-        let scalar_size =
-            <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
-                .as_ref()
-                .len();
-        let sig_size = elem_size + scalar_size;
+        let sig_size = elem_size + C::scalar_size();
 
         let mut pos = 0usize;
 
@@ -236,23 +396,34 @@ impl<C: CocktailCiphersuite> Transcript<C> {
             Some(slice)
         };
 
-        let ctx_len = u64::from_le_bytes(
+        let id_len = u64::from_le_bytes(
             take(8)
-                .ok_or(Error::InvalidSignature)?
+                .ok_or(Error::DeserializationError)?
                 .try_into()
                 .expect("slice is 8 bytes"),
         ) as usize;
-        let context = take(ctx_len).ok_or(Error::InvalidSignature)?.to_vec();
+        let ciphersuite_id = take(id_len).ok_or(Error::DeserializationError)?;
+        if ciphersuite_id != C::COCKTAIL_ID.as_bytes() {
+            return Err(Error::DeserializationError);
+        }
+
+        let ctx_len = u64::from_le_bytes(
+            take(8)
+                .ok_or(Error::DeserializationError)?
+                .try_into()
+                .expect("slice is 8 bytes"),
+        ) as usize;
+        let context = take(ctx_len).ok_or(Error::DeserializationError)?.to_vec();
 
         let n = u32::from_le_bytes(
             take(4)
-                .ok_or(Error::InvalidSignature)?
+                .ok_or(Error::DeserializationError)?
                 .try_into()
                 .expect("slice is 4 bytes"),
         ) as u16;
         let t = u32::from_le_bytes(
             take(4)
-                .ok_or(Error::InvalidSignature)?
+                .ok_or(Error::DeserializationError)?
                 .try_into()
                 .expect("slice is 4 bytes"),
         ) as u16;
@@ -263,7 +434,8 @@ impl<C: CocktailCiphersuite> Transcript<C> {
 
         let mut participants = BTreeMap::new();
         for &id in &identifiers {
-            let pk = VerifyingKey::deserialize(take(elem_size).ok_or(Error::InvalidSignature)?)?;
+            let pk =
+                VerifyingKey::deserialize(take(elem_size).ok_or(Error::DeserializationError)?)?;
             participants.insert(id, pk);
         }
 
@@ -271,32 +443,31 @@ impl<C: CocktailCiphersuite> Transcript<C> {
         let mut commitments = BTreeMap::new();
         for &id in &identifiers {
             let c = VerifiableSecretSharingCommitment::deserialize_whole(
-                take(commitment_size).ok_or(Error::InvalidSignature)?,
+                take(commitment_size).ok_or(Error::DeserializationError)?,
             )?;
             commitments.insert(id, c);
         }
 
-        // Parse PoPs to advance pos; they are not needed for recovery.
-        for _ in 0..n {
-            let _ = Signature::default_deserialize(take(sig_size).ok_or(Error::InvalidSignature)?)?;
-        }
+        // Skip the PoPs; they are not needed for recovery.
+        take(sig_size * n as usize).ok_or(Error::DeserializationError)?;
 
         let mut ephemeral_pubs = BTreeMap::new();
         for &id in &identifiers {
-            let pk = VerifyingKey::deserialize(take(elem_size).ok_or(Error::InvalidSignature)?)?;
+            let pk =
+                VerifyingKey::deserialize(take(elem_size).ok_or(Error::DeserializationError)?)?;
             ephemeral_pubs.insert(id, pk.to_element());
         }
 
         let ext_len = u64::from_le_bytes(
             take(8)
-                .ok_or(Error::InvalidSignature)?
+                .ok_or(Error::DeserializationError)?
                 .try_into()
                 .expect("slice is 8 bytes"),
         ) as usize;
-        take(ext_len).ok_or(Error::InvalidSignature)?; // extension (not needed for recovery)
+        take(ext_len).ok_or(Error::DeserializationError)?; // extension (not needed for recovery)
 
         if pos != bytes.len() {
-            return Err(Error::InvalidSignature);
+            return Err(Error::DeserializationError);
         }
 
         Ok(Self {
@@ -312,16 +483,18 @@ impl<C: CocktailCiphersuite> Transcript<C> {
     /// Build the canonical public transcript `T` for Round 3 certification.
     ///
     /// Structure (exact order from the specification):
-    /// 1. `len(context)` as little-endian u64
-    /// 2. `context`
-    /// 3. `n` as little-endian u32
-    /// 4. `t` as little-endian u32
-    /// 5. `P_j` for each participant in identifier-sorted order
-    /// 6. `C_j` (full VSS commitment) for each participant in identifier-sorted order
-    /// 7. `PoP_j` for each participant in identifier-sorted order
-    /// 8. `E_j` for each participant in identifier-sorted order
-    /// 9. `len(ext)` as little-endian u64
-    /// 10. `ext`
+    /// 1. `len(ciphersuite_id)` as little-endian u64
+    /// 2. `ciphersuite_id` (UTF-8 bytes)
+    /// 3. `len(context)` as little-endian u64
+    /// 4. `context`
+    /// 5. `n` as little-endian u32
+    /// 6. `t` as little-endian u32
+    /// 7. `P_j` for each participant in identifier-sorted order
+    /// 8. `C_j` (full VSS commitment) for each participant in identifier-sorted order
+    /// 9. `PoP_j` for each participant in identifier-sorted order
+    /// 10. `E_j` for each participant in identifier-sorted order
+    /// 11. `len(ext)` as little-endian u64
+    /// 12. `ext`
     fn serialize(
         &self,
         pops: &BTreeMap<Identifier<C>, Signature<C>>,
@@ -329,6 +502,8 @@ impl<C: CocktailCiphersuite> Transcript<C> {
     ) -> Result<Vec<u8>, Error<C>> {
         let mut t_bytes = Vec::new();
 
+        t_bytes.extend_from_slice(&(C::COCKTAIL_ID.len() as u64).to_le_bytes());
+        t_bytes.extend_from_slice(C::COCKTAIL_ID.as_bytes());
         t_bytes.extend_from_slice(&(self.context.len() as u64).to_le_bytes());
         t_bytes.extend_from_slice(&self.context);
         t_bytes.extend_from_slice(&(self.n as u32).to_le_bytes());
@@ -343,7 +518,7 @@ impl<C: CocktailCiphersuite> Transcript<C> {
         }
         for id in self.participants.keys() {
             let pop = pops.get(id).ok_or(Error::PackageNotFound)?;
-            t_bytes.extend_from_slice(&pop.default_serialize()?);
+            t_bytes.extend_from_slice(&serialize_signature(pop)?);
         }
         for id in self.participants.keys() {
             let e = self.ephemeral_pubs.get(id).ok_or(Error::PackageNotFound)?;
@@ -618,6 +793,34 @@ pub mod round2 {
     }
 }
 
+/// Validates the participant map used in the COCKTAIL-DKG setup.
+///
+/// Per the specification, the identifiers must be the contiguous sequence
+/// `1..=max_signers` (in the canonical, agreed-upon participant ordering) and
+/// all static public keys must be distinct valid points; disagreement is a
+/// setup failure.
+fn validate_participants<C: CocktailCiphersuite>(
+    participants: &BTreeMap<Identifier<C>, VerifyingKey<C>>,
+    max_signers: u16,
+) -> Result<(), Error<C>> {
+    if participants.len() != max_signers as usize {
+        return Err(Error::IncorrectNumberOfIdentifiers);
+    }
+    for (i, id) in participants.keys().enumerate() {
+        if *id != Identifier::<C>::try_from(i as u16 + 1)? {
+            return Err(Error::MalformedIdentifier);
+        }
+    }
+    let distinct_keys: BTreeSet<Vec<u8>> = participants
+        .values()
+        .map(|pk| pk.serialize())
+        .collect::<Result<_, _>>()?;
+    if distinct_keys.len() != participants.len() {
+        return Err(Error::DuplicatedVerifyingKeys);
+    }
+    Ok(())
+}
+
 /// Performs the first part of the COCKTAIL-DKG protocol for the given participant.
 ///
 /// The participant generates:
@@ -634,9 +837,13 @@ pub mod round2 {
 /// - `min_signers`: The threshold $t$ (minimum signers required to produce a signature).
 /// - `static_signing_key`: The participant's long-term static private key $d_i$.
 /// - `participants`: All participants' static public keys $P_j$, keyed by identifier.
-///   Must include the calling participant's own key and have exactly `max_signers` entries.
+///   Must include the calling participant's own key, have exactly `max_signers` entries
+///   with the contiguous identifiers `1..=max_signers`, and contain no duplicate keys.
 /// - `context`: A session-unique context string. It is **RECOMMENDED** to construct this as
-///   `H("COCKTAIL-DKG-CONTEXT" || session_id || P_1 || ... || P_n)`.
+///   `H("COCKTAIL-DKG-CONTEXT" || uint64_be(len(session_id)) || session_id ||
+///   uint64_be(len(ciphersuite_id)) || ciphersuite_id || uint32_le(n) || P_1 || ... || P_n)`,
+///   which binds the session, the ciphersuite, and the ordered participant set as
+///   required by the specification.
 /// - `payloads`: Optional application-defined payloads to encrypt alongside each share.
 ///   `payloads[j]` is encrypted together with the share for participant `j` as
 ///   `plaintext = s_{i,j} || payload_{i,j}`. Missing entries are treated as empty.
@@ -659,32 +866,35 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     mut rng: R,
 ) -> Result<(round1::SecretPackage<C>, round1::Package<C>), Error<C>> {
     validate_num_of_signers::<C>(min_signers, max_signers)?;
+    validate_participants(participants, max_signers)?;
 
-    if participants.len() != max_signers as usize {
-        return Err(Error::IncorrectNumberOfIdentifiers);
-    }
     if !participants.contains_key(&identifier) {
         return Err(Error::UnknownIdentifier);
     }
 
-    // Steps 1 & 3: Generate secret polynomial and VSS commitment
+    // Steps 1 & 3: Generate secret polynomial and VSS commitment.
+    // All coefficients are sampled nonzero per the specification, so that
+    // every commitment point is a non-identity point.
     let secret: SigningKey<C> = SigningKey::new(&mut rng);
-    let coefficients = generate_coefficients::<C, R>(min_signers as usize - 1, &mut rng);
+    let coefficients: Vec<Scalar<C>> = (0..min_signers as usize - 1)
+        .map(|_| random_nonzero::<C, R>(&mut rng))
+        .collect();
     let (coefficients, commitment) =
         generate_secret_polynomial(&secret, max_signers, min_signers, coefficients)?;
 
-    // Step 3: Generate ephemeral key pair (e_i, E_i)
-    let ephemeral_privkey = <<C::Group as Group>::Field>::random(&mut rng);
+    // Step 3: Generate ephemeral key pair (e_i, E_i); e_i is sampled nonzero
+    // so that E_i is a non-identity point.
+    let ephemeral_privkey = random_nonzero::<C, R>(&mut rng);
     let ephemeral_pubkey = <C::Group>::generator() * ephemeral_privkey;
 
-    // Step 4: Compute proof of possession using COCKTAIL deterministic Schnorr.
-    // Sign `context || C_i || E_i` using a_{i,0} as the signing key.
-    // The nonce is derived deterministically as k = H(a_{i,0} || message).
+    // Step 4: Compute proof of possession using the COCKTAIL deterministic
+    // Schnorr scheme. Sign `context || C_i || E_i` using a_{i,0} as the
+    // signing key.
     let a_i0 = *coefficients
         .first()
         .expect("coefficients has at least one element");
     let pop_msg = pop_message::<C>(&commitment, &ephemeral_pubkey, context)?;
-    let proof_of_possession = pop_sign::<C>(a_i0, &pop_msg)?;
+    let proof_of_possession = cocktail_sign::<C>(a_i0, &pop_msg)?;
 
     // Step 5: Compute and encrypt shares for each participant (including self)
     let static_pubkey = VerifyingKey::from(static_privkey);
@@ -702,23 +912,26 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         let s_ephem = recipient_element * ephemeral_privkey;
         let s_static = recipient_element * d_i;
 
-        let h6 = C::H6(
+        let (key, nonce) = derive_key_and_nonce::<C>(
             <C::Group>::serialize(&s_ephem)?.as_ref(),
             <C::Group>::serialize(&s_static)?.as_ref(),
             &ephemeral_pubkey_bytes,
             &sender_pubkey_bytes,
             &recipient_pubkey.serialize()?,
             context,
-        );
-        let (key, nonce) = derive_key_and_nonce::<C>(&h6)?;
+        )?;
 
         // Plaintext = share bytes || optional application payload
-        let share_bytes = <<C::Group as Group>::Field>::serialize(&share);
-        let mut plaintext = share_bytes.as_ref().to_vec();
+        let mut plaintext = C::serialize_scalar(&share);
         if let Some(payload) = payloads.get(recipient_id) {
             plaintext.extend_from_slice(payload);
         }
         let ciphertext = C::aead_encrypt(&key, &nonce, &plaintext);
+        if ciphertext.len() > MAX_CIPHERTEXT_SIZE {
+            // Recipients enforce the same bound and would reject this
+            // ciphertext, so fail fast on the sender side.
+            return Err(Error::SerializationError);
+        }
         encrypted_shares.insert(*recipient_id, ciphertext);
     }
 
@@ -770,14 +983,13 @@ pub fn part1<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
 /// A tuple of:
 /// - [`round2::SecretPackage`]: kept secret by the participant until [`part3`].
 /// - [`round2::Package`]: the transcript signature, sent to the coordinator.
-pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
+pub fn part2<C: CocktailCiphersuite>(
     secret_package: round1::SecretPackage<C>,
     round1_packages: &BTreeMap<Identifier<C>, round1::Package<C>>,
     static_signing_key: &SigningKey<C>,
     participants: &BTreeMap<Identifier<C>, VerifyingKey<C>>,
     context: &[u8],
     extension: &[u8],
-    mut rng: R,
 ) -> Result<
     (
         round2::SecretPackage<C>,
@@ -789,6 +1001,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     if round1_packages.len() != (secret_package.max_signers - 1) as usize {
         return Err(Error::IncorrectNumberOfPackages);
     }
+    validate_participants(participants, secret_package.max_signers)?;
 
     let my_id = secret_package.identifier;
     let d_i = static_signing_key.to_scalar();
@@ -805,7 +1018,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         }
         let pop_msg = pop_message::<C>(&package.commitment, &package.ephemeral_pub, context)?;
         let pop_pubkey = package.commitment.verifying_key()?;
-        pop_verify::<C>(
+        cocktail_verify::<C>(
             pop_pubkey.to_element(),
             &package.proof_of_possession,
             &pop_msg,
@@ -862,58 +1075,54 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         let s_ephemeral = package.ephemeral_pub * d_i;
         let s_static = sender_pubkey.to_element() * d_i;
 
-        let h6 = C::H6(
+        let (key, nonce) = derive_key_and_nonce::<C>(
             <C::Group>::serialize(&s_ephemeral)?.as_ref(),
             <C::Group>::serialize(&s_static)?.as_ref(),
             <C::Group>::serialize(&package.ephemeral_pub)?.as_ref(),
             &sender_pubkey.serialize()?,
             &my_pub_bytes,
             context,
-        );
-        let (key, nonce) = derive_key_and_nonce::<C>(&h6)?;
+        )?;
 
         let ciphertext = package
             .encrypted_shares
             .get(&my_id)
             .ok_or(Error::PackageNotFound)?;
 
-        let plaintext =
-            C::aead_decrypt(&key, &nonce, ciphertext).map_err(|_| Error::DecryptionFailed {
-                culprit: *sender_id,
-            })?;
-
-        // Parse: first scalar_len bytes are s_{j,i}; rest is optional payload
-        let scalar_len =
-            <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
-                .as_ref()
-                .len();
-
-        if plaintext.len() < scalar_len {
+        // Enforce the ciphertext size bounds from the specification: at least
+        // the size of a zero-payload encrypted share, at most the
+        // resource-exhaustion cap.
+        let scalar_len = C::scalar_size();
+        if ciphertext.len() < scalar_len + C::AEAD_TAG_SIZE
+            || ciphertext.len() > MAX_CIPHERTEXT_SIZE
+        {
             return Err(Error::DecryptionFailed {
                 culprit: *sender_id,
             });
         }
 
-        let share_bytes = plaintext.get(..scalar_len).ok_or(Error::DecryptionFailed {
-            culprit: *sender_id,
-        })?;
-        let share_ser = <<<C::Group as Group>::Field as Field>::Serialization>::try_from(
-            share_bytes,
-        )
-        .map_err(|_| Error::DecryptionFailed {
-            culprit: *sender_id,
-        })?;
-        let s_j_i = <<C::Group as Group>::Field>::deserialize(&share_ser).map_err(|_| {
-            Error::DecryptionFailed {
+        let plaintext =
+            C::aead_decrypt(&key, &nonce, ciphertext).map_err(|_| Error::DecryptionFailed {
                 culprit: *sender_id,
-            }
+            })?;
+
+        // Parse: first scalar_len bytes are s_{j,i}; rest is optional payload.
+        // A plaintext that is too short or whose leading portion is not a
+        // canonical scalar identifies the sender as malicious.
+        let share_bytes = plaintext
+            .get(..scalar_len)
+            .ok_or(Error::InvalidSecretShare {
+                culprit: Some(*sender_id),
+            })?;
+        let s_j_i = C::deserialize_scalar(share_bytes).map_err(|_| Error::InvalidSecretShare {
+            culprit: Some(*sender_id),
         })?;
 
         // Collect optional payload (remainder after the share bytes)
         let payload = plaintext
             .get(scalar_len..)
-            .ok_or(Error::DecryptionFailed {
-                culprit: *sender_id,
+            .ok_or(Error::InvalidSecretShare {
+                culprit: Some(*sender_id),
             })?
             .to_vec();
         received_payloads.insert(*sender_id, payload);
@@ -949,7 +1158,8 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
     // Allow the ciphersuite to derive or update the extension from received payloads
     let effective_extension = C::derive_extension(extension, &received_payloads);
 
-    // Build transcript and sign it with d_i
+    // Build transcript and sign it with d_i using the deterministic COCKTAIL
+    // Schnorr scheme (the same scheme used for the PoP).
     let transcript_data = Transcript {
         context: context.to_vec(),
         n: secret_package.max_signers,
@@ -959,7 +1169,7 @@ pub fn part2<C: CocktailCiphersuite, R: RngCore + CryptoRng>(
         ephemeral_pubs: all_ephemeral_pubs,
     };
     let transcript = transcript_data.serialize(&all_pops, &effective_extension)?;
-    let transcript_signature = static_signing_key.sign(&mut rng, &transcript);
+    let transcript_signature = cocktail_sign::<C>(d_i, &transcript)?;
 
     let round2_secret = round2::SecretPackage::new(
         my_id,
@@ -1019,18 +1229,21 @@ pub fn part3<C: CocktailCiphersuite>(
         return Err(Error::IncorrectNumberOfPackages);
     }
 
-    // Verify all n transcript signatures
+    // Verify all n transcript signatures using the COCKTAIL Schnorr scheme
     for (signer_id, package) in round2_packages.iter() {
         let signer_pubkey = secret_package
             .participants
             .get(signer_id)
             .ok_or(Error::UnknownIdentifier)?;
 
-        signer_pubkey
-            .verify(&secret_package.transcript, &package.transcript_signature)
-            .map_err(|_| Error::InvalidTranscriptSignature {
-                culprit: *signer_id,
-            })?;
+        cocktail_verify::<C>(
+            signer_pubkey.to_element(),
+            &package.transcript_signature,
+            &secret_package.transcript,
+        )
+        .map_err(|_| Error::InvalidTranscriptSignature {
+            culprit: *signer_id,
+        })?;
     }
 
     // Collect the success certificate
@@ -1082,9 +1295,10 @@ pub fn part3<C: CocktailCiphersuite>(
 ///   as returned by [`part3`].
 /// - `success_certificate`: All $n$ participants' signatures on $T$, as returned by
 ///   [`part3`].
-/// - `ciphertexts`: The encrypted shares $c_{j,i}$ from each sender $j$ to the recovering
-///   participant $i$. Keys are sender identifiers. These are the per-recipient ciphertexts
-///   from each sender's [`round1::Package`].
+/// - `ciphertexts`: The participant-specific encrypted share bundle: the encrypted
+///   shares $c_{j,i}$ from each sender $j$ to the recovering participant $i$, keyed
+///   by sender identifier, with exactly one entry per participant. These are the
+///   per-recipient (unframed) ciphertexts from each sender's [`round1::Package`].
 ///
 /// # Returns
 ///
@@ -1097,9 +1311,12 @@ pub fn recover<C: CocktailCiphersuite>(
     success_certificate: &BTreeMap<Identifier<C>, Signature<C>>,
     ciphertexts: &BTreeMap<Identifier<C>, Vec<u8>>,
 ) -> Result<(KeyPackage<C>, PublicKeyPackage<C>), Error<C>> {
+    // Step 1: Extract parameters. This validates the ciphersuite identifier
+    // at the head of the transcript before any signature is checked, since
+    // the signature scheme itself is ciphersuite-dependent.
     let parsed = Transcript::<C>::deserialize(transcript)?;
 
-    // Step 1: Validate the success certificate.
+    // Step 2: Validate the success certificate using the COCKTAIL Schnorr scheme.
     if success_certificate.len() != parsed.n as usize {
         return Err(Error::IncorrectNumberOfPackages);
     }
@@ -1108,27 +1325,32 @@ pub fn recover<C: CocktailCiphersuite>(
             .participants
             .get(signer_id)
             .ok_or(Error::UnknownIdentifier)?;
-        pk.verify(transcript, sig)
-            .map_err(|_| Error::InvalidTranscriptSignature {
+        cocktail_verify::<C>(pk.to_element(), sig, transcript).map_err(|_| {
+            Error::InvalidTranscriptSignature {
                 culprit: *signer_id,
-            })?;
+            }
+        })?;
     }
 
-    // Step 3: Find our identifier by matching d_i * B against the participant list.
+    // Step 3: Find the unique identifier matching d_i * B in the participant
+    // list. Zero or more than one match aborts.
     let my_pub = VerifyingKey::from(static_signing_key);
-    let my_id = parsed
-        .participants
-        .iter()
-        .find(|(_, pk)| **pk == my_pub)
-        .map(|(id, _)| *id)
-        .ok_or(Error::UnknownIdentifier)?;
+    let mut matches = parsed.participants.iter().filter(|(_, pk)| **pk == my_pub);
+    let my_id = *matches.next().ok_or(Error::UnknownIdentifier)?.0;
+    if matches.next().is_some() {
+        return Err(Error::DuplicatedVerifyingKeys);
+    }
 
     let my_pub_bytes = my_pub.serialize()?;
     let d_i = static_signing_key.to_scalar();
 
-    let scalar_len = <<C::Group as Group>::Field>::serialize(&<<C::Group as Group>::Field>::zero())
-        .as_ref()
-        .len();
+    let scalar_len = C::scalar_size();
+
+    // The encrypted share bundle must contain exactly one ciphertext per
+    // participant, with no extra entries.
+    if ciphertexts.len() != parsed.n as usize {
+        return Err(Error::IncorrectNumberOfPackages);
+    }
 
     // Steps 4–7: For each sender j, derive decryption key, decrypt, verify, and accumulate.
     let mut signing_share_scalar = <<C::Group as Group>::Field>::zero();
@@ -1140,35 +1362,39 @@ pub fn recover<C: CocktailCiphersuite>(
             .ok_or(Error::PackageNotFound)?;
         let ciphertext = ciphertexts.get(&sender_id).ok_or(Error::PackageNotFound)?;
 
+        // Enforce the ciphertext size bounds from the specification.
+        if ciphertext.len() < scalar_len + C::AEAD_TAG_SIZE
+            || ciphertext.len() > MAX_CIPHERTEXT_SIZE
+        {
+            return Err(Error::DecryptionFailed { culprit: sender_id });
+        }
+
         // S^(e)_{j,i} = d_i * E_j  and  S^(d)_{j,i} = d_i * P_j
         let s_ephem = *ephemeral_pub * d_i;
         let s_static = sender_pub.to_element() * d_i;
 
-        let h6 = C::H6(
+        let (key, nonce) = derive_key_and_nonce::<C>(
             <C::Group>::serialize(&s_ephem)?.as_ref(),
             <C::Group>::serialize(&s_static)?.as_ref(),
             <C::Group>::serialize(ephemeral_pub)?.as_ref(),
             &sender_pub.serialize()?,
             &my_pub_bytes,
             &parsed.context,
-        );
-        let (key, nonce) = derive_key_and_nonce::<C>(&h6)?;
+        )?;
 
         let plaintext = C::aead_decrypt(&key, &nonce, ciphertext)
             .map_err(|_| Error::DecryptionFailed { culprit: sender_id })?;
 
-        if plaintext.len() < scalar_len {
-            return Err(Error::DecryptionFailed { culprit: sender_id });
-        }
-
-        let share_ser = <<<C::Group as Group>::Field as Field>::Serialization>::try_from(
-            plaintext
-                .get(..scalar_len)
-                .ok_or(Error::DecryptionFailed { culprit: sender_id })?,
-        )
-        .map_err(|_| Error::DecryptionFailed { culprit: sender_id })?;
-        let s_j_i = <<C::Group as Group>::Field>::deserialize(&share_ser)
-            .map_err(|_| Error::DecryptionFailed { culprit: sender_id })?;
+        // A plaintext that is too short or whose leading portion is not a
+        // canonical scalar aborts the recovery.
+        let share_bytes = plaintext
+            .get(..scalar_len)
+            .ok_or(Error::InvalidSecretShare {
+                culprit: Some(sender_id),
+            })?;
+        let s_j_i = C::deserialize_scalar(share_bytes).map_err(|_| Error::InvalidSecretShare {
+            culprit: Some(sender_id),
+        })?;
 
         // Verify the decrypted share against the sender's VSS commitment.
         let commitment = parsed

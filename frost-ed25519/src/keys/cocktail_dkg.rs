@@ -63,14 +63,13 @@ pub fn part1<RNG: RngCore + CryptoRng>(
 
 /// Performs Round 2 of the COCKTAIL-DKG protocol.
 #[allow(clippy::type_complexity)]
-pub fn part2<RNG: RngCore + CryptoRng>(
+pub fn part2(
     secret_package: round1::SecretPackage,
     round1_packages: &BTreeMap<Identifier, round1::Package>,
     static_signing_key: &SigningKey,
     participants: &BTreeMap<Identifier, VerifyingKey>,
     context: &[u8],
     extension: &[u8],
-    rng: RNG,
 ) -> Result<
     (
         round2::SecretPackage,
@@ -86,7 +85,6 @@ pub fn part2<RNG: RngCore + CryptoRng>(
         participants,
         context,
         extension,
-        rng,
     )
 }
 

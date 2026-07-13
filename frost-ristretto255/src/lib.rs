@@ -219,8 +219,25 @@ impl RandomizedCiphersuite for Ristretto255Sha512 {
 #[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ristretto255Sha512 {
-    fn HPOP(data: &[u8]) -> Scalar {
-        hash_to_scalar(&[data])
+    const COCKTAIL_ID: &'static str = "COCKTAIL(Ristretto255, SHA-512)";
+
+    const H6_OUTPUT_SIZE: usize = 64;
+
+    fn HNONCE(secret_key: &[u8], message: &[u8]) -> Scalar {
+        hash_to_scalar(&[
+            b"COCKTAIL-DKG-Ristretto255-SHA512-NONCE",
+            secret_key,
+            message,
+        ])
+    }
+
+    fn H7(commitment: &[u8], public_key: &[u8], message: &[u8]) -> Scalar {
+        hash_to_scalar(&[
+            b"COCKTAIL-DKG-Ristretto255-SHA512-H7",
+            commitment,
+            public_key,
+            message,
+        ])
     }
 
     fn H6(
@@ -229,7 +246,7 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ristretto255Sha512 
         ephemeral_pub: &[u8],
         sender_pub: &[u8],
         recipient_pub: &[u8],
-        context: &[u8],
+        extra: &[u8],
     ) -> alloc::vec::Vec<u8> {
         let mut h = Sha512::new();
         h.update(b"COCKTAIL-DKG-Ristretto255-SHA512-H6");
@@ -238,14 +255,8 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ristretto255Sha512 
         h.update(ephemeral_pub);
         h.update(sender_pub);
         h.update(recipient_pub);
-        h.update((context.len() as u64).to_le_bytes());
-        h.update(context);
-        h.finalize().to_vec()
-    }
-
-    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
-        let mut h = Sha512::new();
-        h.update(data);
+        h.update((extra.len() as u64).to_le_bytes());
+        h.update(extra);
         h.finalize().to_vec()
     }
 

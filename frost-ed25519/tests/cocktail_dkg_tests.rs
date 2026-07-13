@@ -18,7 +18,5 @@ fn check_cocktail_dkg_test_vectors() {
     frost_core::tests::cocktail_dkg::check_cocktail_dkg_test_vectors::<Ed25519Sha512, _>(
         json_str,
         |data| Sha512::digest(data).to_vec(),
-        true, // encrypted shares match (XChaCha20Poly1305)
-        true, // recovery is tested
     );
 }

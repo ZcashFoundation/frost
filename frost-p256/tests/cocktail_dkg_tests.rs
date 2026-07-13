@@ -18,7 +18,5 @@ fn check_cocktail_dkg_test_vectors() {
     frost_core::tests::cocktail_dkg::check_cocktail_dkg_test_vectors::<P256Sha256, _>(
         json_str,
         |data| Sha256::digest(data).to_vec(),
-        true, // encrypted shares match (XAES-256-GCM)
-        true, // recovery is tested
     );
 }

@@ -104,6 +104,10 @@ pub enum Error<C: Ciphersuite> {
         /// The identifier of the participant whose transcript signature was invalid.
         culprit: Identifier<C>,
     },
+    /// Duplicated static public keys were provided.
+    #[cfg(feature = "cocktail-dkg")]
+    #[error("Duplicated static public keys provided.")]
+    DuplicatedVerifyingKeys,
     /// Error in scalar Field.
     #[error("Error in scalar Field.")]
     FieldError(#[from] FieldError),
@@ -144,6 +148,8 @@ where
             Error::DecryptionFailed { culprit } => vec![*culprit],
             #[cfg(feature = "cocktail-dkg")]
             Error::InvalidTranscriptSignature { culprit } => vec![*culprit],
+            #[cfg(feature = "cocktail-dkg")]
+            Error::DuplicatedVerifyingKeys => vec![],
             Error::InvalidMinSigners
             | Error::InvalidMaxSigners
             | Error::InvalidCoefficients

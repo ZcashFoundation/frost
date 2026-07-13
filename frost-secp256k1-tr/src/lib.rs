@@ -508,8 +508,23 @@ impl RandomizedCiphersuite for Secp256K1Sha256TR {
 #[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Secp256K1Sha256TR {
-    fn HPOP(data: &[u8]) -> Scalar {
-        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"pop"], data)
+    const COCKTAIL_ID: &'static str = "COCKTAIL(secp256k1, SHA-256)";
+
+    const H6_OUTPUT_SIZE: usize = 32;
+
+    fn HNONCE(secret_key: &[u8], message: &[u8]) -> Scalar {
+        let mut hasher = tagged_hash("COCKTAIL-DKG/NONCE");
+        hasher.update(secret_key);
+        hasher.update(message);
+        hasher_to_scalar(hasher)
+    }
+
+    fn H7(commitment: &[u8], public_key: &[u8], message: &[u8]) -> Scalar {
+        let mut hasher = tagged_hash("COCKTAIL-DKG/H7");
+        hasher.update(commitment);
+        hasher.update(public_key);
+        hasher.update(message);
+        hasher_to_scalar(hasher)
     }
 
     fn H6(
@@ -518,20 +533,20 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Secp256K1Sha256TR {
         ephemeral_pub: &[u8],
         sender_pub: &[u8],
         recipient_pub: &[u8],
-        context: &[u8],
+        extra: &[u8],
     ) -> alloc::vec::Vec<u8> {
+        // BIP-340 style tagged hash; note that unlike the default H6 formula,
+        // `extra` is not length-prefixed here (see the COCKTAIL-DKG
+        // specification for why this is safe for the inputs used by the
+        // protocol).
         let mut hasher = tagged_hash("COCKTAIL-DKG/H6");
         hasher.update(shared_secret_ephem);
         hasher.update(shared_secret_static);
         hasher.update(ephemeral_pub);
         hasher.update(sender_pub);
         hasher.update(recipient_pub);
-        hasher.update(context);
+        hasher.update(extra);
         hasher.finalize().to_vec()
-    }
-
-    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
-        hash_to_array(&[data]).to_vec()
     }
 
     fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {

@@ -230,8 +230,21 @@ impl RandomizedCiphersuite for Ed25519Sha512 {
 #[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed25519Sha512 {
-    fn HPOP(data: &[u8]) -> Scalar {
-        hash_to_scalar(&[data])
+    const COCKTAIL_ID: &'static str = "COCKTAIL(Ed25519, SHA-512)";
+
+    const H6_OUTPUT_SIZE: usize = 64;
+
+    fn HNONCE(secret_key: &[u8], message: &[u8]) -> Scalar {
+        hash_to_scalar(&[b"COCKTAIL-DKG-Ed25519-SHA512-NONCE", secret_key, message])
+    }
+
+    fn H7(commitment: &[u8], public_key: &[u8], message: &[u8]) -> Scalar {
+        hash_to_scalar(&[
+            b"COCKTAIL-DKG-Ed25519-SHA512-H7",
+            commitment,
+            public_key,
+            message,
+        ])
     }
 
     fn H6(
@@ -240,7 +253,7 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed25519Sha512 {
         ephemeral_pub: &[u8],
         sender_pub: &[u8],
         recipient_pub: &[u8],
-        context: &[u8],
+        extra: &[u8],
     ) -> alloc::vec::Vec<u8> {
         hash_to_array(&[
             b"COCKTAIL-DKG-Ed25519-SHA512-H6",
@@ -249,14 +262,10 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed25519Sha512 {
             ephemeral_pub,
             sender_pub,
             recipient_pub,
-            &(context.len() as u64).to_le_bytes(),
-            context,
+            &(extra.len() as u64).to_le_bytes(),
+            extra,
         ])
         .to_vec()
-    }
-
-    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
-        hash_to_array(&[data]).to_vec()
     }
 
     fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {

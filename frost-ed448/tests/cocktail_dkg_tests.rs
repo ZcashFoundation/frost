@@ -27,7 +27,5 @@ fn check_cocktail_dkg_test_vectors() {
             h.finalize_xof().read(&mut out);
             out
         },
-        false, // encrypted shares: 73 vs 72 byte format mismatch
-        false, // recovery: ciphertext format incompatible
     );
 }

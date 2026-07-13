@@ -224,8 +224,21 @@ impl RandomizedCiphersuite for Ed448Shake256 {
 #[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed448Shake256 {
-    fn HPOP(data: &[u8]) -> Scalar {
-        hash_to_scalar(&[data])
+    const COCKTAIL_ID: &'static str = "COCKTAIL(Ed448, SHAKE256)";
+
+    const H6_OUTPUT_SIZE: usize = 56;
+
+    fn HNONCE(secret_key: &[u8], message: &[u8]) -> Scalar {
+        hash_to_scalar(&[b"COCKTAIL-DKG-Ed448-SHAKE256-NONCE", secret_key, message])
+    }
+
+    fn H7(commitment: &[u8], public_key: &[u8], message: &[u8]) -> Scalar {
+        hash_to_scalar(&[
+            b"COCKTAIL-DKG-Ed448-SHAKE256-H7",
+            commitment,
+            public_key,
+            message,
+        ])
     }
 
     fn H6(
@@ -234,8 +247,10 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed448Shake256 {
         ephemeral_pub: &[u8],
         sender_pub: &[u8],
         recipient_pub: &[u8],
-        context: &[u8],
+        extra: &[u8],
     ) -> alloc::vec::Vec<u8> {
+        // SHAKE256 invoked at a 56-byte output; taking the prefix of the
+        // 114-byte XOF output is equivalent.
         hash_to_array(&[
             b"COCKTAIL-DKG-Ed448-SHAKE256-H6",
             shared_secret_ephem,
@@ -243,14 +258,31 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for Ed448Shake256 {
             ephemeral_pub,
             sender_pub,
             recipient_pub,
-            &(context.len() as u64).to_le_bytes(),
-            context,
-        ])
-        .to_vec()
+            &(extra.len() as u64).to_le_bytes(),
+            extra,
+        ])[..56]
+            .to_vec()
     }
 
-    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
-        hash_to_array(&[data]).to_vec()
+    // COCKTAIL-DKG uses bare 56-byte little-endian Ed448 scalars on the wire
+    // (dropping the trailing zero byte of the 57-byte RFC 8032 encoding),
+    // matching the COCKTAIL-DKG test vectors.
+
+    fn scalar_size() -> usize {
+        56
+    }
+
+    fn serialize_scalar(scalar: &Scalar) -> alloc::vec::Vec<u8> {
+        <Ed448ScalarField as Field>::serialize(scalar)[..56].to_vec()
+    }
+
+    fn deserialize_scalar(bytes: &[u8]) -> Result<Scalar, Error> {
+        if bytes.len() != 56 {
+            return Err(FieldError::MalformedScalar.into());
+        }
+        let mut buf = [0u8; 57];
+        buf[..56].copy_from_slice(bytes);
+        Ok(<Ed448ScalarField as Field>::deserialize(&buf)?)
     }
 
     fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {

@@ -242,11 +242,47 @@ impl RandomizedCiphersuite for P256Sha256 {
     }
 }
 
+/// The COCKTAIL-DKG Schnorr hash-to-scalar reduction for P-256.
+///
+/// P-256's order is close enough to a power of two that direct reduction of a
+/// 32-byte hash would be noticeably biased, so the input is expanded to 48
+/// bytes via two SHA-256 invocations with distinct one-byte prefixes:
+/// `OS2IP(SHA256(0x01 || input) || SHA256(0x02 || input)[0..16]) mod q`.
+#[cfg(feature = "cocktail-dkg")]
+fn cocktail_hash_to_scalar(inputs: &[&[u8]]) -> Scalar {
+    use p256::elliptic_curve::hash2curve::FromOkm;
+    let mut h1 = Sha256::new();
+    h1.update([1u8]);
+    let mut h2 = Sha256::new();
+    h2.update([2u8]);
+    for i in inputs {
+        h1.update(i);
+        h2.update(i);
+    }
+    let mut okm = [0u8; 48];
+    okm[..32].copy_from_slice(&h1.finalize());
+    okm[32..].copy_from_slice(&h2.finalize()[..16]);
+    Scalar::from_okm(&okm.into())
+}
+
 #[cfg(feature = "cocktail-dkg")]
 #[allow(deprecated)]
 impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for P256Sha256 {
-    fn HPOP(data: &[u8]) -> Scalar {
-        hash_to_scalar(&[CONTEXT_STRING.as_bytes(), b"pop"], data)
+    const COCKTAIL_ID: &'static str = "COCKTAIL(P-256, SHA-256)";
+
+    const H6_OUTPUT_SIZE: usize = 32;
+
+    fn HNONCE(secret_key: &[u8], message: &[u8]) -> Scalar {
+        cocktail_hash_to_scalar(&[b"COCKTAIL-DKG-P256-SHA256-NONCE", secret_key, message])
+    }
+
+    fn H7(commitment: &[u8], public_key: &[u8], message: &[u8]) -> Scalar {
+        cocktail_hash_to_scalar(&[
+            b"COCKTAIL-DKG-P256-SHA256-H7",
+            commitment,
+            public_key,
+            message,
+        ])
     }
 
     fn H6(
@@ -255,7 +291,7 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for P256Sha256 {
         ephemeral_pub: &[u8],
         sender_pub: &[u8],
         recipient_pub: &[u8],
-        context: &[u8],
+        extra: &[u8],
     ) -> alloc::vec::Vec<u8> {
         hash_to_array(&[
             b"COCKTAIL-DKG-P256-SHA256-H6",
@@ -264,14 +300,10 @@ impl frost_core::keys::cocktail_dkg::CocktailCiphersuite for P256Sha256 {
             ephemeral_pub,
             sender_pub,
             recipient_pub,
-            &(context.len() as u64).to_le_bytes(),
-            context,
+            &(extra.len() as u64).to_le_bytes(),
+            extra,
         ])
         .to_vec()
-    }
-
-    fn HKDF(data: &[u8]) -> alloc::vec::Vec<u8> {
-        hash_to_array(&[data]).to_vec()
     }
 
     fn aead_encrypt(key: &[u8; 32], nonce: &[u8; 24], plaintext: &[u8]) -> alloc::vec::Vec<u8> {
