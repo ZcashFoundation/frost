@@ -3,13 +3,13 @@
 mod helpers;
 
 use frost_secp256k1_tr::{
+    SigningPackage,
     keys::{
-        dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare,
+        dkg::{round1, round2},
     },
     round1::SigningCommitments,
     round2::SignatureShare,
-    SigningPackage,
 };
 
 use helpers::samples;

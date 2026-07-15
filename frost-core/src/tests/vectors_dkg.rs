@@ -9,15 +9,16 @@ use hex::{self};
 use serde_json::Value;
 
 use crate::{
+    Ciphersuite, Field, Group, Header, Identifier, Scalar, Signature, SigningKey, VerifyingKey,
     keys::{
+        KeyPackage, PublicKeyPackage, SigningShare, VerifiableSecretSharingCommitment,
+        VerifyingShare,
         dkg::{
             part2, part3, round1::Package as Round1Package, round1::SecretPackage,
             round2::Package as Round2Package,
         },
-        generate_secret_polynomial, KeyPackage, PublicKeyPackage, SigningShare,
-        VerifiableSecretSharingCommitment, VerifyingShare,
+        generate_secret_polynomial,
     },
-    Ciphersuite, Field, Group, Header, Identifier, Scalar, Signature, SigningKey, VerifyingKey,
 };
 
 /// Test vectors for a ciphersuite.
