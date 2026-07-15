@@ -5,7 +5,7 @@ mod helpers;
 
 #[test]
 fn check_interoperability_in_sign_with_dkg() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     // Test with multiple keys/signatures to better exercise the key generation
     // and the interoperability check. A smaller number of iterations is used
@@ -20,7 +20,7 @@ fn check_interoperability_in_sign_with_dkg() {
 
 #[test]
 fn check_interoperability_in_sign_with_dealer() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     // Test with multiple keys/signatures to better exercise the key generation
     // and the interoperability check.

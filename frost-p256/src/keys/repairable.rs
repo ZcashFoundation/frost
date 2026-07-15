@@ -10,7 +10,7 @@ use crate::keys::{KeyPackage, PublicKeyPackage};
 // This is imported separately to make `gencode` work.
 // (if it were below, the position of the import would vary between ciphersuites
 //  after `cargo fmt`)
-use crate::{frost, Ciphersuite, CryptoRng, Identifier, RngCore};
+use crate::{frost, Ciphersuite, CryptoRng, Identifier};
 use crate::{Error, P256Sha256};
 
 /// A delta value which is the output of part 1 of RTS.
@@ -26,7 +26,7 @@ pub type Sigma = frost::keys::repairable::Sigma<P256Sha256>;
 /// `participant` recover their share.
 ///
 /// Returns a BTreeMap mapping which value should be sent to which participant.
-pub fn repair_share_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn repair_share_part1<C: Ciphersuite, R: CryptoRng>(
     helpers: &[Identifier],
     key_package_i: &KeyPackage,
     rng: &mut R,
@@ -62,22 +62,17 @@ pub fn repair_share_part3(
 
 #[cfg(test)]
 mod tests {
-
-    use lazy_static::lazy_static;
-
-    use serde_json::Value;
-
     use crate::P256Sha256;
+    use serde_json::Value;
+    use std::sync::LazyLock;
 
-    lazy_static! {
-        pub static ref REPAIR_SHARE: Value =
-            serde_json::from_str(include_str!("../../tests/helpers/repair-share.json").trim())
-                .unwrap();
-    }
+    static REPAIR_SHARE: LazyLock<Value> = LazyLock::new(|| {
+        serde_json::from_str(include_str!("../../tests/helpers/repair-share.json").trim()).unwrap()
+    });
 
     #[test]
     fn check_repair_share_part1() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
         frost_core::tests::repairable::check_repair_share_part1::<P256Sha256, _>(rng);
     }
@@ -89,7 +84,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_part3() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
         frost_core::tests::repairable::check_repair_share_part3::<P256Sha256, _>(
             rng,
             &REPAIR_SHARE,
@@ -98,7 +93,7 @@ mod tests {
 
     #[test]
     fn check_repair_share_part1_fails_with_invalid_min_signers() {
-        let rng = rand::rngs::OsRng;
+        let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
         frost_core::tests::repairable::check_repair_share_part1_fails_with_invalid_min_signers::<
             P256Sha256,
             _,

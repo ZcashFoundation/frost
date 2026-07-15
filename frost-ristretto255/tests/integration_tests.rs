@@ -1,6 +1,6 @@
 use frost_ristretto255::*;
-use lazy_static::lazy_static;
 use serde_json::Value;
+use std::sync::LazyLock;
 
 #[test]
 fn check_zero_key_fails() {
@@ -9,14 +9,14 @@ fn check_zero_key_fails() {
 
 #[test]
 fn check_sign_with_dkg() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dkg::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 1;
     let max_signers = 3;
@@ -30,7 +30,7 @@ fn check_dkg_part1_fails_with_invalid_signers_min_signers() {
 
 #[test]
 fn check_dkg_part1_fails_with_min_signers_greater_than_max() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 3;
     let max_signers = 2;
@@ -44,7 +44,7 @@ fn check_dkg_part1_fails_with_min_signers_greater_than_max() {
 
 #[test]
 fn check_dkg_part1_fails_with_invalid_signers_max_signers() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 3;
     let max_signers = 1;
@@ -58,21 +58,21 @@ fn check_dkg_part1_fails_with_invalid_signers_max_signers() {
 
 #[test]
 fn check_rts() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::repairable::check_rts::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_refresh_shares_with_dealer() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::refresh::check_refresh_shares_with_dealer::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_refresh_shares_with_dealer_serialisation() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::refresh::check_refresh_shares_with_dealer_serialisation::<
         Ristretto255Sha512,
@@ -82,7 +82,7 @@ fn check_refresh_shares_with_dealer_serialisation() {
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::refresh::check_refresh_shares_with_dealer_fails_with_invalid_public_key_package::<
         Ristretto255Sha512,
@@ -92,7 +92,7 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package() {
 
 #[test]
 fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
     let identifiers = vec![
         Identifier::try_from(8).unwrap(),
         Identifier::try_from(3).unwrap(),
@@ -109,14 +109,14 @@ fn check_refresh_shares_with_dealer_fails_with_invalid_identifier() {
 
 #[test]
 fn check_refresh_shares_with_dkg() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::refresh::check_refresh_shares_with_dkg::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_refresh_shares_with_dkg_smaller_threshold() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::refresh::check_refresh_shares_with_dkg_smaller_threshold::<
         Ristretto255Sha512,
@@ -126,14 +126,14 @@ fn check_refresh_shares_with_dkg_smaller_threshold() {
 
 #[test]
 fn check_sign_with_dealer() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_sign_with_dealer_fails_with_invalid_min_signers() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 1;
     let max_signers = 3;
@@ -147,7 +147,7 @@ fn check_sign_with_dealer_fails_with_invalid_min_signers() {
 
 #[test]
 fn check_sign_with_dealer_fails_with_min_signers_greater_than_max() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 3;
     let max_signers = 2;
@@ -161,7 +161,7 @@ fn check_sign_with_dealer_fails_with_min_signers_greater_than_max() {
 
 #[test]
 fn check_sign_with_dealer_fails_with_invalid_max_signers() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 3;
     let max_signers = 1;
@@ -177,13 +177,13 @@ fn check_sign_with_dealer_fails_with_invalid_max_signers() {
 /// value is working.
 #[test]
 fn check_share_generation_ristretto255_sha512() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
     frost_core::tests::ciphersuite_generic::check_share_generation::<Ristretto255Sha512, _>(rng);
 }
 
 #[test]
 fn check_share_generation_fails_with_invalid_min_signers() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 0;
     let max_signers = 3;
@@ -197,7 +197,7 @@ fn check_share_generation_fails_with_invalid_min_signers() {
 
 #[test]
 fn check_share_generation_fails_with_min_signers_greater_than_max() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 3;
     let max_signers = 2;
@@ -211,7 +211,7 @@ fn check_share_generation_fails_with_min_signers_greater_than_max() {
 
 #[test]
 fn check_share_generation_fails_with_invalid_max_signers() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     let min_signers = 3;
     let max_signers = 0;
@@ -223,17 +223,18 @@ fn check_share_generation_fails_with_invalid_max_signers() {
     >(min_signers, max_signers, error, rng);
 }
 
-lazy_static! {
-    pub static ref VECTORS: Value =
-        serde_json::from_str(include_str!("../tests/helpers/vectors.json").trim())
-            .expect("Test vector is valid JSON");
-    pub static ref VECTORS_BIG_IDENTIFIER: Value =
-        serde_json::from_str(include_str!("../tests/helpers/vectors-big-identifier.json").trim())
-            .expect("Test vector is valid JSON");
-    pub static ref VECTORS_DKG: Value =
-        serde_json::from_str(include_str!("../tests/helpers/vectors_dkg.json").trim())
-            .expect("Test vector is valid JSON");
-}
+static VECTORS: LazyLock<Value> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("../tests/helpers/vectors.json").trim())
+        .expect("Test vector is valid JSON")
+});
+static VECTORS_BIG_IDENTIFIER: LazyLock<Value> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("../tests/helpers/vectors-big-identifier.json").trim())
+        .expect("Test vector is valid JSON")
+});
+static VECTORS_DKG: LazyLock<Value> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("../tests/helpers/vectors_dkg.json").trim())
+        .expect("Test vector is valid JSON")
+});
 
 #[test]
 fn check_sign_with_test_vectors() {
@@ -275,7 +276,7 @@ fn check_identifier_generation() -> Result<(), Error> {
 
 #[test]
 fn check_sign_with_dealer_and_identifiers() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::ciphersuite_generic::check_sign_with_dealer_and_identifiers::<
         Ristretto255Sha512,
@@ -285,7 +286,7 @@ fn check_sign_with_dealer_and_identifiers() {
 
 #[test]
 fn check_sign_with_missing_identifier() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
     frost_core::tests::ciphersuite_generic::check_sign_with_missing_identifier::<
         Ristretto255Sha512,
         _,
@@ -294,7 +295,7 @@ fn check_sign_with_missing_identifier() {
 
 #[test]
 fn check_sign_with_incorrect_commitments() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
     frost_core::tests::ciphersuite_generic::check_sign_with_incorrect_commitments::<
         Ristretto255Sha512,
         _,
@@ -304,7 +305,7 @@ fn check_sign_with_incorrect_commitments() {
 #[tokio::test]
 async fn check_async_sign_with_dealer() {
     tokio::spawn(async {
-        let rng = rand::rngs::OsRng;
+        let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
         frost_core::tests::ciphersuite_generic::async_check_sign::<Ristretto255Sha512, _>(rng)
             .await;
     })

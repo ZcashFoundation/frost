@@ -9,12 +9,12 @@ use crate::{frost_core as frost, RandomizedCiphersuite, RandomizedParams, Random
 use frost_core::{
     round1::SigningCommitments, Field, Group, Identifier, Signature, SigningPackage, VerifyingKey,
 };
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 /// Test re-randomized FROST signing with trusted dealer with a Ciphersuite.
 /// Returns the signed message, generated signature, and the randomized public key
 /// so that the caller can verify the signature with their own implementation.
-pub fn check_randomized_sign_with_dealer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
+pub fn check_randomized_sign_with_dealer<C: RandomizedCiphersuite, R: CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>) {
     ////////////////////////////////////////////////////////////////////////////
@@ -133,7 +133,7 @@ pub fn check_randomized_sign_with_dealer<C: RandomizedCiphersuite, R: RngCore + 
     )
 }
 
-fn check_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
+fn check_randomizer<C: RandomizedCiphersuite, R: CryptoRng>(
     pubkeys: &frost::keys::PublicKeyPackage<C>,
     signing_package: &frost::SigningPackage<C>,
     mut rng: &mut R,
@@ -145,7 +145,7 @@ fn check_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
     check_from_seed_and_signing_commitments(&mut rng, signing_package.signing_commitments());
 }
 
-fn check_from_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
+fn check_from_randomizer<C: RandomizedCiphersuite, R: CryptoRng>(
     rng: &mut R,
     signing_package: &SigningPackage<C>,
     pubkeys: &frost::keys::PublicKeyPackage<C>,
@@ -158,7 +158,7 @@ fn check_from_randomizer<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
     assert!(*randomizer_params.randomizer() == randomizer);
 }
 
-fn check_from_randomizer_and_signing_package<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
+fn check_from_randomizer_and_signing_package<C: RandomizedCiphersuite, R: CryptoRng>(
     mut rng: &mut R,
     signing_package: &SigningPackage<C>,
 ) {
@@ -190,7 +190,7 @@ fn check_from_randomizer_and_signing_package<C: RandomizedCiphersuite, R: RngCor
     assert!(randomizer1 != randomizer2);
 }
 
-fn check_from_seed_and_signing_commitments<C: RandomizedCiphersuite, R: RngCore + CryptoRng>(
+fn check_from_seed_and_signing_commitments<C: RandomizedCiphersuite, R: CryptoRng>(
     mut rng: &mut R,
     signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
 ) {

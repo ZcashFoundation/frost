@@ -46,7 +46,7 @@ pub mod round2 {
 /// It returns the [`round1::SecretPackage`] that must be kept in memory
 /// by the participant for the other steps, and the [`round1::Package`] that
 /// must be sent to each other participant in the DKG run.
-pub fn part1<R: RngCore + CryptoRng>(
+pub fn part1<R: CryptoRng>(
     identifier: Identifier,
     max_signers: u16,
     min_signers: u16,

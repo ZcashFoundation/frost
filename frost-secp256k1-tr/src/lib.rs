@@ -5,25 +5,26 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
+#[cfg(test)]
+extern crate std;
+
 extern crate alloc;
 
 use alloc::vec;
 use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
 
 use frost_rerandomized::RandomizedCiphersuite;
-use k256::elliptic_curve::ops::Reduce;
 use k256::{
     elliptic_curve::{
-        bigint::U256,
-        group::prime::PrimeCurveAffine,
-        hash2curve::{hash_to_field, ExpandMsgXmd},
+        ops::Reduce,
         point::AffineCoordinates,
-        sec1::{FromEncodedPoint, ToEncodedPoint},
-        Field as FFField, PrimeField,
+        sec1::{FromSec1Point, ToSec1Point},
+        CurveAffine, Field as FFField, PrimeField,
     },
-    AffinePoint, ProjectivePoint, Scalar,
+    hash2curve::{hash_to_field, ExpandMsgXmd, MapToCurve},
+    AffinePoint, ProjectivePoint, Scalar, Secp256k1, U256,
 };
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use sha2::{Digest, Sha256};
 
 use frost_core::{self as frost, random_nonzero};
@@ -71,7 +72,7 @@ impl Field for Secp256K1ScalarField {
         }
     }
 
-    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
+    fn random<R: CryptoRng>(rng: &mut R) -> Self::Scalar {
         Scalar::random(rng)
     }
 
@@ -130,7 +131,7 @@ impl Group for Secp256K1Group {
             return Err(GroupError::InvalidIdentityElement);
         }
         let mut fixed_serialized = [0; 33];
-        let serialized_point = element.to_affine().to_encoded_point(true);
+        let serialized_point = element.to_affine().to_sec1_point(true);
         let serialized = serialized_point.as_bytes();
         fixed_serialized.copy_from_slice(serialized);
         Ok(fixed_serialized)
@@ -138,9 +139,9 @@ impl Group for Secp256K1Group {
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let encoded_point =
-            k256::EncodedPoint::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
+            k256::Sec1Point::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
 
-        match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
+        match Option::<AffinePoint>::from(AffinePoint::from_sec1_point(&encoded_point)) {
             Some(point) => {
                 if point.is_identity().into() {
                     // This is actually impossible since the identity is encoded a a single byte
@@ -167,9 +168,14 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
 }
 
 fn hash_to_scalar(domain: &[&[u8]], msg: &[u8]) -> Scalar {
-    let mut u = [Secp256K1ScalarField::zero()];
-    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], domain, &mut u)
-        .expect("should never return error according to error cases described in ExpandMsgXmd");
+    let u = hash_to_field::<
+        1,
+        ExpandMsgXmd<Sha256>,
+        <Secp256k1 as MapToCurve>::SecurityLevel,
+        Scalar,
+        <Secp256k1 as MapToCurve>::Length,
+    >(&[msg], domain)
+    .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]
 }
 
@@ -187,7 +193,7 @@ fn hasher_to_scalar(hasher: Sha256) -> Scalar {
     // This is acceptable because secp256k1 curve order is close to 2^256,
     // and the input is uniformly random since it is a hash output, therefore
     // the bias is negligibly small.
-    Scalar::reduce(U256::from_be_slice(&hasher.finalize()))
+    Scalar::reduce(&U256::from_be_slice(&hasher.finalize()))
 }
 
 /// Create a BIP340 compliant tagged hash
@@ -294,11 +300,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
     }
 
     // Sign, negating the key if required by BIP-340.
-    fn single_sign<R: RngCore + CryptoRng>(
-        signing_key: &SigningKey,
-        rng: R,
-        message: &[u8],
-    ) -> Signature {
+    fn single_sign<R: CryptoRng>(signing_key: &SigningKey, rng: R, message: &[u8]) -> Signature {
         let signing_key = signing_key.clone().into_even_y(None);
         signing_key.default_sign(rng, message)
     }
@@ -362,7 +364,7 @@ impl Ciphersuite for Secp256K1Sha256TR {
     }
 
     // Generate a nonce, negating it if required by BIP-340.
-    fn generate_nonce<R: RngCore + CryptoRng>(
+    fn generate_nonce<R: CryptoRng>(
         rng: &mut R,
     ) -> (
         <<Self::Group as Group>::Field as Field>::Scalar,
@@ -514,7 +516,7 @@ pub mod keys {
 
     /// Allows all participants' keys to be generated using a central, trusted
     /// dealer.
-    pub fn generate_with_dealer<RNG: RngCore + CryptoRng>(
+    pub fn generate_with_dealer<RNG: CryptoRng>(
         max_signers: u16,
         min_signers: u16,
         identifiers: IdentifierList,
@@ -529,7 +531,7 @@ pub mod keys {
     /// instead of generating a fresh one. This is useful in scenarios where
     /// the key needs to be generated externally or must be derived from e.g. a
     /// seed phrase.
-    pub fn split<R: RngCore + CryptoRng>(
+    pub fn split<R: CryptoRng>(
         secret: &SigningKey,
         max_signers: u16,
         min_signers: u16,
@@ -825,7 +827,7 @@ pub mod round1 {
     /// operation.
     pub fn commit<RNG>(secret: &SigningShare, rng: &mut RNG) -> (SigningNonces, SigningCommitments)
     where
-        RNG: CryptoRng + RngCore,
+        RNG: CryptoRng,
     {
         frost::round1::commit::<S, RNG>(secret, rng)
     }

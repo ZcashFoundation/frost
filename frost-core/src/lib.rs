@@ -2,6 +2,7 @@
 #![allow(non_snake_case)]
 // It's emitting false positives; see https://github.com/rust-lang/rust-clippy/issues/9413
 #![allow(clippy::derive_partial_eq_without_eq)]
+#![allow(clippy::wrong_self_convention)]
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
 #![deny(clippy::indexing_slicing)]
@@ -25,7 +26,7 @@ use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 use keys::PublicKeyPackage;
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use serialization::SerializableScalar;
 use zeroize::Zeroize;
 
@@ -136,7 +137,7 @@ where
 /// It assumes that the Scalar Eq/PartialEq implementation is constant-time.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
 #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
-pub(crate) fn random_nonzero<C: Ciphersuite, R: RngCore + CryptoRng>(rng: &mut R) -> Scalar<C> {
+pub(crate) fn random_nonzero<C: Ciphersuite, R: CryptoRng>(rng: &mut R) -> Scalar<C> {
     loop {
         let scalar = <<C::Group as Group>::Field>::random(rng);
 
@@ -269,13 +270,12 @@ where
     fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
         let v: Vec<u8> = FromHex::from_hex(hex).map_err(|_| "invalid hex")?;
 
-        let ret = match v.as_slice().try_into() {
+        match v.as_slice().try_into() {
             Ok(bytes) => <<C::Group as Group>::Field>::deserialize(&bytes)
                 .map(|scalar| Self(scalar))
                 .map_err(|_| "malformed scalar encoding"),
             Err(_) => Err("malformed scalar encoding"),
-        };
-        ret
+        }
     }
 }
 

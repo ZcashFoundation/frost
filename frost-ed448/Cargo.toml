@@ -1,35 +1,46 @@
 [package]
 name = "frost-ed448"
-edition.workspace = true
-rust-version.workspace = true
 version.workspace = true
 authors.workspace = true
-readme = "README.md"
-license.workspace = true
-repository.workspace = true
-categories.workspace = true
-keywords = ["cryptography", "crypto", "ed448", "threshold", "signature"]
+edition.workspace = true
+rust-version.workspace = true
 description = "A Schnorr signature scheme over Ed448 that supports FROST."
+documentation = "https://docs.rs/frost-ed448"
+readme = "README.md"
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords = ["cryptography", "crypto", "ed448", "threshold", "signature"]
+categories.workspace = true
 
 [package.metadata.docs.rs]
 features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
+[lib]
+# Disables non-criterion benchmark which is not used; prevents errors
+# when using criterion-specific flags
+bench = false
+
+[[bench]]
+name = "bench"
+harness = false
+
 [dependencies]
 document-features.workspace = true
-ed448-goldilocks = { version = "0.9.0" }
+ed448-goldilocks.workspace = true
 frost-core.workspace = true
 frost-rerandomized.workspace = true
 rand_core.workspace = true
-sha3 = { version = "0.10.6", default-features = false }
+sha3.workspace = true
+shake.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
 frost-core = { workspace = true, features = ["test-impl"] }
 frost-rerandomized = { workspace = true, features = ["test-impl"] }
-lazy_static.workspace = true
-insta.workspace = true
 hex.workspace = true
+insta.workspace = true
 proptest.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
@@ -45,12 +56,3 @@ default = ["serialization"]
 serde = ["frost-core/serde"]
 ## Enable a default serialization format. Enables `serde`.
 serialization = ["serde", "frost-core/serialization", "frost-rerandomized/serialization"]
-
-[lib]
-# Disables non-criterion benchmark which is not used; prevents errors
-# when using criterion-specific flags
-bench = false
-
-[[bench]]
-name = "bench"
-harness = false

@@ -4,7 +4,7 @@
 use core::iter;
 
 use alloc::{collections::BTreeMap, format, vec::Vec};
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 use criterion::{BenchmarkId, Criterion, Throughput};
 
@@ -16,7 +16,7 @@ struct Item<C: Ciphersuite> {
     sig: Signature<C>,
 }
 
-fn sigs_with_distinct_keys<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
+fn sigs_with_distinct_keys<C: Ciphersuite, R: CryptoRng + Clone>(
     rng: &mut R,
 ) -> impl Iterator<Item = Item<C>> {
     let mut rng = rng.clone();
@@ -30,7 +30,7 @@ fn sigs_with_distinct_keys<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
 }
 
 /// Benchmark batched signature verification with the specified ciphersuite.
-pub fn bench_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
+pub fn bench_batch_verify<C: Ciphersuite, R: CryptoRng + Clone>(
     c: &mut Criterion,
     name: &str,
     rng: &mut R,
@@ -81,7 +81,7 @@ pub fn bench_batch_verify<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
 }
 
 /// Benchmark FROST signing with the specified ciphersuite.
-pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
+pub fn bench_sign<C: Ciphersuite, R: CryptoRng + Clone>(
     c: &mut Criterion,
     name: &str,
     rng: &mut R,
@@ -89,9 +89,7 @@ pub fn bench_sign<C: Ciphersuite, R: RngCore + CryptoRng + Clone>(
     let mut group = c.benchmark_group(format!("FROST Signing {name}"));
     for &n in [3u16, 10, 100, 1000].iter() {
         let max_signers = n;
-        // div_ceil is in 1.73.0 which is larger than the current MSRV
-        #[allow(clippy::manual_div_ceil)]
-        let min_signers = (n * 2 + 2) / 3;
+        let min_signers = (n * 2).div_ceil(3);
 
         group.bench_with_input(
             BenchmarkId::new("Key Generation with Dealer", max_signers),

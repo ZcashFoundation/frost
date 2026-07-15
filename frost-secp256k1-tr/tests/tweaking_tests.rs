@@ -17,7 +17,7 @@ fn check_tweaked_sign_with_dealer() -> Result<(), Box<dyn Error>> {
 
     let merkle_root: Vec<u8> = vec![12; 32];
 
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand_core::UnwrapErr(rand::rngs::SysRng);
     let max_signers = 5;
     let min_signers = 3;
     let (shares, pubkey_package) = frost::keys::generate_with_dealer(
@@ -137,7 +137,7 @@ fn taproot_tweak_pubkey(pubkey: [u8; 32], merkle_root: &[u8]) -> (bool, [u8; 32]
         .chain_update(merkle_root)
         .finalize();
     let t = k256::Scalar::from(
-        k256::elliptic_curve::ScalarPrimitive::new(k256::U256::from_be_slice(&tweak_hash)).unwrap(),
+        k256::elliptic_curve::ScalarValue::new(k256::U256::from_be_slice(&tweak_hash)).unwrap(),
     );
 
     let mut pubkey_even_bytes = [0x02; 33];

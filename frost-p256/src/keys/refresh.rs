@@ -5,14 +5,14 @@
 use crate::{
     frost,
     keys::dkg::{round1, round2},
-    CryptoRng, Error, Identifier, RngCore,
+    CryptoRng, Error, Identifier,
 };
 use alloc::{collections::btree_map::BTreeMap, vec::Vec};
 
 use super::{KeyPackage, PublicKeyPackage, SecretShare};
 
 /// Refer to [`frost_core::keys::refresh::compute_refreshing_shares`].
-pub fn compute_refreshing_shares<R: RngCore + CryptoRng>(
+pub fn compute_refreshing_shares<R: CryptoRng>(
     old_pub_key_package: PublicKeyPackage,
     identifiers: &[Identifier],
     mut rng: &mut R,
@@ -29,7 +29,7 @@ pub fn refresh_share(
 }
 
 /// Refer to [`frost_core::keys::refresh::refresh_dkg_part1`].
-pub fn refresh_dkg_part1<R: RngCore + CryptoRng>(
+pub fn refresh_dkg_part1<R: CryptoRng>(
     identifier: Identifier,
     max_signers: u16,
     min_signers: u16,

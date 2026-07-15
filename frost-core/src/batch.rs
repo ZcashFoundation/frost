@@ -7,7 +7,7 @@
 //! of caller code (which must assemble a batch of signatures across
 //! work-items), and loss of the ability to easily pinpoint failing signatures.
 
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 use crate::{scalar_mul::VartimeMultiscalarMul, Ciphersuite, Element, *};
 
@@ -109,7 +109,7 @@ where
     /// notation in the [protocol specification §B.1][ps].
     ///
     /// [ps]: https://zips.z.cash/protocol/protocol.pdf#reddsabatchverify
-    pub fn verify<R: RngCore + CryptoRng>(self, mut rng: R) -> Result<(), Error<C>> {
+    pub fn verify<R: CryptoRng>(self, mut rng: R) -> Result<(), Error<C>> {
         let n = self.signatures.len();
 
         if n == 0 {

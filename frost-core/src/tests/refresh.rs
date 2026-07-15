@@ -1,7 +1,7 @@
 //! Test for Refreshing shares
 #![cfg(feature = "serialization")]
 
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 use crate::keys::dkg::{round1, round2};
 use crate::keys::generate_with_dealer;
@@ -22,7 +22,7 @@ use alloc::vec::Vec;
 use super::ciphersuite_generic::check_sign;
 
 /// We want to test that recovered share matches the original share
-pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     // Compute shares
 
     ////////////////////////////////////////////////////////////////////////////
@@ -92,10 +92,7 @@ pub fn check_refresh_shares_with_dealer<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// We want to check that shares are refreshed with valid signers
-pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
-    C: Ciphersuite,
-    R: RngCore + CryptoRng,
->(
+pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<C: Ciphersuite, R: CryptoRng>(
     identifiers: &[Identifier<C>],
     error: Error<C>,
     mut rng: R,
@@ -112,7 +109,7 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_signers<
 /// identifiers in the public key package
 pub fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package<
     C: Ciphersuite,
-    R: RngCore + CryptoRng,
+    R: CryptoRng,
 >(
     mut rng: R,
 ) {
@@ -162,9 +159,7 @@ pub fn check_refresh_shares_with_dealer_fails_with_invalid_public_key_package<
 
 /// Check serialisation
 #[cfg(feature = "serialization")]
-pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore + CryptoRng>(
-    mut rng: R,
-) {
+pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     ////////////////////////////////////////////////////////////////////////////
     // Old Key generation
     ////////////////////////////////////////////////////////////////////////////
@@ -225,7 +220,7 @@ pub fn check_refresh_shares_with_dealer_serialisation<C: Ciphersuite, R: RngCore
 }
 
 /// Test FROST signing with DKG with a Ciphersuite.
-pub fn check_refresh_shares_with_dkg<C: Ciphersuite + PartialEq, R: RngCore + CryptoRng>(
+pub fn check_refresh_shares_with_dkg<C: Ciphersuite + PartialEq, R: CryptoRng>(
     mut rng: R,
 ) -> (Vec<u8>, Signature<C>, VerifyingKey<C>)
 where
@@ -463,10 +458,7 @@ where
 
 /// Test FROST signing with DKG with a Ciphersuite, using a smaller
 /// threshold than the original one.
-pub fn check_refresh_shares_with_dkg_smaller_threshold<
-    C: Ciphersuite + PartialEq,
-    R: RngCore + CryptoRng,
->(
+pub fn check_refresh_shares_with_dkg_smaller_threshold<C: Ciphersuite + PartialEq, R: CryptoRng>(
     mut rng: R,
 ) where
     C::Group: core::cmp::PartialEq,

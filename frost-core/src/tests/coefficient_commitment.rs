@@ -3,15 +3,13 @@
 use crate as frost;
 use crate::{keys::CoefficientCommitment, tests::helpers::generate_element, Group};
 use debugless_unwrap::DebuglessUnwrapExt;
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use serde_json::Value;
 
 use crate::Ciphersuite;
 
 /// Test retrieving Element from CoefficientCommitment
-pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
-    mut rng: R,
-) {
+pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     let element = generate_element::<C, R>(&mut rng);
 
     let expected = <C::Group>::serialize(&element).unwrap();
@@ -24,7 +22,7 @@ pub fn check_serialization_of_coefficient_commitment<C: Ciphersuite, R: RngCore 
 }
 
 /// Test create a CoefficientCommitment.
-pub fn check_create_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_create_coefficient_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     let element = generate_element::<C, R>(&mut rng);
 
     let expected = CoefficientCommitment::<C>::new(element);
@@ -55,9 +53,7 @@ pub fn check_create_coefficient_commitment_error<C: Ciphersuite + PartialEq>(
 }
 
 /// Test retrieve Element from CoefficientCommitment
-pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
-    mut rng: R,
-) {
+pub fn check_get_value_of_coefficient_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     let element = generate_element::<C, R>(&mut rng);
 
     let coeff_commitment = frost::keys::CoefficientCommitment::<C>::new(element);
