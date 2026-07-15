@@ -5,6 +5,9 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
+#[cfg(test)]
+extern crate std;
+
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
@@ -12,13 +15,13 @@ use alloc::collections::BTreeMap;
 use frost_rerandomized::RandomizedCiphersuite;
 use p256::{
     elliptic_curve::{
-        hash2curve::{hash_to_field, ExpandMsgXmd},
-        sec1::{FromEncodedPoint, ToEncodedPoint},
+        sec1::{FromSec1Point, ToSec1Point},
         Field as FFField, PrimeField,
     },
-    AffinePoint, ProjectivePoint, Scalar,
+    hash2curve::{hash_to_field, ExpandMsgXmd, MapToCurve},
+    AffinePoint, NistP256, ProjectivePoint, Scalar,
 };
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use sha2::{Digest, Sha256};
 
 use frost_core as frost;
@@ -62,7 +65,7 @@ impl Field for P256ScalarField {
         }
     }
 
-    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
+    fn random<R: CryptoRng>(rng: &mut R) -> Self::Scalar {
         Scalar::random(rng)
     }
 
@@ -121,7 +124,7 @@ impl Group for P256Group {
             return Err(GroupError::InvalidIdentityElement);
         }
         let mut fixed_serialized = [0; 33];
-        let serialized_point = element.to_encoded_point(true);
+        let serialized_point = element.to_sec1_point(true);
         let serialized = serialized_point.as_bytes();
         fixed_serialized.copy_from_slice(serialized);
         Ok(fixed_serialized)
@@ -129,9 +132,9 @@ impl Group for P256Group {
 
     fn deserialize(buf: &Self::Serialization) -> Result<Self::Element, GroupError> {
         let encoded_point =
-            p256::EncodedPoint::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
+            p256::Sec1Point::from_bytes(buf).map_err(|_| GroupError::MalformedElement)?;
 
-        match Option::<AffinePoint>::from(AffinePoint::from_encoded_point(&encoded_point)) {
+        match Option::<AffinePoint>::from(AffinePoint::from_sec1_point(&encoded_point)) {
             Some(point) => {
                 if point.is_identity().into() {
                     // This is actually impossible since the identity is encoded in a single byte
@@ -158,9 +161,14 @@ fn hash_to_array(inputs: &[&[u8]]) -> [u8; 32] {
 }
 
 fn hash_to_scalar(domain: &[&[u8]], msg: &[u8]) -> Scalar {
-    let mut u = [P256ScalarField::zero()];
-    hash_to_field::<ExpandMsgXmd<Sha256>, Scalar>(&[msg], domain, &mut u)
-        .expect("should never return error according to error cases described in ExpandMsgXmd");
+    let u = hash_to_field::<
+        1,
+        ExpandMsgXmd<Sha256>,
+        <NistP256 as MapToCurve>::SecurityLevel,
+        Scalar,
+        <NistP256 as MapToCurve>::Length,
+    >(&[msg], domain)
+    .expect("should never return error according to error cases described in ExpandMsgXmd");
     u[0]
 }
 
@@ -251,7 +259,7 @@ pub mod keys {
 
     /// Allows all participants' keys to be generated using a central, trusted
     /// dealer.
-    pub fn generate_with_dealer<RNG: RngCore + CryptoRng>(
+    pub fn generate_with_dealer<RNG: CryptoRng>(
         max_signers: u16,
         min_signers: u16,
         identifiers: IdentifierList,
@@ -266,7 +274,7 @@ pub mod keys {
     /// instead of generating a fresh one. This is useful in scenarios where
     /// the key needs to be generated externally or must be derived from e.g. a
     /// seed phrase.
-    pub fn split<R: RngCore + CryptoRng>(
+    pub fn split<R: CryptoRng>(
         secret: &SigningKey,
         max_signers: u16,
         min_signers: u16,
@@ -367,7 +375,7 @@ pub mod round1 {
     /// operation.
     pub fn commit<RNG>(secret: &SigningShare, rng: &mut RNG) -> (SigningNonces, SigningCommitments)
     where
-        RNG: CryptoRng + RngCore,
+        RNG: CryptoRng,
     {
         frost::round1::commit::<P, RNG>(secret, rng)
     }

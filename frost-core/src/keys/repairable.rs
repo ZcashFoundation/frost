@@ -26,8 +26,7 @@ use alloc::vec::Vec;
 use crate::keys::{KeyPackage, PublicKeyPackage};
 use crate::serialization::SerializableScalar;
 use crate::{
-    compute_lagrange_coefficient, Ciphersuite, CryptoRng, Error, Field, Group, Identifier, RngCore,
-    Scalar,
+    compute_lagrange_coefficient, Ciphersuite, CryptoRng, Error, Field, Group, Identifier, Scalar,
 };
 
 use super::{generate_coefficients, SigningShare};
@@ -111,7 +110,7 @@ where
 /// `participant` recover their share.
 ///
 /// Returns a BTreeMap mapping which value should be sent to which participant.
-pub fn repair_share_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn repair_share_part1<C: Ciphersuite, R: CryptoRng>(
     helpers: &[Identifier<C>],
     key_package_i: &KeyPackage<C>,
     rng: &mut R,

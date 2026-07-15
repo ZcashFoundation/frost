@@ -33,7 +33,7 @@ use crate::{
         generate_secret_shares, validate_num_of_signers, CoefficientCommitment, PublicKeyPackage,
         SigningKey, SigningShare, VerifyingShare,
     },
-    Ciphersuite, CryptoRng, Error, Field, Group, Header, Identifier, RngCore,
+    Ciphersuite, CryptoRng, Error, Field, Group, Header, Identifier,
 };
 
 use core::iter;
@@ -55,7 +55,7 @@ use super::{dkg::round1::Package, KeyPackage, SecretShare, VerifiableSecretShari
 /// It returns a vectors of [`SecretShare`] that must be sent to the
 /// participants in the same order as `identifiers`, and the refreshed
 /// [`PublicKeyPackage`].
-pub fn compute_refreshing_shares<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn compute_refreshing_shares<C: Ciphersuite, R: CryptoRng>(
     pub_key_package: PublicKeyPackage<C>,
     identifiers: &[Identifier<C>],
     rng: &mut R,
@@ -176,7 +176,7 @@ pub fn refresh_share<C: Ciphersuite>(
 /// It returns the [`round1::SecretPackage`] that must be kept in memory
 /// by the participant for the other steps, and the [`round1::Package`] that
 /// must be sent to each other participant in the refresh run.
-pub fn refresh_dkg_part1<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn refresh_dkg_part1<C: Ciphersuite, R: CryptoRng>(
     identifier: Identifier<C>,
     max_signers: u16,
     min_signers: u16,

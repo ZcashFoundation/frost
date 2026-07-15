@@ -38,7 +38,7 @@ use core::iter;
 
 use alloc::collections::BTreeMap;
 
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 use crate::{
     Challenge, Ciphersuite, Element, Error, Field, Group, Header, Identifier, Scalar, Signature,
@@ -356,7 +356,7 @@ pub mod round2 {
 /// It returns the [`round1::SecretPackage`] that must be kept in memory
 /// by the participant for the other steps, and the [`round1::Package`] that
 /// must be sent to each other participant in the DKG run.
-pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn part1<C: Ciphersuite, R: CryptoRng>(
     identifier: Identifier<C>,
     max_signers: u16,
     min_signers: u16,
@@ -420,7 +420,7 @@ where
 /// Compute the proof of knowledge of the secret coefficients used to generate
 /// the public secret sharing commitment.
 #[cfg_attr(feature = "internals", visibility::make(pub))]
-pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub(crate) fn compute_proof_of_knowledge<C: Ciphersuite, R: CryptoRng>(
     identifier: Identifier<C>,
     coefficients: &[Scalar<C>],
     commitment: &VerifiableSecretSharingCommitment<C>,

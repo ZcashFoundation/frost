@@ -1,8 +1,7 @@
 //! Schnorr signature signing keys
 
 use alloc::vec::Vec;
-
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -24,7 +23,7 @@ where
     C: Ciphersuite,
 {
     /// Generate a new signing key.
-    pub fn new<R: RngCore + CryptoRng>(rng: &mut R) -> SigningKey<C> {
+    pub fn new<R: CryptoRng>(rng: &mut R) -> SigningKey<C> {
         let scalar = random_nonzero::<C, R>(rng);
 
         SigningKey { scalar }
@@ -41,18 +40,14 @@ where
     }
 
     /// Create a signature `msg` using this `SigningKey`.
-    pub fn sign<R: RngCore + CryptoRng>(&self, rng: R, message: &[u8]) -> Signature<C> {
+    pub fn sign<R: CryptoRng>(&self, rng: R, message: &[u8]) -> Signature<C> {
         <C>::single_sign(self, rng, message)
     }
 
     /// Create a signature `msg` using this `SigningKey` using the default
     /// signing.
     #[cfg_attr(feature = "internals", visibility::make(pub))]
-    pub(crate) fn default_sign<R: RngCore + CryptoRng>(
-        &self,
-        mut rng: R,
-        message: &[u8],
-    ) -> Signature<C> {
+    pub(crate) fn default_sign<R: CryptoRng>(&self, mut rng: R, message: &[u8]) -> Signature<C> {
         let public = VerifyingKey::<C>::from(self.clone());
 
         let (k, R) = <C>::generate_nonce(&mut rng);

@@ -20,7 +20,7 @@ scenario in a single thread and it abstracts away any communication between peer
 use frost_p256 as frost;
 use std::collections::BTreeMap;
 
-let mut rng = rand::rngs::OsRng;
+let mut rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 let max_signers = 5;
 let min_signers = 3;
 let (shares, pubkey_package) = frost::keys::generate_with_dealer(

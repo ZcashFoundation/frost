@@ -1,18 +1,17 @@
-use lazy_static::lazy_static;
 use serde_json::Value;
+use std::sync::LazyLock;
 
 use crate::*;
 
 // Tests for serialization and deserialization of CoefficientCommitment
 
-lazy_static! {
-    pub static ref ELEMENTS: Value =
-        serde_json::from_str(include_str!("../../tests/helpers/elements.json").trim()).unwrap();
-}
+static ELEMENTS: LazyLock<Value> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("../../tests/helpers/elements.json").trim()).unwrap()
+});
 
 #[test]
 fn check_serialization_of_coefficient_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
     frost_core::tests::coefficient_commitment::check_serialization_of_coefficient_commitment::<
         Ristretto255Sha512,
         _,
@@ -21,7 +20,7 @@ fn check_serialization_of_coefficient_commitment() {
 
 #[test]
 fn check_create_coefficient_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
     frost_core::tests::coefficient_commitment::check_create_coefficient_commitment::<
         Ristretto255Sha512,
         _,
@@ -36,7 +35,7 @@ fn check_create_coefficient_commitment_error() {
 
 #[test]
 fn check_get_value_of_coefficient_commitment() {
-    let rng = rand::rngs::OsRng;
+    let rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 
     frost_core::tests::coefficient_commitment::check_get_value_of_coefficient_commitment::<
         Ristretto255Sha512,

@@ -1,55 +1,56 @@
 [package]
 name = "frost-core"
-edition.workspace = true
-rust-version.workspace = true
 version.workspace = true
 authors.workspace = true
-readme = "README.md"
-license.workspace = true
-repository.workspace = true
-categories.workspace = true
-keywords = ["cryptography", "crypto", "threshold", "signature", "schnorr"]
+edition.workspace = true
+rust-version.workspace = true
 description = "Types and traits to support implementing Flexible Round-Optimized Schnorr Threshold signature schemes (FROST)."
+documentation = "https://docs.rs/frost-core"
+readme = "README.md"
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords = ["cryptography", "crypto", "threshold", "signature", "schnorr"]
+categories.workspace = true
 
 [package.metadata.docs.rs]
 features = ["serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 
+[lib]
+# Disables non-criterion benchmark which is not used; prevents errors
+# when using criterion-specific flags
+bench = false
+
 [dependencies]
-byteorder = { version = "1.4", default-features = false }
-const-crc32 = { version = "1.2.0", package = "const-crc32-nostd" }
+byteorder.workspace = true
+const-crc32.workspace = true
+debugless-unwrap = { workspace = true, optional = true }
+derive-getters.workspace = true
 document-features.workspace = true
-debugless-unwrap = { version = "1.0.0", optional = true }
-derive-getters = "0.5.0"
 hex.workspace = true
-postcard = { version = "1.0.0", features = ["alloc"], optional = true }
-rand_core = { version = "0.6", default-features = false }
-serde = { version = "1.0.160", default-features = false, features = ["derive"], optional = true }
-serdect = { version = "0.2.0", optional = true }
-thiserror = { version = "2.0.3", default-features = false }
-visibility = "0.1.0"
-zeroize = { version = "1.5.4", default-features = false, features = ["derive", "alloc"] }
-# We indirectly depend on this via `zeroize` but the minimal version enforced by
-# `zeroize` does not work for us, so we specify it here.
-zeroize_derive = { version = "1.4.2" }
-itertools = { version = "0.14.0", default-features = false }
+postcard = { workspace = true, optional = true }
+rand_core.workspace = true
+serde = { workspace = true, optional = true }
+serdect = { workspace = true, optional = true }
+thiserror.workspace = true
+visibility.workspace = true
+zeroize.workspace = true
 
 # Test dependencies used with the test-impl feature
-proptest = { version = "1.0", optional = true }
-serde_json = { version = "1.0", optional = true }
 criterion = { workspace = true, optional = true }
+proptest = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
-debugless-unwrap = "1.0.0"
 criterion.workspace = true
-lazy_static.workspace = true
+debugless-unwrap.workspace = true
 proptest.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
-
 
 [features]
 default = ["serialization"]
@@ -65,6 +66,3 @@ serde = ["dep:serde", "dep:serdect"]
 serialization = ["serde", "dep:postcard"]
 # Exposes ciphersuite-generic tests for other crates to use
 test-impl = ["dep:proptest", "dep:serde_json", "dep:criterion", "dep:tokio", "dep:debugless-unwrap"]
-
-[lib]
-bench = false

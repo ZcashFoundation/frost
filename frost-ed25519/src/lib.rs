@@ -5,6 +5,9 @@
 #![doc = include_str!("../README.md")]
 #![doc = document_features::document_features!()]
 
+#[cfg(test)]
+extern crate std;
+
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
@@ -16,7 +19,7 @@ use curve25519_dalek::{
     traits::Identity,
 };
 use frost_rerandomized::RandomizedCiphersuite;
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use sha2::{Digest, Sha512};
 
 use frost_core as frost;
@@ -60,7 +63,7 @@ impl Field for Ed25519ScalarField {
         }
     }
 
-    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar {
+    fn random<R: CryptoRng>(rng: &mut R) -> Self::Scalar {
         Scalar::random(rng)
     }
 
@@ -241,7 +244,7 @@ pub mod keys {
 
     /// Allows all participants' keys to be generated using a central, trusted
     /// dealer.
-    pub fn generate_with_dealer<RNG: RngCore + CryptoRng>(
+    pub fn generate_with_dealer<RNG: CryptoRng>(
         max_signers: u16,
         min_signers: u16,
         identifiers: IdentifierList,
@@ -256,7 +259,7 @@ pub mod keys {
     /// instead of generating a fresh one. This is useful in scenarios where
     /// the key needs to be generated externally or must be derived from e.g. a
     /// seed phrase.
-    pub fn split<R: RngCore + CryptoRng>(
+    pub fn split<R: CryptoRng>(
         secret: &SigningKey,
         max_signers: u16,
         min_signers: u16,
@@ -357,7 +360,7 @@ pub mod round1 {
     /// operation.
     pub fn commit<RNG>(secret: &SigningShare, rng: &mut RNG) -> (SigningNonces, SigningCommitments)
     where
-        RNG: CryptoRng + RngCore,
+        RNG: CryptoRng,
     {
         frost::round1::commit::<E, RNG>(secret, rng)
     }

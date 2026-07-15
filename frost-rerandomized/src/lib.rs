@@ -40,7 +40,7 @@ use frost_core::serde;
 
 // When pulled into `reddsa`, that has its own sibling `rand_core` import.
 // For the time being, we do not re-export this `rand_core`.
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 /// Randomize the given key type for usage in a FROST signing with re-randomized keys,
 /// using the given [`RandomizedParams`].
@@ -234,7 +234,7 @@ where
     #[deprecated(
         note = "switch to new_from_commitments(), passing the commitments from SigningPackage"
     )]
-    pub fn new<R: RngCore + CryptoRng>(
+    pub fn new<R: CryptoRng>(
         mut rng: R,
         signing_package: &SigningPackage<C>,
     ) -> Result<Self, Error<C>> {
@@ -273,7 +273,7 @@ where
     /// Returns the Randomizer and the generate randomizer seed. Both can be
     /// used to regenerate the Randomizer with
     /// [`Self::regenerate_from_seed_and_commitments()`].
-    pub fn new_from_commitments<R: RngCore + CryptoRng>(
+    pub fn new_from_commitments<R: CryptoRng>(
         mut rng: R,
         signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
     ) -> Result<(Self, Vec<u8>), Error<C>> {
@@ -381,7 +381,7 @@ where
     #[deprecated(
         note = "switch to new_from_commitments(), passing the commitments from SigningPackage"
     )]
-    pub fn new<R: RngCore + CryptoRng>(
+    pub fn new<R: CryptoRng>(
         group_verifying_key: &VerifyingKey<C>,
         signing_package: &SigningPackage<C>,
         rng: R,
@@ -404,7 +404,7 @@ where
     /// Returns the generated [`RandomizedParams`] and a randomizer seed. Both
     /// can be used to regenerate the [`RandomizedParams`] with
     /// [`Self::regenerate_from_seed_and_commitments()`].
-    pub fn new_from_commitments<R: RngCore + CryptoRng>(
+    pub fn new_from_commitments<R: CryptoRng>(
         group_verifying_key: &VerifyingKey<C>,
         signing_commitments: &BTreeMap<Identifier<C>, SigningCommitments<C>>,
         rng: R,

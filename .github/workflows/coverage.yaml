@@ -6,7 +6,7 @@ on:
     branches:
       - main
   pull_request:
-    path:
+    paths:
       - '**/*.rs'
       - '**/*.txt'
       - '**/Cargo.toml'

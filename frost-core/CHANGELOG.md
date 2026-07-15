@@ -5,6 +5,10 @@ Entries are listed in reverse chronological order.
 
 ## Unreleased
 
+* All crates from RustCrypto have been bumped to the latest versions,
+  version `rand` has been updated to `0.10`
+* MSRV has been bumped to Rust 1.86, making all crates no-std.
+
 ## 3.0.0
 
 Refer to the `3.0.0-rc.0` entry below for the main changes if you are upgrading

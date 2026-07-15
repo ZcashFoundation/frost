@@ -13,7 +13,7 @@ use derive_getters::Getters;
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
@@ -48,7 +48,7 @@ where
     /// [spec]: https://datatracker.ietf.org/doc/html/rfc9591#name-nonce-generation
     pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
-        R: CryptoRng + RngCore,
+        R: CryptoRng,
     {
         let mut random_bytes = [0; 32];
         rng.fill_bytes(&mut random_bytes[..]);
@@ -239,7 +239,7 @@ where
     /// operation.
     pub fn new<R>(secret: &SigningShare<C>, rng: &mut R) -> Self
     where
-        R: CryptoRng + RngCore,
+        R: CryptoRng,
     {
         let hiding = Nonce::<C>::new(secret, rng);
         let binding = Nonce::<C>::new(secret, rng);
@@ -429,7 +429,7 @@ pub fn preprocess<C, R>(
 ) -> (Vec<SigningNonces<C>>, Vec<SigningCommitments<C>>)
 where
     C: Ciphersuite,
-    R: CryptoRng + RngCore,
+    R: CryptoRng,
 {
     let mut signing_nonces: Vec<SigningNonces<C>> = Vec::with_capacity(num_nonces as usize);
     let mut signing_commitments: Vec<SigningCommitments<C>> =
@@ -458,7 +458,7 @@ pub fn commit<C, R>(
 ) -> (SigningNonces<C>, SigningCommitments<C>)
 where
     C: Ciphersuite,
-    R: CryptoRng + RngCore,
+    R: CryptoRng,
 {
     let (mut vec_signing_nonces, mut vec_signing_commitments) = preprocess(1, secret, rng);
     (

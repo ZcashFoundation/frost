@@ -7,14 +7,14 @@ use crate::{
 };
 use alloc::vec::Vec;
 use debugless_unwrap::DebuglessUnwrapExt;
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use serde_json::Value;
 
 use crate::keys::{generate_with_dealer, IdentifierList, PublicKeyPackage};
 use crate::Ciphersuite;
 
 /// Test serialize VerifiableSecretSharingCommitment
-pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_serialize_vss_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     // Generate test CoefficientCommitments
 
     // ---
@@ -48,7 +48,7 @@ pub fn check_serialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mu
 }
 
 /// Test serialize_whole VerifiableSecretSharingCommitment
-pub fn check_serialize_whole_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_serialize_whole_vss_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     // Generate test CoefficientCommitments
 
     // ---
@@ -82,7 +82,7 @@ pub fn check_serialize_whole_vss_commitment<C: Ciphersuite, R: RngCore + CryptoR
 }
 
 /// Test deserialize VerifiableSecretSharingCommitment
-pub fn check_deserialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_deserialize_vss_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     // Generate test CoefficientCommitments
 
     // ---
@@ -112,7 +112,7 @@ pub fn check_deserialize_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(
 }
 
 /// Test deserialize_whole VerifiableSecretSharingCommitment
-pub fn check_deserialize_whole_vss_commitment<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_deserialize_whole_vss_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     // Generate test CoefficientCommitments
 
     // ---
@@ -146,7 +146,7 @@ pub fn check_deserialize_whole_vss_commitment<C: Ciphersuite, R: RngCore + Crypt
 }
 
 /// Test deserialize VerifiableSecretSharingCommitment error
-pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: CryptoRng>(
     mut rng: R,
     commitment_helpers: &Value,
 ) {
@@ -179,7 +179,7 @@ pub fn check_deserialize_vss_commitment_error<C: Ciphersuite, R: RngCore + Crypt
 }
 
 /// Test deserialize_whole VerifiableSecretSharingCommitment error
-pub fn check_deserialize_whole_vss_commitment_error<C: Ciphersuite, R: RngCore + CryptoRng>(
+pub fn check_deserialize_whole_vss_commitment_error<C: Ciphersuite, R: CryptoRng>(
     mut rng: R,
     commitment_helpers: &Value,
 ) {
@@ -233,7 +233,7 @@ pub fn check_deserialize_whole_vss_commitment_error<C: Ciphersuite, R: RngCore +
 }
 
 /// Test computing the public key package from a list of commitments.
-pub fn check_compute_public_key_package<C: Ciphersuite, R: RngCore + CryptoRng>(mut rng: R) {
+pub fn check_compute_public_key_package<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
     let max_signers = 3;
     let min_signers = 2;
     let (secret_shares, public_key_package) =

@@ -6,7 +6,7 @@ use core::{
 };
 
 use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 
 use crate::{
     challenge,
@@ -54,7 +54,7 @@ pub trait Field: Copy {
     /// Generate a random scalar from the entire space [0, l-1]
     ///
     /// <https://datatracker.ietf.org/doc/html/rfc9591#section-3.1-4.6>
-    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self::Scalar;
+    fn random<R: CryptoRng>(rng: &mut R) -> Self::Scalar;
 
     /// A member function of a [`Field`] that maps a [`Scalar`] to a unique byte array buf of
     /// fixed length Ne.
@@ -237,7 +237,7 @@ pub trait Ciphersuite: Copy + PartialEq + Debug + 'static + Send + Sync {
     /// if required which is useful if FROST signing has been changed by the
     /// other Ciphersuite trait methods and regular signing should be changed
     /// accordingly to match.
-    fn single_sign<R: RngCore + CryptoRng>(
+    fn single_sign<R: CryptoRng>(
         signing_key: &SigningKey<Self>,
         rng: R,
         message: &[u8],
@@ -367,7 +367,7 @@ pub trait Ciphersuite: Copy + PartialEq + Debug + 'static + Send + Sync {
     /// Optional. Generate a nonce and a commitment to it. Used by
     /// [`SigningKey`] for regular (non-FROST) signing and internally by the DKG
     /// to generate proof-of-knowledge signatures.
-    fn generate_nonce<R: RngCore + CryptoRng>(
+    fn generate_nonce<R: CryptoRng>(
         rng: &mut R,
     ) -> (
         <<Self::Group as Group>::Field as Field>::Scalar,

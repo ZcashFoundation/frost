@@ -20,11 +20,9 @@ first round of communication to ensure all participants have the same value.
 ```rust
 # // ANCHOR: dkg_import
 use std::collections::BTreeMap;
-
 use frost_secp256k1_tr as frost;
 
-let mut rng = rand::rngs::OsRng;
-
+let mut rng = rand_core::UnwrapErr(rand::rngs::SysRng);
 let max_signers = 5;
 let min_signers = 3;
 # // ANCHOR_END: dkg_import
