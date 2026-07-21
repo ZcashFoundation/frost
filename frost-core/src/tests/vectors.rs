@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate as frost;
 use crate::{
-    keys::*, round1::*, round2::*, Ciphersuite, Field, Group, Scalar, SigningKey, VerifyingKey, *,
+    Ciphersuite, Field, Group, Scalar, SigningKey, VerifyingKey, keys::*, round1::*, round2::*, *,
 };
 
 /// Test vectors for a ciphersuite.

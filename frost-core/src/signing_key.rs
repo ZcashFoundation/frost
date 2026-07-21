@@ -5,8 +5,8 @@ use rand_core::CryptoRng;
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
-    random_nonzero, serialization::SerializableScalar, Challenge, Ciphersuite, Error, Field, Group,
-    Scalar, Signature, VerifyingKey,
+    Challenge, Ciphersuite, Error, Field, Group, Scalar, Signature, VerifyingKey, random_nonzero,
+    serialization::SerializableScalar,
 };
 
 /// A signing key for a Schnorr signature on a FROST [`Ciphersuite::Group`].

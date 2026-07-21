@@ -10,8 +10,8 @@ use crate::keys::refresh::{
 };
 use crate::{self as frost};
 use crate::{
-    keys::{KeyPackage, PublicKeyPackage, SecretShare},
     Ciphersuite, Error, Identifier, Signature, VerifyingKey,
+    keys::{KeyPackage, PublicKeyPackage, SecretShare},
 };
 
 use crate::tests::ciphersuite_generic::check_part3_different_participants;
@@ -596,7 +596,9 @@ pub fn check_refresh_shares_with_dkg_smaller_threshold<C: Ciphersuite + PartialE
         ));
     }
 
-    assert!(results
-        .iter()
-        .all(|r| matches!(r, Err(Error::InvalidMinSigners))));
+    assert!(
+        results
+            .iter()
+            .all(|r| matches!(r, Err(Error::InvalidMinSigners)))
+    );
 }

@@ -26,10 +26,10 @@ use alloc::vec::Vec;
 use crate::keys::{KeyPackage, PublicKeyPackage};
 use crate::serialization::SerializableScalar;
 use crate::{
-    compute_lagrange_coefficient, Ciphersuite, CryptoRng, Error, Field, Group, Identifier, Scalar,
+    Ciphersuite, CryptoRng, Error, Field, Group, Identifier, Scalar, compute_lagrange_coefficient,
 };
 
-use super::{generate_coefficients, SigningShare};
+use super::{SigningShare, generate_coefficients};
 
 /// A delta value which is the output of part 1 of RTS.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -53,7 +53,7 @@ where
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn to_scalar(&self) -> Scalar<C> {
-        self.0 .0
+        self.0.0
     }
 
     /// Deserialize from bytes
@@ -89,7 +89,7 @@ where
     #[cfg_attr(feature = "internals", visibility::make(pub))]
     #[cfg_attr(docsrs, doc(cfg(feature = "internals")))]
     pub(crate) fn to_scalar(&self) -> Scalar<C> {
-        self.0 .0
+        self.0.0
     }
 
     /// Deserialize from bytes

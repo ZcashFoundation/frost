@@ -28,11 +28,11 @@ pub use frost_core;
 #[cfg(feature = "serialization")]
 use frost_core::SigningPackage;
 use frost_core::{
-    self as frost,
+    self as frost, CheaterDetection, Ciphersuite, Error, Field, Group, Identifier, Scalar,
+    VerifyingKey,
     keys::{KeyPackage, PublicKeyPackage, SigningShare, VerifyingShare},
-    round1::{encode_group_commitments, SigningCommitments},
+    round1::{SigningCommitments, encode_group_commitments},
     serialization::SerializableScalar,
-    CheaterDetection, Ciphersuite, Error, Field, Group, Identifier, Scalar, VerifyingKey,
 };
 
 #[cfg(feature = "serde")]
@@ -217,7 +217,7 @@ where
     C: Ciphersuite,
 {
     pub(crate) fn to_scalar(self) -> Scalar<C> {
-        self.0 .0
+        self.0.0
     }
 }
 

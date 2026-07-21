@@ -11,8 +11,8 @@ use crate::keys::{SecretShare, SigningShare};
 use crate::round1::SigningNonces;
 use crate::round2::SignatureShare;
 use crate::{
-    keys::PublicKeyPackage, Error, Field, Group, Identifier, Signature, SigningKey, SigningPackage,
-    VerifyingKey,
+    Error, Field, Group, Identifier, Signature, SigningKey, SigningPackage, VerifyingKey,
+    keys::PublicKeyPackage,
 };
 
 use crate::Ciphersuite;
@@ -360,7 +360,7 @@ fn check_aggregate_corrupted_share<C: Ciphersuite + PartialEq>(
     mut signature_shares: BTreeMap<frost::Identifier<C>, frost::round2::SignatureShare<C>>,
     pubkey_package: frost::keys::PublicKeyPackage<C>,
 ) {
-    use crate::{round2::SignatureShare, CheaterDetection};
+    use crate::{CheaterDetection, round2::SignatureShare};
 
     let one = <<C as Ciphersuite>::Group as Group>::Field::one();
     // Corrupt two shares

@@ -3,13 +3,13 @@
 mod helpers;
 
 use frost_ed448::{
+    SigningPackage,
     keys::{
-        dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare,
+        dkg::{round1, round2},
     },
     round1::{SigningCommitments, SigningNonces},
     round2::SignatureShare,
-    SigningPackage,
 };
 
 use helpers::samples;

@@ -49,9 +49,9 @@ use crate::{
 use crate::serialization::{Deserialize, Serialize};
 
 use super::{
+    KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
     evaluate_polynomial, generate_coefficients, generate_secret_polynomial,
-    validate_num_of_signers, KeyPackage, PublicKeyPackage, SecretShare, SigningShare,
-    VerifiableSecretSharingCommitment,
+    validate_num_of_signers,
 };
 
 /// DKG Round 1 structures.

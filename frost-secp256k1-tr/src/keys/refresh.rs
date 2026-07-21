@@ -3,9 +3,8 @@
 //! Refer to [`frost_core::keys::refresh`] for more details.
 
 use crate::{
-    frost,
+    CryptoRng, Error, Identifier, frost,
     keys::dkg::{round1, round2},
-    CryptoRng, Error, Identifier,
 };
 use alloc::{collections::btree_map::BTreeMap, vec::Vec};
 

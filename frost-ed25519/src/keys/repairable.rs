@@ -10,7 +10,7 @@ use crate::keys::{KeyPackage, PublicKeyPackage};
 // This is imported separately to make `gencode` work.
 // (if it were below, the position of the import would vary between ciphersuites
 //  after `cargo fmt`)
-use crate::{frost, Ciphersuite, CryptoRng, Identifier};
+use crate::{Ciphersuite, CryptoRng, Identifier, frost};
 use crate::{Ed25519Sha512, Error};
 
 /// A delta value which is the output of part 1 of RTS.
