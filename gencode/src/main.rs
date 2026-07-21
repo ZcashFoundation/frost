@@ -167,7 +167,7 @@ fn copy_and_replace(
 pub fn rustfmt(source: String) -> String {
     let mut child = Command::new("rustfmt")
         .arg("--edition")
-        .arg("2021") // TODO: remove this file once PR in merged (this is used to reduce diff)
+        .arg("2024")
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())

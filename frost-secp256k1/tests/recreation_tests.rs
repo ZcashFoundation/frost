@@ -2,13 +2,13 @@
 //! can be serialized and deserialized as the user wishes.
 
 use frost_secp256k1::{
+    SigningPackage,
     keys::{
-        dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare,
+        dkg::{round1, round2},
     },
     round1::{SigningCommitments, SigningNonces},
     round2::SignatureShare,
-    SigningPackage,
 };
 
 mod helpers;

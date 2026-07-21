@@ -1,7 +1,7 @@
 use std::{error::Error, vec};
 
-use k256::elliptic_curve::point::AffineCoordinates;
 use k256::ProjectivePoint;
+use k256::elliptic_curve::point::AffineCoordinates;
 use keys::Tweak;
 use sha2::{Digest, Sha256};
 

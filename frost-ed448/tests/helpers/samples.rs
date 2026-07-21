@@ -2,16 +2,16 @@
 
 use std::collections::BTreeMap;
 
-use frost_core::{round1::Nonce, Ciphersuite, Element, Group, Scalar};
+use frost_core::{Ciphersuite, Element, Group, Scalar, round1::Nonce};
 use frost_ed448::{
+    Field, Signature, SigningPackage, VerifyingKey,
     keys::{
-        dkg::{round1, round2},
         KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifiableSecretSharingCommitment,
         VerifyingShare,
+        dkg::{round1, round2},
     },
     round1::{NonceCommitment, SigningCommitments, SigningNonces},
     round2::SignatureShare,
-    Field, Signature, SigningPackage, VerifyingKey,
 };
 
 type C = frost_ed448::Ed448Shake256;

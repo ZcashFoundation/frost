@@ -1,17 +1,17 @@
 //! VerifiableSecretSharingCommitment functions
 
 use crate::{
+    Error, Group,
     keys::{CoefficientCommitment, VerifiableSecretSharingCommitment},
     tests::helpers::generate_element,
-    Error, Group,
 };
 use alloc::vec::Vec;
 use debugless_unwrap::DebuglessUnwrapExt;
 use rand_core::CryptoRng;
 use serde_json::Value;
 
-use crate::keys::{generate_with_dealer, IdentifierList, PublicKeyPackage};
 use crate::Ciphersuite;
+use crate::keys::{IdentifierList, PublicKeyPackage, generate_with_dealer};
 
 /// Test serialize VerifiableSecretSharingCommitment
 pub fn check_serialize_vss_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) {
@@ -41,10 +41,12 @@ pub fn check_serialize_vss_commitment<C: Ciphersuite, R: CryptoRng>(mut rng: R) 
         .unwrap();
 
     assert!(expected.len() == vss_commitment.len());
-    assert!(expected
-        .iter()
-        .zip(vss_commitment.iter())
-        .all(|(e, c)| e.as_ref() == c));
+    assert!(
+        expected
+            .iter()
+            .zip(vss_commitment.iter())
+            .all(|(e, c)| e.as_ref() == c)
+    );
 }
 
 /// Test serialize_whole VerifiableSecretSharingCommitment

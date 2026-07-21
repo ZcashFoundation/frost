@@ -7,15 +7,14 @@ use rand_core::CryptoRng;
 use serde_json::Value;
 
 use crate as frost;
-use crate::keys::repairable::{Delta, Sigma};
 use crate::keys::KeyPackage;
+use crate::keys::repairable::{Delta, Sigma};
 use crate::{
-    compute_lagrange_coefficient,
+    Ciphersuite, Error, Field, Group, Identifier, compute_lagrange_coefficient,
     keys::{
-        repairable::{repair_share_part1, repair_share_part2, repair_share_part3},
         PublicKeyPackage, SecretShare,
+        repairable::{repair_share_part1, repair_share_part2, repair_share_part3},
     },
-    Ciphersuite, Error, Field, Group, Identifier,
 };
 
 /// We want to test that recovered share matches the original share

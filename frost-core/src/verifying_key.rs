@@ -5,7 +5,7 @@ use alloc::{string::ToString, vec::Vec};
 #[cfg(any(test, feature = "test-impl"))]
 use hex::FromHex;
 
-use crate::{serialization::SerializableElement, Challenge, Ciphersuite, Error, Group, Signature};
+use crate::{Challenge, Ciphersuite, Error, Group, Signature, serialization::SerializableElement};
 
 /// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
 #[derive(Copy, Clone, PartialEq, Eq)]

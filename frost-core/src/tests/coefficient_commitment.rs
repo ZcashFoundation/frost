@@ -1,7 +1,7 @@
 //! CoefficientCommitment functions
 
 use crate as frost;
-use crate::{keys::CoefficientCommitment, tests::helpers::generate_element, Group};
+use crate::{Group, keys::CoefficientCommitment, tests::helpers::generate_element};
 use debugless_unwrap::DebuglessUnwrapExt;
 use rand_core::CryptoRng;
 use serde_json::Value;

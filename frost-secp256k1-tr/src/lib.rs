@@ -15,14 +15,14 @@ use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
 
 use frost_rerandomized::RandomizedCiphersuite;
 use k256::{
+    AffinePoint, ProjectivePoint, Scalar, Secp256k1, U256,
     elliptic_curve::{
+        CurveAffine, Field as FFField, PrimeField,
         ops::Reduce,
         point::AffineCoordinates,
         sec1::{FromSec1Point, ToSec1Point},
-        CurveAffine, Field as FFField, PrimeField,
     },
-    hash2curve::{hash_to_field, ExpandMsgXmd, MapToCurve},
-    AffinePoint, ProjectivePoint, Scalar, Secp256k1, U256,
+    hash2curve::{ExpandMsgXmd, MapToCurve, hash_to_field},
 };
 use rand_core::CryptoRng;
 use sha2::{Digest, Sha256};

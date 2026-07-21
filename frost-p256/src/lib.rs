@@ -14,12 +14,12 @@ use alloc::collections::BTreeMap;
 
 use frost_rerandomized::RandomizedCiphersuite;
 use p256::{
-    elliptic_curve::{
-        sec1::{FromSec1Point, ToSec1Point},
-        Field as FFField, PrimeField,
-    },
-    hash2curve::{hash_to_field, ExpandMsgXmd, MapToCurve},
     AffinePoint, NistP256, ProjectivePoint, Scalar,
+    elliptic_curve::{
+        Field as FFField, PrimeField,
+        sec1::{FromSec1Point, ToSec1Point},
+    },
+    hash2curve::{ExpandMsgXmd, MapToCurve, hash_to_field},
 };
 use rand_core::CryptoRng;
 use sha2::{Digest, Sha256};

@@ -5,9 +5,9 @@ use alloc::borrow::ToOwned;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::{frost_core as frost, RandomizedCiphersuite, RandomizedParams, Randomizer};
+use crate::{RandomizedCiphersuite, RandomizedParams, Randomizer, frost_core as frost};
 use frost_core::{
-    round1::SigningCommitments, Field, Group, Identifier, Signature, SigningPackage, VerifyingKey,
+    Field, Group, Identifier, Signature, SigningPackage, VerifyingKey, round1::SigningCommitments,
 };
 use rand_core::CryptoRng;
 
@@ -118,10 +118,12 @@ pub fn check_randomized_sign_with_dealer<C: RandomizedCiphersuite, R: CryptoRng>
 
     // Check that the threshold signature can be verified by the randomized group public
     // key (the verification key).
-    assert!(randomizer_params
-        .randomized_verifying_key()
-        .verify(message, &group_signature)
-        .is_ok());
+    assert!(
+        randomizer_params
+            .randomized_verifying_key()
+            .verify(message, &group_signature)
+            .is_ok()
+    );
 
     // Note that key_package.verifying_key can't be used to verify the signature
     // since those are non-randomized.
