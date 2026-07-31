@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "frost-core",
+    "frost-hd",
     "frost-ed448",
     "frost-ed25519",
     "frost-p256",
@@ -45,6 +46,7 @@ document-features = "0.2.12"
 ed448-goldilocks = { version = "0.14.0-pre.15", default-features = false }
 ed25519-dalek = "3.0"
 hex = { package = "const-hex", version = "1.19", default-features = false, features = ["alloc"] }
+hmac = { version = "0.13", default-features = false }
 insta = { version = "1.48", features = ["yaml"] }
 k256 = { version = "0.14", default-features = false, features = ["hash2curve"] }
 p256 = { version = "0.14", default-features = false, features = ["hash2curve"] }
@@ -67,6 +69,7 @@ visibility = "0.1"
 zeroize = { version = "1.9", default-features = false, features = ["derive", "alloc"] }
 
 frost-core = { version = "3.0.0", path = "frost-core", default-features = false }
+frost-hd = { version = "0.1.0", path = "frost-hd", default-features = false }
 frost-ed448 = { version = "3.0.0", path = "frost-ed448", default-features = false }
 frost-ed25519 = { version = "3.0.0", path = "frost-ed25519", default-features = false }
 frost-p256 = { version = "3.0.0", path = "frost-p256", default-features = false }
