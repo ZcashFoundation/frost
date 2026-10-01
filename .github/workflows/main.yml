@@ -108,7 +108,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run clippy action to produce annotations
-        uses: clechasseur/rs-clippy-check@v6.0.5
+        uses: clechasseur/rs-clippy-check@v6.1.0
         if: ${{ steps.check_permissions.outputs.has-permission }}
         with:
           args: --all-features --all-targets -- -D warnings
