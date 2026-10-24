@@ -23,7 +23,7 @@ authors = [
 # If you update the edition, make sure to also update the argument to rustfmt
 # in gencode/src/main.rs.
 edition = "2024"
-rust-version = "1.86"
+rust-version = "1.87"
 description = "ZF FROST (Flexible Round-Optimised Schnorr Threshold signatures)"
 documentation = "https://docs.rs/frost-core"
 readme = "README.md"

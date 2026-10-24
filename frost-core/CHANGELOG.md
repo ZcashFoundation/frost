@@ -7,7 +7,8 @@ Entries are listed in reverse chronological order.
 
 * All crates from RustCrypto have been bumped to the latest versions,
   version `rand` has been updated to `0.10`
-* MSRV has been bumped to Rust 1.86, making all crates no-std.
+* MSRV has been bumped to Rust 1.87, making all crates no-std. 1.87 is
+  required by `crypto-bigint` 0.7.6, which fixes RUSTSEC-2026-0387.
 
 ## 3.0.0
 
