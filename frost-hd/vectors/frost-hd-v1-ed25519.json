@@ -1,0 +1,75 @@
+{
+  "application": "org.example.wallet",
+  "ciphersuite_id": "FROST-ED25519-SHA512-v1",
+  "context_digest_hex": "6ce4bd89a780a01736e4e7f008f8b3a0a39b20397580898f5bc95489e8d60c53",
+  "cross_path_recovery": {
+    "configuration": "2-of-3",
+    "matches_root": true,
+    "participant_1_path": "m/0",
+    "participant_2_path": "m/7/3/999",
+    "recovered_root_secret_le_hex": "3eff1bf2b6165b48713bd976b63622ad8f7d1e842a63074413e6ec27aef4d401"
+  },
+  "message_hex": "67656e657269632046524f53542d4844207265666572656e6365207369676e6174757265",
+  "network": "solana-devnet",
+  "paths": [
+    {
+      "cumulative_tweak_le_hex": "9e9bd9f2513cb93b15f16c6f2943724585f38ae74df4195f851cfff61698a50b",
+      "derivation_key_hex": "b84dc1c3fa2ae0c3572ca0c75131981f1202124b24775ff40a3a0f967e8df598",
+      "path": "m/0",
+      "path_encoding_hex": "000100010000000000",
+      "public_key_hex": "6b31d60dbbd186e38aac90a020c5ae969135dd4d0b3314b36a5affe60ae913cf",
+      "signature_hex": "c5fb636b7a7f942540db748ec3862762a3cb390807fec809039b74898adb9207285e790b071d373ae6bdb4820a0a34b48c2dce87e66921492f8d2ea392c56109",
+      "threshold_checks": {
+        "2-of-2": "pass",
+        "2-of-3": "pass",
+        "3-of-5": "pass"
+      }
+    },
+    {
+      "cumulative_tweak_le_hex": "a6a6150b51d6fd68cda46109c78cd127fa2300e20449531a4981857d07209102",
+      "derivation_key_hex": "5fa0b8574b0ef55a173470ce50393abe9226e9e01c06035b36c4229d17751151",
+      "path": "m/1/42",
+      "path_encoding_hex": "000100020000000001000000002a",
+      "public_key_hex": "03d61d85d4c60c783285e88ff311cda572cefc063cd3acc836f29fb14da99c4b",
+      "signature_hex": "98e6bd3d3af61e32a28dd33bf2f3dfa8b8704b03ceb7005681897d8dec73d6755642a6c2778cc0c36d0efba1a3f287fad30a787b7730d126221ac28493346f0c",
+      "threshold_checks": {
+        "2-of-2": "pass",
+        "2-of-3": "pass",
+        "3-of-5": "pass"
+      }
+    },
+    {
+      "cumulative_tweak_le_hex": "4b579a6afc262704479dddfa00d8d8aae049eea833f237b113aa58c322b35303",
+      "derivation_key_hex": "119e01ad34208b76c1cad433bf8d68a00f3e99e940fa83908b990b469fc50c1c",
+      "path": "m/7/3/999",
+      "path_encoding_hex": "000100030000000007000000000300000003e7",
+      "public_key_hex": "5ab3efece63a617f1236c75786cccf94539c5215dbbd51751e745bebcc8469a6",
+      "signature_hex": "692cb449981e15814feac38f78218a26257699f7d2984488fdc2bfcbda02727c96cf655971fb168ead7177a4bd0e600c8bfbe486fc539b1cbee0a0bffde6df0a",
+      "threshold_checks": {
+        "2-of-2": "pass",
+        "2-of-3": "pass",
+        "3-of-5": "pass"
+      }
+    },
+    {
+      "cumulative_tweak_le_hex": "0328aa2262450b7f5abfa26352c5f007a3258e97000f90eb1de0f14dad353504",
+      "derivation_key_hex": "b9d4e0bdf893277061eee8a84641d9e892e0a9161862d5e30c500cf36ddfc5ff",
+      "path": "m/4294967295",
+      "path_encoding_hex": "0001000100ffffffff",
+      "public_key_hex": "fecc80c79242b3e421ca0475b17c398679f39cba632824e6fdd697dceb0d3ab1",
+      "signature_hex": "375a489fdd3593214ee7902fef2dd74bcaf9ef4c7b187aea6477d915a884901724e576780176fea0c632d9e7e5af12760be356f0b783e5409f4ea630b632fc0b",
+      "threshold_checks": {
+        "2-of-2": "pass",
+        "2-of-3": "pass",
+        "3-of-5": "pass"
+      }
+    }
+  ],
+  "profile_id": "FROST-HD-ED25519-SHA512-H1-v1",
+  "purpose": "threshold-child-keys",
+  "root_derivation_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "root_public_key_hex": "dc13105f01bc23b21759ff565c4b2f8fdfcbad0f8bd8cad803fe8e5e8342d2de",
+  "root_secret_le_hex": "3eff1bf2b6165b48713bd976b63622ad8f7d1e842a63074413e6ec27aef4d401",
+  "specification": "FROST-HD-v1 research draft",
+  "warning": "Deterministic test material only. Never use these secrets."
+}
