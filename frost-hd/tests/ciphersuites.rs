@@ -15,9 +15,8 @@ use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
 
 const ROOT_DERIVATION_KEY: DerivationKey = DerivationKey::new([
-    0x42, 0x19, 0x77, 0x2a, 0xd3, 0x05, 0x94, 0xee, 0x50, 0x68, 0xa1, 0xc4, 0x7b, 0x11,
-    0x39, 0xfa, 0x08, 0x6d, 0x25, 0xb0, 0x9e, 0x3c, 0xf2, 0x61, 0x88, 0x0a, 0x57, 0x9b,
-    0xcd, 0x31, 0x74, 0xe6,
+    0x42, 0x19, 0x77, 0x2a, 0xd3, 0x05, 0x94, 0xee, 0x50, 0x68, 0xa1, 0xc4, 0x7b, 0x11, 0x39, 0xfa,
+    0x08, 0x6d, 0x25, 0xb0, 0x9e, 0x3c, 0xf2, 0x61, 0x88, 0x0a, 0x57, 0x9b, 0xcd, 0x31, 0x74, 0xe6,
 ]);
 const MESSAGE: &[u8] = b"generic FROST-HD ciphersuite test";
 
@@ -88,18 +87,20 @@ fn check_configuration<C: Ciphersuite + PartialEq>(max_signers: u16, min_signers
     .expect("dealer generation");
 
     let context = context::<C>();
-    let root_public =
-        HdRootPublicKeyPackage::<C, TestH1Profile<C>>::new(public_package.clone(), ROOT_DERIVATION_KEY, context);
+    let root_public = HdRootPublicKeyPackage::<C, TestH1Profile<C>>::new(
+        public_package.clone(),
+        ROOT_DERIVATION_KEY,
+        context,
+    );
     let path: DerivationPath = "m/1/42/7".parse().expect("canonical path");
-    let derived_public = root_public
-        .derive_path(&path)
-        .expect("public derivation");
+    let derived_public = root_public.derive_path(&path).expect("public derivation");
 
     let mut derived_private = BTreeMap::new();
     for (identifier, share) in shares {
         let key_package = KeyPackage::try_from(share).expect("valid dealer share");
-        let root = HdRootKeyPackage::<C, TestH1Profile<C>>::new(key_package, ROOT_DERIVATION_KEY, context)
-            .expect("internally consistent root package");
+        let root =
+            HdRootKeyPackage::<C, TestH1Profile<C>>::new(key_package, ROOT_DERIVATION_KEY, context)
+                .expect("internally consistent root package");
         let direct = root.derive_path(&path).expect("private derivation");
 
         let first_path: DerivationPath = "m/1".parse().expect("canonical path");

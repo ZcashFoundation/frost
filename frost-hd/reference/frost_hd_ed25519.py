@@ -52,6 +52,8 @@ def _recover_x(y: int, sign: int) -> int:
         x = x * SQRT_M1 % FIELD_P
     if (x * x - x_squared) % FIELD_P != 0:
         raise ValueError("invalid Edwards point")
+    if x == 0 and sign == 1:
+        raise ValueError("non-canonical Edwards x sign")
     if x & 1 != sign:
         x = FIELD_P - x
     return x

@@ -5,8 +5,7 @@ use std::collections::BTreeMap;
 use frost_core::VerifyingKey;
 use frost_ed25519::Ed25519Sha512;
 use frost_hd::{
-    DerivationContext, DerivationKey, DerivationPath, DerivationProfile,
-    HdRootPublicKeyPackage,
+    DerivationContext, DerivationKey, DerivationPath, DerivationProfile, HdRootPublicKeyPackage,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -30,8 +29,7 @@ fn matches_independent_ed25519_vector_for_m_0() {
         "dc13105f01bc23b21759ff565c4b2f8fdfcbad0f8bd8cad803fe8e5e8342d2de",
     ))
     .unwrap();
-    let public_package =
-        frost_core::keys::PublicKeyPackage::new(BTreeMap::new(), root_key, None);
+    let public_package = frost_core::keys::PublicKeyPackage::new(BTreeMap::new(), root_key, None);
     let context = DerivationContext::new(
         b"org.example.wallet".to_vec(),
         b"solana-devnet".to_vec(),
@@ -57,7 +55,11 @@ fn matches_independent_ed25519_vector_for_m_0() {
         .unwrap();
 
     assert_eq!(
-        child.public_key_package().verifying_key().serialize().unwrap(),
+        child
+            .public_key_package()
+            .verifying_key()
+            .serialize()
+            .unwrap(),
         decode_32("6b31d60dbbd186e38aac90a020c5ae969135dd4d0b3314b36a5affe60ae913cf")
     );
     assert_eq!(

@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use frost_ed25519 as frost;
 use frost_hd::{
-    DerivationContext, DerivationKey, DerivationPath, DerivationProfile, Error,
-    HdRootKeyPackage, HdRootPublicKeyPackage, PathSegment,
+    DerivationContext, DerivationKey, DerivationPath, DerivationProfile, Error, HdRootKeyPackage,
+    HdRootPublicKeyPackage, PathSegment,
 };
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
@@ -79,16 +79,23 @@ fn run_threshold_case(max_signers: u16, threshold: u16, seed: u8) {
     .digest::<frost::Ed25519Sha512, Ed25519H1Profile>()
     .expect("context digest");
     let derivation_key = DerivationKey::new([0x42; 32]);
-    let public_root =
-        HdRootPublicKeyPackage::<frost::Ed25519Sha512, Ed25519H1Profile>::new(root_public_package.clone(), derivation_key, context);
+    let public_root = HdRootPublicKeyPackage::<frost::Ed25519Sha512, Ed25519H1Profile>::new(
+        root_public_package.clone(),
+        derivation_key,
+        context,
+    );
 
     for path_text in ["m/0", "m/1/42", "m/7/3/999"] {
         let path: DerivationPath = path_text.parse().expect("canonical path");
         let child_public = public_root.derive_path(&path).expect("public derivation");
         let mut child_key_packages = BTreeMap::new();
         for (identifier, root_package) in &root_packages {
-            let root = HdRootKeyPackage::<frost::Ed25519Sha512, Ed25519H1Profile>::new(root_package.clone(), derivation_key, context)
-                .expect("valid private root");
+            let root = HdRootKeyPackage::<frost::Ed25519Sha512, Ed25519H1Profile>::new(
+                root_package.clone(),
+                derivation_key,
+                context,
+            )
+            .expect("valid private root");
             let child = root.derive_path(&path).expect("private derivation");
             child
                 .matches_public(&child_public)
@@ -134,18 +141,18 @@ fn derives_and_signs_ed25519_3_of_5() {
 #[test]
 fn hardened_segments_are_explicitly_rejected() {
     let mut rng = ChaCha20Rng::from_seed([9; 32]);
-    let (_, root_public) = frost::keys::generate_with_dealer(
-        2,
-        2,
-        frost::keys::IdentifierList::Default,
-        &mut rng,
-    )
-    .unwrap();
+    let (_, root_public) =
+        frost::keys::generate_with_dealer(2, 2, frost::keys::IdentifierList::Default, &mut rng)
+            .unwrap();
     let context = DerivationContext::new(b"app".to_vec(), b"net".to_vec(), b"purpose".to_vec())
         .unwrap()
         .digest::<frost::Ed25519Sha512, Ed25519H1Profile>()
         .unwrap();
-    let root = HdRootPublicKeyPackage::<frost::Ed25519Sha512, Ed25519H1Profile>::new(root_public, DerivationKey::new([7; 32]), context);
+    let root = HdRootPublicKeyPackage::<frost::Ed25519Sha512, Ed25519H1Profile>::new(
+        root_public,
+        DerivationKey::new([7; 32]),
+        context,
+    );
     assert!(matches!(
         root.derive_path(&"m/0'/1".parse().unwrap()),
         Err(Error::HardenedDerivationUnsupported)
@@ -155,18 +162,18 @@ fn hardened_segments_are_explicitly_rejected() {
 #[test]
 fn root_path_cannot_be_exposed_as_a_signable_child() {
     let mut rng = ChaCha20Rng::from_seed([10; 32]);
-    let (_, root_public) = frost::keys::generate_with_dealer(
-        2,
-        2,
-        frost::keys::IdentifierList::Default,
-        &mut rng,
-    )
-    .unwrap();
+    let (_, root_public) =
+        frost::keys::generate_with_dealer(2, 2, frost::keys::IdentifierList::Default, &mut rng)
+            .unwrap();
     let context = DerivationContext::new(b"app".to_vec(), b"net".to_vec(), b"purpose".to_vec())
         .unwrap()
         .digest::<frost::Ed25519Sha512, Ed25519H1Profile>()
         .unwrap();
-    let root = HdRootPublicKeyPackage::<frost::Ed25519Sha512, Ed25519H1Profile>::new(root_public, DerivationKey::new([8; 32]), context);
+    let root = HdRootPublicKeyPackage::<frost::Ed25519Sha512, Ed25519H1Profile>::new(
+        root_public,
+        DerivationKey::new([8; 32]),
+        context,
+    );
     assert!(matches!(
         root.derive_path(&DerivationPath::root()),
         Err(Error::RootPathNotSignable)

@@ -1,7 +1,7 @@
 //! Executable documentation of the fundamental related-key property.
 
 use frost_core::{Ciphersuite, Field, Group};
-use frost_ed25519::{Ed25519Sha512, Ed25519ScalarField};
+use frost_ed25519::{Ed25519ScalarField, Ed25519Sha512};
 
 #[test]
 fn public_child_tweak_recovers_the_parent_participant_share() {
@@ -12,10 +12,10 @@ fn public_child_tweak_recovers_the_parent_participant_share() {
     let recovered_parent = child - tweak;
     assert_eq!(recovered_parent, parent);
 
-    let parent_public = <C::Group as Group>::generator() * parent;
-    let child_public = parent_public + <C::Group as Group>::generator() * tweak;
+    let parent_public = <<C as Ciphersuite>::Group as Group>::generator() * parent;
+    let child_public = parent_public + <<C as Ciphersuite>::Group as Group>::generator() * tweak;
     assert_eq!(
-        child_public - <C::Group as Group>::generator() * tweak,
+        child_public - <<C as Ciphersuite>::Group as Group>::generator() * tweak,
         parent_public
     );
 }

@@ -85,7 +85,10 @@ impl fmt::Debug for DerivationKey {
         // The key is public protocol metadata, but redaction avoids accidental
         // correlation through logs and keeps applications honest about where
         // family metadata is intentionally disclosed.
-        formatter.debug_tuple("DerivationKey").field(&"<redacted>").finish()
+        formatter
+            .debug_tuple("DerivationKey")
+            .field(&"<redacted>")
+            .finish()
     }
 }
 
@@ -643,11 +646,7 @@ fn validate_private_package<C: Ciphersuite>(package: &KeyPackage<C>) -> Result<(
     }
 }
 
-fn hmac_sha512(
-    key: [u8; 32],
-    domain: &[u8],
-    common: &[u8],
-) -> Result<[u8; 64], Error> {
+fn hmac_sha512(key: [u8; 32], domain: &[u8], common: &[u8]) -> Result<[u8; 64], Error> {
     let mut mac = HmacSha512::new_from_slice(&key).map_err(|_| Error::KdfInitialization)?;
     mac.update(domain);
     mac.update(common);

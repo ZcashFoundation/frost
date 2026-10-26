@@ -188,7 +188,9 @@ impl FromStr for DerivationPath {
             {
                 return Err(Error::NonCanonicalPath);
             }
-            let index = digits.parse::<u32>().map_err(|_| Error::PathIndexOverflow)?;
+            let index = digits
+                .parse::<u32>()
+                .map_err(|_| Error::PathIndexOverflow)?;
             segments.push(if hardened {
                 PathSegment::Hardened(index)
             } else {

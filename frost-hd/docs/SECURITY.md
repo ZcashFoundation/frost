@@ -43,4 +43,4 @@ An application using this construction must:
 
 ## No production claim
 
-The Rust code in this repository is a research prototype. It has not received an independent cryptographic audit and has not been compiled against the full upstream workspace in the current execution environment.
+The Rust code in this repository is a research prototype. It has not received an independent cryptographic audit. Passing the DKG and signing tests does not establish the security of the derivation construction.

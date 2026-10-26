@@ -9,21 +9,57 @@ from pathlib import Path
 from frost_hd_ed25519 import (
     BASE_POINT,
     DerivationPath,
+    FIELD_P,
     Node,
     PathSegment,
     SCALAR_Q,
     assert_threshold_invariant,
     build_vectors,
     context_digest,
+    decode_point,
     derive_child,
     derive_path,
     encode_point,
     interpolate_at_zero,
     make_shares,
     point_add,
+    point_neg,
     scalar_mult,
+    verify,
     write_vectors,
 )
+
+POINT_ENCODING_BYTES = 32
+POINT_SIGN_BIT = 1 << 255
+
+
+class PointDecodingTests(unittest.TestCase):
+    def test_valid_points_round_trip(self) -> None:
+        for point in (BASE_POINT, point_neg(BASE_POINT)):
+            with self.subTest(point=point):
+                self.assertEqual(decode_point(encode_point(point)), point)
+
+    def test_zero_x_points_are_rejected(self) -> None:
+        for y in (1, FIELD_P - 1):
+            for sign in (0, 1):
+                encoded = (y | sign * POINT_SIGN_BIT).to_bytes(POINT_ENCODING_BYTES, "little")
+                with self.subTest(y=y, sign=sign), self.assertRaises(ValueError):
+                    decode_point(encoded)
+
+    def test_non_canonical_y_is_rejected(self) -> None:
+        for y in (FIELD_P, FIELD_P + 1, POINT_SIGN_BIT - 1):
+            with self.subTest(y=y), self.assertRaises(ValueError):
+                decode_point(y.to_bytes(POINT_ENCODING_BYTES, "little"))
+
+    def test_invalid_lengths_are_rejected(self) -> None:
+        for length in (0, POINT_ENCODING_BYTES - 1, POINT_ENCODING_BYTES + 1):
+            with self.subTest(length=length), self.assertRaises(ValueError):
+                decode_point(bytes(length))
+
+    def test_verify_rejects_negative_zero_commitment(self) -> None:
+        commitment = (1 | POINT_SIGN_BIT).to_bytes(POINT_ENCODING_BYTES, "little")
+        signature = commitment + bytes(POINT_ENCODING_BYTES)
+        self.assertFalse(verify(BASE_POINT, b"invalid commitment", signature))
 
 
 class PathTests(unittest.TestCase):

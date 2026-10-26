@@ -438,6 +438,7 @@ checksum = "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2"
 dependencies = [
  "block-buffer",
  "crypto-common",
+ "ctutils",
 ]
 
 [[package]]
@@ -639,6 +640,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "frost-hd"
+version = "0.1.0"
+dependencies = [
+ "const-hex",
+ "ed25519-dalek",
+ "frost-core",
+ "frost-ed25519",
+ "frost-ristretto255",
+ "frost-secp256k1",
+ "hmac",
+ "rand_chacha 0.10.0",
+ "rand_core 0.10.1",
+ "sha2",
+]
+
+[[package]]
 name = "frost-p256"
 version = "3.0.0"
 dependencies = [
@@ -802,6 +819,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fda06d18ac606267c40c04e41b9947729bf8b9efe74bd4e82b61a5f26a510b9f"
 dependencies = [
  "arrayvec",
+]
+
+[[package]]
+name = "hmac"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6303bc9732ae41b04cb554b844a762b4115a61bfaa81e3e83050991eeb56863f"
+dependencies = [
+ "digest",
 ]
 
 [[package]]
