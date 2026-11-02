@@ -257,6 +257,11 @@ fn check_error_culprit() {
 }
 
 #[test]
+fn check_batched_lagrange_coefficients() {
+    frost_core::tests::ciphersuite_generic::check_batched_lagrange_coefficients::<Ed25519Sha512>();
+}
+
+#[test]
 fn check_identifier_derivation() {
     frost_core::tests::ciphersuite_generic::check_identifier_derivation::<Ed25519Sha512>();
 }

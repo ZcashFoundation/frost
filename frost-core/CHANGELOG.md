@@ -8,6 +8,8 @@ Entries are listed in reverse chronological order.
 * All crates from RustCrypto have been bumped to the latest versions,
   version `rand` has been updated to `0.10`
 * MSRV has been bumped to Rust 1.86, making all crates no-std.
+* Aggregation with cheater detection computes the Lagrange coefficients of
+  all signers in one batched pass, with a single field inversion.
 
 ## 3.0.0
 

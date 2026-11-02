@@ -330,6 +330,70 @@ fn compute_lagrange_coefficient<C: Ciphersuite>(
     )
 }
 
+/// Generates the lagrange coefficients, evaluated at 0, for every participant
+/// in `x_set`.
+///
+/// Returns the same values as calling [`compute_lagrange_coefficient()`] with
+/// `x = None` for each element of `x_set`, but numerators are computed with
+/// prefix and suffix products and all denominators are inverted with a single
+/// field inversion. Returns an empty map if `x_set` is empty.
+fn compute_lagrange_coefficients<C: Ciphersuite>(
+    x_set: &BTreeSet<Identifier<C>>,
+) -> Result<BTreeMap<Identifier<C>, Scalar<C>>, Error<C>> {
+    let one = <<C::Group as Group>::Field>::one();
+    let xs: Vec<Scalar<C>> = x_set.iter().map(|x| x.to_scalar()).collect();
+    let n = xs.len();
+
+    // nums[i] = prod_{j != i} x_j, using prefix products then suffix products.
+    let mut nums = Vec::with_capacity(n);
+    let mut acc = one;
+    for x_j in xs.iter() {
+        nums.push(acc);
+        acc = acc * *x_j;
+    }
+    let mut acc = one;
+    for (num, x_j) in nums.iter_mut().zip(xs.iter()).rev() {
+        *num = *num * acc;
+        acc = acc * *x_j;
+    }
+
+    // dens[i] = prod_{j != i} (x_j - x_i), same sign convention as
+    // compute_lagrange_coefficient() with x = None.
+    let dens: Vec<Scalar<C>> = xs
+        .iter()
+        .enumerate()
+        .map(|(i, x_i)| {
+            xs.iter()
+                .enumerate()
+                .filter(|(j, _)| *j != i)
+                .fold(one, |den, (_, x_j)| den * (*x_j - *x_i))
+        })
+        .collect();
+
+    // Invert all denominators with one inversion: partials[i] = dens[0] * ... * dens[i - 1].
+    let mut partials = Vec::with_capacity(n);
+    let mut acc = one;
+    for den in dens.iter() {
+        partials.push(acc);
+        acc = acc * *den;
+    }
+    let mut inv =
+        <<C::Group as Group>::Field>::invert(&acc).map_err(|_| Error::DuplicatedIdentifier)?;
+
+    let mut lambdas = BTreeMap::new();
+    for (((x_i, num), den), partial) in x_set
+        .iter()
+        .zip(nums.iter())
+        .zip(dens.iter())
+        .zip(partials.iter())
+        .rev()
+    {
+        lambdas.insert(*x_i, *num * inv * *partial);
+        inv = inv * *den;
+    }
+    Ok(lambdas)
+}
+
 /// Generates the lagrange coefficient for the i'th participant (for `signer_id`).
 ///
 /// Implements [`derive_interpolating_value()`] from the spec.
@@ -702,6 +766,15 @@ fn detect_cheater<C: Ciphersuite>(
         signing_package.message(),
     )?;
 
+    // Compute the lagrange coefficients of all signers in one batch.
+    let lambdas = compute_lagrange_coefficients(
+        &signing_package
+            .signing_commitments()
+            .keys()
+            .cloned()
+            .collect(),
+    )?;
+
     let mut all_culprits = Vec::new();
 
     // Verify the signature shares.
@@ -713,13 +786,16 @@ fn detect_cheater<C: Ciphersuite>(
             .get(identifier)
             .ok_or(Error::UnknownIdentifier)?;
 
-        let r = verify_signature_share_precomputed(
+        let lambda_i = *lambdas.get(identifier).ok_or(Error::UnknownIdentifier)?;
+
+        let r = verify_signature_share_with_lambda(
             *identifier,
             signing_package,
             binding_factor_list,
             group_commitment,
             signature_share,
             verifying_share,
+            lambda_i,
             challenge,
         );
         match r {
@@ -827,6 +903,31 @@ fn verify_signature_share_precomputed<C: Ciphersuite>(
 ) -> Result<(), Error<C>> {
     let lambda_i = derive_interpolating_value(&signature_share_identifier, signing_package)?;
 
+    verify_signature_share_with_lambda(
+        signature_share_identifier,
+        signing_package,
+        binding_factor_list,
+        group_commitment,
+        signature_share,
+        verifying_share,
+        lambda_i,
+        challenge,
+    )
+}
+
+/// Like [`verify_signature_share_precomputed()`] but using a precomputed
+/// lagrange coefficient `lambda_i`.
+#[allow(clippy::too_many_arguments)]
+fn verify_signature_share_with_lambda<C: Ciphersuite>(
+    signature_share_identifier: Identifier<C>,
+    signing_package: &SigningPackage<C>,
+    binding_factor_list: &BindingFactorList<C>,
+    group_commitment: &GroupCommitment<C>,
+    signature_share: &round2::SignatureShare<C>,
+    verifying_share: &keys::VerifyingShare<C>,
+    lambda_i: Scalar<C>,
+    challenge: Challenge<C>,
+) -> Result<(), Error<C>> {
     let binding_factor = binding_factor_list
         .get(&signature_share_identifier)
         .ok_or(Error::UnknownIdentifier)?;
