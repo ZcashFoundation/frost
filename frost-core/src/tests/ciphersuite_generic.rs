@@ -2,7 +2,11 @@
 #![allow(clippy::type_complexity)]
 #![cfg(feature = "serialization")]
 
-use alloc::{borrow::ToOwned, collections::BTreeMap, vec::Vec};
+use alloc::{
+    borrow::ToOwned,
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
 use rand_core::CryptoRng;
 
 use crate as frost;
@@ -879,6 +883,38 @@ pub fn check_identifier_derivation<C: Ciphersuite>() {
 
     assert!(id1a == id1b);
     assert!(id1a != id2);
+}
+
+/// Test that the batched lagrange coefficients match the per-signer ones
+pub fn check_batched_lagrange_coefficients<C: Ciphersuite>() {
+    let set = |ids: &[u16]| -> BTreeSet<Identifier<C>> {
+        ids.iter().map(|i| (*i).try_into().unwrap()).collect()
+    };
+    let derived: BTreeSet<Identifier<C>> = (0..20u8)
+        .map(|i| Identifier::derive(&[i]).unwrap())
+        .collect();
+    let sets = [
+        set(&[1]),
+        set(&[1, 2]),
+        set(&[2, 5]),
+        set(&[1, 2, 3]),
+        set(&[3, 7, 20, 255, 1000]),
+        set(&(1..=67).collect::<Vec<_>>()),
+        derived,
+    ];
+    for x_set in sets.iter() {
+        let lambdas = frost::compute_lagrange_coefficients(x_set).unwrap();
+        assert_eq!(lambdas.len(), x_set.len());
+        for x_i in x_set.iter() {
+            let expected = frost::compute_lagrange_coefficient(x_set, None, *x_i).unwrap();
+            assert!(lambdas[x_i] == expected);
+        }
+    }
+    assert!(
+        frost::compute_lagrange_coefficients::<C>(&BTreeSet::new())
+            .unwrap()
+            .is_empty()
+    );
 }
 
 /// Checks the signer's identifier is included in the package

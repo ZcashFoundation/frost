@@ -257,6 +257,12 @@ fn check_error_culprit() {
 }
 
 #[test]
+fn check_batched_lagrange_coefficients() {
+    frost_core::tests::ciphersuite_generic::check_batched_lagrange_coefficients::<Secp256K1Sha256>(
+    );
+}
+
+#[test]
 fn check_identifier_derivation() {
     frost_core::tests::ciphersuite_generic::check_identifier_derivation::<Secp256K1Sha256>();
 }
