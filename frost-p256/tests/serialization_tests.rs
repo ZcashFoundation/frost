@@ -136,3 +136,47 @@ fn check_round2_package_postcard_serialization() {
         round2::Package::deserialize(&bytes).unwrap()
     );
 }
+
+#[test]
+fn check_postcard_deserialization_rejects_trailing_bytes() {
+    fn with_trailing_bytes(mut bytes: Vec<u8>) -> Vec<u8> {
+        bytes.extend_from_slice(b"trailing");
+        bytes
+    }
+
+    let bytes = with_trailing_bytes(samples::signing_nonces().serialize().unwrap());
+    assert!(SigningNonces::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::signing_commitments().serialize().unwrap());
+    assert!(SigningCommitments::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::signing_package().serialize().unwrap());
+    assert!(SigningPackage::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::signature_share().serialize());
+    assert!(SignatureShare::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::secret_share().serialize().unwrap());
+    assert!(SecretShare::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::key_package().serialize().unwrap());
+    assert!(KeyPackage::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::public_key_package().serialize().unwrap());
+    assert!(PublicKeyPackage::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::public_key_package_new().serialize().unwrap());
+    assert!(PublicKeyPackage::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::round1_secret_package().serialize().unwrap());
+    assert!(round1::SecretPackage::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::round1_package().serialize().unwrap());
+    assert!(round1::Package::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::round2_secret_package().serialize().unwrap());
+    assert!(round2::SecretPackage::deserialize(&bytes).is_err());
+
+    let bytes = with_trailing_bytes(samples::round2_package().serialize().unwrap());
+    assert!(round2::Package::deserialize(&bytes).is_err());
+}

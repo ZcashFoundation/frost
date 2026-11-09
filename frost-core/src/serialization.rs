@@ -249,7 +249,13 @@ impl<T: serde::Serialize, C: Ciphersuite> Serialize<C> for T {
 #[cfg(feature = "serialization")]
 impl<T: for<'de> serde::Deserialize<'de>, C: Ciphersuite> Deserialize<C> for T {
     fn deserialize(bytes: &[u8]) -> Result<Self, Error<C>> {
-        postcard::from_bytes(bytes).map_err(|_| Error::DeserializationError)
+        // Reject trailing bytes so that each value has a single valid encoding.
+        let (value, remainder) =
+            postcard::take_from_bytes(bytes).map_err(|_| Error::DeserializationError)?;
+        if !remainder.is_empty() {
+            return Err(Error::DeserializationError);
+        }
+        Ok(value)
     }
 }
 
