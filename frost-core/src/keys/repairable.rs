@@ -18,6 +18,11 @@
 //!   all the received `sigma` values, recovering their lost `KeyPackage`. (They
 //!   will also need the `PublicKeyPackage` for this step which could be
 //!   provided by any of the helpers).
+//!
+//! The `delta` and `sigma` values are secret: anyone who learns all the
+//! `sigma` values (or all the `delta` values) can compute the repaired share.
+//! They must be sent over an [authenticated and confidential communication
+//! channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel).
 
 use alloc::collections::{BTreeMap, BTreeSet};
 
