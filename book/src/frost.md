@@ -94,6 +94,12 @@ The functionality works in such a way that each participant running the repair
 share function is not able to obtain the share that is being recovered or
 issued.
 
+The repair procedure requires an [authenticated and confidential communication
+channel](https://frost.zfnd.org/terminology.html#peer-to-peer-channel) between
+participants. The `delta` values sent between helpers and the `sigma` values
+sent to the participant being repaired must be kept secret, since anyone who
+learns all of the `sigma` values can compute the repaired share.
+
 ## Refreshing Shares
 
 Refreshing shares allow participants (or a subset of them) to update their
